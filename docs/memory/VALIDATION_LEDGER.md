@@ -107,3 +107,22 @@ recovers the data mean and variance. Fix: nbinom2/truncated_nbinom2 `size =
 1/sigma^2`; beta `phi = 1/sigma^2` (were `1/sigma` and `sigma`). lognormal/Gamma
 already correct. See DECISIONS D-7. Pre-push numeric check: nbinom2 var 21.5 vs
 21.6; beta var 0.0296 vs 0.0301.
+
+## 2026-06-04 — Green end-to-end: V-17 calibration, plotting, vignettes
+
+CI run 26984153215 (head 21eff43), ubuntu/macOS/windows all success,
+`[ FAIL 0 | WARN 3 | SKIP 0 | PASS 83 ]` (the 3 warnings are the tracked OQ-7
+sdreport NaN on the small integration DGP, not failures).
+
+- V-14 / V-15 / V-16 (recovery: total=direct+indirect, Gaussian analytic
+  cross-check, d-sep specificity) → **validated**.
+- V-17 (d-separation Type-I rate near nominal and power high) → **validated** at
+  the lightweight level (20-rep study in `test-calibration.R`; Type-I < 0.25,
+  power > 0.70). A larger calibration study remains a roadmap item.
+- V-19 / OQ-1 (family-sampler parameterizations for gaussian, poisson, nbinom2,
+  beta, lognormal, Gamma) → **validated** against live drmTMB.
+- New: `plot.drm_effect()` forest plot validated (`test-plotting.R` + live render
+  in `vignettes/effect-decomposition.Rmd`); `vignettes/comparison.Rmd` builds.
+
+Still open: OQ-7 (sdreport NaN root cause; mitigated, tracked in DRMTMB_ISSUES.md);
+`plot.drm_sem` standardized-coefficient edge labels + ns dashing (D-8, roadmap).

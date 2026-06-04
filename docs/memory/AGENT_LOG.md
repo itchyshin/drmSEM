@@ -167,3 +167,16 @@ d-sep Type-I rate + power over 20 reps); `.github/workflows/pkgdown.yaml` (deplo
 on main/release only, no PR impact); `docs/memory/DRMTMB_ISSUES.md` (upstream
 tracker — can't file on drmTMB from this scope; none confirmed yet). Wired
 plot.drm_effect + the two articles into _pkgdown.yml.
+
+## 2026-06-04 — drmSEM 0.1 feature-complete and green
+
+Authoritative check (MCP get_check_runs) on run 26984153215: all three OS jobs
+success; PASS 83 / FAIL 0. The package now has: node/sem/psem builders;
+component-labelled paths(); any-component d-sep + Fisher's C; simulation-based
+direct/indirect/total effects with the distribution-mediated decomposition;
+validated family samplers (OQ-1 closed); plot.drm_sem (DAG) + plot.drm_effect
+(decomposition forest plot, an ecosystem first); recovery (V-14/15/16) +
+calibration (V-17) tests; three vignettes; a themed pkgdown site + deploy
+workflow; the agent operating kit mirrored to .codex/.claude. Note: the CI
+monitor's per-job conclusion grep mis-parses GitHub's nested JSON — verify CI via
+the MCP check-runs API, not the monitor's SUCCESS/FAILURE line.
