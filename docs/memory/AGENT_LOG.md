@@ -80,3 +80,32 @@ Darwin + Rose, per the standing roles.)
   while drmTMB-integration is pending validation, so vignette build is not a
   failure surface. Integration test-integration.R still runs in CI when drmTMB
   installs, serving as the integration validation.
+
+## 2026-06-04 — Launchable agent roster mirrored (.codex + .claude)
+
+**Orchestrated by Ada.**
+
+**What shipped.**
+- Materialized the 13 standing review roles from `AGENTS.md` as launchable
+  agents in two mirrored directories: `.codex/agents/<slug>.toml` (Codex) and
+  `.claude/agents/<slug>.md` (Claude Code). One-to-one, with **verbatim-identical
+  instruction bodies** (generated from a single shared body per agent and diff-
+  verified). Role→slug map recorded in the `AGENTS.md` Multi-Agent Collaboration
+  table (e.g. Ada=`orchestrator-integrator`, Curie=`simulation-tester`,
+  Rose=`systems-auditor`).
+- Each body re-scopes the drmTMB persona to drmSEM: opens "You are <Persona>, the
+  <role> for drmSEM", states the observed-variable/piecewise/DAG-only scope, the
+  role's primary questions, and the concrete files/skills to consult. Review-only
+  roles get read tools (Read, Grep, Glob); engineer/tester/orchestrator roles get
+  Bash/Edit/Write as needed.
+- Updated `AGENTS.md`: the mirror paragraph now says the agents exist (was "when
+  added") and carries the role→slug table.
+
+**Mirror rule (enforce going forward).** Changing any agent updates BOTH
+`.codex/agents/<slug>.toml` and `.claude/agents/<slug>.md` in the same commit;
+bodies must stay byte-identical. Rose audits this.
+
+**Verified.** All 13 `.md`/`.toml` body pairs diffed identical. All `R/*.R` and
+`tests/**/*.R` parse cleanly under R 4.3.3. Full `devtools::test()` /
+`R CMD check` not run locally: CRAN is unreachable in this container and drmTMB
+needs TMB compilation, so the suite runs in CI (`.github/workflows/R-CMD-check.yaml`).

@@ -134,10 +134,27 @@ write-heavy core (object model, effects engine) to avoid edit conflicts. When
 handing work to another agent, leave enough context in `docs/memory/AGENT_LOG.md`
 for the next agent to continue without rediscovering the problem.
 
-Launchable team agents, when added, live in mirrored `.codex/agents/` (Codex,
-`.toml`) and `.claude/agents/` (Claude Code, `.md`) directories, one-to-one with
-verbatim instruction bodies. If you add or change one, change both in the same
-commit so the runtimes do not drift.
+Launchable team agents live in mirrored `.codex/agents/` (Codex, `.toml`) and
+`.claude/agents/` (Claude Code, `.md`) directories, one-to-one with verbatim
+instruction bodies. If you add or change one, change both in the same commit so
+the runtimes do not drift. Each standing role above has exactly one launchable
+agent, keyed by role function:
+
+| Standing name | Agent slug |
+| --- | --- |
+| Ada | `orchestrator-integrator` |
+| Boole | `api-grammar-reviewer` |
+| Gauss | `engine-reviewer` |
+| Noether | `math-consistency-reviewer` |
+| Darwin | `audience-reviewer` |
+| Florence | `figure-reviewer` |
+| Fisher | `inference-reviewer` |
+| Pat | `user-tester` |
+| Jason | `landscape-scout` |
+| Curie | `simulation-tester` |
+| Emmy | `architecture-reviewer` |
+| Grace | `reproducibility-engineer` |
+| Rose | `systems-auditor` |
 
 ## Team Improvement Loop
 
