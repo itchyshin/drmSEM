@@ -78,3 +78,19 @@ aligns/zero-fills columns to the fitted coefficient names (`dpar:term`).
 consistent with the stored coefficients. The assumption is isolated in the
 adapter so a single fix suffices if drmTMB's coding differs. Confirming this
 against a live drmTMB fit is an open question (OQ).
+
+## [2026-06-04] D-7 — drmTMB `sigma` is SD-like; dispersions are 1/sigma^2
+
+**Decision.** In `drm_sample_family()`, map drmTMB's response-scale `sigma` to
+each family's native dispersion as: nbinom2 / truncated_nbinom2 `size = 1/sigma^2`
+(var = mu + mu^2*sigma^2); beta precision `phi = 1/sigma^2` (shape1 = mu*phi,
+shape2 = (1-mu)*phi); Gamma `shape = 1/sigma^2` (sigma is the CV); lognormal
+`meanlog = log(mu)`, `sdlog = sigma` (mu uses the log link, so the engine's mu is
+exp(meanlog)); gaussian/student `sigma` is the SD.
+
+**Rationale.** Confirmed against live drmTMB intercept-only fits (OQ-1, CI run
+26982805627): predict_parameters reported nbinom2 `sigma=0.715` for a true
+`size=2` (1/0.715^2=1.96) and beta `sigma=0.374` for precision ~7 (1/0.374^2=7.15).
+The earlier `size = 1/sigma` / beta `phi = sigma` were wrong and biased
+distribution-mediated effects through count/proportion mediators. Asserted by
+`test-oq1-samplers.R` (sampler moments vs data moments). Resolves OQ-1.

@@ -3,7 +3,18 @@
 Tracked unknowns and unresolved design choices. Resolve into `DECISIONS.md` or a
 `VALIDATION_LEDGER.md` entry when answered. Format: `OQ-n — title`.
 
-## OQ-1 — Exact drmTMB family-sampler parameterizations
+## OQ-1 — Exact drmTMB family-sampler parameterizations  [RESOLVED 2026-06-04, see D-7]
+
+**Resolution.** drmTMB's response-scale `sigma` is an SD-like scale; count and
+proportion dispersions go as `1/sigma^2`. From intercept-only fits (probe log,
+CI run 26982805627): nbinom2 `sigma=0.715` with true `size=2` gives `size =
+1/sigma^2 = 1.96`; beta `sigma=0.374` with data precision ~7 gives `phi =
+1/sigma^2 = 7.15`. Fixed `drm_sample_family()` (`size = 1/sigma^2`; beta `phi =
+1/sigma^2`). lognormal (`meanlog = log(mu)` via the log mu-link) and Gamma
+(`shape = 1/sigma^2`) were already correct. Verified numerically (nbinom2 var
+21.5 vs 21.6; beta var 0.0296 vs 0.0301) and asserted in `test-oq1-samplers.R`.
+beta_binomial sampling is still unimplemented (mediator falls back to its mean);
+tracked separately. Original notes below.
 
 `drm_sample_family()` must draw from each family with the *same* parameterization
 drmTMB uses, or distribution-mediated effects will be biased. Unconfirmed against

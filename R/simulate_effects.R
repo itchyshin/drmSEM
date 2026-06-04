@@ -49,11 +49,17 @@ drm_sample_family <- function(family, params, n) {
     gamma = stats::rgamma(n, shape = 1 / pmax(sigma^2, 1e-8),
                           rate = 1 / pmax(sigma^2, 1e-8) / pmax(mu, 1e-8)),
     poisson = stats::rpois(n, lambda = pmax(mu, 0)),
-    nbinom2 = stats::rnbinom(n, mu = pmax(mu, 0), size = pmax(1 / pmax(sigma, 1e-8), 1e-8)),
+    # drmTMB's `sigma` is an SD-like scale: the nbinom2 size (theta) is 1/sigma^2
+    # (so var = mu + mu^2 * sigma^2), and the beta precision is 1/sigma^2.
+    # Confirmed against drmTMB fits in test-oq1-samplers.R (OQ-1).
+    nbinom2 = stats::rnbinom(n, mu = pmax(mu, 0),
+                             size = pmax(1 / pmax(sigma, 1e-8)^2, 1e-8)),
     truncated_nbinom2 = pmax(1, stats::rnbinom(n, mu = pmax(mu, 0),
-                                               size = pmax(1 / pmax(sigma, 1e-8), 1e-8))),
-    beta = stats::rbeta(n, shape1 = mu * pmax(sigma, 1e-3),
-                        shape2 = (1 - mu) * pmax(sigma, 1e-3)),
+                                               size = pmax(1 / pmax(sigma, 1e-8)^2, 1e-8))),
+    beta = {
+      phi <- 1 / pmax(sigma, 1e-3)^2
+      stats::rbeta(n, shape1 = mu * phi, shape2 = (1 - mu) * phi)
+    },
     {
       drm_warn_once(paste0("family-sampler-", family),
         cli::format_inline("No realized-value sampler for family {.val {family}}; using its mean."))

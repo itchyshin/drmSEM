@@ -97,3 +97,13 @@ Added closed-form recovery tests (drmTMB-gated; run in CI):
 - V-16: d-separation specificity is checked as a rejection RATE over 8 seeds
   (a single null p-value is ~Uniform and fragile); expect <= 3/8 rejections.
   Status: validated pending CI. Partially addresses V-17 calibration.
+
+## 2026-06-04 — OQ-1 resolved: family-sampler parameterizations
+
+V-19 → validated pending CI on this commit. `test-oq1-samplers.R` fits
+intercept-only models for gaussian, poisson, nbinom2, beta, lognormal, and Gamma
+and asserts that `drm_sample_family()` at the fitted response-scale (mu, sigma)
+recovers the data mean and variance. Fix: nbinom2/truncated_nbinom2 `size =
+1/sigma^2`; beta `phi = 1/sigma^2` (were `1/sigma` and `sigma`). lognormal/Gamma
+already correct. See DECISIONS D-7. Pre-push numeric check: nbinom2 var 21.5 vs
+21.6; beta var 0.0296 vs 0.0301.

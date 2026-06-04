@@ -130,3 +130,14 @@ from NaN vcov blocks (from sdreport `NaNs produced`), which would poison effects
 now falls back to the per-component point estimate. Strengthened the effect
 integration test to assert `is.finite(estimate)`. Logged the sdreport NaN itself
 as OQ-7 (root cause still needs a live drmTMB bisect).
+
+## 2026-06-04 — OQ-1 closed: sampler parameterization (Gauss/Fisher/Curie)
+
+Used a CI introspection probe (CI run 26982805627) to read drmTMB's
+predict_parameters()/simulate() shapes and fitted (mu, sigma), then deduced that
+drmTMB's sigma is SD-like with dispersion = 1/sigma^2. Fixed drm_sample_family()
+for nbinom2/truncated_nbinom2 (size=1/sigma^2) and beta (phi=1/sigma^2);
+lognormal/Gamma were already correct. Replaced the probe with an asserting
+moment-recovery test (test-oq1-samplers.R). Recorded as D-7; OQ-1 resolved;
+V-19 validated pending this commit's CI. Recovery suite (V-14/15/16) passed in the
+prior run (PASS 66, FAIL 0). OQ-7 (sdreport NaN) still open.
