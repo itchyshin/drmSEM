@@ -135,9 +135,15 @@ drm_draw_beta <- function(engine, draw = TRUE) {
     keys <- paste0(cc, ":", names(co))
     if (all(keys %in% rownames(V))) {
       Vb <- V[keys, keys, drop = FALSE]
-      out[[cc]] <- stats::setNames(
-        as.numeric(MASS::mvrnorm(1, mu = co, Sigma = Vb)), names(co)
-      )
+      # A node whose Hessian was not positive-definite yields NaN/Inf standard
+      # errors (drmTMB warns "NaNs produced" from TMB::sdreport). Drawing from
+      # such a covariance would poison the effect with NaNs, so for that
+      # component fall back to the point estimate (already in `out[[cc]]`).
+      if (all(is.finite(Vb))) {
+        out[[cc]] <- stats::setNames(
+          as.numeric(MASS::mvrnorm(1, mu = co, Sigma = Vb)), names(co)
+        )
+      }
     }
   }
   out

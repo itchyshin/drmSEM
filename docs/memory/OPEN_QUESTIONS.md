@@ -71,3 +71,17 @@ LRT df can be larger than the mean-only case, and the independence-claim
 p-values may not be uniform under the null in finite samples. We have not
 established the Type-I rate or power of Fisher's C under this scheme. Blocks
 V-17. Resolve by a simulation study before promoting d-sep to "validated".
+
+## OQ-7 — `TMB::sdreport` returns NaN standard errors on the canonical test DGP
+
+CI run 26981892600 fit the integration DGP and drmTMB warned `NaNs produced`
+from `TMB::sdreport` for the `size -> abundance -> survival` nodes (3 warnings,
+one per `make_sem()`), i.e. a non-positive-definite Hessian / NaN SEs on at least
+one node. Tests still passed. Mitigated (not root-caused): `drm_draw_beta()` now
+falls back to the point estimate for non-finite vcov blocks, and the effect tests
+assert finite estimates. Open: WHICH node/parameter is unidentified — likely the
+`sigma ~ temp` Gaussian scale or the `beta_binomial` overdispersion at n=300 —
+and whether a better-conditioned DGP (larger n, gentler scale slope) removes the
+warning. Needs a live drmTMB session to bisect by node. Until then the canonical
+example inherits NaN SEs, so Monte-Carlo effect intervals there collapse to point
+estimates.

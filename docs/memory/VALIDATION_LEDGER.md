@@ -58,3 +58,28 @@ Caveat (does **not** close OQ-1/V-19): the harness's `nbinom2` moment check used
 the *assumed* `size = 1/sigma` parameterization, so it confirms internal
 self-consistency only, not agreement with drmTMB's actual family parameterization.
 That still needs a live drmTMB fit in the cloud env.
+
+## 2026-06-04 — CI run 26981892600: integration tests ran against live drmTMB
+
+PR #1, head `0720609`, R-CMD-check on ubuntu/macOS/windows: **all green**.
+Dependencies were a **cache hit** (drmTMB precompiled), so the fast (~90s) jobs
+are real, not skipped. Ubuntu test summary: **`[ FAIL 0 | WARN 3 | SKIP 0 | PASS
+39 ]`** — `SKIP 0` confirms the drmTMB-gated `test-integration.R` actually fitted
+nodes (`size`, `abundance`, `survival`) with a live drmTMB and passed.
+
+Promotions (runtime-confirmed against drmTMB 0.1.3.9000):
+- V-11 (drm_sem builds a component-labelled DAG, topo `size, abundance, survival`) → **validated**.
+- V-12 (`paths()` component-labelled table incl. `zi`) → **validated**.
+- V-13 (effect API runs; total decomposes incl. `distribution_mediated`) → **validated** (now also asserts finiteness).
+- V-10 (d-sep flags the omitted `size -> survival` edge, p < 0.05; Fisher's C finite) → **validated**.
+- V-20 (adapter shapes: `bf()$entries`, `coef`/`vcov` `dpar:term`, `logLik`, `predict_parameters`) → **validated**.
+- V-18 / OQ-2 (`model.matrix` contrast coding vs drmTMB) → **substantially resolved**: factor predictor `habitat` round-tripped through edges/paths/effects without error. Keep open until a factor-heavy `sigma`/`zi` design is checked explicitly.
+
+Still open: V-19 / OQ-1 (exact family-sampler parameterizations) — sampling is
+drmSEM's own code, not exercised by drmTMB; needs the moment-recovery check.
+
+New caveat (OQ-7): 3 warnings `NaNs produced` from `TMB::sdreport` when fitting
+the canonical DGP nodes → NaN standard errors on at least one node. Hardened
+`drm_draw_beta()` to fall back to the point estimate for any component whose
+vcov block is non-finite, and strengthened the effect tests to assert finite
+estimates so NaN effects can no longer pass silently.

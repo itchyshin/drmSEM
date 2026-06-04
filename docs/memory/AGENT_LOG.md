@@ -119,3 +119,14 @@ mediator's sigma rises in x, ≈0 when constant). Recorded under VALIDATION_LEDG
 "Independent kernel re-verification". Confirmed all `R/*.R` + tests parse under
 R 4.3.3. drmTMB-integration + OQ-1/OQ-2 still require the cloud env (no CRAN/TMB
 in this container).
+
+## 2026-06-04 — CI evidence triage + NaN-vcov robustness fix (Ada/Gauss/Curie)
+
+PR #1 CI (run 26981892600) went green on 3 OSes; read the ubuntu job log to
+verify it was real, not skipped: `FAIL 0 | WARN 3 | SKIP 0 | PASS 39`, nodes
+fitted with live drmTMB. Promoted V-10/11/12/13/20 to validated and largely
+resolved OQ-2 in the ledger. Found + fixed a latent bug: `drm_draw_beta()` drew
+from NaN vcov blocks (from sdreport `NaNs produced`), which would poison effects;
+now falls back to the per-component point estimate. Strengthened the effect
+integration test to assert `is.finite(estimate)`. Logged the sdreport NaN itself
+as OQ-7 (root cause still needs a live drmTMB bisect).
