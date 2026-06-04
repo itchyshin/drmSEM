@@ -47,7 +47,7 @@ test_that("OQ-1: count and continuous samplers match drmTMB parameterization", {
   expect_sampler_recovers("gaussian", fg, yg)
 
   yp <- stats::rpois(n, lambda = 4)
-  fp <- drmTMB::drmTMB(drmTMB::bf(y ~ 1), family = drmTMB::poisson(),
+  fp <- drmTMB::drmTMB(drmTMB::bf(y ~ 1), family = stats::poisson(),
                        data = data.frame(y = yp))
   expect_sampler_recovers("poisson", fp, yp)
 
@@ -72,7 +72,7 @@ test_that("OQ-1: beta, lognormal, and Gamma samplers match drmTMB parameterizati
   expect_sampler_recovers("lognormal", fl, yl)
 
   yga <- stats::rgamma(n, shape = 4, scale = 1.5)        # mean 6, var 9, CV = 0.5
-  fga <- drmTMB::drmTMB(drmTMB::bf(y ~ 1), family = drmTMB::Gamma(),
+  fga <- drmTMB::drmTMB(drmTMB::bf(y ~ 1), family = stats::Gamma(),
                         data = data.frame(y = yga))
   expect_sampler_recovers("Gamma", fga, yga)
 })
