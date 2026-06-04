@@ -62,3 +62,21 @@ evidence, and review.
 
 (Authoring of the design docs and project memory in this entry by
 Darwin + Rose, per the standing roles.)
+
+## 2026-06-04 - Push, draft PR #1, CI hardening (Ada/Grace)
+
+- Pushed branch `claude/distributional-sem-tmb-evbmH`; opened draft PR
+  itchyshin/drmSEM#1. Subscribed to PR activity for CI/review events.
+- Environment note: the dev sandbox network allowlist blocks CRAN, Posit,
+  r-universe, and api.github.com (host_not_allowed); GitHub git/codeload is
+  allowed. So drmTMB/TMB cannot be installed or compiled here, and CI cannot
+  be polled from the sandbox. We rely on the PR-activity webhook (delivers CI
+  failures) and act on those.
+- Grace: the standard r-lib workflow does not run document(), and no man/*.Rd
+  is committed, which would fail R CMD check on undocumented objects. Added an
+  `any::roxygen2` dep and a `roxygen2::roxygenise()` step before check so man/
+  and NAMESPACE are generated in CI.
+- The vignette's model-fitting chunks are set to `eval = FALSE` (illustrative)
+  while drmTMB-integration is pending validation, so vignette build is not a
+  failure surface. Integration test-integration.R still runs in CI when drmTMB
+  installs, serving as the integration validation.

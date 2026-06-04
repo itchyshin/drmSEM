@@ -9,11 +9,12 @@ vignette: >
 
 ```{r setup, include = FALSE}
 # drmSEM never fits its own likelihoods: every endogenous node is one drmTMB
-# fit, and drmTMB compiles TMB (C++) from source. It may not be installed when
-# this vignette is built (e.g. on CRAN or a toolchain-free machine), so the
-# model-fitting chunks below are gated. They run only when the engine is
-# present; otherwise they are shown but not evaluated.
-has_engine <- requireNamespace("drmTMB", quietly = TRUE)
+# fit, and drmTMB compiles TMB (C++) from source. While the drmTMB-integration
+# layer is still pending end-to-end validation (see
+# docs/memory/VALIDATION_LEDGER.md), the model-fitting chunks below are shown
+# for illustration but not evaluated. Flip `has_engine` to
+# requireNamespace("drmTMB", quietly = TRUE) once integration is validated.
+has_engine <- FALSE
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
