@@ -77,13 +77,19 @@ plot.drm_sem <- function(x, ...) {
 #'
 #' @param x A `drm_effect` data frame from [indirect_effects()],
 #'   [direct_effects()], or [total_effects()].
+#' @param style `"forest"` (default; one point-and-interval row per quantity) or
+#'   `"stacked"` (a single bar stacking `direct` + `mean_mediated` +
+#'   `distribution_mediated`, which sum to the total effect). `"stacked"` needs
+#'   the decomposition rows from [indirect_effects()] and falls back to
+#'   `"forest"` if they are absent.
 #' @param ... Unused.
 #' @return A `ggplot` object (invisibly printed by default).
 #' @export
-plot.drm_effect <- function(x, ...) {
+plot.drm_effect <- function(x, style = c("forest", "stacked"), ...) {
   if (!requireNamespace("ggplot2", quietly = TRUE)) {
     cli::cli_abort("Plotting an effect decomposition requires the {.pkg ggplot2} package.")
   }
+  style <- match.arg(style)
   df <- as.data.frame(x)
   if (!"quantity" %in% names(df)) {
     df$quantity <- "effect"
@@ -92,7 +98,31 @@ plot.drm_effect <- function(x, ...) {
     df$conf.low <- NA_real_
     df$conf.high <- NA_real_
   }
-  # canonical top-to-bottom order; map each row to a decomposition class
+  from <- if ("from" %in% names(df)) df$from[[1L]] else "x"
+  to <- if ("to" %in% names(df)) df$to[[1L]] else "y"
+  xlab <- sprintf("Effect of %s on %s (response scale)", from, to)
+  part_cols <- c("direct", "mean_mediated", "distribution_mediated")
+  fills <- c(direct = "black", mean_mediated = "#1f78b4",
+             distribution_mediated = "#d95f02")
+
+  if (identical(style, "stacked")) {
+    parts <- df[df$quantity %in% part_cols, , drop = FALSE]
+    if (nrow(parts) == 0L) {
+      cli::cli_warn("No decomposition components present; using {.val forest} style.")
+    } else {
+      parts$quantity <- factor(as.character(parts$quantity), levels = part_cols)
+      return(
+        ggplot2::ggplot(parts, ggplot2::aes(x = estimate, y = "effect", fill = quantity)) +
+          ggplot2::geom_col(width = 0.6) +
+          ggplot2::geom_vline(xintercept = 0, linetype = 2, colour = "grey55") +
+          ggplot2::scale_fill_manual(values = fills, name = NULL) +
+          ggplot2::labs(x = xlab, y = NULL) +
+          ggplot2::theme_minimal()
+      )
+    }
+  }
+
+  # forest (default): one point-and-interval row per quantity
   ord <- c("total_path", "total", "direct", "indirect",
            "mean_mediated", "distribution_mediated", "effect")
   present <- intersect(ord, unique(df$quantity))
@@ -103,10 +133,11 @@ plot.drm_effect <- function(x, ...) {
     ifelse(df$quantity %in% c("indirect", "mean_mediated"), "mean-mediated",
            "direct / total")
   )
-  from <- if ("from" %in% names(df)) df$from[[1L]] else "x"
-  to <- if ("to" %in% names(df)) df$to[[1L]] else "y"
   ggplot2::ggplot(df, ggplot2::aes(x = estimate, y = quantity)) +
     ggplot2::geom_vline(xintercept = 0, linetype = 2, colour = "grey55") +
+    # geom_point always draws the estimate, so a row with no MC interval
+    # (e.g. a draw = FALSE direct effect) still shows.
+    ggplot2::geom_point(ggplot2::aes(colour = .channel)) +
     ggplot2::geom_pointrange(
       ggplot2::aes(xmin = conf.low, xmax = conf.high, colour = .channel),
       na.rm = TRUE
@@ -116,9 +147,6 @@ plot.drm_effect <- function(x, ...) {
                  "distribution-mediated" = "#d95f02"),
       name = NULL
     ) +
-    ggplot2::labs(
-      x = sprintf("Effect of %s on %s (response scale)", from, to),
-      y = NULL
-    ) +
+    ggplot2::labs(x = xlab, y = NULL) +
     ggplot2::theme_minimal()
 }
