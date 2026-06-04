@@ -141,3 +141,16 @@ lognormal/Gamma were already correct. Replaced the probe with an asserting
 moment-recovery test (test-oq1-samplers.R). Recorded as D-7; OQ-1 resolved;
 V-19 validated pending this commit's CI. Recovery suite (V-14/15/16) passed in the
 prior run (PASS 66, FAIL 0). OQ-7 (sdreport NaN) still open.
+
+## 2026-06-04 — OQ-1 fully confirmed; effect-decomposition plot added (Jason/Florence/Gauss)
+
+CI runs 26983330989 / 26983569684 drove OQ-1 to closure: gaussian, poisson,
+nbinom2, beta, lognormal samplers all PASS against live drmTMB (PASS 74/FAIL 1);
+the only remaining failure was the Gamma *link* (stats::Gamma defaults to
+"inverse"; drmTMB needs link="log"), now fixed. drmTMB's error confirmed Gamma
+sigma = CV, validating the existing shape=1/sigma^2 sampler (D-9). Two earlier
+self-inflicted failures: drmTMB::poisson/Gamma (not exported -> stats::), then the
+Gamma link. Added plot.drm_effect() (ggplot2-gated forest plot of the
+direct/mean-mediated/distribution-mediated/total decomposition) + test-plotting.R;
+landscape scan (D-8) shows no peer plots this. pkgdown: flatly+teal theme, README
+badges, pages URL. V-17 calibration test still queued (separate push).

@@ -1,5 +1,11 @@
 # drmSEM
 
+<!-- badges: start -->
+[![R-CMD-check](https://github.com/itchyshin/drmSEM/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/itchyshin/drmSEM/actions/workflows/R-CMD-check.yaml)
+[![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+<!-- badges: end -->
+
 DRMSEM is a distributional piecewise SEM framework built on
 [`drmTMB`](https://github.com/itchyshin/drmTMB), where causal paths can target
 not only the expected response but also scale, shape, zero-inflation, hurdle

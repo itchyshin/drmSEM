@@ -1,7 +1,15 @@
-url: https://github.com/itchyshin/drmSEM
+url: https://itchyshin.github.io/drmSEM
 
 template:
   bootstrap: 5
+  bslib:
+    bootswatch: flatly
+    primary: "#0f7887"
+    headings-color: "#112638"
+    link-color: "#0f7887"
+
+development:
+  mode: auto
 
 reference:
   - title: Building a distributional SEM

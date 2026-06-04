@@ -94,3 +94,34 @@ exp(meanlog)); gaussian/student `sigma` is the SD.
 The earlier `size = 1/sigma` / beta `phi = sigma` were wrong and biased
 distribution-mediated effects through count/proportion mediators. Asserted by
 `test-oq1-samplers.R` (sampler moments vs data moments). Resolves OQ-1.
+
+## [2026-06-04] D-8 — Plotting: igraph DAG + ggplot2 effect forest plot
+
+**Decision.** Two plot surfaces, both with optional dependencies gated at call
+time: (1) `plot.drm_sem()` keeps the component-styled DAG on `igraph`
+(`layout_with_sugiyama`, matching dsem); to gain on peers it should later add
+standardized-coefficient edge labels and dash non-significant edges
+(piecewiseSEM `ns_dashed` / dsem `value_and_stars` idiom). (2) New
+`plot.drm_effect()` draws the direct / mean-mediated / distribution-mediated /
+indirect / total decomposition as a horizontal forest plot (point + MC interval,
+zero reference line), gated on `ggplot2` (Suggests), with the distribution-
+mediated channel coloured separately. Do NOT add DiagrammeR / ggdag / ggraph /
+tidySEM as dependencies — borrow their conventions in vignette recipes only.
+
+**Rationale.** Landscape scan (Jason): piecewiseSEM (`plot.psem`, DiagrammeR),
+dsem (`plot.dsem`, igraph/ggraph), and lavaan/semPaths all plot the path diagram
+but NONE plots the effect decomposition — that is left as a table. The only
+precedent is `mediation::plot.mediate` (a forest plot). So the effect-
+decomposition forest plot is drmSEM's distinctive visual, and the
+distribution-mediated row is the part no other tool can show.
+
+## [2026-06-04] D-9 — Gamma `sigma` is the coefficient of variation (link = log)
+
+**Decision.** drmTMB Gamma requires `Gamma(link = "log")`; its `sigma` is the
+coefficient of variation, so `drm_sample_family()` uses `shape = 1/sigma^2`
+(var = mu^2 * sigma^2), which was already correct. Tests fit Gamma with
+`stats::Gamma(link = "log")`.
+
+**Rationale.** Confirmed verbatim by drmTMB's own error in CI run 26983569684:
+"The implemented Gamma contract is log(mu) = X_mu beta_mu and log(sigma) =
+X_sigma beta_sigma, where sigma is the coefficient of variation." Completes D-7.
