@@ -39,8 +39,10 @@ vignettes/*.pdf
 # R Environment Variables
 .Renviron
 
-# pkgdown site
-docs/
+# pkgdown site (generated under docs/); keep tracked design docs and memory
+docs/*
+!docs/design/
+!docs/memory/
 
 # translation temp files
 po/*~
