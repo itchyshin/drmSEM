@@ -83,3 +83,17 @@ the canonical DGP nodes → NaN standard errors on at least one node. Hardened
 `drm_draw_beta()` to fall back to the point estimate for any component whose
 vcov block is non-finite, and strengthened the effect tests to assert finite
 estimates so NaN effects can no longer pass silently.
+
+## 2026-06-04 — Recovery suite added (test-recovery.R)
+
+Added closed-form recovery tests (drmTMB-gated; run in CI):
+- V-15: on an identity-link Gaussian chain x->m->y, the simulated mean-mediated
+  effect equals the product of *fitted* path coefficients times the contrast
+  width sd(x), deterministically (draw = FALSE). Status: validated pending the
+  CI run on this commit.
+- V-14: on x->m->y with a direct x->y edge, direct = b_xy*s, indirect =
+  b_xm*b_my*s, total = (b_xy + b_xm*b_my)*s, and total = direct + indirect.
+  Status: validated pending CI.
+- V-16: d-separation specificity is checked as a rejection RATE over 8 seeds
+  (a single null p-value is ~Uniform and fragile); expect <= 3/8 rejections.
+  Status: validated pending CI. Partially addresses V-17 calibration.
