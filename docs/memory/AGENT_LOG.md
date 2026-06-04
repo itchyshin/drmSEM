@@ -154,3 +154,16 @@ Gamma link. Added plot.drm_effect() (ggplot2-gated forest plot of the
 direct/mean-mediated/distribution-mediated/total decomposition) + test-plotting.R;
 landscape scan (D-8) shows no peer plots this. pkgdown: flatly+teal theme, README
 badges, pages URL. V-17 calibration test still queued (separate push).
+
+## 2026-06-04 — Vignettes, calibration, pkgdown deploy (parallel agents)
+
+Two general-purpose subagents authored, in parallel (non-conflicting new files),
+`vignettes/effect-decomposition.Rmd` (marquee: the direct/mean-mediated/
+distribution-mediated/total decomposition; the forest plot renders live via a
+hand-built drm_effect, engine chunks gated eval=has_engine) and
+`vignettes/comparison.Rmd` (drmSEM vs lavaan/piecewiseSEM/glmmTMB/dsem; prose +
+table, nothing evaluated). Added: V-17 calibration test (test-calibration.R:
+d-sep Type-I rate + power over 20 reps); `.github/workflows/pkgdown.yaml` (deploy
+on main/release only, no PR impact); `docs/memory/DRMTMB_ISSUES.md` (upstream
+tracker — can't file on drmTMB from this scope; none confirmed yet). Wired
+plot.drm_effect + the two articles into _pkgdown.yml.

@@ -36,6 +36,7 @@ reference:
       - direct_effects
       - indirect_effects
       - total_effects
+      - plot.drm_effect
   - title: Diagnostics
     contents:
       - check_sem
@@ -44,3 +45,8 @@ articles:
   - title: Get started
     contents:
       - drmSEM
+  - title: Concepts
+    desc: The ideas that make drmSEM a distributional SEM.
+    contents:
+      - effect-decomposition
+      - comparison
