@@ -109,3 +109,13 @@ bodies must stay byte-identical. Rose audits this.
 `tests/**/*.R` parse cleanly under R 4.3.3. Full `devtools::test()` /
 `R CMD check` not run locally: CRAN is unreachable in this container and drmTMB
 needs TMB compilation, so the suite runs in CI (`.github/workflows/R-CMD-check.yaml`).
+
+## 2026-06-04 — Independent kernel re-verification (Gauss/Curie)
+
+Ran a base-R-only harness (no testthat/MASS/cli/drmTMB needed) that sources
+`R/simulate_effects.R` and re-checks the effect kernels outside the test suite.
+All pass; the distribution-mediated effect reproduces independently (+0.99 when a
+mediator's sigma rises in x, ≈0 when constant). Recorded under VALIDATION_LEDGER
+"Independent kernel re-verification". Confirmed all `R/*.R` + tests parse under
+R 4.3.3. drmTMB-integration + OQ-1/OQ-2 still require the cloud env (no CRAN/TMB
+in this container).

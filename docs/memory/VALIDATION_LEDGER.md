@@ -39,3 +39,22 @@ drmTMB cannot be compiled); they run in the Codex cloud env (`CLOUD.md`).
 | V-18 | `model.matrix()` contrast coding matches drmTMB's internal fixed-effect coding | pending | needs live drmTMB fit (OQ-2); isolated in `drm_fixed_design` |
 | V-19 | Exact family-sampler parameterizations match drmTMB (nbinom2 `size`, beta_binomial trials, lognormal scale) | pending | needs live drmTMB fit (OQ-1) |
 | V-20 | drmTMB adapter shapes (`bf()$entries`, `coef`/`fixef`/`vcov` `dpar:term`, `logLik`, `is_converged`, `predict_parameters`) | pending | written against drmTMB 0.1.3.9000 source; runtime confirmation pending |
+
+## 2026-06-04 — Independent kernel re-verification
+
+A second harness (`/tmp/harness.R`, base R only, no testthat) sourced
+`R/simulate_effects.R` directly and reproduced V-5, V-6, and V-7 outside the
+testthat suite, as a cross-check that the headline mechanism is not a test
+artifact:
+
+- Inverse links (V-5) and Gaussian/Poisson/zero-inflation sampler moments (V-6)
+  reproduced.
+- **Distribution-mediated mechanism (V-7) reproduced independently:** with
+  mediator scale constant in x, distribution- and mean-mediated contrasts agree
+  (0.71 vs 0.65, diff 0.058 ≈ 0); with `sigma(M)` rising in x, the
+  distribution-mediated path adds **+0.99** over the mean path (1.64 vs 0.65).
+
+Caveat (does **not** close OQ-1/V-19): the harness's `nbinom2` moment check used
+the *assumed* `size = 1/sigma` parameterization, so it confirms internal
+self-consistency only, not agreement with drmTMB's actual family parameterization.
+That still needs a live drmTMB fit in the cloud env.
