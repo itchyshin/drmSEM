@@ -1,2 +1,112 @@
 # drmSEM
-Structural equation modeling with distributional regression models
+
+DRMSEM is a distributional piecewise SEM framework built on
+[`drmTMB`](https://github.com/itchyshin/drmTMB), where causal paths can target
+not only the expected response but also scale, shape, zero-inflation, hurdle
+probability, random-effect scale, and residual correlation.
+
+> Status: early / experimental (version 0.0.0.9000). See [Status](#status).
+
+## Installation
+
+`drmSEM` is built on the `drmTMB` fitting engine, which compiles `TMB` (C++)
+from source, so you need a working C++ toolchain (Rtools on Windows, Xcode
+command-line tools on macOS, a standard build toolchain on Linux). Install the
+engine first, then `drmSEM`:
+
+```r
+# install.packages("pak")
+pak::pak("itchyshin/drmTMB")
+pak::pak("itchyshin/drmSEM")
+```
+
+Or with remotes:
+
+```r
+# install.packages("remotes")
+remotes::install_github("itchyshin/drmTMB")
+remotes::install_github("itchyshin/drmSEM")
+```
+
+## Why drmSEM
+
+**Engine / layer split.** `drmTMB` is the *fitting engine*; `drmSEM` is the
+*SEM layer* on top of it. `drmSEM` never fits its own likelihoods. Each
+endogenous node is one `drmTMB` fit, the system is **piecewise**, and the graph
+must be a **DAG**.
+
+**Component-labelled paths.** A causal path does not have to point at the mean.
+It can target any modelled distributional component of a node:
+`mu`, `sigma`, `nu`, `zi`, `hu`, `sd(group)`, or `rho12`. For example,
+temperature can act on abundance through several distinct channels:
+
+- `temp -> mu(abundance)` — temperature shifts the *expected* abundance.
+- `temp -> sigma(abundance)` — temperature changes the *dispersion / scale*, not
+  the mean.
+- `temp -> zi(abundance)` — temperature changes the *probability of structural
+  zeros*, not the conditional mean.
+
+These are different scientific claims, and `drmSEM` keeps them distinct
+everywhere: a path to `sigma` or `zi` is never reported as a mean effect.
+
+**Honest effects.** Indirect and total effects are computed by **Monte-Carlo
+simulation** over the fitted DAG (mean-mediated vs distribution-mediated), never
+by multiplying coefficients — coefficient products are invalid across
+non-Gaussian links and across distributional components.
+
+**Compared to existing tools.** `lavaan` does latent-variable Gaussian SEM;
+`piecewiseSEM` does piecewise SEM but works on the mean only; `glmmTMB` fits
+rich distributional GLMMs but is not an SEM; `dsem` does dynamic SEM. `drmSEM`
+is the piece that lets a piecewise SEM address scale, shape, zero-inflation,
+hurdle, random-effect scale, and residual correlation as first-class causal
+targets.
+
+## Quick start
+
+The canonical example: `size -> abundance -> survival`, with paths into
+non-mean components (`sigma` of size, `zi` of abundance). This block is
+illustrative and not executed here.
+
+```r
+library(drmSEM)
+
+sem <- drm_sem(
+  size      = drm_node(drmTMB::bf(size ~ temp + habitat, sigma ~ temp),
+                       family = stats::gaussian()),
+  abundance = drm_node(drmTMB::bf(abundance ~ size + temp, zi ~ habitat),
+                       family = drmTMB::nbinom2()),
+  survival  = drm_node(drmTMB::bf(cbind(alive, dead) ~ abundance + size),
+                       family = drmTMB::beta_binomial()),
+  data = dat
+)
+
+paths(sem)        # component-labelled path table
+basis_set(sem)    # independence claims implied by the DAG
+dsep(sem)         # any-component LRT for each claim
+fisher_c(sem)     # Fisher's C goodness-of-fit for the SEM
+
+# Effects of temperature on survival, propagated through the fitted DAG
+direct_effects(sem,   from = "temp", to = "survival")
+indirect_effects(sem, from = "temp", to = "survival")
+total_effects(sem,    from = "temp", to = "survival", mediation = "distribution")
+
+plot(sem)         # DAG with component-labelled edges
+```
+
+`indirect_effects()` / the decomposition report
+`total_path`, `direct`, `indirect`, `mean_mediated`, and
+`distribution_mediated` components, so distribution-mediated pathways (e.g.
+through `sigma` or `zi`) are visible rather than collapsed into a mean effect.
+
+## Status
+
+Early and experimental. The kernel logic — d-separation bookkeeping, the
+any-component LRT and Fisher's C, and the simulation-based effect calculus — is
+validated by recovery tests that run without the engine. The full
+`drmTMB`-integration path (fitting nodes end to end) is validated in the
+cloud / CI environment where `drmTMB` is compiled and installed. APIs may change
+before a stable release.
+
+## License
+
+GPL (>= 3).

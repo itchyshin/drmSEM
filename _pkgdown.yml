@@ -1,0 +1,38 @@
+url: https://github.com/itchyshin/drmSEM
+
+template:
+  bootstrap: 5
+
+reference:
+  - title: Building a distributional SEM
+    desc: Assemble a piecewise SEM from drmTMB nodes.
+    contents:
+      - drm_node
+      - drm_sem
+      - drm_psem
+  - title: Graph and paths
+    desc: Inspect the component-labelled structural graph.
+    contents:
+      - paths
+      - standardize
+      - plot.drm_sem
+  - title: d-separation
+    desc: Test missing arrows on any distributional component.
+    contents:
+      - basis_set
+      - dsep
+      - fisher_c
+  - title: Effects
+    desc: Simulation-based direct, indirect, and total effects.
+    contents:
+      - direct_effects
+      - indirect_effects
+      - total_effects
+  - title: Diagnostics
+    contents:
+      - check_sem
+
+articles:
+  - title: Get started
+    contents:
+      - drmSEM

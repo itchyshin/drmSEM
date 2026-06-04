@@ -1,0 +1,13 @@
+^.*\.Rproj$
+^\.Rproj\.user$
+^\.github$
+^\.agents$
+^docs$
+^AGENTS\.md$
+^CLOUD\.md$
+^_pkgdown\.yml$
+^pkgdown$
+^LICENSE\.md$
+^\.git$
+^\.gitignore$
+^cran-comments\.md$
