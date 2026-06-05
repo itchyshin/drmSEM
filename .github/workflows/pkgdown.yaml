@@ -33,8 +33,13 @@ jobs:
           use-public-rspm: true
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
-          extra-packages: any::pkgdown, local::., github::itchyshin/drmTMB
+          extra-packages: any::pkgdown, any::roxygen2, local::., github::itchyshin/drmTMB
           needs: website
+      # man/*.Rd and NAMESPACE are not committed; generate them so pkgdown can
+      # resolve the reference topics (drm_node, drm_sem, ...).
+      - name: Document (roxygen2)
+        run: Rscript -e 'roxygen2::roxygenise()'
+        shell: bash
       - name: Build site
         run: pkgdown::build_site_github_pages(new_process = FALSE, install = FALSE, dest_dir = "pkgdown-site")
         shell: Rscript {0}
