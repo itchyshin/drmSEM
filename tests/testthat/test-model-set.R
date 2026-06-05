@@ -88,7 +88,7 @@ test_that("drm_dag() captures node formulas keyed by response", {
   expect_s3_class(dag, "drm_dag")
   expect_equal(dag$responses, c("size", "fitness"))
   expect_equal(names(dag$formulas), c("size", "fitness"))
-  expect_silent(print(dag))
+  expect_no_error(print(dag))
 })
 
 test_that("drm_dag() rejects empty input, non-formulas, and duplicate responses", {
@@ -105,7 +105,7 @@ test_that("drm_model_set() collects named drm_dags and prints", {
   )
   expect_s3_class(models, "drm_model_set")
   expect_equal(names(models$models), c("direct", "mediated"))
-  expect_silent(print(models))
+  expect_no_error(print(models))
 })
 
 test_that("drm_model_set() requires named, unique drm_dag arguments", {
@@ -121,6 +121,19 @@ test_that("drm_model_set() requires named, unique drm_dag arguments", {
 # ---------------------------------------------------------------------------
 # Engine-gated end-to-end: fit, compare, best (mirrors test-integration.R)
 # ---------------------------------------------------------------------------
+
+# Candidate-model factories. Defined BEFORE the test that uses them: testthat
+# evaluates each test_that() block as the file is sourced, so a helper defined
+# at the bottom would not yet exist when the test runs.
+drm_model_set_dag_mediated <- function() {
+  drm_dag(size ~ temp, abundance ~ size + temp)
+}
+drm_model_set_dag_direct <- function() {
+  drm_dag(size ~ temp, abundance ~ temp)
+}
+drm_model_set_dag_full <- function() {
+  drm_dag(size ~ temp, abundance ~ size + temp + alive)
+}
 
 skip_if_not_installed("drmTMB")
 
@@ -156,7 +169,7 @@ test_that("compare() fits a model set and ranks candidates by CICc", {
   expect_equal(sum(cmp$weight, na.rm = TRUE), 1, tolerance = 1e-8)
   expect_false(is.unsorted(cmp$CICc, na.rm = TRUE))
   expect_true(all(cmp$n == nrow(dat)))
-  expect_silent(print(cmp))
+  expect_no_error(print(cmp))
 
   # best() returns the fitted drm_sem of the lowest-CICc candidate.
   top <- best(cmp)
@@ -168,26 +181,3 @@ test_that("compare() fits a model set and ranks candidates by CICc", {
   expect_true(all(c("from", "to", "component", "std.estimate",
                     "weight_sum") %in% names(avg)))
 })
-
-# Candidate-model factories, kept out of the test body so the (non-engine)
-# constructor tests above are not forced to evaluate drmTMB::bf().
-drm_model_set_dag_mediated <- function() {
-  drm_dag(
-    size ~ temp,
-    abundance ~ size + temp
-  )
-}
-
-drm_model_set_dag_direct <- function() {
-  drm_dag(
-    size ~ temp,
-    abundance ~ temp
-  )
-}
-
-drm_model_set_dag_full <- function() {
-  drm_dag(
-    size ~ temp,
-    abundance ~ size + temp + alive
-  )
-}
