@@ -1,0 +1,290 @@
+# Distributional piecewise SEM with drmSEM
+
+## Why a *distributional* piecewise SEM?
+
+Most structural equation modelling treats a path `X -> Y` as a statement
+about the **expected value** of `Y`: increase `X`, and the mean of `Y`
+shifts. That is only one of the things a predictor can do. A predictor
+can also change how *variable* a response is, how *over-dispersed* it
+is, how often it is a *structural zero*, or how strongly two responses
+*co-vary in their residuals*.
+
+`drmSEM` makes those targets first-class. It is the **SEM / graph /
+d-separation / path / effect-decomposition layer**; the
+[`drmTMB`](https://github.com/itchyshin/drmTMB) package is the **fitting
+engine**. Each endogenous node is exactly one `drmTMB` fit, the system
+is **piecewise**, and the graph must be a **DAG**. A causal path is
+**component-labelled**: it targets one modelled distributional component
+of a node:
+
+| Component  | Symbol      | What a path to it means                           |
+|------------|-------------|---------------------------------------------------|
+| mean       | `mu`        | shifts the expected response                      |
+| scale      | `sigma`     | changes residual scale / dispersion, not the mean |
+| shape      | `nu`        | changes a shape parameter (e.g. tail/skew)        |
+| zero-infl. | `zi`        | changes the probability of a structural zero      |
+| hurdle     | `hu`        | changes the probability of crossing the hurdle    |
+| RE scale   | `sd(group)` | changes among-group heterogeneity                 |
+| residual r | `rho12`     | changes the bivariate residual correlation        |
+
+The cardinal rule, enforced throughout the package: **a path to a
+non-`mu` component is never reported as a mean effect.** A
+`temp -> sigma(size)` path is a statement about *spread*, and `drmSEM`
+keeps it labelled as such everywhere – in
+[`paths()`](https://itchyshin.github.io/drmSEM/reference/paths.md), in
+[`plot()`](https://rdrr.io/r/graphics/plot.default.html), and in the
+effect decomposition.
+
+## A worked system: `size -> abundance -> survival`
+
+We use a three-node ecological chain. Conceptually:
+
+- **`size`** of organisms depends on temperature and habitat. We also
+  let temperature act on the *scale* of size: `sigma(size) ~ temp`.
+  Equation:
+  `size ~ Normal(mu = b0 + b1*temp + b2*habitat, sigma = exp(g0 + g1*temp))`.
+- **`abundance`** is a count depending on `size` and `temp`, modelled
+  with a negative binomial, with habitat acting on *zero-inflation*:
+  `zi(abundance) ~ habitat`. Equation (link scale):
+  `log(mu) = a0 + a1*size + a2*temp`, `logit(zi) = c0 + c1*habitat`.
+- **`survival`** is a binomial proportion (`cbind(alive, dead)`)
+  depending on `abundance` and `size`, with a beta-binomial family to
+  absorb extra-binomial variation:
+  `logit(mu) = d0 + d1*abundance + d2*size`.
+
+Temperature is exogenous and reaches `survival` only indirectly –
+through the *mean*, the *scale*, and the *zero-inflation* of the
+intermediate nodes. That is exactly the situation where
+coefficient-product mediation breaks down and a distribution-aware,
+simulation-based decomposition is required.
+
+### Simulate the data
+
+``` r
+
+# This chunk uses only base R, so it always runs.
+set.seed(1)
+n <- 400L
+habitat <- factor(sample(c("A", "B"), n, replace = TRUE))
+temp <- rnorm(n)
+
+# size: mean depends on temp + habitat; SCALE (sigma) depends on temp.
+mu_size <- 2 + 0.8 * temp + 0.5 * (habitat == "B")
+sd_size <- exp(-0.2 + 0.4 * temp)            # temp -> sigma(size)
+size <- rnorm(n, mu_size, sd_size)
+
+# abundance: NB mean depends on size + temp; ZI depends on habitat.
+mu_ab <- exp(0.5 + 0.3 * size + 0.2 * temp)
+zi_ab <- plogis(-1 + 1.2 * (habitat == "B"))  # habitat -> zi(abundance)
+abundance <- ifelse(rbinom(n, 1, zi_ab) == 1, 0,
+                    rnbinom(n, mu = mu_ab, size = 2))
+
+# survival: binomial proportion out of a fixed number of trials.
+trials <- 20L
+p_surv <- plogis(-1 + 0.05 * abundance + 0.15 * size)
+alive <- rbinom(n, trials, p_surv)
+dead <- trials - alive
+
+dat <- data.frame(temp, habitat, size, abundance, alive, dead)
+head(dat)
+#>         temp habitat      size abundance alive dead
+#> 1  0.4094018       A 1.9985932         0     6   14
+#> 2  1.6888733       B 6.2683461        28    15    5
+#> 3  1.5865884       A 4.0851891         0     3   17
+#> 4 -0.3309078       A 2.1241479         3     8   12
+#> 5 -2.2852355       B 0.6269537         0     7   13
+#> 6  2.4976616       A 1.4706468         9     8   12
+```
+
+The data-generating process puts a real signal into a *non-mean*
+component of two different nodes (`sigma(size)` and `zi(abundance)`),
+which is what we want the SEM to recover and propagate.
+
+### Build the SEM
+
+[`drm_sem()`](https://itchyshin.github.io/drmSEM/reference/drm_sem.md)
+takes one named
+[`drm_node()`](https://itchyshin.github.io/drmSEM/reference/drm_node.md)
+per endogenous response and a shared `data` frame. Each
+[`drm_node()`](https://itchyshin.github.io/drmSEM/reference/drm_node.md)
+wraps a
+[`drmTMB::bf()`](https://itchyshin.github.io/drmTMB/reference/drm_formula.html)
+formula (which can carry component sub-formulas like `sigma ~ temp` or
+`zi ~ habitat`) and a family.
+
+``` r
+
+sem <- drm_sem(
+  size      = drm_node(drmTMB::bf(size ~ temp + habitat, sigma ~ temp),
+                       family = stats::gaussian()),
+  abundance = drm_node(drmTMB::bf(abundance ~ size + temp, zi ~ habitat),
+                       family = drmTMB::nbinom2()),
+  survival  = drm_node(drmTMB::bf(cbind(alive, dead) ~ abundance + size),
+                       family = drmTMB::beta_binomial()),
+  data = dat
+)
+```
+
+If you have already fitted nodes yourself,
+[`drm_psem()`](https://itchyshin.github.io/drmSEM/reference/drm_psem.md)
+assembles a SEM from existing `drmTMB` objects instead of fitting
+internally; both routes produce the same object.
+
+### Inspect the component-labelled paths
+
+[`paths()`](https://itchyshin.github.io/drmSEM/reference/paths.md)
+returns one row per fitted fixed-effect coefficient across all nodes,
+each tagged with the **component** it targets and the **link** on which
+it acts. This is where the distributional structure becomes legible: the
+`temp` path into `size` appears twice – once on `mu`, once on `sigma` –
+and they are not the same claim.
+
+``` r
+
+paths(sem)
+```
+
+[`check_sem()`](https://itchyshin.github.io/drmSEM/reference/check_sem.md)
+reports, per node, the family, the modelled components, convergence,
+whether a fixed-effect covariance is available (needed for d-separation
+and effect intervals), and whether a realized-value sampler exists
+(needed for fully distribution-mediated effects).
+
+``` r
+
+check_sem(sem)
+```
+
+### See the DAG
+
+[`plot()`](https://rdrr.io/r/graphics/plot.default.html) draws the graph
+with **component-labelled edges**, so a `sigma` or `zi` arrow is
+visually distinct from a `mu` arrow rather than collapsed into a generic
+“effect”.
+
+``` r
+
+plot(sem)
+```
+
+## d-separation and Fisher’s C
+
+A piecewise SEM is tested by checking the **independence claims** the
+DAG implies: every pair of non-adjacent nodes should be conditionally
+independent given their parents.
+[`basis_set()`](https://itchyshin.github.io/drmSEM/reference/basis_set.md)
+lists those claims.
+
+``` r
+
+basis_set(sem)
+```
+
+In `drmSEM`, d-separation uses the **any-component LRT**. A missing
+arrow `X -> Y` asserts that `X` has *no* effect on *any* modelled
+component of `Y`. We test it by refitting `Y`’s node augmented with `X`
+in each component sub-model and comparing to the baseline by a
+likelihood-ratio test:
+
+`LRT = 2 * (logLik(augmented) - logLik(baseline))`, distributed
+(asymptotically) as chi-squared with degrees of freedom equal to the
+number of added coefficients across components.
+[`dsep()`](https://itchyshin.github.io/drmSEM/reference/dsep.md) runs
+this for every claim in the basis set.
+
+``` r
+
+dsep(sem)
+```
+
+[`fisher_c()`](https://itchyshin.github.io/drmSEM/reference/fisher_c.md)
+combines the per-claim p-values into Fisher’s C statistic,
+`C = -2 * sum(log(p_i))`, with `2k` degrees of freedom for `k` claims. A
+small p-value flags a missing path – including a missing path into a
+*non-mean* component, which a mean-only SEM tool could never detect.
+
+``` r
+
+fisher_c(sem)
+```
+
+## Decomposing effects by simulation
+
+Coefficient products are *not* a valid way to combine paths across
+non-Gaussian links or across distributional components. `drmSEM`
+therefore computes effects by **Monte-Carlo propagation** over the
+fitted DAG: it sets the exogenous predictor to two contrasting values,
+pushes the change through every downstream node, and reads the
+population-average change in the response-scale mean of the target.
+
+**Direct (controlled) effect.** Hold all mediators at their observed
+values; move only `temp`. Only the arrows that go *directly* into
+`survival` operate.
+
+``` r
+
+direct_effects(sem, from = "temp", to = "survival")
+```
+
+**Total effect.** Let every mediator respond. With
+`mediation = "distribution"`, mediators pass *realized draws* from their
+fitted families, so effects flowing through a mediator’s `sigma`, `zi`,
+or `nu` are included. With `mediation = "mean"`, only mediator means
+propagate.
+
+``` r
+
+total_effects(sem, from = "temp", to = "survival", mediation = "distribution")
+```
+
+**Indirect effect with a distributional decomposition.** This is the
+heart of the package.
+[`indirect_effects()`](https://itchyshin.github.io/drmSEM/reference/indirect_effects.md)
+reports five quantities:
+
+- `total_path` – the full simulated effect through the chosen mediators;
+- `direct` – the controlled direct effect;
+- `indirect` – `total_path - direct`;
+- `mean_mediated` – the part carried by mediator *means*;
+- `distribution_mediated` – the *extra* effect that appears only when
+  mediators pass realized draws, i.e. the part flowing through scale,
+  zero-inflation, or shape (`total under distribution` minus
+  `total under mean`).
+
+``` r
+
+indirect_effects(sem, from = "temp", to = "survival")
+```
+
+A non-trivial `distribution_mediated` row is the signature of this
+framework: temperature reaches survival partly because it changes the
+*spread* of size and (via habitat structure) the *zeros* of abundance,
+not only their means. A mean-only SEM would report that channel as zero
+or silently fold it into the mean. `drmSEM` keeps it visible and
+correctly labelled.
+
+## Standardizing
+
+When you need comparable path strengths,
+[`standardize()`](https://itchyshin.github.io/drmSEM/reference/standardize.md)
+rescales effects (for example `method = "latent"` or a range/SD-based
+scaling) while preserving the component labels.
+
+``` r
+
+standardize(sem)
+```
+
+## Recap
+
+- `drmSEM` is a **layer** on the `drmTMB` **engine**; one `drmTMB` fit
+  per endogenous node, DAG-only, observed variables only.
+- Paths are **component-labelled** (`mu`, `sigma`, `nu`, `zi`, `hu`,
+  `sd(group)`, `rho12`); a non-`mu` path is never a mean effect.
+- d-separation is the **any-component LRT**, combined by **Fisher’s C**.
+- Direct / indirect / total effects are **simulation-based**, never
+  coefficient products, and the indirect decomposition exposes
+  **distribution-mediated** pathways explicitly.
+
+For the environment and CI setup that compiles and installs the `drmTMB`
+engine, see `CLOUD.md`; for the operating contract, see `AGENTS.md`.
