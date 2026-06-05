@@ -126,3 +126,14 @@ sdreport NaN on the small integration DGP, not failures).
 
 Still open: OQ-7 (sdreport NaN root cause; mitigated, tracked in DRMTMB_ISSUES.md);
 `plot.drm_sem` standardized-coefficient edge labels + ns dashing (D-8, roadmap).
+
+## 2026-06-05 — Phylogenetic Phase 1 complete (PR #6)
+
+CI run 27006262081 (ubuntu/macOS/windows green) validates, against live
+drmTMB + ape: a phylo SEM builds and fits; `paths()` strips the phylo()
+term to the fixed-effect DAG; `total_effects()` propagates; and -- after the
+OQ-13 fix -- `dsep()` augment-refits a phylo node (the `tree` resolves via
+the captured `fit_env`), so the claim returns status 'ok' with a finite
+p-value and Fisher's C is finite. d-separation/Fisher's C now work
+end-to-end for phylogenetic SEMs. Marker no-leak is kernel-verified
+(test-utils.R). Phase 1 = DONE.

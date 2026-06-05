@@ -233,3 +233,10 @@ tests never used a saturated graph.
 "refit_failed" (tree not resolvable in the refit env). d-sep degrades gracefully;
 test now asserts robustness (status in {ok, refit_failed}, Fisher's C finite).
 Needs an engine-side fix (capture/re-inject the tree, or drmTMB exposes it).
+
+## 2026-06-05 — OQ-13 resolved: phylo d-sep refit works (Gauss/Curie)
+
+CI run 27006262081 green with the strict assertion (phylo-node augment-refit
+status == "ok"). The fit_env capture + envir-eval fix lets dsep() re-fit a
+phylo() node (tree resolves). Phylogenetic Phase 1 is complete end-to-end:
+build/paths/dsep/fisher_c/effects on live drmTMB. Docs marked resolved.

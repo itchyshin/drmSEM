@@ -57,7 +57,7 @@ Gaussian and Poisson/NB2 q=1 means — no non-Gaussian phylo *slopes* or slope
 correlations yet. `ape` is a test/vignette Suggests, gated on
 `requireNamespace("ape")`.
 
-**Phase-1 d-sep refit (fix pending CI):** `dsep()` augment-refits a structured
+**Phase-1 d-sep refit (RESOLVED):** `dsep()` augment-refits a structured
 node by evaluating the refit in the SEM's specification environment
 (`object$fit_env`), so the `tree` resolves. (Earlier this failed:) `dsep()` could not augment-refit
 a node that carries a structured term (`phylo()/animal()/...`) -- the tree/
