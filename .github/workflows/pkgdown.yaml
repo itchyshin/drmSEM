@@ -1,9 +1,13 @@
 # Build and deploy the pkgdown site to GitHub Pages.
-# Runs on main/master and releases only (not on PR branches), so it does not
-# affect PR CI. drmTMB is installed from Remotes; vignette engine chunks are
-# gated (eval = has_engine = FALSE), so the site builds without compiling fits.
+# Builds on pull requests (verification only, no deploy) and on main/master and
+# releases (build + deploy). drmTMB is installed from Remotes; vignette engine
+# chunks are gated (eval = has_engine = FALSE), so the site builds without
+# compiling fits. NOTE: the live site also requires GitHub Pages to be enabled
+# in repo Settings -> Pages (source: gh-pages branch) — a one-time owner action.
 on:
   push:
+    branches: [main, master]
+  pull_request:
     branches: [main, master]
   release:
     types: [published]
