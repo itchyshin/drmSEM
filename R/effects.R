@@ -120,22 +120,37 @@ direct_effects <- function(object, from, to, component = NULL, at = NULL,
 #' @param mediation `"mean"` (mediator means propagate) or `"distribution"`
 #'   (realized mediator draws propagate).
 #' @param n_sim Inner realizations per draw when `mediation = "distribution"`.
+#' @param target Functional of the outcome distribution to report the effect on:
+#'   `"mean"` (default), `"p_gt"` (Pr(Y > `threshold`)), `"p_zero"` (Pr(Y = 0)),
+#'   or `"var"` (Var(Y)). Distributional targets simulate the outcome from its
+#'   family (OQ-11); see `docs/design/02-effect-calculus.md`.
+#' @param threshold Cutoff for `target = "p_gt"`.
 #' @return A one-row `drm_effect` data frame.
 #' @export
 total_effects <- function(object, from, to, mediation = c("mean", "distribution"),
+                          target = c("mean", "p_gt", "p_zero", "var"), threshold = 0,
                           at = NULL, B = 200L, n_sim = 50L, draw = TRUE,
                           level = 0.95, seed = NULL, ...) {
   mediation <- match.arg(mediation)
+  target <- match.arg(target)
   drm_validate_effect_args(object, from, to)
   drm_require_drmTMB()
   engines <- drm_engines_from_sem(object)
   scen <- drm_build_scenarios(object, from, at)
   active <- setdiff(object$endogenous, c(from, to))
-  vals <- drm_effect_contrast(engines, scen, to, active = active,
-                              mediation = mediation, B = B, n_sim = n_sim,
-                              draw = draw, seed = seed)
+  vals <- if (identical(target, "mean")) {
+    drm_effect_contrast(engines, scen, to, active = active,
+                        mediation = mediation, B = B, n_sim = n_sim,
+                        draw = draw, seed = seed)
+  } else {
+    drm_functional_contrast(engines, scen, to, active = active,
+                            mediation = mediation, target = target,
+                            threshold = threshold, B = B, n_sim = n_sim,
+                            draw = draw, seed = seed)
+  }
   out <- cbind(data.frame(from = from, to = to, scale = "response",
-                          mediation = mediation, stringsAsFactors = FALSE),
+                          mediation = mediation, target = target,
+                          stringsAsFactors = FALSE),
                drm_summ(vals, level))
   class(out) <- c("drm_effect", "data.frame")
   out

@@ -97,3 +97,23 @@ test_that("natural indirect is zero when there is no x -> m path", {
   expect_equal(unname(ne["nie"]), 0, tolerance = 1e-8)
   expect_equal(unname(ne["nde"]), 0.4, tolerance = 1e-8)
 })
+
+# Outcome functionals (OQ-11): the effect on Pr(Y = 0) for a Poisson outcome
+# whose mean drops from 2 to 0.5 is exp(-0.5) - exp(-2).
+test_that("outcome functional p_zero recovers the Poisson zero-probability effect", {
+  mu_lo <- 2; mu_hi <- 0.5
+  engines <- list(
+    Y = list(name = "Y", identifier = "Y", family = "poisson", components = "mu",
+             coef = list(), vcov = NULL,
+             predict = function(scenario, beta = NULL)
+               data.frame(mu = mu_lo + (mu_hi - mu_lo) * scenario$x))
+  )
+  set.seed(1); n <- 4000
+  lo <- data.frame(x = 0, Y = 0)[rep(1, n), ]
+  hi <- data.frame(x = 1, Y = 0)[rep(1, n), ]
+  scen <- list(lo = lo, hi = hi, column = "x")
+  v <- drm_functional_contrast(engines, scen, "Y", active = character(0),
+                               mediation = "distribution", target = "p_zero",
+                               threshold = 0, B = 1, n_sim = 20, draw = FALSE)
+  expect_equal(unname(v), exp(-mu_hi) - exp(-mu_lo), tolerance = 0.03)
+})

@@ -226,3 +226,56 @@ drm_natural_target <- function(engines, scenarios, from_col, to, active,
     one()
   }
 }
+
+# Summary functional of a realized outcome vector (OQ-11): effects can be read on
+# any functional of the predicted outcome distribution, not just the mean.
+drm_outcome_functional <- function(y, target = "mean", threshold = 0) {
+  switch(
+    target,
+    mean = mean(y, na.rm = TRUE),
+    p_gt = mean(y > threshold, na.rm = TRUE),
+    p_zero = mean(y == 0, na.rm = TRUE),
+    var = stats::var(y, na.rm = TRUE),
+    mean(y, na.rm = TRUE)
+  )
+}
+
+# Population functional of the outcome `to` under a scenario. For target "mean"
+# this is the exact predicted mean; for distributional targets the outcome is
+# simulated from its family and the functional is averaged over n_sim draws.
+drm_functional_target <- function(engines, scenario, to, active, mediation,
+                                  beta_list, target = "mean", threshold = 0,
+                                  n_sim = 1L) {
+  if (identical(target, "mean")) {
+    return(mean(drm_expected_target(engines, scenario, to, active, mediation,
+                                    beta_list, n_sim), na.rm = TRUE))
+  }
+  eng_to <- engines[[to]]
+  reps <- max(as.integer(n_sim), 1L)
+  acc <- 0
+  for (s in seq_len(reps)) {
+    work <- drm_propagate(engines, scenario, active, "distribution", beta_list)$work
+    preds <- eng_to$predict(work, beta = beta_list[[to]])
+    y <- drm_sample_family(eng_to$family, preds, n = nrow(scenario))
+    acc <- acc + drm_outcome_functional(y, target, threshold)
+  }
+  acc / reps
+}
+
+# Contrast of an outcome functional across the low/high scenarios (OQ-11).
+drm_functional_contrast <- function(engines, scenarios, to, active, mediation,
+                                    target, threshold, B, n_sim, draw, seed = NULL) {
+  if (!is.null(seed)) set.seed(seed)
+  reps <- if (isTRUE(draw)) B else 1L
+  vals <- numeric(reps)
+  for (b in seq_len(reps)) {
+    beta_list <- lapply(engines, drm_draw_beta, draw = draw)
+    names(beta_list) <- names(engines)
+    fhi <- drm_functional_target(engines, scenarios$hi, to, active, mediation,
+                                 beta_list, target, threshold, n_sim)
+    flo <- drm_functional_target(engines, scenarios$lo, to, active, mediation,
+                                 beta_list, target, threshold, n_sim)
+    vals[[b]] <- fhi - flo
+  }
+  vals
+}

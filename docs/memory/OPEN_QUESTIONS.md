@@ -123,7 +123,12 @@ integrates over the fitted RE distribution. Required before a path into
 Add `uncertainty = "bootstrap"` (parametric/nonparametric, refit per replicate)
 alongside the current `MVN(coef, vcov)` parameter draws.
 
-## OQ-11 — Outcome functionals beyond the mean
+## OQ-11 — Outcome functionals beyond the mean  [PARTIAL 2026-06-05]
+
+**Implemented:** `total_effects(..., target = c("mean","p_gt","p_zero","var"),
+threshold=)` simulates the outcome and reports the effect on that functional
+(Poisson p_zero kernel-verified in `test-effect-kernels.R`). Remaining: extend to
+`direct_effects`/`indirect_effects` and add analytic (non-simulated) functionals.
 
 Report effects on `Pr(Y>t)`, `Var(Y)`, `Pr(Y=0)`, not only the response-scale
 mean of `to`. Add `target = c("mean","prob","var","p_zero", ...)`.
