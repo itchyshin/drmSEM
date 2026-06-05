@@ -240,3 +240,11 @@ CI run 27006262081 green with the strict assertion (phylo-node augment-refit
 status == "ok"). The fit_env capture + envir-eval fix lets dsep() re-fit a
 phylo() node (tree resolves). Phylogenetic Phase 1 is complete end-to-end:
 build/paths/dsep/fisher_c/effects on live drmTMB. Docs marked resolved.
+
+## 2026-06-05 — Parallel "finish" batch green (Ada)
+
+Four parallel agents (Phase 2 model comparison, more samplers, distributional-
+phylo demo, paper+overview) integrated on PR #6; after three CI-surfaced fixes
+(test-model-set ordering/expect_silent, drm_node NSE auto-wrap, pkgdown pak dep
+conflict) the whole batch is green on 3 OSes + pkgdown build (run 27007984275).
+Phase 2 compare()/best()/average() validated end-to-end on live drmTMB.

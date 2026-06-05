@@ -137,3 +137,23 @@ the captured `fit_env`), so the claim returns status 'ok' with a finite
 p-value and Fisher's C is finite. d-separation/Fisher's C now work
 end-to-end for phylogenetic SEMs. Marker no-leak is kernel-verified
 (test-utils.R). Phase 1 = DONE.
+
+## 2026-06-05 — Parallel batch validated (PR #6, run 27007984275/...311 green)
+
+All three OS R-CMD-check jobs + the pkgdown build are green on live drmTMB. Newly
+validated end-to-end:
+- **Phase 2 model comparison**: compare()/best()/average() fit a drm_model_set of
+  candidate DAGs and rank by Fisher's C + CICc (test-model-set.R engine test).
+- **zero_one_beta / student samplers** (moment-recovery, test-oq1-samplers.R).
+- **Distributional phylogenetic SEM** (test-phylo-distributional.R): a phylo node
+  with sigma ~ x yields a finite distribution-mediated effect under shared ancestry.
+- **pkgdown site builds** with the new model-comparison reference + overview/paper.
+
+Three bugs were fixed to get here (all CI-surfaced):
+1. test-model-set.R: DAG factories defined after the test that used them; and
+   expect_silent on cli-emitting print methods. (test-only)
+2. drm_node(): auto-wrapping a stored plain formula used drmTMB::bf(formula), but
+   bf() is NSE -> captured the symbol. Fixed with do.call(bf, list(formula)).
+   (latent bug; first exercised by Phase 2.)
+3. pkgdown workflow: pak dependency self-conflict from listing
+   github::itchyshin/drmTMB alongside local::.+Remotes. Dropped the redundant entry.
