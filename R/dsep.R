@@ -107,7 +107,16 @@ dsep.drm_sem <- function(object, ...) {
   drm_require_drmTMB()
   bs <- basis_set(object)
   if (nrow(bs) == 0L) {
+    # Saturated DAG: no independence claims to test. Return an empty, typed
+    # result (assigning a scalar column to a 0-row data.frame would error).
     cli::cli_warn("Basis set is empty: the graph is fully saturated, no claims to test.")
+    bs$df <- integer(0)
+    bs$LR <- numeric(0)
+    bs$p.value <- numeric(0)
+    bs$status <- character(0)
+    attr(bs, "fisher_c") <- drm_fisher_c_from_p(numeric(0))
+    class(bs) <- c("drm_dsep", "data.frame")
+    return(bs)
   }
   bs$df <- NA_integer_
   bs$LR <- NA_real_

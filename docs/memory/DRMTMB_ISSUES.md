@@ -18,3 +18,16 @@ bug. Before filing: reproduce on a clean, well-conditioned single-node fit and
 confirm the Hessian is genuinely non-PD where it should not be. If confirmed, the
 ask would be a clearer warning (which parameter) and/or a more robust
 `sdreport` fallback.
+
+### Candidate (needs confirmation) — structured-effect object not resolvable on refit
+When drmSEM refits a node for d-separation (adds one predictor and re-fits via
+`drmTMB::drm_formula()` + `drmTMB::drmTMB()`), a `phylo(1|species, tree=phy)`
+term fails because `phy` (the ape tree captured in the original formula's
+environment) is not resolvable in the refit. CI: PR #6 run 26998231239 ->
+`status="refit_failed"` for the augmented phylo-node refit. Ask: does drmTMB
+store the resolved phylo covariance/tree on the fitted object (so a refit could
+reuse it), or must the caller keep the tree in scope? If the former, expose it;
+if the latter, document that re-fitting a structured node requires the structured
+object in the evaluation environment. This blocks d-separation/Fisher's C for
+phylogenetic SEMs (all endogenous nodes carry the phylo term). drmSEM-side
+workaround (capture+re-inject the tree) is tracked as OQ-13.

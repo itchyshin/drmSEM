@@ -57,6 +57,13 @@ Gaussian and Poisson/NB2 q=1 means — no non-Gaussian phylo *slopes* or slope
 correlations yet. `ape` is a test/vignette Suggests, gated on
 `requireNamespace("ape")`.
 
+**Known Phase-1 limitation (CI-confirmed):** `dsep()` cannot yet augment-refit
+a node that carries a structured term (`phylo()/animal()/...`) -- the tree/
+pedigree object is not resolvable in the refit, so such claims return
+`status="refit_failed"` and drop out of Fisher's C (drmSEM degrades
+gracefully, no crash). So d-separation goodness-of-fit is currently
+incomplete for phylo SEMs. Tracked as OQ-13 / DRMTMB_ISSUES.
+
 **Outstanding for Phase 1:** a drmTMB-gated integration test fitting phylo nodes,
 a worked vignette, and confirmation that `dsep()`'s augmented refits preserve the
 `phylo()` term. (Tracked: OQ-13.) Effects are conditional (RE = 0); a path into

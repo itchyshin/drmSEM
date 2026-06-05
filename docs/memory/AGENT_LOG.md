@@ -219,3 +219,17 @@ total_effects propagates), a marker no-leak unit test in test-utils.R (verified
 locally), vignettes/phylogenetic-sem.Rmd (gated), and docs/design/06-phylogenetic-sem.md.
 ape added to Suggests. Jason's drmTMB phylo() API recon pending — reconcile the
 test's tree/phylo() usage with it before un-drafting.
+
+## 2026-06-05 — Phylo PR #6 first CI run: 2 findings (Gauss/Ada)
+
+PR #6 R-CMD-check (run 26998231239) failed but PASS 104: the phylo SEM built and
+fit against live drmTMB (ultrametric fix worked), paths() stripped phylo,
+total_effects() propagated. Two issues surfaced:
+(1) REAL BUG (fixed): dsep() crashed on a *saturated* DAG because `bs$df <-
+NA_integer_` assigns a scalar to a 0-row data.frame. Guarded the empty-basis case
+to return an empty typed drm_dsep with Fisher's C = 0. Not phylo-specific; prior
+tests never used a saturated graph.
+(2) LIMITATION (OQ-13): dsep()'s augmented refit of a phylo node returns
+"refit_failed" (tree not resolvable in the refit env). d-sep degrades gracefully;
+test now asserts robustness (status in {ok, refit_failed}, Fisher's C finite).
+Needs an engine-side fix (capture/re-inject the tree, or drmTMB exposes it).
