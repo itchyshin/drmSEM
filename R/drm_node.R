@@ -33,7 +33,11 @@ drm_node <- function(formula, family = stats::gaussian(), ...) {
         "i" = "Pass a {.fn drmTMB::bf} object, or install {.pkg drmTMB}."
       ))
     }
-    formula <- drmTMB::bf(formula)
+    # bf() uses non-standard evaluation: `drmTMB::bf(formula)` would capture the
+    # symbol `formula`, not its value (-> "input 1 is not a formula"). Splice the
+    # actual formula object in via do.call so a stored formula (e.g. from a
+    # drm_dag candidate) wraps correctly.
+    formula <- do.call(drmTMB::bf, list(formula))
   }
   if (!inherits(formula, "drm_formula")) {
     cli::cli_abort(
