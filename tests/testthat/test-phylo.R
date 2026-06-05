@@ -22,7 +22,9 @@ skip_if_not_installed("ape")
 # the exact `phylo(1 | species, tree = phy)` term the vignette documents.
 simulate_phylo_chain <- function(n = 150, seed = 1) {
   set.seed(seed)
-  phy <- ape::rtree(12)              # 12-tip random topology with branch lengths
+  # drmTMB's phylo() requires an ULTRAMETRIC tree (equal root-to-tip distances);
+  # a raw ape::rtree() is not, so rescale branch lengths with Grafen's method.
+  phy <- ape::compute.brlen(ape::rtree(12), method = "Grafen", power = 1)
   species_levels <- phy$tip.label    # factor levels == tip labels (must match)
   n_sp <- length(species_levels)
 

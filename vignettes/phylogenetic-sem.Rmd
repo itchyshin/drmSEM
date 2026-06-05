@@ -101,7 +101,10 @@ the whole system is evaluated after correcting for shared ancestry.
 
 In a real analysis you would read a tree (for example with `ape::read.tree()`)
 and align it to a species-level data frame. We sketch that here; this chunk is
-not evaluated because it needs `ape`.
+not evaluated because it needs `ape`. Two requirements: the tree must be
+**ultrametric** (equal root-to-tip distances; rescale a non-ultrametric tree
+with e.g. `ape::compute.brlen(tree, "Grafen")`), and every level of `species`
+must be a tip label of the tree.
 
 ```{r tree, eval = has_engine}
 library(ape)

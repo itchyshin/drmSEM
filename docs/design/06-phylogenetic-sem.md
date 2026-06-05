@@ -20,8 +20,9 @@ Positioning sentence (paper/package):
   compared under phylogenetic covariance via the d-separation / Fisher's C
   tradition; `define_model_set()`, `phylo_path()`, `best()`, `average()`,
   `plot()`; ranking by C, CICc, ΔCICc, weights. Mean-only.
-- **phylosem** — TMB-based *joint* phylogenetic SEM + comparative methods: BM /
-  OU / Pagel's λ / κ covariance, trait imputation, recursive/cyclic links,
+- **phylosem** — TMB-based *joint* phylogenetic SEM + comparative methods: a
+  Brownian-motion base with optional OU / Pagel's-λ / -κ / -δ transformations,
+  trait imputation, recursive/cyclic links,
   coercion to `sem`/`phylopath`/`phylobase`. Broader engine, mean/trait focus.
 - **drmSEM** — *piecewise distributional* SEM on the drmTMB engine: each
   endogenous node is one drmTMB fit; phylogeny enters as a structured random
@@ -46,6 +47,15 @@ sem <- drm_sem(
 )
 paths(sem); dsep(sem); fisher_c(sem); indirect_effects(sem, from = "x", to = "y2")
 ```
+
+**drmTMB phylo constraints (confirmed via API recon):** `tree` is an `ape`
+"phylo" object (not a matrix; use `relmat(K=/Q=)` for a precomputed matrix)
+and **must be ultrametric** (rescale a raw `ape::rtree()` with
+`ape::compute.brlen(tree, "Grafen")`); every `species` level must be a tip
+label. drmTMB phylo is a first slice: intercept-only `phylo(1|species)` for
+Gaussian and Poisson/NB2 q=1 means — no non-Gaussian phylo *slopes* or slope
+correlations yet. `ape` is a test/vignette Suggests, gated on
+`requireNamespace("ape")`.
 
 **Outstanding for Phase 1:** a drmTMB-gated integration test fitting phylo nodes,
 a worked vignette, and confirmation that `dsep()`'s augmented refits preserve the
