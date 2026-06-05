@@ -125,3 +125,30 @@ coefficient of variation, so `drm_sample_family()` uses `shape = 1/sigma^2`
 **Rationale.** Confirmed verbatim by drmTMB's own error in CI run 26983569684:
 "The implemented Gamma contract is log(mu) = X_mu beta_mu and log(sigma) =
 X_sigma beta_sigma, where sigma is the coefficient of variation." Completes D-7.
+
+## [2026-06-05] D-10 — Effects are counterfactual contrasts, not coefficient products
+
+**Decision.** drmSEM defines direct/indirect/total effects as model-implied
+counterfactual contrasts of predicted response distributions, estimated by
+Monte-Carlo g-computation over the fitted DAG (Pearl 2001; Robins & Greenland
+1992; Imai, Keele & Yamamoto 2010). The product-of-coefficients identity is only
+the linear-Gaussian, identity-link, mean-only special case and is used solely as
+a validation check (recovery test V-15). Current `total_path` is exact
+g-computation; the `direct`/`indirect` split is currently controlled (CDE
+baseline) with the natural NDE/NIE split as a refinement (OQ-8). Documented in
+`02-effect-calculus.md`.
+
+**Rationale.** Across mixed links and non-mean components, `a*b` has no
+response-scale meaning, and `E[f(M)] != f(E[M])` means a path on a mediator's
+sigma/zi/nu can carry a real indirect effect with zero mu path — the
+distribution-mediated channel, expressible only by simulation.
+
+## [2026-06-05] D-11 — Phylogenetic scope = distributional, piecewise, on drmTMB structured effects
+
+**Decision.** drmSEM targets phylogenetic *distributional* SEM, piecewise, with
+shared ancestry entering each node via drmTMB's `phylo()`/`animal()`/`relmat()`/
+`spatial()` structured effects (which drmSEM already strips from causal edges).
+It covers the phylopath niche (Phases 1-2) and part of phylosem (Phase 3), but
+does NOT promise a joint phylogenetic SEM likelihood, multi-trait imputation,
+cyclic structures, or joint OU/lambda/kappa estimation in 0.x. Roadmap in
+`06-phylogenetic-sem.md`.

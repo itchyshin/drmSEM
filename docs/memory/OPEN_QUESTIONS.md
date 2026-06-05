@@ -96,3 +96,42 @@ and whether a better-conditioned DGP (larger n, gentler scale slope) removes the
 warning. Needs a live drmTMB session to bisect by node. Until then the canonical
 example inherits NaN SEs, so Monte-Carlo effect intervals there collapse to point
 estimates.
+
+## OQ-8 — Natural (cross-world) vs controlled direct/indirect effects
+
+`indirect_effects()` currently splits total into a CONTROLLED direct effect
+(mediators at observed values) and `indirect = total - direct`. The Pearl/Imai
+natural effects use cross-world counterfactuals: `NDE = E[Y(x1,M(x0))] -
+E[Y(x0,M(x0))]`, `NIE = E[Y(x0,M(x1))] - E[Y(x0,M(x0))]`. Implement an
+`effect = c("controlled","natural")` option that holds the mediator at its
+predicted `M(x0)`/`M(x1)` distribution. See `02-effect-calculus.md`.
+
+## OQ-9 — Marginal vs conditional effects over random effects
+
+Effects hold RE = 0 (conditional / typical-group), not the marginal mean
+`E_b[g^{-1}(eta+b)]`. Add `population = c("conditional","marginal")` that
+integrates over the fitted RE distribution. Required before a path into
+`sd(group)` can be given a response-scale marginal effect.
+
+## OQ-10 — Bootstrap uncertainty (speed Tier 5)
+
+Add `uncertainty = "bootstrap"` (parametric/nonparametric, refit per replicate)
+alongside the current `MVN(coef, vcov)` parameter draws.
+
+## OQ-11 — Outcome functionals beyond the mean
+
+Report effects on `Pr(Y>t)`, `Var(Y)`, `Pr(Y=0)`, not only the response-scale
+mean of `to`. Add `target = c("mean","prob","var","p_zero", ...)`.
+
+## OQ-12 — Effect API harmonization
+
+Surface `indirect_effects(..., method = c("gcomp","simulate"), uncertainty =
+c("none","parametric","bootstrap"), nsim, population, target)` mapping onto the
+existing `mediation`/`draw`/`B`/`n_sim` engine without changing the kernels.
+
+## OQ-13 — Phylogenetic mode (Phase 1) test + dsep refit fidelity
+
+A phylo node works today (markers are stripped from causal edges), but needs: a
+drmTMB-gated integration test fitting `phylo(1|species, tree=)` nodes; a worked
+vignette; and confirmation that `drm_refit_augmented()` (d-sep) preserves the
+`phylo()` structured term when augmenting a node. See `06-phylogenetic-sem.md`.

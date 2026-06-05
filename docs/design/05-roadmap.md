@@ -62,3 +62,11 @@ drmTMB-integration runtime pending (see `04-validation-plan.md`).
 - drmSEM fitting its own likelihoods — never; drmTMB is the engine.
 - Arbitrary model-backend adapters.
 - Replacing lavaan for classical covariance-structure SEM.
+
+## Phylogenetic distributional SEM
+
+See `06-phylogenetic-sem.md` for the staged phylogenetic roadmap (Phase 1 phylo
+nodes work today; Phases 2-4 add model comparison, evolutionary covariance
+models, and distributional phylogenetic paths). Effect-theory refinements
+(natural effects, marginal effects, bootstrap, outcome functionals) are OQ-8..12
+in `../memory/OPEN_QUESTIONS.md`.
