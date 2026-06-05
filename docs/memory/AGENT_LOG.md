@@ -192,3 +192,16 @@ GitHub installs and users see the same source documentation. Local verification:
 `R CMD INSTALL .` passed; `pkgdown::build_site_github_pages(dest_dir =
 "pkgdown-site", new_process = FALSE, install = FALSE)` passed. Local warning
 only: glmmTMB was built against TMB 1.9.17 while the local TMB is 1.9.21.
+
+## 2026-06-04 — README hero DAG rendered locally (Ada/Florence/Grace)
+
+Picked up issue #2 task 5 from the local-computer lane. Added
+`tools/render-readme-hero.R`, which fits the canonical `size -> abundance ->
+survival` example with live drmTMB and renders a component-labelled DAG to
+`man/figures/drmsem-hero-dag.png`. Florence/Pat visual check: the first render
+clipped the `abundance` label; the committed render uses smaller node labels and
+the final PNG was inspected directly. Grace evidence: `Rscript
+tools/render-readme-hero.R` passed; `pkgdown::build_site()` passed and copied the
+hero image into `pkgdown-site/reference/figures/`; the generated homepage
+contains the image and all three article HTML files exist. GitHub Pages evidence:
+`gh-pages` exists and `https://itchyshin.github.io/drmSEM/` returned HTTP 200.
