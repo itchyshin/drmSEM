@@ -9,6 +9,7 @@
 ^CLOUD\.md$
 ^_pkgdown\.yml$
 ^pkgdown$
+^pkgdown-site$
 ^LICENSE\.md$
 ^\.git$
 ^\.gitignore$

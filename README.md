@@ -6,6 +6,8 @@
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 <!-- badges: end -->
 
+📖 **Documentation & articles:** <https://itchyshin.github.io/drmSEM>
+
 DRMSEM is a distributional piecewise SEM framework built on
 [`drmTMB`](https://github.com/itchyshin/drmTMB), where causal paths can target
 not only the expected response but also scale, shape, zero-inflation, hurdle

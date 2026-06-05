@@ -36,7 +36,7 @@ jobs:
           extra-packages: any::pkgdown, local::., github::itchyshin/drmTMB
           needs: website
       - name: Build site
-        run: pkgdown::build_site_github_pages(new_process = FALSE, install = FALSE)
+        run: pkgdown::build_site_github_pages(new_process = FALSE, install = FALSE, dest_dir = "pkgdown-site")
         shell: Rscript {0}
       - name: Deploy to GitHub pages
         if: github.event_name != 'pull_request'
@@ -44,4 +44,4 @@ jobs:
         with:
           clean: false
           branch: gh-pages
-          folder: docs
+          folder: pkgdown-site

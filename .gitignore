@@ -49,3 +49,6 @@ po/*~
 
 # RStudio Connect folder
 rsconnect/
+
+# pkgdown built site (built in CI, deployed to gh-pages)
+pkgdown-site/
