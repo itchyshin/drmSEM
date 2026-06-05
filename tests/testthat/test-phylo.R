@@ -123,16 +123,12 @@ test_that("dsep() runs over the phylo DAG and Fisher's C is finite", {
   expect_true(is.finite(fc$fisher_c))
 })
 
-test_that("dsep() degrades gracefully on a structured (phylo) node refit", {
+test_that("dsep() augment-refit resolves the phylo tree and succeeds (OQ-13)", {
   # Drop the true x -> y2 arrow so the basis set contains x _||_ y2 | {y1}.
   # Testing that claim forces dsep() to refit node y2 (which carries
-  # phylo(1 | species, tree = phy)) with `x` ADDED. Re-fitting a STRUCTURED node
-  # is not yet supported: the `tree` object is captured in the original formula's
-  # environment and is not resolvable in the refit, so the augmented refit returns
-  # status "refit_failed" (tracked as OQ-13). The invariant under test is
-  # ROBUSTNESS -- dsep() must not crash, the claim is recorded, and Fisher's C
-  # stays finite (a failed claim is dropped). Tighten to status == "ok" once the
-  # structured-refit fix lands.
+  # phylo(1 | species, tree = phy)) with `x` ADDED. The refit is evaluated in the
+  # environment where the SEM was specified (drm_sem stores `fit_env`), so the
+  # `tree` object resolves and the augmented refit succeeds with a usable LRT.
   sim <- simulate_phylo_chain(n = 150, seed = 1)
   dat <- sim$data
   phy <- sim$phy
@@ -153,7 +149,8 @@ test_that("dsep() degrades gracefully on a structured (phylo) node refit", {
   expect_s3_class(d, "data.frame")
   claim <- d[d$x == "x" & d$y == "y2", ]
   expect_equal(nrow(claim), 1L)
-  expect_true(claim$status %in% c("ok", "refit_failed"))
+  expect_identical(claim$status, "ok")
+  expect_true(is.finite(claim$p.value))
 
   fc <- fisher_c(sem)
   expect_true(is.finite(fc$fisher_c))

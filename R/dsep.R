@@ -122,6 +122,9 @@ dsep.drm_sem <- function(object, ...) {
   bs$LR <- NA_real_
   bs$p.value <- NA_real_
   bs$status <- "ok"
+  # Evaluate augmented refits where the SEM was specified, so a node's
+  # structured-effect objects (e.g. a phylo `tree`) resolve (OQ-13).
+  refit_env <- if (is.null(object$fit_env)) globalenv() else object$fit_env
   for (i in seq_len(nrow(bs))) {
     y <- bs$y[[i]]
     fit <- object$records[[y]]$fit
@@ -131,7 +134,7 @@ dsep.drm_sem <- function(object, ...) {
       next
     }
     base <- drm_fit_logLik(fit)
-    aug_fit <- drm_refit_augmented(fit, add_var)
+    aug_fit <- drm_refit_augmented(fit, add_var, env = refit_env)
     if (is.null(aug_fit)) {
       bs$status[[i]] <- "refit_failed"
       next

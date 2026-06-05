@@ -2,8 +2,10 @@
 #' @noRd
 NULL
 
-# Internal constructor shared by drm_sem() and drm_psem().
-new_drm_sem <- function(fits, data, call) {
+# Internal constructor shared by drm_sem() and drm_psem(). `fit_env` is the
+# environment where the SEM was specified; d-separation refits are evaluated
+# there so structured-effect objects (e.g. a phylo `tree`) resolve (OQ-13).
+new_drm_sem <- function(fits, data, call, fit_env = parent.frame()) {
   if (length(fits) == 0L) {
     cli::cli_abort("A drmSEM model needs at least one endogenous node.")
   }
@@ -41,7 +43,8 @@ new_drm_sem <- function(fits, data, call) {
       endogenous = node_names,
       exogenous = exo,
       order = topo$order,
-      call = call
+      call = call,
+      fit_env = fit_env
     ),
     class = "drm_sem"
   )
@@ -77,7 +80,7 @@ drm_psem <- function(..., data = NULL) {
   if (is.null(data)) {
     data <- drm_fit_data(fits[[1L]])
   }
-  new_drm_sem(fits, data, match.call())
+  new_drm_sem(fits, data, match.call(), fit_env = parent.frame())
 }
 
 #' Fit and assemble a distributional piecewise SEM
@@ -136,7 +139,7 @@ drm_sem <- function(..., data) {
     fits[[i]] <- drm_fit_node(specs[[i]], data = data, name = nms[[i]])
   }
   names(fits) <- nms
-  new_drm_sem(fits, data, match.call())
+  new_drm_sem(fits, data, match.call(), fit_env = parent.frame())
 }
 
 #' @export
