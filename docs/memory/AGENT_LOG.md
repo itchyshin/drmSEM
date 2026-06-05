@@ -180,3 +180,15 @@ calibration (V-17) tests; three vignettes; a themed pkgdown site + deploy
 workflow; the agent operating kit mirrored to .codex/.claude. Note: the CI
 monitor's per-job conclusion grep mis-parses GitHub's nested JSON — verify CI via
 the MCP check-runs API, not the monitor's SUCCESS/FAILURE line.
+
+## 2026-06-04 — pkgdown source-docs fix before first merge (Grace/Ada)
+
+PR #1's pkgdown check failed because the workflow used pkgdown's default
+`docs/` destination, but this repo already uses `docs/` for source design and
+memory files. Moved generated site output to `pkgdown-site/`, ignored and
+R-build-ignored that directory, and changed deploy to publish `pkgdown-site/`.
+Committed generated `man/*.Rd` files plus the roxygen-generated NAMESPACE so
+GitHub installs and users see the same source documentation. Local verification:
+`R CMD INSTALL .` passed; `pkgdown::build_site_github_pages(dest_dir =
+"pkgdown-site", new_process = FALSE, install = FALSE)` passed. Local warning
+only: glmmTMB was built against TMB 1.9.17 while the local TMB is 1.9.21.

@@ -23,7 +23,7 @@
 
 #' @importFrom graphics plot
 #' @importFrom stats as.formula model.matrix pnorm pchisq quantile sd setNames
-#'   logLik vcov gaussian
+#' @importFrom stats logLik vcov gaussian
 NULL
 
 # Quiet R CMD check notes for non-standard evaluation in data-frame helpers.

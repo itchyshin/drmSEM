@@ -43,6 +43,7 @@ vignettes/*.pdf
 docs/*
 !docs/design/
 !docs/memory/
+pkgdown-site/
 
 # translation temp files
 po/*~

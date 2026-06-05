@@ -1,9 +1,11 @@
 # Build and deploy the pkgdown site to GitHub Pages.
 # Builds on pull requests (verification only, no deploy) and on main/master and
-# releases (build + deploy). drmTMB is installed from Remotes; vignette engine
-# chunks are gated (eval = has_engine = FALSE), so the site builds without
-# compiling fits. NOTE: the live site also requires GitHub Pages to be enabled
-# in repo Settings -> Pages (source: gh-pages branch) — a one-time owner action.
+# releases (build + deploy). The generated site is written to pkgdown-site/
+# because docs/ is source documentation in this repo. drmTMB is installed from
+# Remotes; vignette engine chunks are gated (eval = has_engine = FALSE), so the
+# site builds without compiling fits. NOTE: the live site also requires GitHub
+# Pages to be enabled in repo Settings -> Pages (source: gh-pages branch) — a
+# one-time owner action.
 on:
   push:
     branches: [main, master]
@@ -33,15 +35,10 @@ jobs:
           use-public-rspm: true
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
-          extra-packages: any::pkgdown, any::roxygen2, local::., github::itchyshin/drmTMB
+          extra-packages: any::pkgdown, local::., github::itchyshin/drmTMB
           needs: website
-      # man/*.Rd and NAMESPACE are not committed; generate them so pkgdown can
-      # resolve the reference topics (drm_node, drm_sem, ...).
-      - name: Document (roxygen2)
-        run: Rscript -e 'roxygen2::roxygenise()'
-        shell: bash
       - name: Build site
-        run: pkgdown::build_site_github_pages(new_process = FALSE, install = FALSE, dest_dir = "pkgdown-site")
+        run: pkgdown::build_site_github_pages(dest_dir = "pkgdown-site", new_process = FALSE, install = FALSE)
         shell: Rscript {0}
       - name: Deploy to GitHub pages
         if: github.event_name != 'pull_request'
