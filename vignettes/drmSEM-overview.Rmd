@@ -1,0 +1,262 @@
+---
+title: "drmSEM overview"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{drmSEM overview}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+# drmSEM never fits its own likelihoods: every endogenous node is one drmTMB
+# fit, and drmTMB compiles TMB (C++) from source. While the drmTMB-integration
+# layer is still pending end-to-end validation (see
+# docs/memory/VALIDATION_LEDGER.md), the model-fitting chunks below are shown
+# for illustration but not evaluated. Flip `has_engine` to
+# requireNamespace("drmTMB", quietly = TRUE) once integration is validated.
+has_engine <- FALSE
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  eval = has_engine
+)
+library(drmSEM)
+```
+
+This vignette is the map of `drmSEM`: it ties together the engine/layer split,
+component-labelled paths, the simulation-based effect calculus, d-separation, and
+phylogenetic distributional SEM, and closes with a roadmap. It is deliberately
+prose-first; each section points to a companion vignette where the topic is
+worked in full.
+
+- *Distributional piecewise SEM with drmSEM* (`drmSEM.Rmd`) — the end-to-end walkthrough.
+- *Effect decomposition* (`effect-decomposition.Rmd`) — the simulation calculus in depth.
+- *Phylogenetic SEM* (`phylogenetic-sem.Rmd`) — shared ancestry inside a distributional SEM.
+- *Comparison with other tools* (`comparison.Rmd`) — where `drmSEM` sits in the landscape.
+
+## The one idea
+
+Most structural equation modelling treats a path `X -> Y` as a statement about
+the **expected value** of `Y`. But a predictor can do more than move a mean. It
+can change how *variable* a response is, how *over-dispersed* it is, how often it
+is a *structural zero*, how much *among-group heterogeneity* it carries, or how
+strongly two responses *co-vary in their residuals*. In ecology and evolution
+these are real, distinct hypotheses:
+
+- "Warmer sites make body size *more variable*" — a claim about `sigma`, not `mu`.
+- "Habitat raises the *probability of absence*, not the mean count" — a claim
+  about `zi`.
+- "Denser populations reduce *among-site heterogeneity* in survival" — a claim
+  about `sd(site)`.
+
+`drmSEM` makes those targets first-class causal claims, keeps them labelled as
+such everywhere, and propagates their downstream consequences honestly.
+
+## The engine / layer split
+
+`drmSEM` is a **layer**, not a fitting engine.
+
+- [`drmTMB`](https://github.com/itchyshin/drmTMB) is the **engine**: it fits one
+  distributional regression — mean, scale, shape, zero-inflation, hurdle,
+  random-effect scale, residual correlation — per response.
+- `drmSEM` is the **graph / SEM / d-separation / path / effect-decomposition
+  layer**. It *never* fits its own likelihoods.
+
+The consequences are concrete: each endogenous node is **exactly one `drmTMB`
+fit**, the system is **piecewise** (a graph of separately fitted local models, in
+the `piecewiseSEM` tradition), and the directed graph must be a **DAG** — cycles
+are an error. Every assumption about the engine's return shapes lives in a single
+adapter, so `drmSEM` re-uses, never re-implements, `drmTMB`'s likelihoods, links,
+and family samplers.
+
+There are two ways in, producing the identical object:
+
+```{r build}
+# Declarative: one drm_node() per endogenous response, a shared data frame.
+sem <- drm_sem(
+  size      = drm_node(drmTMB::bf(size ~ temp + habitat, sigma ~ temp),
+                       family = stats::gaussian()),
+  abundance = drm_node(drmTMB::bf(abundance ~ size + temp, zi ~ habitat),
+                       family = drmTMB::nbinom2()),
+  survival  = drm_node(drmTMB::bf(cbind(alive, dead) ~ abundance + size),
+                       family = drmTMB::beta_binomial()),
+  data = dat
+)
+
+# Assembler: if you have already fitted the nodes yourself, drm_psem() wires
+# existing drmTMB objects into the same drm_sem object — no refitting.
+```
+
+This canonical chain, `size -> abundance -> survival`, recurs across the
+vignettes. Temperature is exogenous and reaches survival only indirectly, through
+the *mean*, the *scale*, and the *zero-inflation* of the intermediate nodes —
+exactly the situation that breaks coefficient-product mediation.
+
+## Component-labelled paths
+
+A `drmSEM` edge is the tuple `(from, to, component, link, term)`. The `component`
+is the distributional parameter of the target node that the predictor acts on:
+
+| Component  | Symbol      | What a path to it means                          |
+| ---------- | ----------- | ------------------------------------------------ |
+| mean       | `mu`        | shifts the expected response                     |
+| scale      | `sigma`     | changes residual scale / dispersion, not the mean|
+| shape      | `nu`        | changes a shape parameter (e.g. tail/skew)       |
+| zero-infl. | `zi`        | changes the probability of a structural zero     |
+| hurdle     | `hu`        | changes the probability of crossing the hurdle   |
+| RE scale   | `sd(group)` | changes among-group heterogeneity                |
+| residual r | `rho12`     | changes the bivariate residual correlation       |
+
+`paths()` returns one row per fitted fixed-effect coefficient across all nodes,
+each tagged with its component and link. In the canonical model the `temp` path
+into `size` appears twice — once on `mu`, once on `sigma` — and they are not the
+same claim. The cardinal rule, enforced in `paths()`, `plot()`, the d-separation
+test, and the effect decomposition, is that **a path to a non-`mu` component is
+never reported as a mean effect.**
+
+```{r paths}
+paths(sem)   # component-labelled path table
+plot(sem)    # the DAG, with sigma / zi edges drawn distinctly from mu edges
+```
+
+## The effect calculus: counterfactual, not coefficient products
+
+The classical "indirect = product of path coefficients" identity is exact only on
+a single linear, identity-link scale. `drmSEM` paths cross links (a `log`-link
+mean feeding a `logit`-link mean downstream) and flow through non-mean
+components, where a product of coefficients has no defined response-scale
+meaning. So `drmSEM` *simulates* the intervention instead: it sets the predictor
+to two contrasting values, pushes the change through every downstream node in
+topological order (random effects held at zero), and reads off the
+population-average change in the response-scale target. This is counterfactual,
+`do()`-style propagation in the tradition of Pearl and of Imai, Keele and
+Yamamoto's natural direct/indirect effects.
+
+**Mean vs distribution mediation.** What an active mediator passes downstream is
+the crux. Under `mediation = "mean"` it passes its expected `mu`; under
+`mediation = "distribution"` it passes a **realized draw** from its fitted family,
+using all of its response-scale parameters (`sigma`, `zi`, `nu`, trials, ...).
+Only the latter carries signal that lives in a mediator's scale, zeros, or shape.
+
+**The decomposition.** `indirect_effects()` reports five quantities:
+
+- `total_path` — the full simulated effect with mediators active;
+- `direct` — the controlled direct effect (mediators held inactive);
+- `indirect` — `total_path - direct`;
+- `mean_mediated` — the part carried by mediator *means*;
+- `distribution_mediated` — the *extra* effect that appears only when mediators
+  pass realized draws, i.e. signal flowing through scale, zero-inflation, or
+  shape (distribution total minus mean total).
+
+So `indirect` is approximately `mean_mediated + distribution_mediated`, and the
+`distribution_mediated` row isolates exactly the contribution that no
+coefficient-product method can express. These map onto natural direct and
+indirect effects in counterfactual mediation analysis.
+
+```{r effects}
+direct_effects(sem,   from = "temp", to = "survival")
+total_effects(sem,    from = "temp", to = "survival", mediation = "distribution")
+indirect_effects(sem, from = "temp", to = "survival")  # the five-row decomposition
+```
+
+**Outcome functionals.** Because effects come from simulated populations, the
+target need not be a mean. The same machinery supports response-scale functionals
+— `Pr(Y > t)`, the variance of `Y`, a zero probability — reported as effects on
+those functionals. Coefficient uncertainty is propagated by drawing each node's
+coefficients from `MVN(coef, vcov)` and repeating the whole propagation. See
+`effect-decomposition.Rmd` for the full treatment.
+
+## d-separation: an any-component test
+
+A piecewise SEM is tested by the **independence claims** its DAG implies: every
+pair of non-adjacent nodes should be conditionally independent given their
+parents. `drmSEM` sharpens the usual mean-only version. Because each node models a
+whole conditional distribution, a missing arrow `X -> Y` asserts that `X` predicts
+**none** of `Y`'s modelled components — `mu`, `sigma`, `zi`, and the rest.
+Adjacency is correspondingly any-component: an arrow into `zi(Y)` alone makes `X`
+adjacent to `Y`.
+
+`basis_set()` enumerates the claims. `dsep()` tests each by refitting `Y`'s node
+with `X` added to *every* component sub-formula and comparing to the base node by
+a likelihood-ratio test, with degrees of freedom equal to the number of added
+coefficients. `fisher_c()` combines the claim p-values into Fisher's C,
+`C = -2 * sum(log p)`, on `2k` degrees of freedom for `k` claims; a small p-value
+flags a missing path — including a missing path into a *non-mean* component, which
+a mean-only tool could never detect.
+
+```{r dsep}
+basis_set(sem)   # the implied independence claims
+dsep(sem)        # any-component LRT per claim
+fisher_c(sem)    # combined goodness-of-fit
+```
+
+The any-component definition is a deliberate, novel research choice: it treats "X
+is irrelevant to Y" as a statement about Y's whole conditional distribution. Its
+small-sample calibration is an open question, and the test is labelled
+experimental. Claims whose augmented refit cannot be formed are flagged and
+dropped from Fisher's C rather than silently scored.
+
+## Phylogenetic distributional SEM
+
+Shared ancestry enters a `drmSEM` model as a structured random effect on a node.
+`drmTMB` exports the markers `phylo()`, `animal()`, `relmat()`, and `spatial()`,
+and `drmSEM` recognises them as markers: they are stripped from the causal edge
+set, so a node can carry a phylogenetic random effect *today* while `paths()`,
+`dsep()`, `fisher_c()`, and the effect engine operate on the fixed-effect DAG.
+
+```{r phylo}
+sem_phylo <- drm_sem(
+  y1 = drm_node(drmTMB::bf(y1 ~ x + phylo(1 | species, tree = tree)),
+                family = stats::gaussian()),
+  y2 = drm_node(drmTMB::bf(y2 ~ y1 + x + phylo(1 | species, tree = tree)),
+                family = stats::gaussian()),
+  data = dat
+)
+paths(sem_phylo)
+indirect_effects(sem_phylo, from = "x", to = "y2")
+```
+
+This is the genuinely new contribution. Existing phylogenetic SEM tools
+(`phylopath`, `phylosem`) focus on causal relationships among trait *means* under
+phylogenetic covariance; `drmSEM` extends this to **distributional** SEM, where
+shared ancestry can be incorporated while direct and indirect effects are
+estimated for changes in means, variances, zero probabilities, and other
+response-distribution components. Practical notes: the `tree` is an `ape` "phylo"
+object and must be ultrametric (rescale a raw tree with
+`ape::compute.brlen(tree, "Grafen")`), and every `species` level must be a tip
+label. The Phase-1 slice is intercept-only `phylo(1 | species)`; phylogenetic
+paths *into* distributional components, model-set comparison, and jointly
+estimated evolutionary covariance are roadmap items. See `phylogenetic-sem.Rmd`.
+
+## Roadmap
+
+| Capability | Status |
+| --- | --- |
+| Component-labelled paths (`mu`, `sigma`, `nu`, `zi`, `hu`, `sd(group)`, `rho12`) | now |
+| Any-component d-separation + Fisher's C | now (experimental calibration) |
+| Simulation-based direct / mean-mediated / distribution-mediated / total effects | now |
+| Component-labelled DAG plot + effect forest plot | now |
+| Phylogenetic correction inside piecewise SEM (Phase 1, intercept-only) | now |
+| Outcome functionals beyond the mean (`Pr(Y>t)`, var, zero prob.) | partial / roadmap |
+| Phylopath-style model-set comparison (best / averaged model) | roadmap (Phase 2) |
+| Evolutionary covariance models (BM / OU / Pagel's lambda / kappa) | roadmap (Phase 3) |
+| Phylogenetic paths *into* distributional components | roadmap (Phase 4) |
+| Latent variables | out of scope for 0.x |
+| Full joint (single-likelihood) multivariate SEM | out of scope for 0.x |
+| Cyclic / feedback graphs | not supported (cycles are an error) |
+| New likelihoods | out of scope (drmSEM never fits its own) |
+
+## Recap
+
+- `drmSEM` is a **layer** on the `drmTMB` **engine**: one fit per endogenous
+  node, DAG-only, observed variables only.
+- Paths are **component-labelled**; a non-`mu` path is never a mean effect.
+- d-separation is the **any-component LRT**, combined by **Fisher's C**.
+- Effects are **counterfactual and simulation-based**, never coefficient
+  products, and the indirect decomposition exposes the **distribution-mediated**
+  channel explicitly.
+- Phylogeny enters as a structured random effect, giving a first slice of
+  **phylogenetic distributional SEM**.
+
+For the full walkthrough see `drmSEM.Rmd`; for effects, `effect-decomposition.Rmd`;
+for phylogeny, `phylogenetic-sem.Rmd`; for positioning, `comparison.Rmd`.

@@ -60,6 +60,37 @@ drm_sample_family <- function(family, params, n) {
       phi <- 1 / pmax(sigma, 1e-3)^2
       stats::rbeta(n, shape1 = mu * phi, shape2 = (1 - mu) * phi)
     },
+    # zero_one_beta (ordered / zero-one-inflated beta). The continuous part is
+    # the same beta as `beta` above (phi = 1/sigma^2; shapes mu*phi,(1-mu)*phi),
+    # which is confirmed against drmTMB in test-oq1-samplers.R. The inflation
+    # part follows the standard ZOIB parameterization: `zoi` is P(observation is
+    # a boundary 0/1), and `coi` is P(value == 1 | boundary). When zoi/coi are
+    # not supplied (a mediator that only carries mu/sigma), this degenerates to
+    # the plain beta draw. The zoi/coi-on-logit mapping is NOT yet confirmed
+    # against a live drmTMB fit, so the OQ-1 test only asserts the beta-only path.
+    zero_one_beta = {
+      phi <- 1 / pmax(sigma, 1e-3)^2
+      cont <- stats::rbeta(n, shape1 = mu * phi, shape2 = (1 - mu) * phi)
+      zoi <- params$zoi
+      if (!is.null(zoi) && any(zoi > 0)) {
+        coi <- if (!is.null(params$coi)) params$coi else rep(0.5, n)
+        is_boundary <- stats::runif(n) < zoi
+        is_one <- is_boundary & (stats::runif(n) < coi)
+        cont[is_boundary] <- 0
+        cont[is_one] <- 1
+      }
+      cont
+    },
+    # tweedie: a compound Poisson-Gamma draw is well-defined only when the power
+    # 1 < p < 2 AND the dispersion phi are known on the response scale. drmTMB
+    # exposes the power, but the mapping from its SD-like `sigma` to the tweedie
+    # dispersion phi is not yet confirmed against a live fit, so we cannot safely
+    # parameterize the Gamma jumps. Per the "mean-fallback over a guessed
+    # sampler" rule we fall through to the mean below (with drm_warn_once).
+    # TODO(live-drmTMB): confirm phi <-> sigma for tweedie (compound Poisson:
+    #   lambda = mu^(2-p) / (phi*(2-p)); jump ~ Gamma(shape=(2-p)/(p-1),
+    #   scale=phi*(p-1)*mu^(p-1))), then enable a sampler gated on params$power
+    #   (or params$nu) holding 1 < p < 2. Until then, mean fallback.
     {
       drm_warn_once(paste0("family-sampler-", family),
         cli::format_inline("No realized-value sampler for family {.val {family}}; using its mean."))
