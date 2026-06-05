@@ -205,3 +205,17 @@ tools/render-readme-hero.R` passed; `pkgdown::build_site()` passed and copied th
 hero image into `pkgdown-site/reference/figures/`; the generated homepage
 contains the image and all three article HTML files exist. GitHub Pages evidence:
 `gh-pages` exists and `https://itchyshin.github.io/drmSEM/` returned HTTP 200.
+
+## 2026-06-05 — Phylogenetic Phase 1 (agent group: Jason/Emmy/Curie + vignette)
+
+A four-agent group worked phylogenetic models in parallel. Emmy (architecture)
+audited the marker path and returned PASS end-to-end: `phylo(1|species, tree=)`
+is stripped from causal edges (R/utils.R drmsem_marker_funs/drm_strip_markers),
+never made a node/response, preserved verbatim in d-sep augmented refits
+(drm_refit_augmented), and excluded from the effect design matrix (drm_fixed_design).
+Added: tests/testthat/test-phylo.R (Curie — phylo SEM builds; paths() strip the
+phylo term; dsep() augmented refit preserves phylo on an unsaturated claim;
+total_effects propagates), a marker no-leak unit test in test-utils.R (verified
+locally), vignettes/phylogenetic-sem.Rmd (gated), and docs/design/06-phylogenetic-sem.md.
+ape added to Suggests. Jason's drmTMB phylo() API recon pending — reconcile the
+test's tree/phylo() usage with it before un-drafting.

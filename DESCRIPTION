@@ -27,6 +27,7 @@ Imports:
     stats,
     utils
 Suggests:
+    ape,
     drmTMB,
     covr,
     ggplot2,
