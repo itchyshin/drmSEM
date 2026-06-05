@@ -1,0 +1,60 @@
+url: https://itchyshin.github.io/drmSEM
+
+# Build into a dedicated dir, not docs/, which holds design + memory docs.
+destination: pkgdown-site
+
+template:
+  bootstrap: 5
+  bslib:
+    bootswatch: flatly
+    primary: "#0f7887"
+    headings-color: "#112638"
+    link-color: "#0f7887"
+
+development:
+  mode: auto
+
+navbar:
+  structure:
+    left:  [intro, reference, articles, news]
+    right: [search, github]
+
+reference:
+  - title: Building a distributional SEM
+    desc: Assemble a piecewise SEM from drmTMB nodes.
+    contents:
+      - drm_node
+      - drm_sem
+      - drm_psem
+  - title: Graph and paths
+    desc: Inspect the component-labelled structural graph.
+    contents:
+      - paths
+      - standardize
+      - plot.drm_sem
+  - title: d-separation
+    desc: Test missing arrows on any distributional component.
+    contents:
+      - basis_set
+      - dsep
+      - fisher_c
+  - title: Effects
+    desc: Simulation-based direct, indirect, and total effects.
+    contents:
+      - direct_effects
+      - indirect_effects
+      - total_effects
+      - plot.drm_effect
+  - title: Diagnostics
+    contents:
+      - check_sem
+
+articles:
+  - title: Get started
+    contents:
+      - drmSEM
+  - title: Concepts
+    desc: The ideas that make drmSEM a distributional SEM.
+    contents:
+      - effect-decomposition
+      - comparison

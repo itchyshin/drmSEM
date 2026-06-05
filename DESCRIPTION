@@ -1,0 +1,45 @@
+Package: drmSEM
+Title: Distributional Piecewise Structural Equation Modelling on drmTMB
+Version: 0.0.0.9000
+Authors@R:
+    person("Shinichi", "Nakagawa", email = "itchyshin@gmail.com",
+           role = c("aut", "cre"))
+Description: A distributional piecewise structural equation modelling
+    (SEM) layer built on top of the 'drmTMB' fitting engine. Causal paths
+    can target not only the expected response (mu) but also residual scale
+    (sigma), shape (nu), zero-inflation (zi), hurdle probability (hu),
+    random-effect scale (sd(group)), and bivariate residual correlation
+    (rho12). The package provides graph validation, component-labelled path
+    tables, d-separation tests over observed responses, and simulation-based
+    direct, indirect, and total effects on the link and response scales. It
+    does not fit models itself; each endogenous node is one 'drmTMB' fit.
+License: GPL (>= 3)
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.2
+Depends:
+    R (>= 4.1.0)
+Imports:
+    cli,
+    graphics,
+    igraph,
+    MASS,
+    stats,
+    utils
+Suggests:
+    drmTMB,
+    covr,
+    ggplot2,
+    knitr,
+    lintr,
+    rmarkdown,
+    styler,
+    testthat (>= 3.0.0),
+    tibble,
+    withr
+Remotes:
+    itchyshin/drmTMB
+Config/testthat/edition: 3
+URL: https://github.com/itchyshin/drmSEM, https://itchyshin.github.io/drmSEM
+BugReports: https://github.com/itchyshin/drmSEM/issues
+VignetteBuilder: knitr

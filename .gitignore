@@ -39,11 +39,17 @@ vignettes/*.pdf
 # R Environment Variables
 .Renviron
 
-# pkgdown site
-docs/
+# pkgdown site (generated under docs/); keep tracked design docs and memory
+docs/*
+!docs/design/
+!docs/memory/
+pkgdown-site/
 
 # translation temp files
 po/*~
 
 # RStudio Connect folder
 rsconnect/
+
+# pkgdown built site (built in CI, deployed to gh-pages)
+pkgdown-site/

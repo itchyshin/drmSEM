@@ -1,0 +1,236 @@
+---
+title: "drmSEM and other SEM tools"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{drmSEM and other SEM tools}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+# This vignette is prose plus a comparison table. The neighbouring packages it
+# discusses (lavaan, piecewiseSEM, glmmTMB, dsem) are NOT dependencies of
+# drmSEM and may not be installed, so nothing here is evaluated against them.
+# Example calls for other packages are shown in non-evaluated ```r blocks.
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  eval = FALSE
+)
+library(drmSEM)
+```
+
+## Where drmSEM sits
+
+`drmSEM` is a **distributional piecewise** structural equation modelling layer
+built on the [`drmTMB`](https://github.com/itchyshin/drmTMB) fitting engine.
+It is deliberately narrow: each endogenous node is exactly **one `drmTMB`
+fit**, the system is **piecewise** (a graph of separately fitted local models),
+the graph must be a **DAG**, and every variable is **observed**. `drmSEM`
+never fits its own likelihoods.
+
+What makes it distinct is not that it does SEM, but *which part of a
+distribution a path is allowed to target*. A `drmSEM` edge is the tuple
+`(from, to, component, link, term)`, where `component` is a modelled
+distributional parameter of `to`: `mu` (mean), `sigma` (scale / dispersion),
+`nu` (shape), `zi` (zero-inflation), `hu` (hurdle), `sd(group)` (random-effect
+scale), or `rho12` (residual correlation). A path to `sigma` is never reported
+as a mean effect.
+
+This article positions `drmSEM` against four tools it is often compared with:
+`lavaan`, `piecewiseSEM`, `glmmTMB`, and `dsem`. The goal is to help you pick
+the right tool, not to claim `drmSEM` supersedes any of them — for several of
+these tasks one of the others is the correct choice.
+
+## At a glance
+
+| Tool | What it does | Latent variables | Non-Gaussian / GLMM nodes | Targets non-mean components (`sigma`/`zi`/`nu`/`sd`/`rho12`) | Effect decomposition (direct/indirect/total) plotted? |
+| --- | --- | --- | --- | --- | --- |
+| **lavaan** | Classical covariance-structure / latent-variable SEM (one joint multivariate likelihood) | Yes (its core strength) | Limited; primarily Gaussian / continuous-indicator SEM | No — paths act on means/covariances of latent and observed variables | Path diagram via `semPlot::semPaths()`; effects are tabulated, not plotted as a decomposition |
+| **piecewiseSEM** | Piecewise SEM with d-separation over separately fitted local models | No (observed-variable) | Yes (wraps `lm`/`glm`/`glmer`/`glmmTMB` etc.) | No — works on the **mean** structure only | `plot.psem()` draws the path diagram; it does **not** plot an effect decomposition |
+| **glmmTMB** | A fitting engine for (distributional) GLMMs — not an SEM | No | Yes (rich families, dispersion, zero-inflation) | Yes, *within a single model* (`disp`/`zi` formulas), but there is no graph, d-separation, or path propagation | N/A — not an SEM; no path effects |
+| **dsem** | Dynamic, time-series / state-space SEM | Yes (latent states) | Limited; Gaussian state-space focus | No — temporal paths on the mean / state | Plots the DAG (`plot.dsem()`); **total effects returned as a matrix**, not plotted as a decomposition |
+| **drmSEM** | Observed-variable, hierarchical, **distributional** piecewise SEM on `drmTMB` | **No** (planned for 0.3) | Yes (one `drmTMB` fit per node) | **Yes — first-class, component-labelled path targets** | Component-labelled DAG via `plot()`; simulation-based direct / indirect / total with a distribution-mediated channel |
+
+The columns are filled in conservatively: each "Yes" reflects a documented,
+shipped capability, and the "No" entries mark genuine scope boundaries rather
+than missing polish.
+
+## When to use which
+
+### drmSEM vs lavaan
+
+`lavaan` is the reference implementation of **classical, covariance-structure
+SEM**: latent constructs measured by multiple indicators, fitted as a single
+joint multivariate likelihood, with a mature path-diagram ecosystem
+(`semPlot::semPaths()`). If your model is fundamentally about **latent
+variables** — measurement models, factor structure, latent regressions — use
+`lavaan`. `drmSEM` does not do latent variables (see the roadmap: latent
+variables are 0.3, joint multivariate fitting is 0.4) and does not aim to
+replace `lavaan` for covariance-structure SEM.
+
+```r
+# lavaan: latent-variable, joint-likelihood SEM (illustrative; not run here)
+library(lavaan)
+model <- '
+  # measurement model (latent variables)
+  size      =~ length + mass + girth
+  # structural (regression) paths on the mean structure
+  abundance ~ size + temp
+  survival  ~ abundance + size
+'
+fit <- sem(model, data = dat)
+semPlot::semPaths(fit)   # path diagram
+```
+
+Use `drmSEM` instead when your variables are **observed**, your nodes are
+**non-Gaussian / hierarchical**, and — crucially — when a hypothesis is about a
+**non-mean component** ("warmer sites make body size *more variable*"). `lavaan`
+paths act on means and covariances; they cannot express `temp -> sigma(size)`
+as a distinct causal claim.
+
+### drmSEM vs piecewiseSEM
+
+`piecewiseSEM` is the **closest cousin**: both are observed-variable, piecewise
+(local-estimation) SEMs tested by **d-separation** over a DAG. `piecewiseSEM`
+is broad and battle-tested — it wraps `lm`, `glm`, `glmer`, `glmmTMB`, and more
+— and `plot.psem()` draws the path diagram. The difference is the *level at
+which paths operate*: `piecewiseSEM` works on the **mean structure only**. Even
+when a node is fitted with a distributional backend, the SEM machinery
+(claims, coefficients, effects) addresses the mean.
+
+```r
+# piecewiseSEM: piecewise, mean-structure SEM (illustrative; not run here)
+library(piecewiseSEM)
+psem_model <- psem(
+  glm(abundance ~ size + temp, family = poisson, data = dat),
+  glm(survival  ~ abundance + size, family = binomial, data = dat)
+)
+summary(psem_model)   # d-sep tests + path coefficients (on the mean)
+plot(psem_model)      # plot.psem(): path diagram (NOT an effect decomposition)
+```
+
+In `drmSEM`, distributional parameters are **first-class path targets**, not
+side features:
+
+- d-separation uses the **any-component LRT** — a missing arrow `X -> Y`
+  asserts `X` affects *no* modelled component of `Y` (mean, scale, shape,
+  zero-inflation, ...), tested by augmenting every component sub-model, not just
+  the mean.
+- Effect decomposition is **simulation-based** and exposes a
+  `distribution_mediated` channel — the part of an effect that flows through a
+  mediator's `sigma`, `zi`, or `nu` rather than its mean.
+
+Choose `piecewiseSEM` for the wide range of supported model backends and a
+mature, mean-structure piecewise workflow. Choose `drmSEM` when the science
+lives in the non-mean components and you need them labelled and propagated
+correctly.
+
+### drmSEM vs glmmTMB
+
+`glmmTMB` is not an SEM at all — it is a **fitting engine** for distributional
+GLMMs, with rich families, a dispersion (`disp`) formula, and a zero-inflation
+(`zi`) formula. It is excellent at fitting *one* response with structure in
+several distributional parameters, but it has no graph, no d-separation, and no
+cross-node path propagation.
+
+```r
+# glmmTMB: a rich single-response distributional GLMM (illustrative)
+library(glmmTMB)
+glmmTMB(abundance ~ size + temp + (1 | site),
+        ziformula = ~ habitat,     # zero-inflation sub-model
+        dispformula = ~ temp,      # dispersion sub-model
+        family = nbinom2,
+        data = dat)
+```
+
+The relationship is one of **engine to layer**: `drmTMB` plays for `drmSEM` the
+role `glmmTMB` plays for a single GLMM. `drmSEM` turns a *set* of such
+distributional fits into a tested causal graph with path effects. If you have
+one response, reach for `glmmTMB` (or `drmTMB`) directly; if you have a DAG of
+responses and want d-separation and decomposed effects across them, use
+`drmSEM`.
+
+### drmSEM vs dsem
+
+`dsem` does **dynamic, time-series / state-space SEM**: structural relationships
+among variables observed *over time*, with latent states and temporal/lagged
+paths. It plots the DAG (`plot.dsem()`) and can return **total effects as a
+matrix**. Its niche is temporal dynamics, which `drmSEM` does not address.
+
+```r
+# dsem: dynamic, time-series SEM (illustrative; not run here)
+library(dsem)
+sem_text <- "
+  abundance -> survival, 0, beta1
+  abundance -> abundance, 1, ar1   # lag-1 (temporal) path
+"
+fit <- dsem(sem = sem_text, tsdata = ts_data)
+plot(fit)                 # plot.dsem(): the DAG
+total_effect <- ... # dsem returns total effects as a matrix, not a plotted decomposition
+```
+
+`drmSEM` is **cross-sectional, hierarchical, and distributional**. Use `dsem`
+for state-space / lagged temporal structure; use `drmSEM` when the structure is
+across distributional components of (hierarchical) responses at a single
+cross-section, and you want a direct/indirect/total decomposition with the
+distribution-mediated part made explicit.
+
+## drmSEM's distinct niche
+
+Stripped to essentials, `drmSEM` is the tool for an **observed-variable,
+hierarchical, distributional** SEM where:
+
+1. **Paths are component-labelled.** A path targets one modelled component
+   (`mu`, `sigma`, `nu`, `zi`, `hu`, `sd(group)`, `rho12`), and that label is
+   preserved everywhere — in `paths()`, in `plot()`, and in the effect
+   decomposition. A `sigma` or `zi` path is never silently folded into a mean
+   effect.
+2. **d-separation is any-component.** A missing arrow is a claim about *all*
+   modelled components of the target, tested by an augmenting likelihood-ratio
+   test across component sub-models and combined with **Fisher's C**. A missing
+   path into a non-mean component — invisible to a mean-only SEM — can be
+   detected here.
+3. **Effects are simulation-based, with a distribution-mediated channel.**
+   `direct_effects()`, `indirect_effects()`, and `total_effects()` propagate a
+   change through the fitted DAG by Monte-Carlo simulation rather than by
+   multiplying coefficients (which is invalid across non-Gaussian links and
+   across components). The indirect decomposition separates `mean_mediated` from
+   `distribution_mediated` — the extra effect that appears only when mediators
+   pass *realized draws* from their fitted families, i.e. the part flowing
+   through their scale, zero-inflation, or shape.
+
+No other tool in this comparison combines all three. That combination — not SEM
+in general — is `drmSEM`'s reason to exist.
+
+## What drmSEM does *not* do
+
+Being honest about scope is part of choosing the right tool. Per the charter and
+[roadmap](https://github.com/itchyshin/drmSEM), `drmSEM` (0.x) deliberately does
+**not**:
+
+- **No latent variables.** Variables are observed. (Latent constructs are
+  planned for **0.3**; for measurement models today, use `lavaan`.)
+- **No joint multivariate likelihood.** The model is **piecewise** — one
+  `drmTMB` fit per node, not a single joint fit. (Joint multivariate SEM, where
+  `rho12` becomes a structural target rather than a per-node residual
+  correlation, is planned for **0.4**.)
+- **DAG-only.** Cyclic / feedback graphs are an **error**. (Specific feedback
+  motifs are planned for **0.5**.)
+- **No new likelihoods and no arbitrary backends.** `drmSEM` never fits its own
+  likelihoods; `drmTMB` is the only engine. Arbitrary `brms` / `glmmTMB` /
+  `lme4` adapters are out of scope (graph interchange with neighbouring
+  ecosystems is the interop plan, not new engines).
+- **Not a replacement for `lavaan`** for classical covariance-structure SEM —
+  this is a deliberate non-goal on the roadmap.
+
+If your problem needs latent variables, a single joint fit, feedback loops, or a
+purely mean-structure piecewise model across many backends, one of `lavaan`,
+`piecewiseSEM`, `glmmTMB`, or `dsem` is the better fit. If it needs
+**component-labelled, distribution-aware piecewise SEM on observed hierarchical
+data**, that is exactly the gap `drmSEM` fills.
+
+## See also
+
+- `vignette("drmSEM")` — the worked `size -> abundance -> survival` example,
+  end to end (paths, d-separation, Fisher's C, and the effect decomposition).
