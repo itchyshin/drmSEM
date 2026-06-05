@@ -192,3 +192,37 @@ drm_expected_target <- function(engines, scenario, to, active, mediation,
     drm_propagate(engines, scenario, active, mediation, beta_list)$mean[[to]]
   }
 }
+
+# Natural (cross-world) direct/indirect effects for `to`, holding the mediators
+# in `active` at their counterfactual M(x0) / M(x1) values (Pearl/Imai NDE/NIE).
+# Unlike the controlled split, the mediator is set to its predicted distribution
+# under each exposure level, not to its observed values. Returns one parameter
+# draw as c(nde, nie, total). See docs/design/02-effect-calculus.md (OQ-8).
+drm_natural_target <- function(engines, scenarios, from_col, to, active,
+                               mediation = "distribution", beta_list = NULL,
+                               n_sim = 1L) {
+  one <- function() {
+    # mediator worlds: propagate the exposure contrast through the mediators
+    work0 <- drm_propagate(engines, scenarios$lo, active, mediation, beta_list)$work
+    work1 <- drm_propagate(engines, scenarios$hi, active, mediation, beta_list)$work
+    eng_to <- engines[[to]]
+    # predict the outcome's response-scale mean with the DIRECT exposure set to
+    # `from_src` while the mediators stay at their (already-fixed) world values.
+    pmu <- function(work, from_src) {
+      work[[from_col]] <- from_src[[from_col]]
+      mean(eng_to$predict(work, beta = beta_list[[to]])$mu, na.rm = TRUE)
+    }
+    y00 <- pmu(work0, scenarios$lo)   # Y(x0, M(x0))
+    y10 <- pmu(work0, scenarios$hi)   # Y(x1, M(x0))
+    y01 <- pmu(work1, scenarios$lo)   # Y(x0, M(x1))
+    y11 <- pmu(work1, scenarios$hi)   # Y(x1, M(x1))
+    c(nde = y10 - y00, nie = y01 - y00, total = y11 - y00)
+  }
+  if (identical(mediation, "distribution") && n_sim > 1L) {
+    acc <- c(nde = 0, nie = 0, total = 0)
+    for (s in seq_len(n_sim)) acc <- acc + one()
+    acc / n_sim
+  } else {
+    one()
+  }
+}

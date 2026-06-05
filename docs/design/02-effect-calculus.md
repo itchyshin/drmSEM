@@ -145,9 +145,12 @@ channel, and it is the reason simulation is mandatory.
   **`indirect = total − direct`**. This decomposition sums to the total and is
   defensible, but it is **not** the cross-world natural NDE/NIE split (which holds
   `M` at the predicted `M(x0)` / `M(x1)` distributions). Aligning the split to
-  natural effects — `NDE` with `M ~ M(x0)`, `NIE` varying `M(x0)→M(x1)` at
-  `X=x0` — is a planned refinement (see OQ-8). Until then, read `direct` as a
-  controlled direct effect, not a natural direct effect.
+  natural effects is **implemented** via `indirect_effects(..., effect =
+  "natural")`, which holds the mediators at their predicted `M(x0)`/`M(x1)`
+  distributions and returns `natural_direct`, `natural_indirect`, and
+  `mediated_interaction` (kernel-verified in `test-effect-kernels.R`). The
+  **default** `effect = "controlled"` keeps the existing split; read the
+  default `direct` row as a controlled direct effect (OQ-8).
 
 ## Conditional vs marginal effects (random effects)
 

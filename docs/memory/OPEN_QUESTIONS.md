@@ -97,7 +97,12 @@ warning. Needs a live drmTMB session to bisect by node. Until then the canonical
 example inherits NaN SEs, so Monte-Carlo effect intervals there collapse to point
 estimates.
 
-## OQ-8 — Natural (cross-world) vs controlled direct/indirect effects
+## OQ-8 — Natural (cross-world) vs controlled direct/indirect effects  [PARTIAL 2026-06-05]
+
+**Implemented:** `indirect_effects(..., effect = "natural")` returns NDE/NIE/
+total + `mediated_interaction`, cross-world kernel verified in
+`test-effect-kernels.R`. Remaining: an integration test on a live nonlinear fit,
+and harmonizing with the `method`/`uncertainty` surface (OQ-12).
 
 `indirect_effects()` currently splits total into a CONTROLLED direct effect
 (mediators at observed values) and `indirect = total - direct`. The Pearl/Imai
