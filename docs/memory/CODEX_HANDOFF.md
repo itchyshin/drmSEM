@@ -61,10 +61,11 @@ the ledger names a live-fit gate.
    fit** that estimates `rho12` jointly (replacing the two independent node fits
    in `drm_expand_pair()`), wired into `drm_sem()`; **`rho12(fit)` /
    `corpairs(fit)`** returning a real (non-`NA`) `estimate` read back from that
-   fit (hook: a `drm_fit_rho12()` extractor in the adapter); **double-headed /
-   dashed-arc plotting** in `plot(sem, show="all")`; and **deep
-   level-compatibility validation** against the fitted RE blocks. Do **not** fake
-   the joint estimate — keep `estimate = NA` until a real fit supplies it. Spec:
+   fit (hook: a `drm_fit_rho12()` extractor in the adapter); and **deep
+   level-compatibility validation** against the fitted RE blocks. Double-headed
+   (`rho12`) / dashed (`corpair`) arc plotting already ships in the Claude lane
+   (`plot.drm_sem`, `show = "all"`). Do **not** fake the joint estimate — keep
+   `estimate = NA` until a real fit supplies it. Spec:
    `docs/design/07-bivariate-covariance-edges.md`.
 6. **0.3 composites — integration test.** Confirm `drm_composite()` +
    `drm_sem(composites=)` fits end-to-end and `loadings()`/d-sep behave; document

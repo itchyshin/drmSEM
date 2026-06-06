@@ -24,11 +24,19 @@ drm_component_style <- function(component) {
 
 #' Plot the distributional SEM as a component-labelled DAG
 #'
-#' Nodes are variables; arrows are coloured and styled by the distributional
-#' component they target (mu solid black, sigma dashed green, zi dotted orange,
-#' random-effect scale grey dotted, rho12 long-dash). Uses `igraph` for layout.
+#' Nodes are variables; **directed** arrows are coloured and styled by the
+#' distributional component they target (mu solid black, sigma dashed green, zi
+#' dotted orange, random-effect scale grey dotted, a directed `x -> rho12` path
+#' long-dash). **Covariance edges** declared with [covary()] / [drm_pair()] are
+#' drawn as **double-headed arcs** — solid grey for a residual correlation
+#' (`rho12`), dashed grey for a higher-level random-effect correlation
+#' (`corpair`) — so the three edge classes (directed path, residual covariance,
+#' higher-level covariance) are visually distinct
+#' (`docs/design/07-bivariate-covariance-edges.md`). Uses `igraph` for layout.
 #'
 #' @param x A `drm_sem` object.
+#' @param show `"all"` (default) draws directed paths **and** covariance arcs;
+#'   `"paths"` draws the directed structural edges only.
 #' @param ... Passed to the underlying plot.
 #' @return `x`, invisibly.
 #' @examples
@@ -39,35 +47,65 @@ drm_component_style <- function(component) {
 #'   abundance = drm_node(drmTMB::bf(abundance ~ size + temp, zi ~ habitat),
 #'                        family = drmTMB::nbinom2()),
 #'   data = dat)
-#' plot(sem)
+#' plot(sem)              # directed paths + any covariance arcs
+#' plot(sem, show = "paths")
 #' }
 #' @export
-plot.drm_sem <- function(x, ...) {
+plot.drm_sem <- function(x, show = c("all", "paths"), ...) {
   if (!requireNamespace("igraph", quietly = TRUE)) {
     cli::cli_abort("Plotting requires the {.pkg igraph} package.")
   }
+  show <- match.arg(show)
   edges <- x$edges
-  verts <- unique(c(x$endogenous, x$exogenous, edges$from, edges$to))
-  g <- igraph::graph_from_data_frame(
-    d = edges[, c("from", "to")], vertices = data.frame(name = verts),
-    directed = TRUE
-  )
+  cov <- x$covariances
+  draw_cov <- identical(show, "all") && !is.null(cov) && nrow(cov) > 0L
+
+  # Directed structural edges, styled by the component they target.
   styles <- lapply(edges$component, drm_component_style)
-  igraph::E(g)$color <- vapply(styles, function(s) s$col, character(1))
-  igraph::E(g)$lty <- vapply(styles, function(s) s$lty, numeric(1))
+  e_df <- edges[, c("from", "to"), drop = FALSE]
+  ecol <- vapply(styles, function(s) s$col, character(1))
+  elty <- vapply(styles, function(s) s$lty, numeric(1))
+  earrow <- rep(2, nrow(e_df))            # forward arrowhead (directed path)
+  ecurv <- rep(0.12, nrow(e_df))
+
+  # Covariance edges: double-headed arcs, NOT directed paths. Residual (rho12)
+  # solid grey; higher-level (corpair) dashed grey. arrow.mode = 3 = both ends.
+  if (draw_cov) {
+    e_df <- rbind(e_df, data.frame(from = cov$y1, to = cov$y2,
+                                   stringsAsFactors = FALSE))
+    is_res <- cov$class == "residual"
+    ecol <- c(ecol, rep("#666666", nrow(cov)))
+    elty <- c(elty, ifelse(is_res, 1, 2))
+    earrow <- c(earrow, rep(3, nrow(cov)))
+    ecurv <- c(ecurv, ifelse(is_res, 0.35, 0.45))
+  }
+
+  verts <- unique(c(x$endogenous, x$exogenous, e_df$from, e_df$to))
+  g <- igraph::graph_from_data_frame(
+    d = e_df, vertices = data.frame(name = verts), directed = TRUE
+  )
+  igraph::E(g)$color <- ecol
+  igraph::E(g)$lty <- elty
+  igraph::E(g)$arrow.mode <- earrow
   vcol <- ifelse(verts %in% x$endogenous, "#cde", "#eee")
   lay <- igraph::layout_with_sugiyama(g)$layout
   graphics::plot(
     g, layout = lay,
     vertex.color = vcol, vertex.frame.color = "grey40",
     vertex.label.color = "black", vertex.size = 34,
-    edge.arrow.size = 0.5, edge.curved = 0.12, ...
+    edge.arrow.size = 0.5, edge.arrow.mode = earrow, edge.curved = ecurv, ...
   )
+  leg_lab <- c("mu", "sigma", "nu", "zi", "hu", "sd(.)", "rho12 (path)")
+  leg_col <- c("black", "#1b9e77", "#7570b3", "#d95f02", "#e7298a", "grey50", "#666666")
+  leg_lty <- c(1, 2, 4, 3, 3, 3, 5)
+  if (draw_cov) {
+    leg_lab <- c(leg_lab, "rho12 (covary)", "corpair (covary)")
+    leg_col <- c(leg_col, "#666666", "#666666")
+    leg_lty <- c(leg_lty, 1, 2)
+  }
   graphics::legend(
     "bottomleft", bty = "n", cex = 0.8,
-    legend = c("mu", "sigma", "nu", "zi", "hu", "sd(.)", "rho12"),
-    col = c("black", "#1b9e77", "#7570b3", "#d95f02", "#e7298a", "grey50", "#666666"),
-    lty = c(1, 2, 4, 3, 3, 3, 5)
+    legend = leg_lab, col = leg_col, lty = leg_lty
   )
   invisible(x)
 }
