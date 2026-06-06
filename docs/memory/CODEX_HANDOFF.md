@@ -53,10 +53,18 @@ the ledger names a live-fit gate.
    defensible, and add a `path_effects()` integration test on the canonical fit.
    Spec: `OQ-5`, `DECISIONS.md` D-17/D-19,
    `docs/design/02-effect-calculus.md`.
-5. **OQ-14 — bivariate joint fit.** Grammar ships; still need a **live bivariate
-   drmTMB fit** for: **`drm_pair()`** joint node, **`rho12(fit)` / `corpairs(fit)`**
-   read-back accessors, **double-headed/dashed-arc plotting** in
-   `plot(sem, show="all")`, and **deep level-compatibility validation**. Spec:
+5. **OQ-14 — bivariate joint fit.** Grammar **and** the pure-R bivariate-node
+   *declaration* now ship (`R/pair.R`): **`drm_pair()`** records the bivariate
+   node, **`drm_expand_pair()`** bridges it to two `drm_node()` sub-nodes + the
+   `covary()` edges, and **`rho12()` / `corpairs()`** return the declared edges
+   with an `NA` estimate. The engine work remaining: a **live bivariate drmTMB
+   fit** that estimates `rho12` jointly (replacing the two independent node fits
+   in `drm_expand_pair()`), wired into `drm_sem()`; **`rho12(fit)` /
+   `corpairs(fit)`** returning a real (non-`NA`) `estimate` read back from that
+   fit (hook: a `drm_fit_rho12()` extractor in the adapter); **double-headed /
+   dashed-arc plotting** in `plot(sem, show="all")`; and **deep
+   level-compatibility validation** against the fitted RE blocks. Do **not** fake
+   the joint estimate — keep `estimate = NA` until a real fit supplies it. Spec:
    `docs/design/07-bivariate-covariance-edges.md`.
 6. **0.3 composites — integration test.** Confirm `drm_composite()` +
    `drm_sem(composites=)` fits end-to-end and `loadings()`/d-sep behave; document

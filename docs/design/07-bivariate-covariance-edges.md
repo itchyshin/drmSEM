@@ -209,9 +209,10 @@ the basis set.
 | --- | --- | --- | --- | --- |
 | Directed path `y1 -> y2` | yes | yes | **yes** | yes |
 | `x -> rho12` as directed path into correlation | n/a | no | **yes (from bivariate drmTMB fit via `drm_psem()`)** | yes |
-| `drm_pair()` bivariate node type | n/a | no | no | **yes** |
+| `drm_pair()` bivariate node type | n/a | no | declaration grammar (0.2.x); joint fit roadmap | **yes** |
 | Residual covariance `eps_y1 <-> eps_y2` (`rho12`) as arc | yes | partial | no | **yes** |
 | Higher-level RE covariance (`corpair`) as arc | limited | no | no | **yes** |
+| `rho12()` / `corpairs()` accessors (declaration) | n/a | no | declared edges (0.2.x, estimate NA) | yes |
 | `rho12()` / `corpairs()` accessors (read from fit) | n/a | no | no | **yes** |
 | `covary()` declaration + `covariances()` separate from `paths()` | n/a | no | **yes (0.2.0)** | yes |
 | Double-headed / dashed arc plotting | yes (semPaths) | no | no | **yes** |
@@ -240,20 +241,39 @@ fit (`test-covariances.R`):
   `corpair` edge between `y1` and `y2` drops the `y1 _||_ y2 | predictors`
   independence claim (Shipley's bidirected-edge rule).
 
+**Also shipped (pure-R declaration grammar, `R/pair.R`).** The bivariate-node
+*declaration* now exists and is unit-tested without a live fit (`test-pair.R`):
+
+- **`drm_pair(formula1, formula2, rho12 =, family =, level =)`** records a
+  bivariate node: two response formulas, two families, an optional `rho12 ~ x`
+  residual-correlation model (a directed path into the `rho12` component), and an
+  auto-detected higher-level `corpair` edge wherever the two formulas share a
+  grouping factor (explicit `level =`/`NA` overrides). It validates the
+  declaration (distinct responses, well-formed `rho12`, level-compatibility
+  warning) but does **not** fit.
+- **`drm_expand_pair()`** bridges a pair onto the shipped `covary()` grammar (two
+  `drm_node()` sub-nodes + the residual/`corpair` edges) — the hook point where
+  the 0.4 engine lane swaps the two independent node fits for one joint fit.
+- **`rho12()` / `corpairs()`** accessors report the declared residual /
+  higher-level edges of a `drm_pair` or a `drm_sem`, separate from `paths()`,
+  with an `estimate` column that is **`NA` by construction**: the fitted value
+  must be read back from a live bivariate fit (drmSEM never re-solves).
+
 What still does **not** exist (needs a **live bivariate drmTMB fit**, so it
 cannot be built/validated in the dev container — see `CODEX_HANDOFF.md`):
 
-- **No `drm_pair()`** node type yet; bivariate structure must still be built
-  upstream in drmTMB and handed in via `drm_psem()`. `covary()` is the pure-R
-  declaration primitive `drm_pair()` will eventually emit.
-- **No `rho12(fit)` / `corpairs(fit)`** accessors that read the *fitted* residual
-  / random-effect correlations back from a live bivariate fit.
+- **No joint bivariate fit / read-back.** `drm_pair()` declares the structure but
+  the two responses are still fitted as ordinary piecewise nodes when expanded;
+  estimating `rho12` inside one drmTMB model and surfacing it through
+  `rho12(fit)` / `corpairs(fit)` (a non-`NA` `estimate`) is the engine deliverable.
+  `drm_pair()` is the pure-R declaration `covary()` always anticipated.
 - **Residual and RE covariance edges are not yet drawn as double-headed /
   dashed arcs** in `plot(sem, show = "all")` (needs rendering to validate).
 - **Deep level-compatibility validation** — confirming both nodes actually share
   the declared grouping + a compatible covariance structure — needs to introspect
-  the fitted random-effect blocks; `covary()` currently records the declared
-  `level`/`structure` and validates only the response resolution.
+  the fitted random-effect blocks; `drm_pair()` / `covary()` currently record the
+  declared `level`/`structure`, auto-detect shared grouping factors syntactically,
+  and validate only the response resolution.
 
 These remaining pieces are tracked in OQ-14.
 

@@ -36,10 +36,17 @@ reference:
       - standardize
       - plot.drm_sem
   - title: Covariance edges (bivariate)
-    desc: Declare and inspect residual (rho12) and higher-level (corpair) covariance edges.
+    desc: >
+      Declare and inspect residual (rho12) and higher-level (corpair) covariance
+      edges, and declare a bivariate (joint two-response) node. The joint fit that
+      estimates rho12 is the 0.4 engine step; the grammar and accessors are pure-R.
     contents:
       - covary
       - covariances
+      - drm_pair
+      - drm_expand_pair
+      - rho12
+      - corpairs
   - title: Latent constructs
     desc: Build composite (formative) constructs from observed indicators.
     contents:

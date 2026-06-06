@@ -584,3 +584,28 @@ non-convergence reporting. Staged 0.5.0: a `drm_cycle()`/`feedback=` declaration
 basis-set suppression among motif nodes; consistent estimation + full
 sigma-separation deferred to the engine/research lane. Pure-R prototypable:
 declaration grammar, fixed-point engine, closed-form 2-cycle recovery tests.
+
+## 2026-06-06 — 0.4 drm_pair() pure-R bivariate-node declaration grammar
+
+Built `R/pair.R` (+ `test-pair.R`): the bivariate-node *declaration* layer for
+OQ-14 / 0.4, all pure-R (no engine).
+- `drm_pair(formula1, formula2, rho12 =, family =, family2 =, level =, names =)`
+  records a bivariate node: two response formulas + families, an optional
+  `rho12 ~ x` residual-correlation model (predictors recorded as a directed path
+  INTO the rho12 component), and auto-detected higher-level `corpair` edges
+  wherever the two formulas share a grouping factor. Validates distinct
+  responses, well-formed rho12, and warns on a level not shared by both
+  responses (level-compatibility). Parsing helpers `drm_formula_response()` /
+  `drm_formula_groups()` are base-R (the latter ignores the brms `|p|`
+  correlation label, taking the rightmost bar term as the grouping).
+- `drm_expand_pair()` bridges the pair onto the shipped `covary()` grammar (two
+  `drm_node()` sub-nodes + residual/corpair edges) -- the documented hook point
+  where the 0.4 engine swaps the two independent node fits for one joint fit.
+- `rho12()` / `corpairs()` S3 accessors (methods for `drm_pair` and `drm_sem`)
+  return the declared edges, kept separate from `paths()`, with `estimate = NA`
+  BY CONSTRUCTION: the fitted correlation must be read back from a live bivariate
+  drmTMB fit (the 0.4 engine deliverable). Nothing is fabricated.
+HONEST BOUNDARY: the joint fit (estimating rho12 in one drmTMB model) and the
+non-NA read-back stay the engine/Codex deliverable (CODEX_HANDOFF item 5). drmSEM
+still never fits its own likelihoods. Updated NEWS, 07-bivariate doc current-state
++ feature table, 05-roadmap 0.4, CODEX_HANDOFF, _pkgdown reference.
