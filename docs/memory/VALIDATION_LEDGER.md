@@ -37,7 +37,7 @@ table is a snapshot, not the full list).
 | V-14 | Total ≈ direct + indirect within Monte-Carlo CI on the canonical SEM | pending | planned recovery check (`04-validation-plan.md`) |
 | V-15 | Gaussian-mean analytic cross-check: simulated mean-mediated = product of path coefficients on identity-link chain | pending | planned recovery check |
 | V-16 | d-sep passes a true non-edge (low false-positive rate) | pending | planned recovery check |
-| V-17 | Fisher's C calibration (Type-I / power) under the any-component augmentation | experimental | reasoned in `03-dsep.md`; 20-rep smoke check in `test-calibration.R`; full precomputed study scaffolded (`vignettes/calibration.Rmd` + `inst/calibration/generate.R`, OQ-6) — awaiting the live-drmTMB cache before promotion |
+| V-17 | Fisher's C calibration (Type-I / power) under the any-component augmentation | validated for OQ-6 grid | `inst/calibration/generate.R` produced `inst/calibration/calibration-results.rds` on live `drmTMB` 0.1.3.9000 (`17b1321`); all five `cal$acceptance` checks pass; `vignettes/calibration.Rmd` renders from the cache |
 | V-18 | `model.matrix()` contrast coding matches drmTMB's internal fixed-effect coding | pending | needs live drmTMB fit (OQ-2); isolated in `drm_fixed_design` |
 | V-19 | Exact family-sampler parameterizations match drmTMB (nbinom2 `size`, beta_binomial trials, lognormal scale) | pending | needs live drmTMB fit (OQ-1) |
 | V-20 | drmTMB adapter shapes (`bf()$entries`, `coef`/`fixef`/`vcov` `dpar:term`, `logLik`, `is_converged`, `predict_parameters`) | pending | written against drmTMB 0.1.3.9000 source; runtime confirmation pending |
@@ -295,8 +295,39 @@ checked by the math-consistency pass (Noether).
 - Plus a standalone `drm_nominal_link` table assertion (pure-R link labels).
 
 These discharge the 0.2 analytic-cross-check item. The remaining 0.2 items
-(Fisher's C calibration study V-17, and flipping V-7/V-10/d-sep to "validated")
-need the live-drmTMB lane.
+(flipping V-7/V-10/d-sep to "validated" on live-fit analytic identities) need
+the live-drmTMB lane.
+
+## 2026-06-06 — V-17 OQ-6 calibration cache generated in live drmTMB lane
+
+Codex ran `Rscript inst/calibration/generate.R` on branch
+`codex/live-drmtmb-closeout` after installing the current checkout and updating
+`drmTMB` from GitHub. Provenance: `drmTMB` 0.1.3.9000 at Git SHA `17b1321`,
+`drmSEM` 0.2.0.9000, R 4.5.2, drmSEM git SHA `c951d31`; final runtime
+14.5 minutes. The script wrote
+`inst/calibration/calibration-results.rds` and `vignettes/calibration.Rmd`
+rendered from the source-tree cache.
+
+The full OQ-6 grid completed: 3 DGP families (`mean_only`, `distributional`,
+`cross_link`) x 4 sample sizes (`100,250,500,1000`) x 6 omitted-edge strengths
+(`0,0.1,0.2,0.3,0.5,0.8`) x 200 reps = 14,400 replicates. All five acceptance
+criteria passed:
+- C1 usable claim rate: every family x n x beta cell had >= 95% ok finite
+  p-values; no failing cells.
+- C2 Type-I by family/n: every beta=0 cell was inside the 99% binomial
+  Monte-Carlo band around alpha=0.05 (observed range 0.025-0.080; band
+  0.015-0.095).
+- C3 Type-I by augmented-component count: `cross_link`, claim_df=1, Type-I
+  0.0525; `mean_only`, claim_df=1, Type-I 0.05625; `distributional`,
+  claim_df=2, Type-I 0.045; all inside the 99% band.
+- C4 Fisher's C null uniformity: n=2400 null p-values, KS p=0.631, median
+  p=0.499.
+- C5 power: beta=0.8 power was 1.0 in every family x n cell; beta=0.5 power was
+  1.0 for n>=250; monotonicity check passed.
+
+V-17 is therefore **validated for this OQ-6 calibration grid**. Keep the claim
+scoped to these DGP families and sample sizes; new families or more complex
+component structures need their own calibration evidence.
 
 ## 2026-06-06 — V-31: composite constructs (0.3, pure R)
 
@@ -318,9 +349,9 @@ need the live-drmTMB lane.
   exclusion, remainder = 0); P-2 downstream nonlinearity (remainder =
   (e^{ka1}-1)(e^{ka2}-1) > 0, inclusion != exclusion); P-3 sequential M1->M2->Y
   (inclusion = 0 each, exclusion = total each, remainder = total); single-mediator
-  degenerate case. **validated (kernel)** — no drmTMB. The user-facing
-  `path_effects()` wrapper + the per-component/natural follow-ups are CI/Codex-gated;
-  a live-fit integration test is the missing evidence before promotion (OQ-5).
+  degenerate case. **validated (kernel)** — no drmTMB. Later V-34 and V-35 cover
+  the per-component and natural follow-ups; a live-fit integration test is the
+  missing evidence before broad OQ-5 promotion.
 
 ## 2026-06-06 — V-33: per-mediator mean/distributional channel split (OQ-5)
 
@@ -330,9 +361,8 @@ need the live-drmTMB lane.
   inclusion effect exactly (no remainder). Kernel-verified in `test-path-effects.R`
   (by-component): mean channel exact (1e-8); distributional channel matches the
   lognormal closed form (MC, tol 0.06, seeded); flat-scale negative control ~0.
-  **validated (kernel).** The finer sigma-vs-zi split (a `freeze` plumbing arg in
-  `drm_propagate`), the natural variant, and a live-fit integration test remain
-  open (OQ-5).
+  **validated (kernel).** The finer sigma-vs-zi split is covered by V-34 and the
+  natural variant by V-35; a live-fit integration test remains open (OQ-5).
 
 ## 2026-06-06 — V-34: per-component (sigma/zi) path attribution via freeze (OQ-5)
 
@@ -344,5 +374,16 @@ need the live-drmTMB lane.
   `test-path-effects.R` (seeded, common random numbers): mean channel exact (1e-8);
   sigma channel = `exp(ka+0.5k^2 s1^2) - exp(ka+0.5k^2 s0^2)` (MC, tol 0.06);
   component_remainder = `(e^{ka}-1)(e^{0.5k^2 s0^2}-1)`; flat-scale sigma channel = 0
-  exactly. **validated (kernel)** — no drmTMB. Real-family sampler accuracy + the
-  natural variant + a live-fit integration test remain OQ-5 (Codex).
+  exactly. **validated (kernel)** — no drmTMB. Real-family sampler accuracy and a
+  live-fit integration test remain OQ-5 (Codex).
+
+## 2026-06-06 — V-35: natural per-mediator path attribution guard (OQ-5)
+
+- **V-35 — `path_effects(effect = "natural")` identification flag.** The
+  per-mediator natural variant reuses `drm_natural_target()` and reports an
+  `identified` column. `drm_recanting_witness()` is kernel-verified in
+  `test-path-effects.R`: parallel mediators are identified, while a sequential
+  mediator route with another mediator that is both a descendant of the exposure
+  and an ancestor of the target mediator is flagged `identified = FALSE`.
+  **validated (kernel)** — pure graph logic, no drmTMB. Live-fit integration and
+  unconfirmed-sampler `NA` handling remain OQ-5.

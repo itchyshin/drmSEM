@@ -38,10 +38,12 @@ Shipped in 0.2.0:
 - Analytic effect cross-checks promoted to asserted tests (V-26..V-34).
 - Standardization scale conventions finalized and documented (OQ-4).
 
-Deferred to **0.2.1 / the live-drmTMB lane** (issue #13): the Fisher's C
-calibration *study* (Type-I / power) — scaffolded (`vignettes/calibration.Rmd`),
-documented as experimental, awaiting the compute-heavy run; the standardization
-`sigma_E` refinement; the OQ-5 natural variant; OQ-14 joint fit.
+Post-0.2.0 live-drmTMB lane (issue #13): the Fisher's C calibration study
+(Type-I / power) generated the live-drmTMB cache and passed all five OQ-6
+acceptance checks. V-17 is validated for the tested OQ-6 grid; broader d-sep
+and Fisher's C settings remain claim-scoped until separately calibrated.
+Remaining live-engine work: the standardization `sigma_E` refinement, V-7
+live-fit analytic-effect tier flip, and OQ-14 joint fit.
 
 ## 0.3 — Latent variables
 

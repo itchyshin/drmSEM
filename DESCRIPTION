@@ -24,8 +24,7 @@ Imports:
     graphics,
     igraph,
     MASS,
-    stats,
-    utils
+    stats
 Suggests:
     ape,
     drmTMB,

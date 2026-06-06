@@ -349,3 +349,50 @@ toggling of the existing engine (`R/path_effects.R`, kernel `drm_path_contrasts`
   careful pass (and a live fit).
 
 Validation: V-32.
+
+Later updates: per-component attribution landed in V-34, and the natural
+per-mediator variant with a recanting-witness guard landed in D-19/V-35. The
+live-fit integration test remains the promotion gate for broad OQ-5 claims.
+
+## D-18 — V-17 calibration promotion uses explicit C1-C5 cache criteria
+
+The Fisher's C / any-component d-separation calibration claim is promoted only
+from the cached OQ-6 study, not from the 20-rep smoke test. The generator stores
+the decision in `cal$acceptance`, and the vignette, validation ledger, and OQ-6
+record all read the same cache-backed criteria.
+
+**Criteria.** C1 requires at least 95% ok finite d-separation claims in every
+family x n x beta cell. C2 requires every beta=0 family x n Type-I estimate to
+fall inside the 99% binomial Monte-Carlo band around alpha. C3 repeats that
+Type-I check stratified by augmented-component count (`claim_df`). C4 requires
+null Fisher's C p-values to pass a coarse uniformity check (KS p >= 0.01 and
+median p in [0.40, 0.60]). C5 requires high and ordered power: beta=0.8 power
+>= 0.80 in every family x n cell, beta=0.5 power >= 0.70 for n>=250, and power
+nondecreasing aside from at most 0.05 Monte-Carlo jitter.
+
+**Scope.** Passing C1-C5 validates V-17 for the OQ-6 grid only: mean-only,
+distributional, and cross-link Gaussian chains with n in {100,250,500,1000}.
+It does not certify every possible drmSEM graph, family, or multi-component
+configuration. New DGP families need their own cache or an explicit ledger note.
+
+## D-19 — OQ-5 natural per-mediator variant reports identification status
+
+`path_effects(effect = "natural")` reports each mediator's cross-world natural
+indirect effect by reusing the existing `drm_natural_target` kernel. The result
+adds an `identified` column: `FALSE` when another mediator is both a descendant
+of the exposure and an ancestor of the target mediator (the recanting-witness
+criterion of Avin, Shpitser & Pearl 2005), otherwise `TRUE`.
+
+**Choices.**
+- *Keep controlled as the default.* The controlled per-mediator attribution is
+  the model-based default; the natural rows are opt-in because they carry a
+  stronger cross-world identification interpretation.
+- *Report, do not suppress.* Non-identified natural rows are returned with
+  `identified = FALSE` rather than being dropped, so users can see which mediator
+  route fails the graph criterion.
+- *Pure graph guard.* `drm_recanting_witness()` uses the fitted drmSEM graph
+  only; it does not inspect fitted coefficients or likelihoods. That keeps the
+  identification flag testable without a live engine.
+
+Validation: V-35. Remaining OQ-5 work is the live-fit integration test for real
+family sampler accuracy and `NA` handling for unconfirmed-sampler families.
