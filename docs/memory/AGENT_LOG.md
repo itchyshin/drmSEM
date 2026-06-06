@@ -426,3 +426,25 @@ architecture: composite (formative) constructs, fully pure-R (no engine change).
 Deferred (OQ-15): indicator-intervention propagation (needs a live fit),
 measurement-arc plotting (needs rendering), reflective constructs (0.4 / joint
 likelihood).
+
+## 2026-06-06 — OQ-5 per-mediator path-specific effects (orchestrator + Fisher spec)
+
+Fisher (inference-reviewer) spec'd OQ-5 (per-path / per-component attribution):
+estimands, the additivity/identifiability boundary (recanting-witness), the API,
+and a pure-R test plan. Implemented the bounded, lower-risk half: per-mediator
+attribution.
+
+- **New `R/path_effects.R`:** kernel `drm_path_contrasts()` (inclusion/exclusion/
+  total/remainder by active-set toggling, pure function of engines) + the
+  `path_effects()` accessor (drm_effect table, reuses drm_summ/drm_build_scenarios/
+  drm_effect_controls). No new simulation kernel.
+- **Tests `test-path-effects.R`** (pure-R, deterministic mean-channel closed
+  forms): P-1 additive, P-2 nonlinear non-additive, P-3 sequential, single-mediator.
+- **NAMESPACE + man/path_effects.Rd + _pkgdown** Effects section; 02-effect-calculus
+  gains a per-mediator section with the additivity table; OQ-5 -> PARTIAL; D-17,
+  V-32, NEWS.
+
+Deferred (OQ-5 follow-up, riskier / engine-gated): per-component (mu/sigma/zi)
+attribution via a `freeze` plumbing arg in drm_propagate; the natural cross-world
+variant + recanting-witness guard; NA for unconfirmed-sampler families; a live-fit
+integration test before "validated".

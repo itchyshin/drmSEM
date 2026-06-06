@@ -1,5 +1,16 @@
 # drmSEM 0.1.0.9000 (development version)
 
+## Path-specific effects (OQ-5, per-mediator)
+
+* `path_effects(object, from, to, through=)` decomposes the indirect effect into
+  a per-mediator contribution: an **inclusion** effect (`T({Mj}) - direct`, only
+  `Mj` responds) and an **exclusion** effect (`T(all) - T(all \\ Mj)`, `Mj`'s
+  marginal given the rest), plus `total_indirect` and an explicit
+  `interaction_remainder`. The pieces sum to the total only in the additive case;
+  the remainder is reported, never forced to zero. Model-based attribution, not a
+  nonparametric path-specific identification claim. Per-component (mu/sigma/zi)
+  and natural variants are the OQ-5 follow-up.
+
 ## Composite latent constructs (0.3, first increment)
 
 * `drm_composite(name, indicators, weights, method = c("fixed", "pca"))` declares

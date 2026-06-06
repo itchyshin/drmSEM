@@ -308,3 +308,16 @@ need the live-drmTMB lane.
   name collisions; `loadings()` reports indicator loadings (empty when none).
   **validated (kernel)** — `test-composite.R`, no drmTMB. The engine path
   (`drm_sem(composites=)` fitting a node on a materialized construct) is CI-gated.
+
+## 2026-06-06 — V-32: per-mediator path-specific attribution (OQ-5, pure R)
+
+- **V-32 — `path_effects()` per-mediator decomposition.** Kernel
+  `drm_path_contrasts()` computes inclusion/exclusion/total/remainder by active-set
+  toggling. Closed-form deterministic checks (`test-path-effects.R`, mean
+  mediation, draw=FALSE): P-1 parallel-additive (inclusion = a*b, inclusion =
+  exclusion, remainder = 0); P-2 downstream nonlinearity (remainder =
+  (e^{ka1}-1)(e^{ka2}-1) > 0, inclusion != exclusion); P-3 sequential M1->M2->Y
+  (inclusion = 0 each, exclusion = total each, remainder = total); single-mediator
+  degenerate case. **validated (kernel)** — no drmTMB. The user-facing
+  `path_effects()` wrapper + the per-component/natural follow-ups are CI/Codex-gated;
+  a live-fit integration test is the missing evidence before promotion (OQ-5).
