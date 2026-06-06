@@ -712,3 +712,31 @@ it found:
   decomposition report").
 Audit confirmed CLEAN: version strings (0.2.0.9000), the #22 honesty pass propagation,
 the adapter boundary, .codex/.claude mirror, locked decisions in code.
+
+## 2026-06-06 — New vignette: bivariate nodes (drm_pair worked example)
+
+Added an audience-facing vignette `vignettes/bivariate-nodes.Rmd` for the
+bivariate-node grammar (0.4 grammar layer; pure-R, no engine). Target reader:
+ecology/evolution PhD students who know GLMMs but not causal-SEM jargon.
+
+- Motivates the three-way distinction with an animal-personality example
+  (activity & boldness, repeated on `id`): directed path `activity -> boldness`
+  vs residual within-observation `rho12` (eps<->eps) vs higher-level
+  between-individual `corpair` (u_id<->u_id), stressing that the latter two are
+  NOT interchangeable.
+- Walks drm_pair(activity ~ x + (1|id), boldness ~ x + (1|id), rho12 = ~ x):
+  print(pair), rho12(pair), corpairs(pair), drm_expand_pair(pair). Pure-R chunks
+  eval=TRUE; the drm_expand_pair chunk gated on requireNamespace("drmTMB") since
+  it wraps formulas with drmTMB::bf() (does not fit); the drm_sem/plot chunks are
+  eval=has_engine (FALSE) per the existing-vignette convention.
+- SCRUPULOUSLY honest, made prominent (a block-quote, not buried): the estimate
+  column is NA by construction; drmSEM never fabricates a correlation; estimating
+  rho12 needs one joint bivariate drmTMB fit = the 0.4 engine deliverable.
+- Covariance-arc plotting (plot(sem, show="all") double-headed rho12 / dashed
+  corpair) described conceptually; cross-refs the covariance-edges vignette and
+  docs/design/07-bivariate-covariance-edges.md.
+
+Registered under _pkgdown.yml articles > Concepts (after
+covariance-edges-and-composites). NEWS bullet added under the existing
+"Bivariate nodes (0.4, grammar layer)" section. Did NOT touch R/, NAMESPACE,
+man/, DESCRIPTION, or tests. No feedback/cyclic content (separate vignette).
