@@ -279,7 +279,8 @@ Phase 3) ship today; phylogenetic paths *into* distributional components and
 | Any-component d-separation + Fisher's C | now (experimental calibration) |
 | Simulation-based direct / mean-mediated / distribution-mediated / total effects | now |
 | Natural direct / indirect / mediated-interaction effects (`indirect_effects(effect = "natural")`) | now (cross-world split, validated on the linear-Gaussian case) |
-| Outcome functionals beyond the mean (`Pr(Y>t)`, `Pr(Y=0)`, var via `total_effects(target = ...)`) | now (first set; more functionals + bootstrap CIs on roadmap) |
+| Outcome functionals beyond the mean (`Pr(Y>t)`, `Pr(Y=0)`, var via `direct_effects()` / `total_effects(target = ...)`) | now (first set; more functionals + bootstrap CIs on roadmap) |
+| Unified effect-API surface (`method`, `uncertainty`, `nsim`, `population` shared across the effect functions) | now (`mediation` / `draw` / `n_sim` kept as deprecated aliases; bootstrap + marginal are roadmap) |
 | Component-labelled DAG plot + effect forest plot | now |
 | Phylogenetic correction inside piecewise SEM (Phase 1, intercept-only) | now |
 | Phylopath-style model-set comparison (best / averaged model) | now (Phase 2; `drm_dag` / `drm_model_set` / `compare` / `best` / `average`) |
