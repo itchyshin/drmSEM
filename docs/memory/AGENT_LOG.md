@@ -556,3 +556,17 @@ Verification: `vignettes/calibration.Rmd` rendered from the source-tree cache;
 `devtools::check()` finished with 0 errors, 0 warnings, and 1 existing NOTE
 (`LICENSE` file not mentioned in DESCRIPTION). Removed the unused `utils` import
 from DESCRIPTION during this pass, clearing the second check NOTE.
+
+## 2026-06-06 — post-#18 reconciliation (Claude lane)
+
+After Codex's OQ-6 calibration PR (#18) merged to main, merged main into the 0.3
+branch (only AGENT_LOG conflicted -- both lanes appended; kept both). Then folded
+in the deferred shared-doc bullets that were held during the freeze:
+- NEWS 0.2.0.9000: added the "Latent constructs (0.3)" section (composite
+  reliability/standardize/summary.drm_composite, composite-as-response, the
+  latent-variables vignette).
+- drmSEM-overview roadmap table: added "now" rows for path_effects attribution and
+  composite constructs; softened "Latent variables out of scope" -> "reflective
+  measurement models out of scope (0.4); composites ship".
+Codex's calibration cache + V-17 (OQ-6-grid validated) + the utils-import removal
+are in. d-sep/Fisher's C wording stays scoped to the OQ-6 grid.

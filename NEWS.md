@@ -9,6 +9,19 @@
   pure graph logic; the cross-world computation reuses the validated
   `drm_natural_target` kernel.
 
+## Latent constructs (0.3)
+
+* `drm_composite()` now reports **reliability** (Cronbach's alpha, an
+  internal-consistency measure for reflective indicator sets — unclamped, `NA`
+  for a single indicator) and accepts `standardize = TRUE` (mean-0 / sd-1 score).
+  A new `summary.drm_composite()` shows the loadings table, first-PC variance, and
+  reliability. A composite may now be used as a **response** (a node modelling the
+  construct), not only a predictor.
+* New vignette **"Latent constructs: composites and reliability"** walks through
+  formative vs reflective-flavoured (PCA) constructs, construct quality, and
+  construct-as-response; reflective *measurement-model* SEM stays out of scope
+  (needs a joint likelihood → 0.4), documented in `docs/design/09-latent-variables.md`.
+
 ## Calibration (OQ-6)
 
 * The live-drmTMB lane generated `inst/calibration/calibration-results.rds`
