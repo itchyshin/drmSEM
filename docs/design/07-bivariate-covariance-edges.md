@@ -215,7 +215,7 @@ the basis set.
 | `rho12()` / `corpairs()` accessors (declaration) | n/a | no | declared edges (0.2.x, estimate NA) | yes |
 | `rho12()` / `corpairs()` accessors (read from fit) | n/a | no | no | **yes** |
 | `covary()` declaration + `covariances()` separate from `paths()` | n/a | no | **yes (0.2.0)** | yes |
-| Double-headed / dashed arc plotting | yes (semPaths) | no | no | **yes** |
+| Double-headed / dashed arc plotting | yes (semPaths) | no | yes (0.2.x: rho12 double-head, corpair dashed) | yes |
 | Level-compatibility rule for RE correlations | manual | no | partial (declared; deep RE-block check needs fit) | **yes** |
 | d-sep aware of covariance edges (drop `y1 _||_ y2`) | yes (Shipley) | partial | **yes (0.2.0)** | yes |
 
@@ -258,6 +258,10 @@ fit (`test-covariances.R`):
   higher-level edges of a `drm_pair` or a `drm_sem`, separate from `paths()`,
   with an `estimate` column that is **`NA` by construction**: the fitted value
   must be read back from a live bivariate fit (drmSEM never re-solves).
+- **`plot(sem)` draws the covariance edges** as double-headed arcs (residual
+  `rho12` solid grey, higher-level `corpair` dashed grey), distinct from the
+  directed component-coloured paths; `show = "paths"` suppresses them. Rendered
+  to a null device in CI (`test-plotting.R`).
 
 What still does **not** exist (needs a **live bivariate drmTMB fit**, so it
 cannot be built/validated in the dev container — see `CODEX_HANDOFF.md`):
@@ -267,8 +271,6 @@ cannot be built/validated in the dev container — see `CODEX_HANDOFF.md`):
   estimating `rho12` inside one drmTMB model and surfacing it through
   `rho12(fit)` / `corpairs(fit)` (a non-`NA` `estimate`) is the engine deliverable.
   `drm_pair()` is the pure-R declaration `covary()` always anticipated.
-- **Residual and RE covariance edges are not yet drawn as double-headed /
-  dashed arcs** in `plot(sem, show = "all")` (needs rendering to validate).
 - **Deep level-compatibility validation** — confirming both nodes actually share
   the declared grouping + a compatible covariance structure — needs to introspect
   the fitted random-effect blocks; `drm_pair()` / `covary()` currently record the

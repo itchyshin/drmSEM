@@ -609,3 +609,17 @@ HONEST BOUNDARY: the joint fit (estimating rho12 in one drmTMB model) and the
 non-NA read-back stay the engine/Codex deliverable (CODEX_HANDOFF item 5). drmSEM
 still never fits its own likelihoods. Updated NEWS, 07-bivariate doc current-state
 + feature table, 05-roadmap 0.4, CODEX_HANDOFF, _pkgdown reference.
+
+## 2026-06-06 — 0.4 plot polish: covariance arcs in plot.drm_sem
+
+Drew the covariance edges we can already declare. plot.drm_sem now renders
+covary()/drm_pair() edges as DOUBLE-HEADED arcs (igraph arrow.mode = 3): residual
+rho12 solid grey, higher-level corpair dashed grey, curved more than directed
+paths so the three edge classes (directed component-coloured path; residual
+covariance; higher-level covariance) are visually distinct. New `show =
+c("all","paths")` arg toggles the arcs off. Legend gains "rho12 (covary)" /
+"corpair (covary)" rows when arcs are drawn. CI smoke tests (`test-plotting.R`,
+pdf(NULL)) cover all/paths/no-covariance. ggplot2/igraph is the Claude lane per
+CODEX_HANDOFF; this closes the last non-engine piece of 0.4 (joint fit +
+rho12(fit)/corpairs(fit) read-back remain the engine deliverable). Updated NEWS,
+07-bivariate doc (shipped list + feature table), CODEX_HANDOFF item 5.

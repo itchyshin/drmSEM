@@ -17,6 +17,11 @@
   likelihoods, so reading a *fitted* correlation back needs a live bivariate
   `drmTMB` fit (the 0.4 engine deliverable). The declaration is never a
   fabricated estimate. See `docs/design/07-bivariate-covariance-edges.md`.
+* `plot(sem)` now draws **covariance edges as double-headed arcs** — solid grey
+  for a residual `rho12`, dashed grey for a higher-level `corpair` — so the three
+  edge classes (directed path, residual covariance, higher-level covariance) are
+  visually distinct. A new `show = c("all", "paths")` argument toggles the arcs
+  off (`"paths"` draws the directed structural edges only).
 
 ## Path-specific effects (OQ-5)
 
