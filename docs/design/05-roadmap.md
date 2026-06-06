@@ -67,6 +67,10 @@ live-fit analytic-effect tier flip, and OQ-14 joint fit.
 
 - Lift the DAG-only restriction for specific feedback motifs with a defined
   estimand and propagation rule. Cycles remain an error until this lands.
+- Design of record: `10-cyclic-feedback.md` — declared feedback motifs, the
+  reduced-form / fixed-point equilibrium estimand, sigma-separation, and the
+  staged plan (pure-R fixed-point propagation now; consistent IV/joint estimation
+  is the engine part).
 
 ## Interop and distribution
 

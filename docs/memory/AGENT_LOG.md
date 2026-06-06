@@ -570,3 +570,17 @@ in the deferred shared-doc bullets that were held during the freeze:
   measurement models out of scope (0.4); composites ship".
 Codex's calibration cache + V-17 (OQ-6-grid validated) + the utils-import removal
 are in. d-sep/Fisher's C wording stays scoped to the OQ-6 grid.
+
+## 2026-06-06 — 0.5 design doc (cyclic/feedback graphs)
+
+Drafted `docs/design/10-cyclic-feedback.md` (the 0.5 design of record) and pointed
+05-roadmap at it. Honest framing: feedback in a piecewise distributional SEM is two
+hard problems -- consistent ESTIMATION (simultaneity bias; needs IV/2SLS or a joint
+likelihood = engine) and effect PROPAGATION (equilibrium / fixed point, not a path
+product). Estimand: linear reduced form `(I-B)^-1 Gamma`; nonlinear = fixed-point
+iteration of drm_propagate with a `rho(B)<1`/max-iter stability guard and honest
+non-convergence reporting. Staged 0.5.0: a `drm_cycle()`/`feedback=` declaration
+(cycles stay an error unless declared), relaxed toposort, fixed-point propagation,
+basis-set suppression among motif nodes; consistent estimation + full
+sigma-separation deferred to the engine/research lane. Pure-R prototypable:
+declaration grammar, fixed-point engine, closed-form 2-cycle recovery tests.
