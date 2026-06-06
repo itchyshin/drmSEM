@@ -120,22 +120,37 @@ direct_effects <- function(object, from, to, component = NULL, at = NULL,
 #' @param mediation `"mean"` (mediator means propagate) or `"distribution"`
 #'   (realized mediator draws propagate).
 #' @param n_sim Inner realizations per draw when `mediation = "distribution"`.
+#' @param target Functional of the outcome distribution to report the effect on:
+#'   `"mean"` (default), `"p_gt"` (Pr(Y > `threshold`)), `"p_zero"` (Pr(Y = 0)),
+#'   or `"var"` (Var(Y)). Distributional targets simulate the outcome from its
+#'   family (OQ-11); see `docs/design/02-effect-calculus.md`.
+#' @param threshold Cutoff for `target = "p_gt"`.
 #' @return A one-row `drm_effect` data frame.
 #' @export
 total_effects <- function(object, from, to, mediation = c("mean", "distribution"),
+                          target = c("mean", "p_gt", "p_zero", "var"), threshold = 0,
                           at = NULL, B = 200L, n_sim = 50L, draw = TRUE,
                           level = 0.95, seed = NULL, ...) {
   mediation <- match.arg(mediation)
+  target <- match.arg(target)
   drm_validate_effect_args(object, from, to)
   drm_require_drmTMB()
   engines <- drm_engines_from_sem(object)
   scen <- drm_build_scenarios(object, from, at)
   active <- setdiff(object$endogenous, c(from, to))
-  vals <- drm_effect_contrast(engines, scen, to, active = active,
-                              mediation = mediation, B = B, n_sim = n_sim,
-                              draw = draw, seed = seed)
+  vals <- if (identical(target, "mean")) {
+    drm_effect_contrast(engines, scen, to, active = active,
+                        mediation = mediation, B = B, n_sim = n_sim,
+                        draw = draw, seed = seed)
+  } else {
+    drm_functional_contrast(engines, scen, to, active = active,
+                            mediation = mediation, target = target,
+                            threshold = threshold, B = B, n_sim = n_sim,
+                            draw = draw, seed = seed)
+  }
   out <- cbind(data.frame(from = from, to = to, scale = "response",
-                          mediation = mediation, stringsAsFactors = FALSE),
+                          mediation = mediation, target = target,
+                          stringsAsFactors = FALSE),
                drm_summ(vals, level))
   class(out) <- c("drm_effect", "data.frame")
   out
@@ -153,18 +168,56 @@ total_effects <- function(object, from, to, mediation = c("mean", "distribution"
 #' @inheritParams total_effects
 #' @param through Optional set of mediator node names to route through. Defaults
 #'   to all mediators between `from` and `to`.
-#' @return A `drm_effect` data frame with rows for `total_path`, `direct`,
-#'   `indirect`, `mean_mediated`, and `distribution_mediated`.
+#' @param effect `"controlled"` (default) decomposes the total into a controlled
+#'   direct effect (mediators at observed values) plus mean-mediated and
+#'   distribution-mediated parts. `"natural"` reports the cross-world natural
+#'   direct/indirect effects (Pearl/Imai), holding the mediators at their
+#'   predicted `M(x0)` / `M(x1)` distributions; see
+#'   `docs/design/02-effect-calculus.md`.
+#' @return A `drm_effect` data frame. For `effect = "controlled"`, rows
+#'   `total_path`, `direct`, `indirect`, `mean_mediated`, `distribution_mediated`.
+#'   For `effect = "natural"`, rows `total_path`, `natural_direct`,
+#'   `natural_indirect`, `mediated_interaction`.
 #' @export
 indirect_effects <- function(object, from, to, through = NULL,
+                             effect = c("controlled", "natural"),
                              at = NULL, B = 200L, n_sim = 50L, draw = TRUE,
                              level = 0.95, seed = NULL, ...) {
+  effect <- match.arg(effect)
   drm_validate_effect_args(object, from, to)
   drm_require_drmTMB()
   engines <- drm_engines_from_sem(object)
   scen <- drm_build_scenarios(object, from, at)
   all_med <- setdiff(object$endogenous, c(from, to))
   active <- if (is.null(through)) all_med else intersect(through, all_med)
+
+  if (identical(effect, "natural")) {
+    if (!is.null(seed)) set.seed(seed)
+    reps <- if (isTRUE(draw)) B else 1L
+    mat <- matrix(NA_real_, reps, 3L, dimnames = list(NULL, c("nde", "nie", "total")))
+    for (bi in seq_len(reps)) {
+      beta_list <- lapply(engines, drm_draw_beta, draw = draw)
+      names(beta_list) <- names(engines)
+      mat[bi, ] <- drm_natural_target(engines, scen, scen$column, to, active,
+                                      "distribution", beta_list, n_sim)
+    }
+    rows <- rbind(
+      cbind(data.frame(quantity = "total_path"), drm_summ(mat[, "total"], level)),
+      cbind(data.frame(quantity = "natural_direct"), drm_summ(mat[, "nde"], level)),
+      cbind(data.frame(quantity = "natural_indirect"), drm_summ(mat[, "nie"], level)),
+      cbind(data.frame(quantity = "mediated_interaction"),
+            drm_summ(mat[, "total"] - mat[, "nde"] - mat[, "nie"], level))
+    )
+    out <- cbind(
+      data.frame(from = from, to = to, through = paste(active, collapse = ", "),
+                 stringsAsFactors = FALSE),
+      rows
+    )
+    rownames(out) <- NULL
+    class(out) <- c("drm_effect", "data.frame")
+    return(out)
+  }
+
 
   cde <- drm_effect_contrast(engines, scen, to, character(0), "mean", B, 1L, draw, seed)
   tot_mean <- drm_effect_contrast(engines, scen, to, active, "mean", B, n_sim, draw, seed)

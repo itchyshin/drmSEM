@@ -96,3 +96,108 @@ and whether a better-conditioned DGP (larger n, gentler scale slope) removes the
 warning. Needs a live drmTMB session to bisect by node. Until then the canonical
 example inherits NaN SEs, so Monte-Carlo effect intervals there collapse to point
 estimates.
+
+## OQ-8 — Natural (cross-world) vs controlled direct/indirect effects  [PARTIAL 2026-06-05]
+
+**Implemented:** `indirect_effects(..., effect = "natural")` returns natural
+direct / natural indirect / total + `mediated_interaction`, validated on the
+identity-link linear-Gaussian recovery (cross-world kernel verified in
+`test-effect-kernels.R`). The Pearl/Imai natural effects use cross-world
+counterfactuals: `NDE = E[Y(x1,M(x0))] - E[Y(x0,M(x0))]`, `NIE =
+E[Y(x0,M(x1))] - E[Y(x0,M(x0))]`, holding the mediator at its predicted
+`M(x0)`/`M(x1)` distribution; `indirect_effects(effect = "controlled")` keeps the
+prior split (mediators at observed values, `indirect = total - direct`). See
+`02-effect-calculus.md`. OPEN: general cross-world identification under arbitrary
+links / interactions, an integration test on a live nonlinear fit, CIs, and
+harmonizing with the `method`/`uncertainty` surface (OQ-12).
+
+## OQ-9 — Marginal (population-averaged) effects through random-effect scale
+
+The effect engine currently propagates with random effects held at zero, so
+reported direct/indirect/total effects are **conditional** (RE = 0), not the
+marginal mean `E_b[g^{-1}(eta+b)]`. This means a causal path *into* a
+random-effect scale — e.g. `X -> sd(group)` or a path into `sd(species)` under a
+phylogenetic node — cannot be expressed as an effect on the response, because
+integrating it out requires marginalizing over the RE distribution. Open: add a
+`marginal = TRUE` / `population = c("conditional","marginal")` option that
+integrates over the fitted RE distribution (needs drmTMB to expose the RE
+variance components and a way to draw/integrate them on the response scale).
+Until then, `sd(group)` paths appear in `paths()` but have no entry in the effect
+decomposition, and this is documented as a conditional-effects limitation (see
+`02-effect-calculus.md`, `06-phylogenetic-sem.md`). Needs a live drmTMB session
+to confirm the ranef variance API.
+
+## OQ-10 — Bootstrap uncertainty (speed Tier 5)
+
+Add `uncertainty = "bootstrap"` (parametric/nonparametric, refit per replicate)
+as an alternative to the current `MVN(coef, vcov)` coefficient draw for effect
+CIs.
+
+## OQ-11 — Outcome functionals beyond the mean  [PARTIAL 2026-06-05]
+
+**Implemented:** `total_effects(..., target = c("mean","p_gt","p_zero","var"),
+threshold=)` simulates the outcome and reports the effect on that functional of
+the outcome distribution (Poisson `p_zero` kernel-verified in
+`test-effect-kernels.R`). Distribution-mediated effects are most compelling on
+functionals other than the mean — `Pr(Y > t)`, `Pr(Y = 0)`, `Var(Y)`, quantiles
+— since a path that moves only `sigma`/`zi` may leave `E[Y]` nearly unchanged
+while sharply changing a tail or zero probability, and the simulation engine
+already produces realized outcome draws. OPEN: extend `target` to
+`direct_effects`/`indirect_effects`, add more functionals (quantiles) and
+analytic (non-simulated) functionals, and decide the default reporting scale and
+CI construction. This is the headline for Phase 4 (distributional phylogenetic
+SEM, see `06-phylogenetic-sem.md`).
+
+## OQ-12 — Effect API harmonization
+
+Surface `indirect_effects(..., method = c("gcomp","simulate"), uncertainty =
+c("none","parametric","bootstrap"), nsim, population, target)` mapping onto the
+existing `mediation`/`draw`/`B`/`n_sim` engine without changing the kernels, so
+the effect-function argument surface is unified across `direct_effects()`,
+`indirect_effects()`, and `total_effects()`.
+
+## OQ-13 — d-separation augment-refit of a structured (phylo/animal/relmat) node  [RESOLVED 2026-06-05, see D-entry / VALIDATION_LEDGER]
+
+**Resolution.** `dsep()` could not augment-refit a node carrying a structured
+term because the `tree`/pedigree object was not resolvable in the refit (claims
+returned `status="refit_failed"` and dropped out of Fisher's C). Fixed
+drmSEM-side: `drm_sem()`/`drm_psem()` capture the specification environment
+(`fit_env = parent.frame()`); `dsep()` passes it to `drm_refit_augmented(...,
+env = object$fit_env)`, which builds the augmented formula and refits via
+`do.call(..., envir = env)`, so the tree resolves and the `phylo()` term is
+preserved. Phylo d-sep claims now return `status="ok"` with a real LRT p-value
+and contribute to Fisher's C. Validated on live drmTMB (CI run 27006262081
+green; asserted in `tests/testthat/test-phylo.R`). No drmTMB change required
+(see `DRMTMB_ISSUES.md`).
+
+## OQ-14 — First-class bivariate covariance edges (rho12 / corpairs) + d-sep awareness
+
+First-class support for bivariate models and their covariance edges, deferred to
+post-0.1 (see D-12, `07-bivariate-covariance-edges.md`). drmSEM 0.1 already
+extracts `x -> rho12` as a directed-path component from a bivariate drmTMB fit
+given to `drm_psem()`, but the covariance-edge machinery does not exist. Open
+items:
+
+- A `drm_pair()` bivariate node type returning two response sub-nodes (e.g.
+  `activity`, `boldness`) plus the extra covariance structure
+  (`rho12(activity, boldness)`, `corpair(id: activity, boldness)`).
+- A `covariances(sem)` accessor that separates **residual** (`rho12`,
+  `eps_y1 <-> eps_y2`) and **higher-level** (`corpair`, `u_*,y1 <-> u_*,y2`)
+  correlations from directed `paths()` (which stays directed-only); plus
+  `rho12(fit)` / `corpairs(fit)` accessors that **query the fitted object** and
+  expose only correlations actually present (no assumed empty blocks).
+- Double-headed-arc plotting in `plot(sem, show="all")`: solid arrows (directed),
+  double-headed arcs (residual `rho12`), dashed arcs (higher-level `corpair`).
+- The **level-compatibility rule**: estimate/report a higher-level correlation
+  only among random effects sharing the same level + grouping index + compatible
+  covariance structure (OK: `id-y1<->id-y2`, `species-phylo-y1<->species-phylo-y2`,
+  `site-mu<->site-sigma`; NOT generally OK: `site<->species`, `phylo<->spatial`,
+  unrelated cross-model blocks).
+- Making `basis_set()` / `dsep()` **covariance-aware**: skip the
+  `y1 _||_ y2 | predictors` independence claim whenever a residual or RE
+  covariance edge between `y1` and `y2` is declared (the model explicitly allowed
+  them to remain associated). Directed edges (incl. `x -> rho12`) still enter the
+  path algebra; covariance edges are allowances the d-sep machinery must respect.
+
+Needs a **live bivariate drmTMB fit** to validate (cannot be tested in the dev
+container).

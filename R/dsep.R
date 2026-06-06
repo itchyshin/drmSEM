@@ -107,12 +107,24 @@ dsep.drm_sem <- function(object, ...) {
   drm_require_drmTMB()
   bs <- basis_set(object)
   if (nrow(bs) == 0L) {
+    # Saturated DAG: no independence claims to test. Return an empty, typed
+    # result (assigning a scalar column to a 0-row data.frame would error).
     cli::cli_warn("Basis set is empty: the graph is fully saturated, no claims to test.")
+    bs$df <- integer(0)
+    bs$LR <- numeric(0)
+    bs$p.value <- numeric(0)
+    bs$status <- character(0)
+    attr(bs, "fisher_c") <- drm_fisher_c_from_p(numeric(0))
+    class(bs) <- c("drm_dsep", "data.frame")
+    return(bs)
   }
   bs$df <- NA_integer_
   bs$LR <- NA_real_
   bs$p.value <- NA_real_
   bs$status <- "ok"
+  # Evaluate augmented refits where the SEM was specified, so a node's
+  # structured-effect objects (e.g. a phylo `tree`) resolve (OQ-13).
+  refit_env <- if (is.null(object$fit_env)) globalenv() else object$fit_env
   for (i in seq_len(nrow(bs))) {
     y <- bs$y[[i]]
     fit <- object$records[[y]]$fit
@@ -122,7 +134,7 @@ dsep.drm_sem <- function(object, ...) {
       next
     }
     base <- drm_fit_logLik(fit)
-    aug_fit <- drm_refit_augmented(fit, add_var)
+    aug_fit <- drm_refit_augmented(fit, add_var, env = refit_env)
     if (is.null(aug_fit)) {
       bs$status[[i]] <- "refit_failed"
       next
@@ -145,7 +157,13 @@ dsep.drm_sem <- function(object, ...) {
 }
 
 drm_fisher_c_from_p <- function(p) {
-  p <- p[!is.na(p) & p > 0]
+  # Drop only un-tested claims (NA). A claim with p == 0 (a decisively rejected
+  # independence -- the strongest possible evidence of a missing arrow) must NOT
+  # be dropped: doing so removes log(0) = -Inf from C and shrinks df, biasing
+  # Fisher's C toward non-rejection exactly when the DAG is most wrong. Floor p
+  # at the smallest positive double so such a claim inflates C instead.
+  p <- p[!is.na(p)]
+  p <- pmax(p, .Machine$double.xmin)
   k <- length(p)
   C <- -2 * sum(log(p))
   df <- 2L * k

@@ -60,6 +60,37 @@ drm_sample_family <- function(family, params, n) {
       phi <- 1 / pmax(sigma, 1e-3)^2
       stats::rbeta(n, shape1 = mu * phi, shape2 = (1 - mu) * phi)
     },
+    # zero_one_beta (ordered / zero-one-inflated beta). The continuous part is
+    # the same beta as `beta` above (phi = 1/sigma^2; shapes mu*phi,(1-mu)*phi),
+    # which is confirmed against drmTMB in test-oq1-samplers.R. The inflation
+    # part follows the standard ZOIB parameterization: `zoi` is P(observation is
+    # a boundary 0/1), and `coi` is P(value == 1 | boundary). When zoi/coi are
+    # not supplied (a mediator that only carries mu/sigma), this degenerates to
+    # the plain beta draw. The zoi/coi-on-logit mapping is NOT yet confirmed
+    # against a live drmTMB fit, so the OQ-1 test only asserts the beta-only path.
+    zero_one_beta = {
+      phi <- 1 / pmax(sigma, 1e-3)^2
+      cont <- stats::rbeta(n, shape1 = mu * phi, shape2 = (1 - mu) * phi)
+      zoi <- params$zoi
+      if (!is.null(zoi) && any(zoi > 0)) {
+        coi <- if (!is.null(params$coi)) params$coi else rep(0.5, n)
+        is_boundary <- stats::runif(n) < zoi
+        is_one <- is_boundary & (stats::runif(n) < coi)
+        cont[is_boundary] <- 0
+        cont[is_one] <- 1
+      }
+      cont
+    },
+    # tweedie: a compound Poisson-Gamma draw is well-defined only when the power
+    # 1 < p < 2 AND the dispersion phi are known on the response scale. drmTMB
+    # exposes the power, but the mapping from its SD-like `sigma` to the tweedie
+    # dispersion phi is not yet confirmed against a live fit, so we cannot safely
+    # parameterize the Gamma jumps. Per the "mean-fallback over a guessed
+    # sampler" rule we fall through to the mean below (with drm_warn_once).
+    # TODO(live-drmTMB): confirm phi <-> sigma for tweedie (compound Poisson:
+    #   lambda = mu^(2-p) / (phi*(2-p)); jump ~ Gamma(shape=(2-p)/(p-1),
+    #   scale=phi*(p-1)*mu^(p-1))), then enable a sampler gated on params$power
+    #   (or params$nu) holding 1 < p < 2. Until then, mean fallback.
     {
       drm_warn_once(paste0("family-sampler-", family),
         cli::format_inline("No realized-value sampler for family {.val {family}}; using its mean."))
@@ -191,4 +222,91 @@ drm_expected_target <- function(engines, scenario, to, active, mediation,
   } else {
     drm_propagate(engines, scenario, active, mediation, beta_list)$mean[[to]]
   }
+}
+
+# Natural (cross-world) direct/indirect effects for `to`, holding the mediators
+# in `active` at their counterfactual M(x0) / M(x1) values (Pearl/Imai NDE/NIE).
+# Unlike the controlled split, the mediator is set to its predicted distribution
+# under each exposure level, not to its observed values. Returns one parameter
+# draw as c(nde, nie, total). See docs/design/02-effect-calculus.md (OQ-8).
+drm_natural_target <- function(engines, scenarios, from_col, to, active,
+                               mediation = "distribution", beta_list = NULL,
+                               n_sim = 1L) {
+  one <- function() {
+    # mediator worlds: propagate the exposure contrast through the mediators
+    work0 <- drm_propagate(engines, scenarios$lo, active, mediation, beta_list)$work
+    work1 <- drm_propagate(engines, scenarios$hi, active, mediation, beta_list)$work
+    eng_to <- engines[[to]]
+    # predict the outcome's response-scale mean with the DIRECT exposure set to
+    # `from_src` while the mediators stay at their (already-fixed) world values.
+    pmu <- function(work, from_src) {
+      work[[from_col]] <- from_src[[from_col]]
+      mean(eng_to$predict(work, beta = beta_list[[to]])$mu, na.rm = TRUE)
+    }
+    y00 <- pmu(work0, scenarios$lo)   # Y(x0, M(x0))
+    y10 <- pmu(work0, scenarios$hi)   # Y(x1, M(x0))
+    y01 <- pmu(work1, scenarios$lo)   # Y(x0, M(x1))
+    y11 <- pmu(work1, scenarios$hi)   # Y(x1, M(x1))
+    c(nde = y10 - y00, nie = y01 - y00, total = y11 - y00)
+  }
+  if (identical(mediation, "distribution") && n_sim > 1L) {
+    acc <- c(nde = 0, nie = 0, total = 0)
+    for (s in seq_len(n_sim)) acc <- acc + one()
+    acc / n_sim
+  } else {
+    one()
+  }
+}
+
+# Summary functional of a realized outcome vector (OQ-11): effects can be read on
+# any functional of the predicted outcome distribution, not just the mean.
+drm_outcome_functional <- function(y, target = "mean", threshold = 0) {
+  switch(
+    target,
+    mean = mean(y, na.rm = TRUE),
+    p_gt = mean(y > threshold, na.rm = TRUE),
+    p_zero = mean(y == 0, na.rm = TRUE),
+    var = stats::var(y, na.rm = TRUE),
+    mean(y, na.rm = TRUE)
+  )
+}
+
+# Population functional of the outcome `to` under a scenario. For target "mean"
+# this is the exact predicted mean; for distributional targets the outcome is
+# simulated from its family and the functional is averaged over n_sim draws.
+drm_functional_target <- function(engines, scenario, to, active, mediation,
+                                  beta_list, target = "mean", threshold = 0,
+                                  n_sim = 1L) {
+  if (identical(target, "mean")) {
+    return(mean(drm_expected_target(engines, scenario, to, active, mediation,
+                                    beta_list, n_sim), na.rm = TRUE))
+  }
+  eng_to <- engines[[to]]
+  reps <- max(as.integer(n_sim), 1L)
+  acc <- 0
+  for (s in seq_len(reps)) {
+    work <- drm_propagate(engines, scenario, active, "distribution", beta_list)$work
+    preds <- eng_to$predict(work, beta = beta_list[[to]])
+    y <- drm_sample_family(eng_to$family, preds, n = nrow(scenario))
+    acc <- acc + drm_outcome_functional(y, target, threshold)
+  }
+  acc / reps
+}
+
+# Contrast of an outcome functional across the low/high scenarios (OQ-11).
+drm_functional_contrast <- function(engines, scenarios, to, active, mediation,
+                                    target, threshold, B, n_sim, draw, seed = NULL) {
+  if (!is.null(seed)) set.seed(seed)
+  reps <- if (isTRUE(draw)) B else 1L
+  vals <- numeric(reps)
+  for (b in seq_len(reps)) {
+    beta_list <- lapply(engines, drm_draw_beta, draw = draw)
+    names(beta_list) <- names(engines)
+    fhi <- drm_functional_target(engines, scenarios$hi, to, active, mediation,
+                                 beta_list, target, threshold, n_sim)
+    flo <- drm_functional_target(engines, scenarios$lo, to, active, mediation,
+                                 beta_list, target, threshold, n_sim)
+    vals[[b]] <- fhi - flo
+  }
+  vals
 }

@@ -39,6 +39,7 @@ drmTMB cannot be compiled); they run in the Codex cloud env (`CLOUD.md`).
 | V-18 | `model.matrix()` contrast coding matches drmTMB's internal fixed-effect coding | pending | needs live drmTMB fit (OQ-2); isolated in `drm_fixed_design` |
 | V-19 | Exact family-sampler parameterizations match drmTMB (nbinom2 `size`, beta_binomial trials, lognormal scale) | pending | needs live drmTMB fit (OQ-1) |
 | V-20 | drmTMB adapter shapes (`bf()$entries`, `coef`/`fixef`/`vcov` `dpar:term`, `logLik`, `is_converged`, `predict_parameters`) | pending | written against drmTMB 0.1.3.9000 source; runtime confirmation pending |
+| V-21 | `standardize()` scaling math: `sd_x` = `estimate * sd(predictor)` (factor SD=1, sign preserved); `latent` additionally divides by the SD of the target component's fitted linear predictor `eta = X %*% b`; link-scale labels (`identity` mu, `log` sigma) | validated (kernel) | `test-standardize.R`: 13 value-level assertions PASS on a fake `drm_sem` (no engine); single-predictor mean/sigma paths standardize to +1 |
 
 ## 2026-06-04 — Independent kernel re-verification
 
@@ -116,9 +117,16 @@ sdreport NaN on the small integration DGP, not failures).
 
 - V-14 / V-15 / V-16 (recovery: total=direct+indirect, Gaussian analytic
   cross-check, d-sep specificity) → **validated**.
-- V-17 (d-separation Type-I rate near nominal and power high) → **validated** at
-  the lightweight level (20-rep study in `test-calibration.R`; Type-I < 0.25,
-  power > 0.70). A larger calibration study remains a roadmap item.
+- V-17 (d-separation Type-I rate near nominal and power high) → **experimental**
+  (NOT validated). The only evidence is a 20-rep smoke test in
+  `test-calibration.R` at a single n=250 / single effect size / single Gaussian
+  chain, asserting only Type-I < 0.25 and power > 0.70 — it would pass at a badly
+  inflated Type-I (0.24 ≫ nominal 0.05) and cannot establish "near nominal". The
+  any-component augmentation's calibration is OQ-6; `paper.md` and
+  `03-dsep.md` correctly label the test experimental. Do NOT write "Type-I near
+  nominal" until a real grid study (multiple n, effect sizes, families,
+  multi-component augmentation) lands. (Corrected 2026-06-06 after inference
+  review B-1; prior wording over-claimed.)
 - V-19 / OQ-1 (family-sampler parameterizations for gaussian, poisson, nbinom2,
   beta, lognormal, Gamma) → **validated** against live drmTMB.
 - New: `plot.drm_effect()` forest plot validated (`test-plotting.R` + live render
@@ -126,3 +134,109 @@ sdreport NaN on the small integration DGP, not failures).
 
 Still open: OQ-7 (sdreport NaN root cause; mitigated, tracked in DRMTMB_ISSUES.md);
 `plot.drm_sem` standardized-coefficient edge labels + ns dashing (D-8, roadmap).
+
+## 2026-06-05 — Phylogenetic Phase 1 complete (PR #6)
+
+CI run 27006262081 (ubuntu/macOS/windows green) validates, against live
+drmTMB + ape: a phylo SEM builds and fits; `paths()` strips the phylo()
+term to the fixed-effect DAG; `total_effects()` propagates; and -- after the
+OQ-13 fix -- `dsep()` augment-refits a phylo node (the `tree` resolves via
+the captured `fit_env`), so the claim returns status 'ok' with a finite
+p-value and Fisher's C is finite. d-separation/Fisher's C now work
+end-to-end for phylogenetic SEMs. Marker no-leak is kernel-verified
+(test-utils.R). Phase 1 = DONE.
+
+## 2026-06-05 — Parallel batch validated (PR #6, run 27007984275/...311 green)
+
+All three OS R-CMD-check jobs + the pkgdown build are green on live drmTMB. Newly
+validated end-to-end:
+- **Phase 2 model comparison**: compare()/best()/average() fit a drm_model_set of
+  candidate DAGs and rank by Fisher's C + CICc (test-model-set.R engine test).
+- **zero_one_beta / student samplers** (test-oq1-samplers.R) — validated for the
+  CONTINUOUS part only: `zero_one_beta`'s beta core (phi = 1/sigma^2; degrades to a
+  plain beta when zoi/coi absent) and `student`'s mean. The zoi/coi inflation
+  mapping and student's `nu`/variance are NOT asserted (TODO(live-drmTMB) in the
+  test). `zero_one_beta` is in `drm_supported_sampler_families()`; `tweedie` is
+  not (it has no realized-value sampler and falls back to mean).
+- **Distributional phylogenetic SEM** (test-phylo-distributional.R): a phylo node
+  with sigma ~ x yields a finite distribution-mediated effect under shared ancestry.
+- **pkgdown site builds** with the new model-comparison reference + overview/paper.
+
+Three bugs were fixed to get here (all CI-surfaced):
+1. test-model-set.R: DAG factories defined after the test that used them; and
+   expect_silent on cli-emitting print methods. (test-only)
+2. drm_node(): auto-wrapping a stored plain formula used drmTMB::bf(formula), but
+   bf() is NSE -> captured the symbol. Fixed with do.call(bf, list(formula)).
+   (latent bug; first exercised by Phase 2.)
+3. pkgdown workflow: pak dependency self-conflict from listing
+   github::itchyshin/drmTMB alongside local::.+Remotes. Dropped the redundant entry.
+
+## 2026-06-05 — Phase 3 evolutionary covariance (`drm_phylo_cov`)
+
+`drm_phylo_cov(tree, model = c("BM","lambda","OU","kappa"), ...)` builds a
+phylogenetic relatedness matrix to feed a node via `relmat(1 | species, K = K)`,
+on a FIXED λ/OU/κ grid (joint estimation remains roadmap; see OQ — Phase 4).
+Evidence tiers:
+- **Pure-matrix transforms** (`phylo_transform_lambda`, `phylo_transform_ou`,
+  `phylo_to_corr`) and input validation: **verified locally** (base-R Rscript,
+  cli-shimmed source) and in `tests/testthat/test-phylo-cov.R` pure-logic tests —
+  λ=1 identity, λ=0 star, off-diagonal scaling, OU monotone decay + α-limits
+  (all-ones / identity), PSD, unit-diagonal standardisation, 2/sqrt(9) corr check.
+- **ape path** (`ape::vcv`, κ branch-length transform, real-tree builder):
+  **CI-gated** (`skip_if_not_installed("ape")`).
+- **drmTMB integration** (`relmat()` node from `drm_phylo_cov()` → valid SEM with
+  the marker stripped from `paths()`): **CI-gated** (`skip_if_not_installed` ape +
+  drmTMB).
+Closes the Phase 3 (short-term) roadmap item.
+
+## 2026-06-05 — Closeout doc/man hygiene (audit-driven)
+
+Systems audit (Rose) punch-list addressed: (1) committed `man/*.Rd` brought
+current — hand-wrote the 5 Phase-2 topics (`drm_dag`, `drm_model_set`, `compare`,
+`best`, `average`) + `drm_phylo_cov`; whole `man/` passes `tools::checkRd()` with
+no broken links. (2) `drm_phylo_cov` exported in NAMESPACE + listed in
+`_pkgdown.yml` reference. (3) `zero_one_beta` added to
+`drm_supported_sampler_families()`. (4) Phase 2/3 reclassified shipped (not
+roadmap) across vignettes/paper/overview/design-doc; OQ-13 marked resolved in
+`DRMTMB_ISSUES.md` + `OPEN_QUESTIONS.md`; sampler claims downgraded to
+continuous-part-only above. (5) `NEWS.md` updated (model comparison, phylo
+covariance, effect plot; `standardize()` claim corrected to link-scale only).
+OQ-9 (marginal RE effects) and OQ-11 (outcome functionals) defined.
+
+**Release note:** `NAMESPACE` + `man/` are also regenerated by CI's
+`roxygen2::roxygenise()` before R-CMD-check/pkgdown, so the source of truth is the
+roxygen blocks in `R/`. The hand-written `.Rd` match that output (verified via
+`checkRd`); re-run `roxygen2::roxygenise()` on a roxygen-equipped machine before
+tagging a release to confirm byte-parity.
+
+## 2026-06-06 — PR #4 effect engine reconciled into the phylo branch
+
+PR #4 (`effects-counterfactual-theory`) was not docs-only: it carried a more
+advanced effect engine than the phylo branch had. Reconciled fully (per the
+release plan) — `R/effects.R` and `tests/testthat/test-effect-kernels.R` were
+identical to main on the phylo branch, so #4's versions were taken wholesale;
+`R/simulate_effects.R` was merged (#4's natural/functional helpers +
+`drm_functional_target`/`drm_functional_contrast`/`drm_natural_target`/
+`drm_outcome_functional`, with the phylo branch's `zero_one_beta`/`tweedie`
+samplers re-injected). Newly available + kernel-validated locally
+(`test-effect-kernels.R`, base-R harness, no engine):
+
+- **V-22 / OQ-8 — Natural (cross-world) effects** via
+  `indirect_effects(effect = "natural")`: on an identity-link chain x->m->y with a
+  direct x->y edge, `natural_direct = c`, `natural_indirect = a*b`,
+  `total = c + a*b`, and `natural_indirect = 0` with no x->m path. **PARTIAL** —
+  validated only on the linear-Gaussian recovery; general cross-world
+  identification under arbitrary links/interactions + CIs remain open (OQ-8).
+- **V-23 / OQ-11 — Outcome functionals** via
+  `total_effects(target = c("p_gt","p_zero","var"), threshold=)`: the `p_zero`
+  effect recovers the Poisson zero-probability change `exp(-mu_hi) - exp(-mu_lo)`.
+  **PARTIAL** — first functionals validated; more functionals / reporting-scale /
+  CI construction remain open (OQ-11).
+
+Regression check: `test-dsep-kernels` (incl. the new p==0 Fisher's-C floor),
+`test-effect-kernels` (incl. the natural + functional kernels), and
+`test-standardize` all pass under the base-R harness after the merge; all `R/`
+parse clean. Engine-path validation (natural effects + functionals on a live
+nonlinear drmTMB fit) is CI/roadmap (OQ-8/OQ-11). Migrated #4's design/memory
+content too: D-10/D-11, OQ-8/OQ-10/OQ-12, the 02-effect-calculus essay, and the
+05-roadmap phylo pointer.

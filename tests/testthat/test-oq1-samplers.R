@@ -76,3 +76,52 @@ test_that("OQ-1: beta, lognormal, and Gamma samplers match drmTMB parameterizati
                         data = data.frame(y = yga))
   expect_sampler_recovers("Gamma", fga, yga)
 })
+
+test_that("OQ-1: zero_one_beta continuous (beta) parameterization matches drmTMB", {
+  set.seed(3)
+  n <- 1500
+
+  # No boundary 0/1 observations: a zero_one_beta fit's continuous part is the
+  # same beta(mu*phi, (1-mu)*phi), phi = 1/sigma^2, as the confirmed `beta`
+  # sampler. With zoi/coi absent, drm_sample_family("zero_one_beta", ...)
+  # degenerates to that beta draw, so the data moments must be recovered.
+  yzob <- stats::rbeta(n, shape1 = 0.4 * 8, shape2 = 0.6 * 8)
+  fzob <- drmTMB::drmTMB(drmTMB::bf(y ~ 1), family = drmTMB::zero_one_beta(),
+                         data = data.frame(y = yzob))
+  expect_sampler_recovers("zero_one_beta", fzob, yzob)
+
+  # TODO(live-drmTMB): once the zoi/coi-on-logit parameterization of a
+  # zero_one_beta mediator is confirmed against a live fit, add a boundary-
+  # inflated DGP here and assert recovery of P(0), P(1), and the conditional
+  # beta moments. Not asserted yet (would fail CI if the mapping is wrong).
+})
+
+test_that("OQ-1: student sampler recovers the mean under drmTMB parameterization", {
+  set.seed(4)
+  n <- 3000
+
+  # mu uses the identity link (high confidence), so mean recovery is asserted.
+  # The Student variance is sigma^2 * nu/(nu-2) and is extremely sensitive to nu
+  # near its lower bound; the response-scale nu (degrees of freedom) mapping is
+  # not confirmed against a live fit here, so the variance is NOT asserted.
+  # TODO(live-drmTMB): confirm drmTMB's response-scale `nu` for student, then
+  # add a variance assertion (drm_sample_family uses mu + sigma*rt(df = nu)).
+  ys <- 3 + 2 * stats::rt(n, df = 10)
+  fs <- drmTMB::drmTMB(drmTMB::bf(y ~ 1), family = drmTMB::student(),
+                       data = data.frame(y = ys))
+  pr <- node_params(fs, "student")
+  nu_b <- drm_fit_coef(fs, "nu")
+  nu <- if (length(nu_b) && "(Intercept)" %in% names(nu_b)) {
+    drm_inv_link("log", unname(nu_b[["(Intercept)"]]))
+  } else {
+    5
+  }
+  set.seed(99)
+  draws <- drm_sample_family(
+    "student",
+    list(mu = rep(pr$mu, n * 100L), sigma = rep(pr$sigma, n * 100L),
+         nu = rep(nu, n * 100L)),
+    n * 100L
+  )
+  expect_lt(abs(mean(draws) - mean(ys)) / (abs(mean(ys)) + 1e-6), 0.06)
+})

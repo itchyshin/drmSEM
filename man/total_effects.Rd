@@ -9,6 +9,8 @@ total_effects(
   from,
   to,
   mediation = c("mean", "distribution"),
+  target = c("mean", "p_gt", "p_zero", "var"),
+  threshold = 0,
   at = NULL,
   B = 200L,
   n_sim = 50L,
@@ -27,6 +29,13 @@ total_effects(
 
 \item{mediation}{\code{"mean"} (mediator means propagate) or \code{"distribution"}
 (realized mediator draws propagate).}
+
+\item{target}{Functional of the outcome distribution to report the effect on:
+\code{"mean"} (default), \code{"p_gt"} (Pr(Y > \code{threshold})), \code{"p_zero"} (Pr(Y = 0)),
+or \code{"var"} (Var(Y)). Distributional targets simulate the outcome from its
+family (OQ-11); see \code{docs/design/02-effect-calculus.md}.}
+
+\item{threshold}{Cutoff for \code{target = "p_gt"}.}
 
 \item{at}{Optional length-2 contrast values for \code{from}.}
 

@@ -222,7 +222,7 @@ drm_predict_parameters <- function(fit, newdata, dpar = NULL,
 #' @keywords internal
 #' @noRd
 drm_refit_augmented <- function(fit, add_var, components = NULL,
-                                se = TRUE) {
+                                se = TRUE, env = parent.frame()) {
   drm_require_drmTMB()
   ff <- drm_fit_formula(fit)
   calls <- ff$calls
@@ -249,8 +249,12 @@ drm_refit_augmented <- function(fit, add_var, components = NULL,
   }
   names(new_calls) <- nms
 
+  # Evaluate the rebuilt formula AND the refit in `env` -- the environment where
+  # the SEM was specified -- so structured-effect objects referenced by name
+  # (e.g. the `tree` in phylo(1 | species, tree = tree)) resolve on refit. Without
+  # this, re-fitting a phylo/animal/spatial node fails ("refit_failed"); see OQ-13.
   new_formula <- tryCatch(
-    do.call(drmTMB::drm_formula, new_calls),
+    do.call(drmTMB::drm_formula, new_calls, envir = env),
     error = function(e) NULL
   )
   if (is.null(new_formula)) {
@@ -264,11 +268,15 @@ drm_refit_augmented <- function(fit, add_var, components = NULL,
   }
 
   tryCatch(
-    drmTMB::drmTMB(
-      new_formula,
-      family = drm_fit_family(fit),
-      data = drm_fit_data(fit),
-      control = control
+    do.call(
+      drmTMB::drmTMB,
+      list(
+        new_formula,
+        family = drm_fit_family(fit),
+        data = drm_fit_data(fit),
+        control = control
+      ),
+      envir = env
     ),
     error = function(e) NULL
   )

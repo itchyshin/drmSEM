@@ -205,3 +205,98 @@ tools/render-readme-hero.R` passed; `pkgdown::build_site()` passed and copied th
 hero image into `pkgdown-site/reference/figures/`; the generated homepage
 contains the image and all three article HTML files exist. GitHub Pages evidence:
 `gh-pages` exists and `https://itchyshin.github.io/drmSEM/` returned HTTP 200.
+
+## 2026-06-05 — Phylogenetic Phase 1 (agent group: Jason/Emmy/Curie + vignette)
+
+A four-agent group worked phylogenetic models in parallel. Emmy (architecture)
+audited the marker path and returned PASS end-to-end: `phylo(1|species, tree=)`
+is stripped from causal edges (R/utils.R drmsem_marker_funs/drm_strip_markers),
+never made a node/response, preserved verbatim in d-sep augmented refits
+(drm_refit_augmented), and excluded from the effect design matrix (drm_fixed_design).
+Added: tests/testthat/test-phylo.R (Curie — phylo SEM builds; paths() strip the
+phylo term; dsep() augmented refit preserves phylo on an unsaturated claim;
+total_effects propagates), a marker no-leak unit test in test-utils.R (verified
+locally), vignettes/phylogenetic-sem.Rmd (gated), and docs/design/06-phylogenetic-sem.md.
+ape added to Suggests. Jason's drmTMB phylo() API recon pending — reconcile the
+test's tree/phylo() usage with it before un-drafting.
+
+## 2026-06-05 — Phylo PR #6 first CI run: 2 findings (Gauss/Ada)
+
+PR #6 R-CMD-check (run 26998231239) failed but PASS 104: the phylo SEM built and
+fit against live drmTMB (ultrametric fix worked), paths() stripped phylo,
+total_effects() propagated. Two issues surfaced:
+(1) REAL BUG (fixed): dsep() crashed on a *saturated* DAG because `bs$df <-
+NA_integer_` assigns a scalar to a 0-row data.frame. Guarded the empty-basis case
+to return an empty typed drm_dsep with Fisher's C = 0. Not phylo-specific; prior
+tests never used a saturated graph.
+(2) LIMITATION (OQ-13): dsep()'s augmented refit of a phylo node returns
+"refit_failed" (tree not resolvable in the refit env). d-sep degrades gracefully;
+test now asserts robustness (status in {ok, refit_failed}, Fisher's C finite).
+Needs an engine-side fix (capture/re-inject the tree, or drmTMB exposes it).
+
+## 2026-06-05 — OQ-13 resolved: phylo d-sep refit works (Gauss/Curie)
+
+CI run 27006262081 green with the strict assertion (phylo-node augment-refit
+status == "ok"). The fit_env capture + envir-eval fix lets dsep() re-fit a
+phylo() node (tree resolves). Phylogenetic Phase 1 is complete end-to-end:
+build/paths/dsep/fisher_c/effects on live drmTMB. Docs marked resolved.
+
+## 2026-06-05 — Parallel "finish" batch green (Ada)
+
+Four parallel agents (Phase 2 model comparison, more samplers, distributional-
+phylo demo, paper+overview) integrated on PR #6; after three CI-surfaced fixes
+(test-model-set ordering/expect_silent, drm_node NSE auto-wrap, pkgdown pak dep
+conflict) the whole batch is green on 3 OSes + pkgdown build (run 27007984275).
+Phase 2 compare()/best()/average() validated end-to-end on live drmTMB.
+
+## 2026-06-05 — Phase 3 covariance + audit-driven closeout (Ada, parallel agents)
+
+Phase 3 evolutionary covariance shipped + a full audit-driven closeout, run as
+parallel agents on disjoint files:
+- **Curie** built `R/phylo_cov.R` (`drm_phylo_cov()`: BM / Pagel's λ / Martins-
+  Hansen OU / Pagel's κ → relatedness matrix for `relmat()`) + `test-phylo-cov.R`.
+  Pure-matrix transforms verified locally (base R); ape/drmTMB paths CI-gated.
+- **Rose** (systems audit) produced the closeout punch-list.
+- **Grace** hand-wrote the 5 stale Phase-2 `man/*.Rd`; whole `man/` passes
+  `tools::checkRd()` with no broken links.
+- **Ada (Boole-style integration)** reclassified Phase 2/3 as shipped across
+  vignettes/paper/overview; switched the paper marquee node off `beta_binomial`
+  (no sampler) to `nbinom2` so the headline mediated effect is real; fixed the
+  `NEWS.md` `standardize()` over-claim (link-scale only).
+- Orchestrator: NAMESPACE export + `_pkgdown.yml` entry for `drm_phylo_cov`;
+  `zero_one_beta` added to `drm_supported_sampler_families()`; removed a broken
+  internal `\link` from the phylo_cov roxygen; design-doc Phase-1 contradiction
+  cleared; OQ-9/OQ-11 defined, OQ-13 marked resolved; ledger V-rows added and
+  sampler claims downgraded to continuous-part-only.
+
+PROCESS LESSON (Rose): when adding an `@export`ed R file, regenerate + commit
+`NAMESPACE` + `man/` and update NEWS/ledger/OQ in the SAME commit. CI's
+`roxygenise()` masks stale committed artifacts, so source/GitHub/pkgdown-from-
+source installs can ship an incomplete man/ even while CI is green.
+
+## 2026-06-06 — PR #4 reconciled into the phylo branch (release prep)
+
+Per the approved release plan (merge #6 → tag v0.1.0; reconcile #4 fully), PR #4
+(`effects-counterfactual-theory`) turned out to carry a MORE ADVANCED effect
+engine than #6, not just docs. Reconciled fully via parallel agents on disjoint
+files:
+- **Code (orchestrator):** `R/effects.R` + `test-effect-kernels.R` were identical
+  to main on #6, so #4's versions (controlled + natural NDE/NIE + outcome
+  functionals) were taken wholesale; `R/simulate_effects.R` merged (#4's
+  natural/functional helpers + #6's zero_one_beta/tweedie samplers re-injected).
+  All R/ parse; dsep/effect/standardize kernels pass under a base-R harness incl.
+  the natural NDE/NIE and Poisson p_zero recoveries.
+- **Narrative (Ada):** paper.md / NEWS.md / overview.Rmd were already upgraded in
+  the closeout pass; 02-effect-calculus.md merged to one coherent essay with
+  OQ-8/OQ-11 marked PARTIAL (implemented + kernel-verified).
+- **Memory (Ada):** DECISIONS D-10/D-11 appended; OPEN_QUESTIONS de-duplicated to
+  a single OQ-1..13 (OQ-8/10/12 from #4, OQ-9/13 from #6); 05-roadmap phylo
+  pointer added.
+- **man (Grace):** indirect_effects.Rd (+effect), total_effects.Rd (+target,
+  +threshold) updated; full man/ passes tools::checkRd.
+- **Ledger:** V-22 (natural effects, PARTIAL) + V-23 (outcome functionals,
+  PARTIAL) recorded.
+
+After this lands and #6 CI is green: merge #6 → main, bump 0.1.0 + NEWS +
+cran-comments, tag v0.1.0, and close #4 as reconciled (its unique content now
+lives on #6).

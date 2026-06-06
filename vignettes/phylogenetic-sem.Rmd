@@ -1,0 +1,326 @@
+---
+title: "Phylogenetic distributional SEM"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Phylogenetic distributional SEM}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+# drmSEM never fits its own likelihoods: every endogenous node is one drmTMB
+# fit, and drmTMB compiles TMB (C++) from source. The phylogenetic examples
+# below additionally need a tree (the `ape` package). To keep this vignette
+# building under R CMD check / pkgdown without either dependency installed,
+# the model-fitting chunks are shown for illustration but NOT evaluated. Flip
+# `has_engine` to test for both packages once integration is validated, e.g.
+# requireNamespace("drmTMB", quietly = TRUE) && requireNamespace("ape", quietly = TRUE).
+has_engine <- FALSE
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  eval = has_engine
+)
+library(drmSEM)
+```
+
+## What is a *phylogenetic distributional* SEM?
+
+**`drmSEM` is the only SEM tool that runs d-separation and a distributional
+effect decomposition over a phylogenetically-structured DAG** -- it does
+phylogenetic *distributional* path analysis, where shared ancestry is a
+controlled-for random effect and a causal arrow can target the *spread*,
+*zero-inflation*, or *shape* of a trait, not only its mean.
+
+That sentence is best understood by contrast with the two neighbouring tools an
+evolutionary ecologist already knows:
+
+| Package     | What it does                                                       |
+| ----------- | ----------------------------------------------------------------- |
+| `phylopath` | mean-only **confirmatory path analysis** on a phylogeny (d-sep + C) |
+| `phylosem`  | **joint** estimation of a phylogenetic comparative model *and* a SEM |
+| `drmSEM`    | phylogenetic **distributional** SEM: per-node drmTMB fits, d-sep and effect decomposition over the fixed-effect DAG, with phylogeny as a structured random effect |
+
+`phylopath` answers "which DAG of *mean* relationships survives the data?".
+`phylosem` couples a Brownian-motion (or OU) process to a latent-variable SEM.
+`drmSEM` keeps the piecewise, observed-variable, one-fit-per-node design of the
+core package, and adds shared ancestry as just another random-effect term inside
+each node's likelihood -- so the same machinery that already separates a
+`sigma` path from a `mu` path now also works *after correcting for phylogeny*.
+
+## The key idea: phylogeny is a structured random effect, not an edge
+
+In `drmSEM` each endogenous node is exactly one `drmTMB` fit (see the
+`vignette("drmSEM")` introduction). To make a node *phylogenetic*, you add one
+random-effect term to its formula:
+
+```
+phylo(1 | species, tree = phy)
+```
+
+This tells the fitting engine to impose a phylogenetic covariance (derived from
+the tree `phy`) on a species-level random intercept, exactly as a phylogenetic
+mixed model would. Crucially, **`drmSEM` treats this term as a random effect,
+not a causal edge.** Its formula parser strips structured-effect markers --
+`phylo`, `spatial`, `animal`, `gr`, and friends -- before turning the remaining
+predictors into typed edges (`R/utils.R`, `drm_strip_markers()`). So adding
+`phylo(1 | species, tree = phy)` to a node:
+
+- does **not** add `species` (or the tree) as a parent in the DAG;
+- does **not** appear in `paths()` as a structural coefficient;
+- **is** carried inside the node's likelihood, so every fixed-effect coefficient
+  is estimated *conditional on* shared ancestry.
+
+The practical consequence is the one you want: `paths()`, `basis_set()`,
+`dsep()`, `fisher_c()`, and the effect decomposition all operate on the
+**fixed-effect DAG**, while the phylogenetic signal is soaked up by the random
+effect underneath. You get phylogenetically-corrected path coefficients and
+phylogenetically-corrected independence tests "for free", because the correction
+lives where it belongs -- in each node's fit -- rather than in the graph.
+
+## A worked system: `size -> abundance -> fitness`, on a tree
+
+We reuse the chain motif from the core vignette, but now every node is measured
+across **species** related by a phylogeny `phy`, and every node carries a
+phylogenetic random intercept. Conceptually:
+
+- **`size`** depends on temperature, with temperature also acting on the
+  *scale* of size (`sigma(size) ~ temp`) -- a distributional path -- plus a
+  phylogenetic intercept.
+- **`abundance`** is a count depending on `size` and `temp`, modelled as a
+  negative binomial with habitat acting on *zero-inflation*
+  (`zi(abundance) ~ habitat`), again with a phylogenetic intercept.
+- **`fitness`** is a count (e.g. lifetime offspring) depending on `abundance`
+  and `size`, with its own phylogenetic intercept.
+
+Temperature is exogenous and reaches `fitness` only indirectly -- through the
+*mean*, the *scale*, and the *zero-inflation* of the intermediate nodes -- and
+the whole system is evaluated after correcting for shared ancestry.
+
+### The tree and the data
+
+In a real analysis you would read a tree (for example with `ape::read.tree()`)
+and align it to a species-level data frame. We sketch that here; this chunk is
+not evaluated because it needs `ape`. Two requirements: the tree must be
+**ultrametric** (equal root-to-tip distances; rescale a non-ultrametric tree
+with e.g. `ape::compute.brlen(tree, "Grafen")`), and every level of `species`
+must be a tip label of the tree.
+
+```{r tree, eval = has_engine}
+library(ape)
+# A phylogeny over the species in `dat`; tip labels must match dat$species.
+phy <- read.tree("my_tree.nwk")
+
+# `dat` has one row per observation, with a `species` column whose levels are
+# tip labels of `phy`, plus the measured traits and covariates.
+str(dat)
+#> 'data.frame': ... obs. of  variables:
+#>  $ species  : chr  "sp1" "sp2" ...
+#>  $ temp     : num ...
+#>  $ habitat  : Factor ...
+#>  $ size     : num ...
+#>  $ abundance: int ...
+#>  $ fitness  : int ...
+```
+
+### Build the phylogenetic SEM
+
+The only change relative to a non-phylogenetic SEM is the
+`phylo(1 | species, tree = phy)` term added to each node's formula. Everything
+else -- families, distributional sub-formulas, the chain structure -- is
+ordinary `drmSEM`.
+
+```{r build}
+sem <- drm_sem(
+  size = drm_node(
+    drmTMB::bf(
+      size ~ temp + phylo(1 | species, tree = phy),
+      sigma ~ temp                                  # distributional path: temp -> sigma(size)
+    ),
+    family = stats::gaussian()
+  ),
+  abundance = drm_node(
+    drmTMB::bf(
+      abundance ~ size + temp + phylo(1 | species, tree = phy),
+      zi ~ habitat                                  # distributional path: habitat -> zi(abundance)
+    ),
+    family = drmTMB::nbinom2()
+  ),
+  fitness = drm_node(
+    drmTMB::bf(
+      fitness ~ abundance + size + phylo(1 | species, tree = phy)
+    ),
+    family = drmTMB::nbinom2()
+  ),
+  data = dat
+)
+```
+
+### The DAG is the *fixed-effect* DAG
+
+Because the `phylo(...)` term is stripped before edge extraction, `paths()`
+shows only the structural, fixed-effect coefficients -- one row per modelled
+component. The phylogenetic intercepts are present in every node's fit but
+absent from the path table, which is exactly what you want for causal reasoning.
+
+```{r paths}
+paths(sem)
+#> Note: no `species` or tree rows appear here. Each `temp` path into `size`
+#> still appears twice -- once on `mu`, once on `sigma` -- and the
+#> `habitat -> zi(abundance)` path is labelled as a zero-inflation path, all
+#> estimated conditional on shared ancestry.
+```
+
+`plot()` draws the same fixed-effect DAG with component-labelled edges. Phylogeny
+is *not* drawn as a node or an arrow; it is a property of the fits.
+
+```{r plot, fig.alt = "Directed acyclic graph of the size, abundance and fitness nodes with component-labelled edges; phylogeny is a per-node random effect and is not drawn as an edge."}
+plot(sem)
+```
+
+### Phylogenetic d-separation
+
+The independence claims are tested exactly as in the non-phylogenetic case --
+the **any-component LRT** -- but each refit now also carries the phylogenetic
+random effect, so the tests are phylogenetically corrected. A missing arrow
+`X -> Y` asserts that `X` has no effect on *any* modelled component of `Y` *after*
+accounting for shared ancestry.
+
+```{r dsep}
+dsep(sem)
+```
+
+```{r fisherc}
+fisher_c(sem)
+```
+
+A small Fisher's C p-value flags a missing path -- including a missing path into
+a *non-mean* component -- that survives phylogenetic correction. Neither a
+mean-only phylogenetic tool nor a non-phylogenetic distributional tool could
+raise that flag.
+
+### Phylogenetic *distributional* effects
+
+This is the novel surface. `indirect_effects()` propagates a change in `temp`
+through the fitted DAG by Monte-Carlo simulation, so effects flowing through a
+mediator's `sigma`, `zi`, or shape are included -- and because every node's
+draws come from a phylogenetically-corrected fit, the decomposition is a
+**phylogenetic distributional** decomposition.
+
+```{r indirect}
+indirect_effects(sem, from = "temp", to = "fitness")
+#> total_path             -- full simulated temp -> fitness effect
+#> direct                 -- controlled direct effect
+#> indirect               -- total_path - direct
+#> mean_mediated          -- part carried by mediator means
+#> distribution_mediated  -- EXTRA effect via sigma(size) and zi(abundance),
+#>                           i.e. the phylogenetic distributional channel
+```
+
+A non-trivial `distribution_mediated` row is the signature of this framework on
+a tree: after correcting for phylogeny, temperature still reaches fitness partly
+because it changes the *spread* of size and (through habitat structure) the
+*zeros* of abundance -- not only their means. `phylopath` cannot see that
+channel because it is mean-only; a non-phylogenetic distributional SEM would
+confound it with ancestry.
+
+## What works now vs roadmap
+
+`drmSEM`'s phylogenetic support is staged. See
+`docs/design/06-phylogenetic-sem.md` for the full design and the honest
+non-goals.
+
+**Phase 1 -- phylogenetic nodes (works today).** A node can carry a
+`phylo(1 | species, tree = phy)` random effect. The marker is stripped from the
+causal edge set, so `paths()`, `basis_set()`, `dsep()`, `fisher_c()`, and the
+effect decomposition all run over the fixed-effect DAG while each node is fitted
+conditional on shared ancestry. This is the worked example above (subject to the
+same drmTMB-integration validation caveat as the rest of the package).
+
+**Phase 2 -- phylopath-style model comparison (works today).** A *set* of
+candidate DAGs can be ranked by a C-statistic information criterion (the
+`phylopath` workflow), with model-averaged paths. `drm_dag()` captures one
+unfitted candidate, `drm_model_set()` collects the named candidates,
+`compare()` fits each with `drm_sem()`, runs the any-component d-separation test,
+and ranks them by CICc (a small-sample-corrected criterion built on Fisher's C)
+with delta-CICc and Akaike weights. `best()` returns the top fitted SEM and
+`average()` returns CICc-weighted standardized paths. Each candidate's nodes may
+carry the same `phylo(...)` / `relmat(...)` term, so the comparison is
+phylogenetically corrected node-by-node.
+
+```{r modelset, eval = has_engine}
+models <- drm_model_set(
+  direct   = drm_dag(fitness ~ temp + size),
+  mediated = drm_dag(size ~ temp, fitness ~ size + temp)
+)
+cmp <- compare(models, data = dat,
+               family = list(size = stats::gaussian(),
+                             fitness = drmTMB::nbinom2()))
+cmp                 # CICc, delta-CICc, Akaike weight per candidate
+best(cmp)           # the lowest-CICc fitted drm_sem
+average(cmp)        # CICc-weighted standardized path coefficients
+```
+
+**Phase 3 -- evolutionary process models (works today).** `drm_phylo_cov()`
+builds the phylogenetic relatedness matrix under a *fixed* evolutionary model --
+Brownian motion (`"BM"`), Pagel's lambda (`"lambda"`) or kappa (`"kappa"`), or
+an Ornstein-Uhlenbeck decay (`"OU"`) -- and you feed it to a node through the
+`relmat(1 | species, K = K)` marker (which drmSEM strips from the causal edge
+set exactly as it strips `phylo(...)`). The evolutionary parameter is supplied
+on a grid by the caller; it is not jointly estimated with the node.
+
+```{r phylocov, eval = has_engine}
+# an OU relatedness matrix at a fixed decay rate; tip labels == dat$species
+K <- drm_phylo_cov(phy, model = "OU", alpha = 2)
+
+sem_ou <- drm_sem(
+  size = drm_node(
+    drmTMB::bf(size ~ temp + relmat(1 | species, K = K), sigma ~ temp),
+    family = stats::gaussian()
+  ),
+  fitness = drm_node(
+    drmTMB::bf(fitness ~ size + relmat(1 | species, K = K)),
+    family = drmTMB::nbinom2()
+  ),
+  data = dat
+)
+```
+
+The matrix-building step itself (`drm_phylo_cov()`) needs only `ape`, not the
+engine, so you can inspect `K` directly; the `drm_sem()` fit above is gated on
+the engine like the rest of this vignette.
+
+**Phase 4 -- distributional phylo paths (roadmap).** Letting the phylogenetic
+*structure itself* differ by component (e.g. a distinct evolutionary process on
+`sigma` or `zi`), so that "how variance evolves" becomes a modelled,
+component-labelled target.
+
+The remaining roadmap is narrow: *jointly* estimating the evolutionary
+parameter (lambda / OU's alpha / kappa) rather than scanning a fixed grid, a
+*phylogenetic-covariance-aware* model comparison (the shipped `compare()` is the
+general, non-phylo C-statistic ranking), and the Phase-4 distributional phylo
+paths above.
+
+Per `docs/design/06-phylogenetic-sem.md`, the non-goals are deliberate and
+inherited from the charter: `drmSEM` will not fit its own phylogenetic
+likelihoods (drmTMB remains the only engine), will not jointly estimate a tree,
+and will not replace `phylosem` for joint PCM+SEM estimation. The aim is narrow
+and complementary -- phylogenetic *distributional* path analysis -- not a
+re-implementation of the comparative-methods stack.
+
+## Recap
+
+- Phylogeny enters as a **structured random effect**
+  `phylo(1 | species, tree = phy)`, one per node -- not as a DAG edge.
+- `drmSEM` **strips** that term from the causal edge set, so `paths()`,
+  `dsep()`, `fisher_c()`, and the effect decomposition operate on the
+  **fixed-effect DAG**, phylogenetically corrected.
+- The novel surface is **phylogenetic distributional** paths: effects into
+  `sigma`, `zi`, or shape that survive correction for shared ancestry.
+- Phase 1 (phylo nodes), Phase 2 (phylopath-style comparison via `drm_dag()` /
+  `drm_model_set()` / `compare()` / `best()` / `average()`), and Phase 3
+  (fixed-grid BM/OU/lambda/kappa via `drm_phylo_cov()`) all work today; jointly
+  estimated covariance, covariance-aware comparison, and Phase 4 distributional
+  phylo paths remain roadmap. See `docs/design/06-phylogenetic-sem.md`.
+</content>
+</invoke>

@@ -45,6 +45,18 @@ reference:
       - indirect_effects
       - total_effects
       - plot.drm_effect
+  - title: Model comparison
+    desc: Compare competing causal DAGs by Fisher's C / CICc.
+    contents:
+      - drm_dag
+      - drm_model_set
+      - compare
+      - best
+      - average
+  - title: Phylogenetic SEM
+    desc: Build evolutionary covariance matrices for phylogenetic nodes.
+    contents:
+      - drm_phylo_cov
   - title: Diagnostics
     contents:
       - check_sem
@@ -53,8 +65,10 @@ articles:
   - title: Get started
     contents:
       - drmSEM
+      - drmSEM-overview
   - title: Concepts
     desc: The ideas that make drmSEM a distributional SEM.
     contents:
       - effect-decomposition
       - comparison
+      - phylogenetic-sem

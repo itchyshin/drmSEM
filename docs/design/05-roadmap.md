@@ -57,6 +57,14 @@ drmTMB-integration runtime pending (see `04-validation-plan.md`).
 - CRAN submission once the engine surface is stable and integration tests run on
   all platforms (the Grace track in `CLOUD.md`).
 
+## Phylogenetic distributional SEM
+
+See `06-phylogenetic-sem.md` for the staged phylogenetic roadmap (Phase 1 phylo
+nodes, Phase 2 model comparison, and Phase 3 fixed-grid evolutionary covariance
+via `drm_phylo_cov()` all ship today; Phase 4 adds distributional phylogenetic
+paths). Effect-theory refinements (natural effects, marginal effects, bootstrap,
+outcome functionals) are OQ-8..12 in `../memory/OPEN_QUESTIONS.md`.
+
 ## Non-goals (kept off the roadmap deliberately)
 
 - drmSEM fitting its own likelihoods — never; drmTMB is the engine.

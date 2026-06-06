@@ -125,3 +125,66 @@ coefficient of variation, so `drm_sample_family()` uses `shape = 1/sigma^2`
 **Rationale.** Confirmed verbatim by drmTMB's own error in CI run 26983569684:
 "The implemented Gamma contract is log(mu) = X_mu beta_mu and log(sigma) =
 X_sigma beta_sigma, where sigma is the coefficient of variation." Completes D-7.
+
+## [2026-06-05] D-10 — Effects are counterfactual contrasts, not coefficient products
+
+**Decision.** drmSEM defines direct/indirect/total effects as model-implied
+counterfactual contrasts of predicted response distributions, estimated by
+Monte-Carlo g-computation over the fitted DAG (Pearl 2001; Robins & Greenland
+1992; Imai, Keele & Yamamoto 2010). The product-of-coefficients identity is only
+the linear-Gaussian, identity-link, mean-only special case and is used solely as
+a validation check (recovery test V-15). Current `total_path` is exact
+g-computation; the `direct`/`indirect` split is currently controlled (CDE
+baseline) with the natural NDE/NIE split now IMPLEMENTED via
+`indirect_effects(effect = "natural")` (OQ-8 PARTIAL), validated on the
+linear-Gaussian recovery case. Documented in `02-effect-calculus.md`.
+
+**Rationale.** Across mixed links and non-mean components, `a*b` has no
+response-scale meaning, and `E[f(M)] != f(E[M])` means a path on a mediator's
+sigma/zi/nu can carry a real indirect effect with zero mu path — the
+distribution-mediated channel, expressible only by simulation.
+
+## [2026-06-05] D-11 — Phylogenetic scope = distributional, piecewise, on drmTMB structured effects
+
+**Decision.** drmSEM targets phylogenetic *distributional* SEM, piecewise, with
+shared ancestry entering each node via drmTMB's `phylo()`/`animal()`/`relmat()`/
+`spatial()` structured effects (which drmSEM already strips from causal edges).
+It covers the phylopath niche (Phases 1-2) and part of phylosem (Phase 3), but
+does NOT promise a joint phylogenetic SEM likelihood, multi-trait imputation,
+cyclic structures, or joint OU/lambda/kappa estimation in 0.x (we ship a FIXED
+grid via `drm_phylo_cov()`, shipped in Phase 3). Roadmap in
+`06-phylogenetic-sem.md`.
+
+## [2026-06-06] D-12 — rho12 is a residual-correlation component, not a y1->y2 path; covariance edges are a distinct class
+
+**Decision.** `rho12` ("rho one-two") is the **residual correlation between two
+responses in a bivariate model**, not a causal path from response 1 to response 2.
+A bivariate Gaussian node has components `mu1`, `mu2`, `sigma1`, `sigma2`, `rho12`
+with `[y1,y2] ~ MVN([mu1,mu2], Omega)`, `Omega = [[s1^2, rho12*s1*s2],
+[rho12*s1*s2, s2^2]]`. drmSEM separates **three distinct edge classes**:
+
+1. **Directed causal/distributional path** (solid arrow) — `y1 -> y2`,
+   `x -> mu/sigma/zi(y)`, and `x -> rho12(y1,y2)`. A predictor that *changes* the
+   residual correlation IS a legitimate directed path **into** the `rho12`
+   component, and is what drmSEM 0.1 already extracts from a bivariate drmTMB fit
+   via `drm_psem()`. Contributes to causal paths and indirect effects.
+2. **Residual covariance edge** (double-headed arc), `rho12`: `eps_y1 <-> eps_y2`,
+   within-observation. NOT a causal arrow.
+3. **Higher-level random-effect covariance edge** (double-headed arc):
+   `u_id,y1 <-> u_id,y2`, `u_phylo,y1 <-> u_phylo,y2`, `u_site,mu <-> u_site,sigma`,
+   between-unit. Surfaced via a `corpairs()`-type accessor.
+
+Classes (2) and (3) are **covariance allowances**: double-headed arcs that
+contribute to **neither** directed paths, **nor** mediation/indirect effects, and
+that are **distinct from each other** (residual within-observation correlation vs
+random-effect between-unit correlation — different biological questions, never
+collapsed). First-class bivariate support — a `drm_pair()` node, `covariances()` /
+`rho12()` / `corpairs()` accessors, double-headed-arc plotting, and d-sep
+covariance-awareness (drop the `y1 _||_ y2 | predictors` basis-set claim when a
+covariance edge is declared) — is **deferred to a post-0.1 version**.
+
+**Rationale.** Treating `rho12` as a `y1 -> y2` arrow would invent a direction the
+model never asserted and would feed a spurious indirect effect into the path
+algebra. A residual correlation is a covariance, exactly like a residual
+covariance in classical SEM (Shipley): bidirected, effect-free, but
+d-separation-relevant. Spec in `07-bivariate-covariance-edges.md`.

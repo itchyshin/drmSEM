@@ -47,12 +47,24 @@ node:
 | zero-infl. | `zi`        | changes the probability of a structural zero     |
 | hurdle     | `hu`        | changes the probability of crossing the hurdle   |
 | RE scale   | `sd(group)` | changes among-group heterogeneity                |
-| residual r | `rho12`     | changes the bivariate residual correlation       |
+| residual r | `rho12`     | changes the residual correlation between the two responses of a bivariate node |
 
 The cardinal rule, enforced throughout the package: **a path to a non-`mu`
 component is never reported as a mean effect.** A `temp -> sigma(size)` path is
 a statement about *spread*, and `drmSEM` keeps it labelled as such everywhere --
 in `paths()`, in `plot()`, and in the effect decomposition.
+
+A `rho12` target is the **residual correlation** between two responses of a
+bivariate node (`eps_y1 <-> eps_y2`); a path `rho12 ~ x` says `x` changes that
+residual coupling -- it is *not* a mean effect and *not* a directed `y1 -> y2`
+arrow. Targeting `rho12` requires a bivariate `drmTMB` fit (e.g.
+`family = c(gaussian(), gaussian())`, with components `mu1`/`mu2`/`sigma1`/`sigma2`/`rho12`)
+supplied via `drm_psem()`; it is then extracted and labelled like any other
+component path. A first-class bivariate node constructor (`drm_pair()`),
+representing the residual coupling itself as a double-headed covariance edge,
+random-effect correlations via `corpairs()` / `covariances()`, double-headed-arc
+plotting, and d-separation awareness of covarying responses are on the roadmap
+(see `docs/design/07-bivariate-covariance-edges.md`).
 
 ## A worked system: `size -> abundance -> survival`
 

@@ -1,9 +1,12 @@
-# drmSEM 0.0.0.9000 (development)
+# drmSEM 0.1.0
 
-First development version of **drmSEM** — a distributional piecewise structural
+First public release of **drmSEM** — a distributional piecewise structural
 equation modelling layer built on the [`drmTMB`](https://github.com/itchyshin/drmTMB)
 fitting engine. drmSEM does not fit its own likelihoods; each endogenous node is
-one `drmTMB` fit and the system is piecewise over a DAG.
+one `drmTMB` fit and the system is piecewise over a DAG. Causal paths can target
+any distributional component (mean, scale, zero-inflation, shape, random-effect
+scale, residual correlation), and effects are estimated by Monte-Carlo
+counterfactual propagation rather than coefficient products.
 
 ## Building a SEM
 
@@ -34,7 +37,43 @@ one `drmTMB` fit and the system is piecewise over a DAG.
 * The indirect decomposition reports `mean_mediated` and `distribution_mediated`
   parts, so effects flowing through a mediator's scale, zero-inflation, or shape
   are visible rather than collapsed into a mean effect.
-* `standardize()` reports effects on link and response scales.
+* `indirect_effects(effect = "natural")` adds the cross-world natural
+  decomposition — `natural_direct`, `natural_indirect`, and
+  `mediated_interaction` (Pearl; Imai, Keele & Yamamoto) — alongside the default
+  controlled-direct / simulation-indirect split, validated on the linear-Gaussian
+  recovery case.
+* `total_effects(target = c("p_gt", "p_zero", "var"))` reports
+  distribution-mediated effects on outcome functionals beyond the mean — `Pr(Y >
+  threshold)`, `Pr(Y = 0)`, and `Var(Y)` — with the `p_zero` effect recovery-tested
+  against the Poisson zero-probability change.
+* `standardize()` reports standardized path coefficients on the component's link
+  scale.
+
+## Model comparison (confirmatory model sets)
+
+* `drm_dag()` captures one unfitted candidate causal model (a set of node
+  formulas), and `drm_model_set()` collects named candidates into a comparison
+  set — drmSEM's analogues of `phylopath::define_model_set()`.
+* `compare()` fits every candidate with `drm_sem()`, runs the any-component
+  d-separation test, and ranks the candidates by CICc (a small-sample-corrected
+  information criterion built on Fisher's C), reporting delta-CICc and Akaike
+  weights.
+* `best()` returns the lowest-CICc fitted SEM; `average()` returns CICc-weighted
+  (conditional) model-averaged standardized path coefficients.
+
+## Phylogenetic covariance
+
+* `drm_phylo_cov()` builds a phylogenetic relatedness matrix from an `ape` tree
+  under a fixed evolutionary model (`"BM"`, `"lambda"`, `"OU"`, `"kappa"`),
+  ready to feed a node via `relmat(1 | species, K = K)`. The evolutionary
+  parameter is fixed by the caller (a grid), not jointly estimated.
+* `dsep()` augment-refits phylogenetic nodes correctly, evaluating each refit in
+  the SEM's captured fitting environment so structured-effect objects (the tree
+  / relatedness matrix) resolve.
+
+## Plots
+
+* `plot.drm_effect()` draws an effect (forest) plot for an effect decomposition.
 
 ## Diagnostics
 

@@ -41,7 +41,8 @@ population-average changes, not effects at a single covariate point.
    and applies the inverse link (`drm_inv_link()`) to get response-scale
    parameters (`mu`, and any of `sigma`, `zi`, `nu`, ...).
 2. **Random effects are held at zero** — population-level / typical-group
-   prediction. This is the marginal-effect convention drmSEM uses; it is stated
+   prediction. This is the **conditional (typical-group)** convention, NOT the
+   marginal mean (see "Conditional vs marginal effects" below); it is stated
    in the adapter and is the same convention `predict_parameters()` is asked for.
 3. If the node is an *active mediator*, it writes a value into the working data
    for downstream nodes to read; otherwise the scenario's own column value
@@ -71,7 +72,8 @@ What an active mediator passes downstream is the crux:
   draws propagate through a downstream nonlinearity. This is the effect type
   that motivates the whole simulation machinery.
 
-`indirect_effects()` returns five rows in `quantity`:
+`indirect_effects()` returns five rows in `quantity` under the default
+`effect = "controlled"`:
 
 | quantity | definition (contrast of population-average response means) |
 | --- | --- |
@@ -84,6 +86,27 @@ What an active mediator passes downstream is the crux:
 So `indirect ≈ mean_mediated + distribution_mediated`, and the
 distribution-mediated row isolates exactly the contribution that no
 coefficient-product method can express.
+
+**Controlled vs natural effects (identification caveat).** The default `direct`
+above is a *controlled* direct effect — mediators are held at their **observed**
+values while `X` moves — and `indirect = total − direct`. This coincides with
+the *natural* direct/indirect effect decomposition of mediation analysis
+(Pearl; Imai, Keele & Yamamoto) **only under linearity with no
+exposure–mediator interaction**. drmSEM paths routinely cross nonlinear links
+and the engine permits `X × M` interaction terms — exactly the cases where the
+controlled and natural effects differ. For those cases, opt in with
+`indirect_effects(object, ..., effect = "natural")`, which holds the mediators
+at their predicted `M(x0)` / `M(x1)` distributions and returns the cross-world
+`natural_direct`, `natural_indirect`, and `mediated_interaction` rows alongside
+`total_path` (see "Counterfactual foundation" and "Estimand precision" below).
+The default `effect = "controlled"` keeps the controlled-direct / simulation
+total–indirect split and does not assert a natural-effects identification. The
+recovery tests that cross-check the natural decomposition use identity-link,
+no-interaction Gaussian DAGs (the one regime where controlled and natural
+coincide), so they validate the cross-world arithmetic on a case with a known
+answer rather than the natural-effect identification in full generality. (See
+inference-review B-2; the roxygen for `direct_effects()` states "controlled
+direct effect", and `indirect_effects()` documents the `effect` argument.)
 
 ## Monte-Carlo coefficient uncertainty
 
@@ -101,6 +124,137 @@ estimate is returned.
 - `n_sim` — inner realizations per draw under distribution mediation.
 - `draw` — whether to propagate coefficient uncertainty (needs `vcov`).
 - `at` — override the contrast values.
+- `effect` — `"controlled"` (default) or `"natural"` for `indirect_effects()`.
+- `target`, `threshold` — outcome functional for `total_effects()`.
 - `level`, `seed` — interval width and reproducibility.
 
 All effects are reported on the **response scale** of `to`.
+
+---
+
+## Counterfactual foundation (why simulation, formally)
+
+The product-of-coefficients identity is **not** the definition of an indirect
+effect; it is an algebraic shortcut that holds only for linear-Gaussian,
+identity-link, mean-only, additive, no-interaction SEMs. Modern causal mediation
+defines direct/indirect/total effects as **counterfactual contrasts of predicted
+response distributions** (Pearl 2001; Robins & Greenland 1992; Imai, Keele &
+Yamamoto 2010). drmSEM adopts that definition and estimates the contrasts by
+Monte-Carlo g-computation over the fitted DAG.
+
+For a single mediated path `X -> M -> Y`, with `x0` (low) and `x1` (high):
+
+```
+total    = E[ Y(x1, M(x1)) ] - E[ Y(x0, M(x0)) ]
+NDE      = E[ Y(x1, M(x0)) ] - E[ Y(x0, M(x0)) ]      # natural direct
+NIE      = E[ Y(x0, M(x1)) ] - E[ Y(x0, M(x0)) ]      # natural indirect
+CDE(m)   = E[ Y(x1, m)     ] - E[ Y(x0, m)     ]      # controlled direct at M=m
+```
+
+The mediator enters through its whole *distribution*, not a slope: e.g. for a
+Poisson `M` (log link) and binomial `Y` (logit link),
+`NIE = Σ_m [Pr(M=m|x1) - Pr(M=m|x0)] · logit⁻¹(β0 + b·m + c·x0)`, which is
+emphatically **not** `a × b`. Because `E[f(M)] ≠ f(E[M])` for nonlinear `f`, a
+path acting only on a mediator's `sigma`/`zi`/`nu` can carry a real indirect
+effect even when its `mu` path is zero — this is the distribution-mediated
+channel, and it is the reason simulation is mandatory.
+
+## Estimand precision: what drmSEM computes today
+
+- **`total_path`** equals the correct counterfactual total
+  `E[Y(x1,M(x1))] - E[Y(x0,M(x0))]` (both `X` and the mediators move to their
+  predicted/realized values under the new `X`). This is exact g-computation.
+- **`direct`** under the default `effect = "controlled"` is the **controlled**
+  direct effect with mediators held at their *observed* values (CDE averaged over
+  the observed `M`), and **`indirect = total − direct`**. This decomposition sums
+  to the total and is defensible, but it is **not** the cross-world natural
+  NDE/NIE split.
+- **The cross-world natural split is implemented** via
+  `indirect_effects(..., effect = "natural")`, which holds the mediators at their
+  predicted `M(x0)` / `M(x1)` distributions and returns `natural_direct`,
+  `natural_indirect`, `mediated_interaction`, and `total_path`. It is
+  kernel-verified in `test-effect-kernels.R`: on an identity-link chain
+  `x -> m -> y` with a direct `x -> y` edge, `NDE = c`, `NIE = a*b`,
+  `total = c + a*b`, and `NIE = 0` when there is no `x -> m` path.
+
+**Status (OQ-8 — PARTIAL).** Natural effects are *implemented and validated on
+the linear-Gaussian, no-interaction recovery case*. What remains open is
+cross-world generality beyond that regime — sensitivity to the
+sequential-ignorability assumption, interaction-heavy and strongly nonlinear
+mediators, bootstrap intervals for the natural rows (OQ-10), and harmonizing the
+opt-in surface with the `method`/`uncertainty` API (OQ-12).
+
+## Conditional vs marginal effects (random effects)
+
+Holding random effects at zero gives the **conditional / typical-group**
+response (`g⁻¹(η)`), not the **marginal** mean `E_b[g⁻¹(η + b)]`. For nonlinear
+links these differ, and the gap grows with the random-effect SD — so a path into
+`sd(group)` changes the marginal response even with the fixed-effect linear
+predictor fixed. drmSEM 0.1 reports conditional (RE=0) effects. A `population =
+c("conditional","marginal")` option that integrates over the fitted RE
+distribution is planned (OQ-9); it is required before a path into `sd(group)`
+can be given a response-scale marginal effect.
+
+## Speed tiers (estimation cost)
+
+| Tier | What | drmSEM knobs |
+| --- | --- | --- |
+| 1 | exact linear shortcut `a×b` (validation only) | n/a — used as the recovery check V-15 (sim ≈ product on a Gaussian identity-link chain) |
+| 2 | deterministic g-computation on expectations | `draw = FALSE`, `mediation = "mean"` |
+| 3 | + parameter uncertainty from `MVN(coef, vcov)` | `draw = TRUE`, `B` |
+| 4 | + mediator-distribution simulation | `mediation = "distribution"`, `n_sim` |
+| 5 | parametric/nonparametric **bootstrap** (refit) | planned (OQ-10) |
+
+drmSEM already implements Tiers 1–4; only the refit-bootstrap (Tier 5) is
+roadmap. Default workflow: fit once, draw from `vcov`, predict counterfactuals,
+never refit unless a bootstrap is explicitly requested.
+
+## Outcome functionals beyond the mean
+
+Effects need not be reported on the response-scale **mean** of `to`. The same
+g-computation propagation reads any functional of the predicted outcome
+distribution, exposed through `total_effects(target = , threshold = )`:
+
+| `target` | functional | definition |
+| --- | --- | --- |
+| `"mean"` (default) | `E[Y]` | the response-scale mean |
+| `"p_gt"` | `Pr(Y > threshold)` | exceedance probability |
+| `"p_zero"` | `Pr(Y = 0)` | (structural + sampling) zero probability |
+| `"var"` | `Var(Y)` | response-scale variance |
+
+These are the **headline estimands of distributional SEM**: a path into a
+mediator's `zi` or `sigma` changes `Pr(Y = 0)` or `Var(Y)` downstream even when
+it leaves `E[Y]` untouched. The functional effect is the same low/high
+counterfactual contrast, read on the chosen functional of the simulated outcome
+population.
+
+**Status (OQ-11 — PARTIAL).** A first set of functionals (`p_gt`, `p_zero`,
+`var`) is *implemented and recovery-tested* — the `p_zero` effect recovers the
+Poisson zero-probability change `exp(-mu_hi) - exp(-mu_lo)` in
+`test-effect-kernels.R`. What remains open: surfacing `target` on
+`direct_effects()` / `indirect_effects()` (today it lives on `total_effects()`),
+adding more functionals (quantiles) and analytic (non-simulated) variants,
+bootstrap intervals for functional effects (OQ-10), and settling the default
+reporting scale.
+
+## API harmonization (planned)
+
+The current knobs (`mediation`, `draw`, `B`, `n_sim`, `effect`, `target`) map
+onto the tiers and estimands above; a clearer unified surface
+`indirect_effects(..., method = c("gcomp","simulate"), uncertainty =
+c("none","parametric","bootstrap"), nsim = , population = , target = )` is
+planned (OQ-12) without changing the underlying engine.
+
+## References
+
+- Pearl J (2001). *Direct and indirect effects.* UAI 2001.
+- Robins JM, Greenland S (1992). *Identifiability and exchangeability for direct
+  and indirect effects.* Epidemiology 3(2):143–155.
+- Imai K, Keele L, Yamamoto T (2010). *Identification, inference and sensitivity
+  analysis for causal mediation effects.* Statistical Science 25(1):51–71.
+- Tingley D, Yamamoto T, Hirose K, Keele L, Imai K (2014). *mediation: R package
+  for causal mediation analysis.* J. Stat. Soft. 59(5).
+- Lefcheck JS (2016). *piecewiseSEM: Piecewise structural equation modelling in
+  R.* Methods Ecol. Evol. 7(5):573–579.
+</content>
+</invoke>
