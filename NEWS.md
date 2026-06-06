@@ -14,11 +14,13 @@
   marginal given the rest), plus `total_indirect` and an explicit
   `interaction_remainder`. The pieces sum to the total only in the additive case;
   the remainder is reported, never forced to zero. Model-based attribution, not a
-  nonparametric path-specific identification claim. Per-component (mu/sigma/zi)
-  and natural variants are the OQ-5 follow-up.
+  nonparametric path-specific identification claim. The cross-world natural
+  variant is the OQ-5 follow-up.
 * `path_effects(by = "component")` splits each mediator's effect into a
-  `mean_channel` and a `distributional_channel` (the part flowing through its
-  `sigma`/`zi`/shape); the two partition the mediator's inclusion effect exactly.
+  `mean_channel` and one channel per non-mean component (`sigma_channel`,
+  `zi_channel`, ... -- the drop when that component is frozen at its reference
+  value), plus a `component_remainder` for the part that does not separate cleanly
+  under a nonlinear outcome.
 
 ## Composite latent constructs (0.3, first increment)
 

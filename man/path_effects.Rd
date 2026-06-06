@@ -35,11 +35,11 @@ path_effects(
 \item{by}{\code{"mediator"} (default) reports the per-mediator \code{inclusion} /
 \code{exclusion} split with an \code{interaction_remainder}. \code{"component"} instead
 splits each mediator's indirect effect into a \code{mean_channel} (the mediator
-passes only its mean) and a \code{distributional_channel} (the extra effect from
-passing realized draws through its \code{sigma} / \code{zi} / shape). These two sum
-\strong{exactly} to that mediator's inclusion effect, so no remainder row is
-needed. The finer split into individual non-mean components (\code{sigma} vs \code{zi})
-is the OQ-5 follow-up.}
+passes only its mean) and one channel per non-mean component
+(\code{sigma_channel}, \code{zi_channel}, ... -- the drop when that component is frozen
+at its reference value), plus a \code{component_remainder} for the part that does
+not separate cleanly (the channels are not an exact partition under a nonlinear
+outcome).}
 
 \item{at}{Optional length-2 contrast values for \code{from}.}
 
@@ -70,7 +70,8 @@ A \code{drm_effect} data frame with columns \code{from}, \code{to}, \code{throug
 \code{mediator}, \code{estimand}, \code{estimate}, \code{conf.low}, \code{conf.high}. For
 \code{by = "mediator"} the \code{estimand} values are \code{total_indirect}, \code{inclusion},
 \code{exclusion}, \code{interaction_remainder}; for \code{by = "component"} they are
-\code{total_indirect}, \code{mean_channel}, \code{distributional_channel}.
+\code{total_indirect}, \code{mean_channel}, \code{<component>_channel} (one per non-mean
+component), and \code{component_remainder}.
 }
 \description{
 Splits the indirect effect of \code{from} on \code{to} into a contribution for each
