@@ -78,6 +78,18 @@ the ledger names a live-fit gate.
    beta_binomial trials. Extend `test-oq1-samplers.R`.
 8. **OQ-7** — root-cause the `sdreport` NaN on the canonical n=300 DGP (recondition
    or confirm a drmTMB robustness gap; file upstream). `docs/memory/DRMTMB_ISSUES.md`.
+8b. **Effect-interval honesty (from the 2026-06-06 decomposition audit).** Two
+    secondary engine-review findings, not decomposition-specific, need a live fit
+    to fix/validate: (i) `drm_draw_beta()` silently falls back to the point
+    estimate for a node whose `vcov` is non-PD / `NULL` (or non-convergent per
+    `drm_fit_converged()`, which the effect path never consults), so that node
+    contributes **zero** parameter uncertainty and the reported interval is too
+    narrow with **no flag** — surface a `drm_warn_once`/attribute. (ii) `log`-link
+    `drm_inv_link` can overflow to `Inf` on an extreme MVN draw; the resulting NA
+    is dropped by `na.rm` in `drm_effect_contrast`, biasing the average over a
+    shrinking row set — clamp `eta` or count/flag dropped rows. The pairing bug
+    and the framing/over-claims from that audit are already fixed in the Claude
+    lane (`drm_decomp_legs()`, V-31..V-36).
 9. **`plot.drm_sem` visual polish** (needs rendering): standardized-coefficient
    edge labels + significance encoding without colliding with the component
    linetype; CI smoke test (`pdf(NULL); plot(sem); dev.off()`). `R/plotting.R`.

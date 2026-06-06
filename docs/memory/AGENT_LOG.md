@@ -623,3 +623,39 @@ pdf(NULL)) cover all/paths/no-covariance. ggplot2/igraph is the Claude lane per
 CODEX_HANDOFF; this closes the last non-engine piece of 0.4 (joint fit +
 rho12(fit)/corpairs(fit) read-back remain the engine deliverable). Updated NEWS,
 07-bivariate doc (shipped list + feature table), CODEX_HANDOFF item 5.
+
+## 2026-06-06 — Effect-decomposition audit + Monte-Carlo pairing fix
+
+Maintainer flagged the mean-mediated / distribution-mediated split as the
+headline novelty and asked for a triple-check before claiming soundness. Ran four
+parallel reviews (math-consistency, inference-theory, engine/numerics,
+test-coverage). Consensus: the decomposition is a sound MODEL-BASED estimand and
+the POINT estimates are correct, but three fixes were needed.
+
+1. PAIRING BUG (fixed). indirect_effects() computed cde / tot_mean / tot_dist as
+   three separate drm_effect_contrast() calls; with the default seed=NULL the
+   beta draws were not shared, so mean_mediated/distribution_mediated INTERVALS
+   subtracted unrelated draws (inflated, not paired). Even with a seed the RNG
+   desynced after replicate 1 (distribution leg consumes inner family draws).
+   Fixed by a new drm_decomp_legs() that draws ONE beta_list per replicate and
+   evaluates all three legs against it (mirrors the already-correct natural
+   branch). Point estimates unchanged; intervals now common-random-numbers paired
+   contrasts. Mean legs use n_sim=1 (the mean path ignores n_sim anyway).
+2. TESTS (added). V-31..V-35 in test-analytic-effects.R drive the SHIPPED helper
+   drm_decomp_legs (not just kernels): additive identity (exact), lognormal
+   Jensen-gap closed form + sign flip, linear-outcome zero, 2-mediator chain,
+   seed reproducibility. V-36 in test-recovery.R is the live-fit end-to-end lock
+   (dm>0, additive identity closes, reproducible).
+3. FRAMING (honest). distribution_mediated reframed everywhere as a JENSEN-GAP /
+   interventional-mediation term: non-zero only when a higher moment of M
+   responds to X AND the outcome is curved in M (zero for a linear outcome even
+   if sigma(M) responds). Estimand credited to Pearl/Imai/VanderWeele2015/
+   Vansteelandt2017 (added to paper.bib); novelty positioned as implementational.
+   Softened "isolates exactly" and explained the "≈" (exact for the estimate,
+   approximate only for the independent-percentile interval). Edited
+   02-effect-calculus.md, paper.md, README.md, effect-decomposition.Rmd, NEWS.
+
+DEFERRED (engine-review secondary findings, not decomposition-specific): silent
+point-estimate fallback when a node's vcov is non-PD / non-convergent (interval
+too narrow, no flag) and log-link inverse overflow dropped by na.rm. Logged for a
+follow-up; see CODEX_HANDOFF.

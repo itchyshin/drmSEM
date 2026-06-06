@@ -62,9 +62,15 @@ These are different scientific claims, and `drmSEM` keeps them distinct
 everywhere: a path to `sigma` or `zi` is never reported as a mean effect.
 
 **Honest effects.** Indirect and total effects are computed by **Monte-Carlo
-simulation** over the fitted DAG (mean-mediated vs distribution-mediated), never
-by multiplying coefficients — coefficient products are invalid across
-non-Gaussian links and across distributional components.
+g-computation** over the fitted DAG (mean-mediated vs distribution-mediated),
+never by multiplying coefficients — coefficient products are invalid across
+non-Gaussian links and across distributional components. Effects are reported on
+the conditional (typical-group, random-effects-at-zero) response scale. The
+default `direct` is a *controlled* direct effect; the mean/distribution split is
+an interventional decomposition (the distribution-mediated row is a Jensen-gap
+term — Pearl; Imai et al.; VanderWeele), not a cross-world natural decomposition
+unless the outcome is linear with no exposure–mediator interaction (use
+`effect = "natural"` for that).
 
 **Compared to existing tools.** `lavaan` does latent-variable Gaussian SEM;
 `piecewiseSEM` does piecewise SEM but works on the mean only; `glmmTMB` fits
