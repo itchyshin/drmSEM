@@ -132,3 +132,31 @@ test_that("drm_composite records reliability and honours standardize", {
                "logical")
   expect_no_error(summary(sp))
 })
+
+test_that("composites materialize and fit end-to-end (predictor and response)", {
+  skip_if_not_installed("drmTMB")
+  set.seed(3)
+  n <- 200
+  z <- rnorm(n)
+  dat <- data.frame(
+    i1 = z + rnorm(n, sd = .4), i2 = z + rnorm(n, sd = .4), i3 = z + rnorm(n, sd = .4),
+    x = rnorm(n))
+  dat$y <- 0.5 * z + 0.3 * dat$x + rnorm(n)
+
+  # composite as a PREDICTOR
+  sem <- drm_sem(
+    y = drm_node(drmTMB::bf(y ~ size + x), family = stats::gaussian()),
+    data = dat,
+    composites = drm_composite("size", c("i1", "i2", "i3"), method = "pca", data = dat))
+  expect_s3_class(sem, "drm_sem")
+  expect_true("size" %in% names(sem$data))           # materialized before fitting
+  expect_true(any(paths(sem)$from == "size" & paths(sem)$to == "y"))
+  expect_equal(sort(loadings(sem)$indicator), c("i1", "i2", "i3"))
+
+  # composite as a RESPONSE (node name == composite name; the construct is modelled)
+  sem2 <- drm_sem(
+    size = drm_node(drmTMB::bf(size ~ x), family = stats::gaussian()),
+    data = dat,
+    composites = drm_composite("size", c("i1", "i2", "i3"), method = "pca", data = dat))
+  expect_true(any(paths(sem2)$from == "x" & paths(sem2)$to == "size"))
+})
