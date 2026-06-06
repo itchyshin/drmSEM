@@ -96,3 +96,37 @@ test_that("V-16: d-separation does NOT over-reject a true non-edge (specificity)
   # Expected rejections under the null ~ 0.4 / 8; P(>= 3) is negligible.
   expect_lte(reject, 3L)
 })
+
+test_that("V-36: indirect_effects() distribution_mediated is real, closes, and is reproducible", {
+  # End-to-end lock on a LIVE fit (the engine-free V-31..V-35 pin drm_decomp_legs).
+  # DGP: mediator M has mean a*x and a log-sd that RISES with x (x -> sigma(M)),
+  # feeding a lognormal outcome whose response mean is convex in M -- so a real
+  # distribution-mediated (Jensen-gap) channel must appear.
+  set.seed(21)
+  n <- 4000
+  x <- stats::rnorm(n)
+  a <- 0.4; s0 <- -0.2; s1 <- 0.9; k <- 0.5
+  m <- stats::rnorm(n, a * x, exp(s0 + s1 * x))
+  y <- stats::rlnorm(n, meanlog = k * m, sdlog = 0.3)
+  dat <- data.frame(x, m, y)
+
+  sem <- drm_sem(
+    m = drm_node(drmTMB::bf(m ~ x, sigma ~ x), family = stats::gaussian()),
+    y = drm_node(drmTMB::bf(y ~ m), family = drmTMB::lognormal()),
+    data = dat
+  )
+
+  ie <- indirect_effects(sem, from = "x", to = "y",
+                         uncertainty = "none", nsim = 4000, seed = 5)
+  dm  <- ie$estimate[ie$quantity == "distribution_mediated"]
+  mm  <- ie$estimate[ie$quantity == "mean_mediated"]
+  ind <- ie$estimate[ie$quantity == "indirect"]
+
+  expect_gt(dm, 0)                              # the distributional channel is real
+  expect_equal(ind, mm + dm, tolerance = 1e-6)  # additive identity, end-to-end
+
+  # same seed -> identical decomposition (seed plumbing on the live path)
+  ie2 <- indirect_effects(sem, from = "x", to = "y",
+                          uncertainty = "none", nsim = 4000, seed = 5)
+  expect_equal(ie$estimate, ie2$estimate, tolerance = 1e-10)
+})

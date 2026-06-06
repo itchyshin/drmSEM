@@ -50,11 +50,12 @@ class(eff) <- c("drm_effect", "data.frame")
 plot(eff)
 ```
 
-The orange `distribution_mediated` interval sits well clear of zero. It says
-that a non-trivial part of how `size` reaches `fitness` flows through the
-*variability* and *zero-structure* of an intermediate count -- not through any
-mean. A mean-only SEM reports that channel as zero, or silently folds it into
-the mean. `drmSEM` isolates it and labels it.
+In this **illustrative** figure (the numbers above are hand-set, not estimated
+from data) the orange `distribution_mediated` interval sits clear of zero. That
+is the picture to look for: a part of how `size` reaches `fitness` flowing
+through the *variability* and *zero-structure* of an intermediate count rather
+than through any mean. A mean-only SEM reports that channel as zero, or silently
+folds it into the mean. `drmSEM` isolates it and labels it.
 
 ## The three effect types
 
@@ -70,18 +71,29 @@ component path each one travels.
   path: `X` shifts the *mean* of a mediator, which shifts the *mean* of the next,
   on down to the mean of `Y`.
 
-- **Distribution-mediated.** `X -> sigma(M2) -> distribution(M2) -> mu(Y)`. An
-  indirect path that flows through a mediator's *scale* (`sigma`),
+- **Distribution-mediated.** `X -> sigma(M2) -> distribution(M2) -> mu(Y)`. The
+  part of the indirect effect that flows through a mediator's *scale* (`sigma`),
   *zero-inflation* (`zi`), or *shape* (`nu`) rather than its mean. `X` changes
   how *spread out* (or how *zero-inflated*, or how *skewed*) the mediator is;
-  that altered distribution, pushed through a downstream nonlinearity, moves the
-  mean of `Y`. This effect is **exactly zero under mean mediation** and appears
-  only when realized mediator draws propagate.
+  that altered distribution, pushed through a **curved** downstream outcome,
+  moves the mean of `Y`. Concretely it is a **Jensen gap** — the difference
+  between propagating the mediator's full distribution and propagating only its
+  mean. It is therefore non-zero only when **both** a higher moment of the
+  mediator responds to `X` **and** the outcome is nonlinear in that mediator: it
+  is exactly zero under mean mediation, and zero when the outcome is *linear* in
+  `M` even if `sigma(M)` depends on `X`.
 
-That third type is the novel one. It has no analogue in any coefficient-product
-mediation formula, because there is no coefficient to multiply: the signal lives
-in a distributional parameter, and it only becomes a mean effect after passing
-through a nonlinear link downstream.
+That third type is what makes `drmSEM` distinctive: it has **no
+coefficient-product analogue**, because the signal lives in a distributional
+parameter and only becomes a mean effect after passing through a nonlinear link
+downstream — so a mean-only SEM reports it as zero. The *estimand* itself is not
+new: it is the interventional / distributional-mediation effect of the causal
+mediation literature (Pearl; Imai, Keele & Yamamoto; VanderWeele; Vansteelandt &
+Daniel). What is new is making a mediator's `sigma`/`zi`/shape a first-class
+causal target in a piecewise distributional GLMM SEM and surfacing this term as
+a labelled, uncertainty-quantified row. It is identified under the usual
+mediation assumptions **plus** a correctly specified mediator *distribution*
+(its higher moments, not just its mean).
 
 ## Why coefficient products are invalid here
 
@@ -212,10 +224,12 @@ The same logic applies to any non-mean component:
 - a path into `zi(M)` or `hu(M)` -- `X` changes the *zeros* or the *hurdle*;
 - a path into `nu(M)` -- `X` changes a *shape* parameter (tails / skew).
 
-In each case the effect on `Y` is real, is zero under mean mediation, and is
-reported on its own row, correctly labelled, by `indirect_effects()`. No other
-SEM package plots it -- which is exactly why this vignette opens with the
-figure that does.
+In each case the effect on `Y` is real **provided the downstream outcome is
+curved in that mediator** (a linear outcome has no Jensen gap, so the row is
+zero even when the mediator's distribution responds to `X`); it is zero under
+mean mediation, and is reported on its own row, correctly labelled, by
+`indirect_effects()`. No other SEM package plots it as a separate row -- which is
+exactly why this vignette opens with the figure that does.
 
 ## Recap
 

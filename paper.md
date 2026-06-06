@@ -96,9 +96,14 @@ propagation [@Pearl2001; @Imai2010] over the fitted DAG in topological order,
 with random effects held at zero. A mediator passes either its expected mean
 (mean mediation) or a **realized draw** from its fitted family (distribution
 mediation). `indirect_effects()` reports `total_path`, `direct`, `indirect`,
-`mean_mediated`, and `distribution_mediated`, where the
-distribution-mediated row isolates exactly the contribution that no
-coefficient-product method can express. By default `direct` is a **controlled
+`mean_mediated`, and `distribution_mediated`, where the distribution-mediated
+row is the **Jensen-gap** contribution — the part of the effect that flows
+through the mediator's higher moments given a curved outcome, with no
+coefficient-product analogue. As an estimand this is the interventional /
+distributional-mediation term [@Pearl2001; @Imai2010; @VanderWeele2015;
+@Vansteelandt2017]; the contribution here is to make a mediator's `sigma`, `zi`,
+or shape a first-class causal target in a piecewise distributional GLMM SEM and
+to surface that term as a labelled, Monte-Carlo-quantified row. By default `direct` is a **controlled
 direct effect** (mediators held at their observed values) and the total/indirect
 split is simulation-based; these coincide with the natural direct and indirect
 effects only under linearity with no exposure-mediator interaction. For the cases

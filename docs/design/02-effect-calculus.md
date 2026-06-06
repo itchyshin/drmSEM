@@ -66,11 +66,22 @@ What an active mediator passes downstream is the crux:
   directly into `Y` operate.
 - **Mean-mediated**: `X -> mu(M) -> mu(Y)`. Appears under mean mediation when
   `M` is active.
-- **Distribution-mediated**: `X -> sigma(M) -> distribution(M) -> mu(Y)`. An
-  indirect effect flowing through a mediator's *scale / zero-inflation / shape*.
-  It is **zero under mean mediation** and only appears when realized mediator
-  draws propagate through a downstream nonlinearity. This is the effect type
-  that motivates the whole simulation machinery.
+- **Distribution-mediated**: `X -> sigma(M) -> distribution(M) -> mu(Y)`. The
+  part of the indirect effect captured by propagating the mediator's *full
+  conditional distribution* (scale / zero-inflation / shape) rather than its
+  conditional mean. Formally it is a **Jensen-gap contrast**: the change, across
+  the exposure contrast, in `E[g(M) | x] − g(E[M | x])` where `g = mu_Y(x, ·)`.
+  It is therefore non-zero **only when both** (i) a higher moment of `M | x`
+  responds to `X` **and** (ii) the outcome `mu_Y` is *curved* in `M` — it is
+  identically zero under mean mediation, and zero when the outcome is linear in
+  `M` even if `sigma(M)` depends on `X` (V-27b / V-33). Because it is a
+  propagation remainder it also reflects the curvature of the *fitted* outcome
+  model, so it presumes a correctly specified mediator distribution (its higher
+  moments, not just its mean) and outcome model. As an estimand this is the
+  interventional / distributional-mediation term (Pearl; Imai, Keele &
+  Yamamoto; VanderWeele 2015; Vansteelandt & Daniel 2017); drmSEM's contribution
+  is to surface and label it for distributional GLMM components, with Monte-Carlo
+  uncertainty — the effect type that motivates the simulation machinery.
 
 `indirect_effects()` returns five rows in `quantity` under the default
 `effect = "controlled"`:
@@ -83,9 +94,18 @@ What an active mediator passes downstream is the crux:
 | `mean_mediated` | (mean-mediated total) − direct |
 | `distribution_mediated` | (distribution total) − (mean total) |
 
-So `indirect ≈ mean_mediated + distribution_mediated`, and the
-distribution-mediated row isolates exactly the contribution that no
-coefficient-product method can express.
+So `indirect = mean_mediated + distribution_mediated` **exactly for the point
+estimate** (the three legs share one coefficient draw per replicate, so the
+`tot_mean` term cancels identically; `drm_decomp_legs()`), and the
+distribution-mediated row is the Jensen-gap contribution with **no
+coefficient-product analogue**. The identity is written `≈` only for the
+reported *interval*: each row's confidence bounds are independent Monte-Carlo
+percentiles, which are not additive. The parts are **common-random-numbers
+(paired) contrasts** — one shared β draw per replicate across the direct / mean /
+distribution legs — so the interval of `distribution_mediated` isolates the
+propagation mode rather than coefficient-draw noise (an earlier implementation
+drew the legs independently, which left the point estimate correct but inflated
+this interval).
 
 **Controlled vs natural effects (identification caveat).** The default `direct`
 above is a *controlled* direct effect — mediators are held at their **observed**

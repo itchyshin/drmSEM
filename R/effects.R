@@ -49,6 +49,39 @@ drm_effect_contrast <- function(engines, scenarios, to, active, mediation,
   vals
 }
 
+# Paired three-leg decomposition used by indirect_effects(). Within each
+# replicate, ONE coefficient draw (`beta_list`) is shared across the
+# controlled-direct (cde), mean-mediated total (tot_mean), and
+# distribution-mediated total (tot_dist) legs, so the differences
+# `tot_mean - cde` and `tot_dist - tot_mean` are common-random-numbers (paired)
+# contrasts: the reported intervals isolate the propagation mode rather than
+# coefficient-draw noise. (Three separate drm_effect_contrast() calls would draw
+# independent coefficients per leg -- the point estimate is unbiased either way,
+# but the unpaired interval is inflated and not a valid paired contrast.) This
+# mirrors the shared-draw structure already used by the natural-effect branch.
+# Only the distribution leg consumes inner family draws (n_sim); the mean legs
+# are deterministic given beta, so they use n_sim = 1.
+drm_decomp_legs <- function(engines, scenarios, to, active, B, n_sim, draw,
+                            seed = NULL) {
+  if (!is.null(seed)) set.seed(seed)
+  reps <- if (isTRUE(draw)) B else 1L
+  legs <- matrix(NA_real_, reps, 3L,
+                 dimnames = list(NULL, c("cde", "tot_mean", "tot_dist")))
+  leg <- function(act, med, ns, beta_list) {
+    hi <- drm_expected_target(engines, scenarios$hi, to, act, med, beta_list, ns)
+    lo <- drm_expected_target(engines, scenarios$lo, to, act, med, beta_list, ns)
+    mean(hi - lo, na.rm = TRUE)
+  }
+  for (b in seq_len(reps)) {
+    beta_list <- lapply(engines, drm_draw_beta, draw = draw)
+    names(beta_list) <- names(engines)
+    legs[b, "cde"]      <- leg(character(0), "mean",         1L,    beta_list)
+    legs[b, "tot_mean"] <- leg(active,       "mean",         1L,    beta_list)
+    legs[b, "tot_dist"] <- leg(active,       "distribution", n_sim, beta_list)
+  }
+  legs
+}
+
 drm_summ <- function(vals, level = 0.95) {
   a <- (1 - level) / 2
   data.frame(
@@ -304,9 +337,12 @@ indirect_effects <- function(object, from, to, through = NULL,
   }
 
 
-  cde <- drm_effect_contrast(engines, scen, to, character(0), "mean", B, 1L, ctl$draw, seed)
-  tot_mean <- drm_effect_contrast(engines, scen, to, active, "mean", B, ctl$n_sim, ctl$draw, seed)
-  tot_dist <- drm_effect_contrast(engines, scen, to, active, "distribution", B, ctl$n_sim, ctl$draw, seed)
+  # Paired three-leg decomposition: a shared coefficient draw per replicate makes
+  # mean_mediated and distribution_mediated valid common-random-numbers contrasts.
+  legs <- drm_decomp_legs(engines, scen, to, active, B, ctl$n_sim, ctl$draw, seed)
+  cde <- legs[, "cde"]
+  tot_mean <- legs[, "tot_mean"]
+  tot_dist <- legs[, "tot_dist"]
 
   ind_mean <- tot_mean - cde
   ind_dist <- tot_dist - cde

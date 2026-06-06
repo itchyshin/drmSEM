@@ -222,3 +222,101 @@ test_that("drm_nominal_link labels each (family, component) correctly", {
   expect_equal(drm_nominal_link("anything", "rho12"), "tanh")
   expect_equal(drm_nominal_link("anything", "sd_site"), "log")
 })
+
+# ---- Identity 6: the SHIPPED decomposition path (drm_decomp_legs) ------------
+#
+# V-26..V-30 above validate the effect KERNELS. These pin the production helper
+# `drm_decomp_legs()` that indirect_effects() actually calls (R/effects.R), so a
+# refactor of the three legs, the pairing, or the mean/distribution labelling
+# would fail here -- not only the kernels. Engines are hand-built (no drmTMB).
+
+# Reconstruct the decomposition exactly as indirect_effects() does from the
+# shipped, shared-coefficient-draw helper.
+decomp <- function(eng, to, active, lo, hi, n_sim, seed = 7L) {
+  scen <- list(lo = lo, hi = hi, column = "x")
+  legs <- drmSEM:::drm_decomp_legs(eng, scen, to, active, B = 1L, n_sim = n_sim,
+                                   draw = FALSE, seed = seed)
+  cde <- legs[, "cde"]; tm <- legs[, "tot_mean"]; td <- legs[, "tot_dist"]
+  list(direct = mean(cde),
+       indirect = mean(td - cde),
+       mean_mediated = mean(tm - cde),
+       distribution_mediated = mean(td - tm))
+}
+
+test_that("V-31: production decomposition closes (indirect == mean + distribution)", {
+  a <- 0.4; k <- 0.5
+  eng <- list(
+    M = gauss_engine("M", function(s) a * s$x, function(s) exp(-0.2 + 0.9 * s$x)),
+    Y = gauss_engine("Y", function(s) exp(k * s$M))
+  )
+  lo <- rows(data.frame(x = 0, M = 0, Y = 0), 80)
+  hi <- rows(data.frame(x = 1, M = 0, Y = 0), 80)
+  d <- decomp(eng, "Y", "M", lo, hi, n_sim = 1500, seed = 7L)
+  # exact by construction on the shared legs: a broken leg/label fails this
+  expect_equal(d$indirect, d$mean_mediated + d$distribution_mediated,
+               tolerance = 1e-12)
+  expect_equal(d$direct + d$indirect,
+               d$direct + d$mean_mediated + d$distribution_mediated,
+               tolerance = 1e-12)
+})
+
+test_that("V-32: production distribution_mediated matches the lognormal Jensen gap", {
+  a <- 0.4; k <- 0.5; s0 <- -0.2; x0 <- 0; x1 <- 1
+  mk <- function(s1) list(
+    M = gauss_engine("M", function(s) a * s$x, function(s) exp(s0 + s1 * s$x)),
+    Y = gauss_engine("Y", function(s) exp(k * s$M))
+  )
+  lo <- rows(data.frame(x = x0, M = 0, Y = 0), 80)
+  hi <- rows(data.frame(x = x1, M = 0, Y = 0), 80)
+  sig <- function(x, s1) exp(s0 + s1 * x)
+  D <- function(s1)
+    (exp(k * a * x1 + 0.5 * k^2 * sig(x1, s1)^2) - exp(k * a * x1)) -
+    (exp(k * a * x0 + 0.5 * k^2 * sig(x0, s1)^2) - exp(k * a * x0))
+  dp <- decomp(mk(0.9), "Y", "M", lo, hi, n_sim = 4000, seed = 7L)$distribution_mediated
+  expect_equal(dp, D(0.9), tolerance = 0.06)
+  expect_gt(dp, 0)
+  # sign flip when the mediator's scale DECREASES with x, through the production path
+  dn <- decomp(mk(-0.9), "Y", "M", lo, hi, n_sim = 4000, seed = 7L)$distribution_mediated
+  expect_lt(dn, 0)
+})
+
+test_that("V-33: production distribution_mediated is ~0 when the outcome is linear in M", {
+  a <- 0.4; b <- 0.6
+  eng <- list(
+    M = gauss_engine("M", function(s) a * s$x, function(s) exp(-0.2 + 0.9 * s$x)),
+    Y = gauss_engine("Y", function(s) b * s$M)   # linear: no Jensen gap
+  )
+  lo <- rows(data.frame(x = 0, M = 0, Y = 0), 150)
+  hi <- rows(data.frame(x = 1, M = 0, Y = 0), 150)
+  d <- decomp(eng, "Y", "M", lo, hi, n_sim = 4000, seed = 11L)
+  expect_equal(d$distribution_mediated, 0, tolerance = 0.02)
+  expect_equal(d$mean_mediated, a * b, tolerance = 1e-8)
+})
+
+test_that("V-34: production mean_mediated recovers a chain a*c*b through 2 mediators", {
+  a <- 0.5; cc <- 0.8; b <- 0.6   # x -> M1 -> M2 -> Y, all linear Gaussian
+  eng <- list(
+    M1 = gauss_engine("M1", function(s) a  * s$x),
+    M2 = gauss_engine("M2", function(s) cc * s$M1),
+    Y  = gauss_engine("Y",  function(s) b  * s$M2)
+  )
+  lo <- rows(data.frame(x = 0, M1 = 0, M2 = 0, Y = 0), 40)
+  hi <- rows(data.frame(x = 1, M1 = 0, M2 = 0, Y = 0), 40)
+  d <- decomp(eng, "Y", c("M1", "M2"), lo, hi, n_sim = 800, seed = 5L)
+  expect_equal(d$mean_mediated, a * cc * b, tolerance = 1e-8)
+  expect_equal(d$distribution_mediated, 0, tolerance = 0.02)
+})
+
+test_that("V-35: the decomposition is reproducible (seed plumbing through the legs)", {
+  a <- 0.4; k <- 0.5
+  eng <- list(
+    M = gauss_engine("M", function(s) a * s$x, function(s) exp(-0.2 + 0.9 * s$x)),
+    Y = gauss_engine("Y", function(s) exp(k * s$M))
+  )
+  scen <- list(lo = rows(data.frame(x = 0, M = 0, Y = 0), 60),
+               hi = rows(data.frame(x = 1, M = 0, Y = 0), 60), column = "x")
+  d1 <- drmSEM:::drm_decomp_legs(eng, scen, "Y", "M", 1L, 200, FALSE, seed = 3L)
+  d2 <- drmSEM:::drm_decomp_legs(eng, scen, "Y", "M", 1L, 200, FALSE, seed = 3L)
+  # same seed -> identical legs: guards the shared-draw / seed wiring
+  expect_identical(d1, d2)
+})

@@ -1,5 +1,33 @@
 # drmSEM 0.2.0.9000 (development version)
 
+## Effect decomposition: paired Monte-Carlo and honest framing
+
+* **Bug fix (intervals).** `indirect_effects()` now computes the
+  controlled-direct, mean-mediated, and distribution-mediated legs from **one
+  shared coefficient draw per replicate** (`drm_decomp_legs()`), mirroring the
+  natural-effect branch. Previously the three legs were drawn independently, so
+  with the default `seed = NULL` the `mean_mediated` / `distribution_mediated`
+  **intervals** subtracted unrelated parameter draws and were inflated (not a
+  valid paired contrast). Point estimates are unchanged; the reported intervals
+  are now common-random-numbers (paired) contrasts that isolate the propagation
+  mode.
+* **New asserted tests** lock the *shipped* decomposition path (not only the
+  kernels): the additive identity `indirect = mean_mediated +
+  distribution_mediated` (V-31), the lognormal Jensen-gap closed form and its
+  sign flip through `drm_decomp_legs()` (V-32), the linear-outcome zero (V-33), a
+  two-mediator chain (V-34), seed reproducibility (V-35), and an end-to-end
+  live-fit check that the distribution-mediated channel is real and the
+  decomposition closes (V-36).
+* **Honest framing.** Documentation now describes `distribution_mediated` as a
+  **Jensen-gap / interventional-mediation** term — non-zero only when a higher
+  moment of the mediator responds to the exposure **and** the outcome is curved
+  in that mediator — identified under the usual mediation assumptions plus a
+  correctly specified mediator *distribution*. The novelty is positioned as
+  *implementational* (a mediator's `sigma`/`zi`/shape as a first-class causal
+  target), with the estimand credited to the interventional/distributional
+  mediation literature (Pearl; Imai et al.; VanderWeele 2015; Vansteelandt &
+  Daniel 2017).
+
 ## Bivariate nodes (0.4, grammar layer)
 
 * `drm_pair()` declares a **bivariate (joint two-response) node** — two response
