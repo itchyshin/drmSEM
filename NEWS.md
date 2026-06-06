@@ -1,4 +1,11 @@
-# drmSEM 0.1.0.9000 (development version)
+# drmSEM 0.2.0
+
+Second release. Post-0.1 work: a unified effect-API surface, first-class
+covariance-edge and composite-construct grammars, per-mediator and per-component
+path attribution, finalized standardization conventions, and a scaffolded
+Fisher's C calibration study. The any-component d-separation calibration remains
+**experimental** until its (compute-heavy) study is run; everything else is
+CI-validated against a live drmTMB or kernel-validated by closed-form tests.
 
 ## Documentation
 

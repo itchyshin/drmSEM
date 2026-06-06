@@ -24,25 +24,24 @@ compiled (see `04-validation-plan.md`).
 - Exit criterion: Tier-2 integration tests pass in the cloud env; ledger flips
   distribution-mediated effects and d-sep from "kernel-validated" to "validated".
 
-## 0.1.x dev (CURRENT)
+## 0.2 — Inference hardening + grammars (RELEASED, 0.2.0)
 
-Post-0.1.0 development on the `0.1.0.9000` line:
+Shipped in 0.2.0:
 - OQ-12 — unified effect-API surface (`method` / `uncertainty` / `nsim` /
-  `population` shared across the effect functions, old args kept as deprecated
-  aliases; `R/effects_api.R`).
-- OQ-14 / D-14 — bivariate covariance-edge *grammar* as a pure-R layer:
-  `covary()` declaration, `covariances()` accessor (separate from `paths()`),
-  and covariance-aware d-separation (dropping the `y1 _||_ y2` claim).
-  (`R/covariances.R`). The joint bivariate *fit* stays in 0.4 (below).
+  `population` shared across the effect functions; old args deprecated aliases).
+- OQ-14 / D-14 — bivariate covariance-edge *grammar* (`covary()`,
+  `covariances()`, covariance-aware d-separation). Joint bivariate *fit* → 0.4.
+- OQ-5 — per-mediator (`inclusion`/`exclusion`) and per-component
+  (`mean`/`sigma`/`zi`) path attribution (`path_effects()`).
+- Composite (formative) constructs (`drm_composite()` / `loadings()`) — the 0.3
+  first increment landed early.
+- Analytic effect cross-checks promoted to asserted tests (V-26..V-34).
+- Standardization scale conventions finalized and documented (OQ-4).
 
-## 0.2 — Inference hardening
-
-- Fisher's C calibration study (Type-I / power under the any-component
-  augmentation); document the operating characteristics.
-- Analytic effect cross-checks promoted from "planned" to asserted tests
-  (Gaussian-mean product identity; distribution-mediated -> 0 when scale fixed).
-- Standardization scale conventions finalized and documented (`sd_x` vs
-  `latent`), including factor predictors.
+Deferred to **0.2.1 / the live-drmTMB lane** (issue #13): the Fisher's C
+calibration *study* (Type-I / power) — scaffolded (`vignettes/calibration.Rmd`),
+documented as experimental, awaiting the compute-heavy run; the standardization
+`sigma_E` refinement; the OQ-5 natural variant; OQ-14 joint fit.
 
 ## 0.3 — Latent variables
 
