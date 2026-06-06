@@ -498,3 +498,20 @@ docs/memory/OPEN_QUESTIONS.md).
 - DEFERRED to avoid collision with Codex: the OQ-5 entry in OPEN_QUESTIONS.md is
   NOT edited here; the natural-variant status update there is pending Codex's
   calibration closeout / handoff back of that file.
+
+## 2026-06-06 — 0.3 latent push (increment A): composite reliability + standardize
+
+Parallel-safe 0.3 work while Codex runs the calibration lane. Touched ONLY
+non-shared files (R/composite.R, NAMESPACE, man/drm_composite.Rd, test-composite.R,
+docs/design/09-latent-variables.md, AGENT_LOG) -- avoided NEWS/ledger/DECISIONS/
+OPEN_QUESTIONS/roadmap/paper/overview/calibration (Codex-owned), so their rebase
+stays clean. Holding NEWS/ledger bullets for a reconciliation pass after Codex lands.
+- `drm_composite()` now records **reliability** (Cronbach's alpha, `drm_cronbach_alpha()`,
+  unclamped, NA for a single indicator) and accepts `standardize = TRUE`
+  (mean-0/sd-1 score). `print()`/new `summary.drm_composite()` report loadings +
+  prop_var + reliability. Tests in test-composite.R (alpha formula on identical /
+  single / uncorrelated indicators; standardize moments; summary no-error).
+- 09-latent-variables.md expanded: reliability, standardize, formative vs
+  reflective-flavoured (pca) reading.
+Next increments (B) composite-as-response + effects/d-sep through a composite;
+(C) latent-variables vignette.

@@ -31,6 +31,36 @@ existing machinery with **no engine change**:
   `paths()`** exactly as `covariances()` is — a construct's measurement structure
   is not a causal path.
 
+### Construct quality: reliability and standardization
+
+`drm_composite()` records and reports two diagnostics so a user can judge the
+construct rather than take it on faith:
+
+- **Reliability** — Cronbach's alpha over the indicator set, an internal-
+  consistency measure for a *reflective* reading of the indicators (the degree to
+  which they move together as one scale). It is stored on the spec and shown by
+  `print()` / `summary()`. It is **not clamped**: a low or negative alpha is an
+  honest "these indicators do not form a coherent scale" signal, and `NA` for a
+  single indicator. (`drm_cronbach_alpha()`.) For a *formative* construct, where
+  indicators are causes rather than effects of the construct, alpha is not the
+  right criterion and is reported for information only.
+- **`standardize = TRUE`** rescales the materialized score to mean 0, sd 1 (after
+  the weighted-sum / PC step), so a construct used as a predictor enters on a
+  comparable scale to standardized continuous predictors.
+
+`summary(composite)` prints the loadings table, the PC1 proportion of variance
+(for `"pca"`), and the reliability; `print()` gives the one-line form.
+
+### Formative vs reflective reading
+
+`method = "fixed"` is the **formative** composite (the indicators *define* the
+construct; weights are a design choice). `method = "pca"` is the closest
+piecewise-feasible **reflective-flavoured** construct: the first principal
+component approximates the common factor when the indicators are strongly,
+positively correlated (high reliability), and its loadings/`prop_var` report how
+well a single dimension summarizes them. Neither estimates a latent measurement
+*model* — see below.
+
 ### Honest limitations (documented, tracked)
 
 - **Indicators are leaves.** The construct is frozen in the data, so an

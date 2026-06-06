@@ -4,7 +4,14 @@
 \alias{drm_composite}
 \title{Declare a composite construct from observed indicators}
 \usage{
-drm_composite(name, indicators, weights = NULL, method = c("fixed", "pca"), data)
+drm_composite(
+  name,
+  indicators,
+  weights = NULL,
+  method = c("fixed", "pca"),
+  data,
+  standardize = FALSE
+)
 }
 \arguments{
 \item{name}{Name of the construct column to create. Must not collide with an
@@ -21,9 +28,14 @@ principal-component score of the scaled indicators).}
 
 \item{data}{A data frame containing the \code{indicators} (used to validate them
 and, for \code{"pca"}, to derive the loadings).}
+
+\item{standardize}{If \code{TRUE}, the materialized construct column is standardized
+(mean 0, sd 1). Default \code{FALSE}.}
 }
 \value{
-A \code{drm_composite} declaration object.
+A \code{drm_composite} declaration object. It records the indicator \code{loadings} and
+the construct's reliability (Cronbach's alpha, an internal-consistency measure
+for \emph{reflective} indicator sets), shown by \code{print()} / \code{summary()}.
 }
 \description{
 A composite construct is a deterministic index built from two or more observed
