@@ -97,8 +97,8 @@ test_that("V-16: d-separation does NOT over-reject a true non-edge (specificity)
   expect_lte(reject, 3L)
 })
 
-test_that("V-36: indirect_effects() distribution_mediated is real, closes, and is reproducible", {
-  # End-to-end lock on a LIVE fit (the engine-free V-31..V-35 pin drm_decomp_legs).
+test_that("V-41: indirect_effects() distribution_mediated is real, closes, and is reproducible", {
+  # End-to-end lock on a LIVE fit (the engine-free V-36..V-40 pin drm_decomp_legs).
   # DGP: mediator M has mean a*x and a log-sd that RISES with x (x -> sigma(M)),
   # feeding a lognormal outcome whose response mean is convex in M -- so a real
   # distribution-mediated (Jensen-gap) channel must appear.

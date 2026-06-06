@@ -123,9 +123,12 @@ supplied via `drm_psem()`, after which the `rho12` path is extracted and labelle
 like any other component path. The covariance-edge grammar now ships:
 `covary()` declares a residual or higher-level covariance edge,
 `covariances()` reports those edges separately from `paths()`, and d-separation
-knows two covarying responses should not get a `y1 _||_ y2` claim. A first-class
-bivariate node constructor (`drm_pair()`), `corpairs()` read-back from a live
-fit, and double-headed-arc plotting remain roadmap items (see
+knows two covarying responses should not get a `y1 _||_ y2` claim. The
+bivariate-node declaration grammar now also ships: `drm_pair()` declares a joint
+two-response node, `rho12()` / `corpairs()` report the declared edges, and
+`plot()` draws double-headed (residual) / dashed (higher-level) arcs. Only the
+joint bivariate *fit* that reads a fitted `rho12` / `corpair` correlation back (a
+non-`NA` estimate) remains a roadmap item (see
 `docs/design/07-bivariate-covariance-edges.md`).
 
 ```{r paths}
@@ -280,7 +283,8 @@ Phase 3) ship today; phylogenetic paths *into* distributional components and
 | --- | --- |
 | Component-labelled paths (`mu`, `sigma`, `nu`, `zi`, `hu`, `sd(group)`, `rho12`) | now (a `x -> rho12` path requires a bivariate `drmTMB` fit via `drm_psem()`) |
 | Bivariate covariance-edge grammar: `covary()` declaration + `covariances()` accessor + covariance-aware d-separation (drops the `y1 _||_ y2` claim) | now |
-| Bivariate covariance edges: first-class bivariate node (`drm_pair`), `corpairs()` read-back from a live fit, double-headed-arc plotting | roadmap |
+| Bivariate-node *declaration*: `drm_pair()` grammar, `rho12()` / `corpairs()` accessors (declared edges), double-headed / dashed-arc plotting | now (0.2.x) |
+| Bivariate joint *fit*: `rho12()` / `corpairs()` read-back of a *fitted* (non-`NA`) correlation from a live bivariate `drmTMB` fit | roadmap (0.4 engine) |
 | Any-component d-separation + Fisher's C | now (OQ-6 calibration grid validated; broader settings claim-scoped) |
 | Simulation-based direct / mean-mediated / distribution-mediated / total effects | now |
 | Natural direct / indirect / mediated-interaction effects (`indirect_effects(effect = "natural")`) | now (cross-world split, validated on the linear-Gaussian case) |
@@ -296,7 +300,8 @@ Phase 3) ship today; phylogenetic paths *into* distributional components and
 | Phylogenetic paths *into* distributional components | roadmap (Phase 4) |
 | Reflective latent measurement models (latent estimated jointly with the structural model) | out of scope for 0.x (needs a joint likelihood; composite constructs ship — see above) |
 | Full joint (single-likelihood) multivariate SEM | out of scope for 0.x |
-| Cyclic / feedback graphs | not supported (cycles are an error) |
+| Declared feedback motifs: `drm_cycle()` / `feedback=` grammar, relaxed toposort, d-sep suppression, internal equilibrium propagator | now (0.5.0; equilibrium effects via the public effect API are the 0.5.x increment) |
+| Undeclared cyclic / feedback graphs | an error (declare the motif with `drm_cycle()` to allow it) |
 | New likelihoods | out of scope (drmSEM never fits its own) |
 
 ## Recap

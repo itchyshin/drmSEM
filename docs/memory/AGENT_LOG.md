@@ -641,11 +641,13 @@ the POINT estimates are correct, but three fixes were needed.
    evaluates all three legs against it (mirrors the already-correct natural
    branch). Point estimates unchanged; intervals now common-random-numbers paired
    contrasts. Mean legs use n_sim=1 (the mean path ignores n_sim anyway).
-2. TESTS (added). V-31..V-35 in test-analytic-effects.R drive the SHIPPED helper
+2. TESTS (added). V-36..V-40 in test-analytic-effects.R drive the SHIPPED helper
    drm_decomp_legs (not just kernels): additive identity (exact), lognormal
    Jensen-gap closed form + sign flip, linear-outcome zero, 2-mediator chain,
-   seed reproducibility. V-36 in test-recovery.R is the live-fit end-to-end lock
-   (dm>0, additive identity closes, reproducible).
+   seed reproducibility. V-41 in test-recovery.R is the live-fit end-to-end lock
+   (dm>0, additive identity closes, reproducible). [NB: these were first written
+   as V-31..V-36 but renumbered to V-36..V-41 to avoid colliding with the ledger's
+   V-31..V-35 (OQ-5/composite); the feedback recovery test is V-42.]
 3. FRAMING (honest). distribution_mediated reframed everywhere as a JENSEN-GAP /
    interventional-mediation term: non-zero only when a higher moment of M
    responds to X AND the outcome is curved in M (zero for a linear outcome even
@@ -684,3 +686,29 @@ reduced-form helpers stay internal pending effect-API integration (the 0.5.x
 increment). Updated NEWS, 05-roadmap, 10-cyclic-feedback (current-state),
 _pkgdown reference. The earlier decomposition-hardening PR (#22) is already on
 main; this builds on it cleanly.
+
+## 2026-06-06 — Drift reconciliation after the #20-#23 PR sequence
+
+Ran a read-only systems audit (Rose) after five PRs landed fast; fixed everything
+it found:
+- man/ regenerated-and-committed for the six new exports (drm_pair, drm_expand_pair,
+  rho12, corpairs, drm_cycle, cycles) + updated drm_sem/drm_psem/basis_set .Rd for
+  the new feedback= arg / d-sep note. PRs #20 and #23 had updated NAMESPACE but not
+  man/ (CI's roxygenise masked it; committed repo was inconsistent — the standing
+  process lesson). Hand-written to mirror roxygen output since the lane has no R;
+  CI regenerates them anyway.
+- V-NUMBER COLLISION fixed: the #22 decomposition tests had reused V-31..V-36, which
+  the VALIDATION_LEDGER already assigns to OQ-5/composite. Renumbered the decomposition
+  tests to V-36..V-41 (test-analytic-effects.R + test-recovery.R), the feedback
+  recovery to V-42 (test-feedback.R), added a ledger section for V-36..V-42, and
+  reconciled NEWS / AGENT_LOG / CODEX_HANDOFF / 02-effect-calculus.md cross-refs.
+- STALE ROADMAP PROSE (under-claims): vignettes/drmSEM.Rmd, drmSEM-overview.Rmd
+  (prose + roadmap table rows), comparison.Rmd, paper.md, 05-roadmap.md all said
+  drm_pair()/arc-plotting/feedback were "roadmap" when they shipped in 0.2.x; now
+  scoped to "only the joint fit / fitted read-back remains" (0.4 engine) and
+  "declared feedback motifs ship (0.5.0); equilibrium effects via the API are 0.5.x".
+- COUNTS/WORDING: 04-validation-plan.md 19->21 R files (+ test-pair/test-feedback in
+  the Tier-1 list); fixed a garbled README sentence ("indirect_effects() / the
+  decomposition report").
+Audit confirmed CLEAN: version strings (0.2.0.9000), the #22 honesty pass propagation,
+the adapter boundary, .codex/.claude mirror, locked decisions in code.

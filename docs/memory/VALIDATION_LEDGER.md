@@ -387,3 +387,38 @@ component structures need their own calibration evidence.
   and an ancestor of the target mediator is flagged `identified = FALSE`.
   **validated (kernel)** — pure graph logic, no drmTMB. Live-fit integration and
   unconfirmed-sampler `NA` handling remain OQ-5.
+
+## 2026-06-06 — V-36..V-42: effect-decomposition pairing + feedback equilibrium
+
+- **V-36 — decomposition additive identity (production path).** `drm_decomp_legs()`
+  (the shipped helper `indirect_effects()` calls) is exercised directly:
+  `indirect = mean_mediated + distribution_mediated` holds exactly on the shared
+  per-replicate legs. `test-analytic-effects.R`. **validated (kernel)** — no drmTMB.
+- **V-37 — distribution-mediated lognormal Jensen gap + sign flip.** Through
+  `drm_decomp_legs()`, `distribution_mediated` matches the closed form
+  `exp(k a x + ½k²σ(x)²) − exp(k a x)` differenced across the contrast, and flips
+  sign when `sigma(M)` decreases with `x`. `test-analytic-effects.R`.
+  **validated (kernel).**
+- **V-38 — distribution-mediated linear-outcome zero (production path).**
+  `distribution_mediated ≈ 0` when the outcome is linear in `M` even though
+  `sigma(M)` depends on `x` (no Jensen gap). `test-analytic-effects.R`.
+  **validated (kernel).**
+- **V-39 — multi-mediator chain mean propagation.** Through `drm_decomp_legs()`,
+  `mean_mediated` recovers `a·c·b` for `x → M1 → M2 → Y` and the distribution
+  channel is ~0 (linear Gaussian). `test-analytic-effects.R`. **validated (kernel).**
+- **V-40 — decomposition reproducibility / seed plumbing.** Same seed yields
+  identical legs (the shared-draw pairing is deterministic given the seed).
+  `test-analytic-effects.R`. **validated (kernel).**
+- **V-41 — `indirect_effects()` distribution-mediated, live fit.** End-to-end on a
+  real `drm_sem()` fit (mediator with `x → sigma(M)` feeding a lognormal outcome):
+  `distribution_mediated > 0`, the additive identity closes, and the result is
+  reproducible under a fixed seed. `test-recovery.R` (drmTMB-gated).
+  **validated (integration).**
+- **V-42 — feedback fixed-point equilibrium recovery.** `propagate_fixedpoint()`
+  recovers the linear reduced form `(I − B)⁻¹ Γ` for a 2-cycle, and flags
+  non-convergence when `ρ(B) ≥ 1`. `test-feedback.R`. **validated (kernel)** —
+  pure-R, no drmTMB.
+
+(Note: V-31..V-35 above are the OQ-5 / composite claims; the decomposition tests
+were renumbered from a draft V-31..V-36 to V-36..V-41 to avoid that collision,
+and the feedback recovery is V-42.)

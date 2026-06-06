@@ -17,8 +17,9 @@
 * **Equilibrium propagator (internal).** `propagate_fixedpoint()` iterates the
   mean propagation map to its fixed point with a spectral-radius / max-iter
   stability guard, reporting **non-convergence** honestly; a closed-form test
-  confirms it recovers the linear reduced form `(I − B)⁻¹ Γ`. Wiring it into the
-  effect API is the 0.5.x increment. Design: `docs/design/10-cyclic-feedback.md`.
+  confirms it recovers the linear reduced form `(I − B)⁻¹ Γ` (V-42). Wiring it
+  into the effect API is the 0.5.x increment. Design:
+  `docs/design/10-cyclic-feedback.md`.
 
 ## Effect decomposition: paired Monte-Carlo and honest framing
 
@@ -33,11 +34,11 @@
   mode.
 * **New asserted tests** lock the *shipped* decomposition path (not only the
   kernels): the additive identity `indirect = mean_mediated +
-  distribution_mediated` (V-31), the lognormal Jensen-gap closed form and its
-  sign flip through `drm_decomp_legs()` (V-32), the linear-outcome zero (V-33), a
-  two-mediator chain (V-34), seed reproducibility (V-35), and an end-to-end
+  distribution_mediated` (V-36), the lognormal Jensen-gap closed form and its
+  sign flip through `drm_decomp_legs()` (V-37), the linear-outcome zero (V-38), a
+  two-mediator chain (V-39), seed reproducibility (V-40), and an end-to-end
   live-fit check that the distribution-mediated channel is real and the
-  decomposition closes (V-36).
+  decomposition closes (V-41).
 * **Honest framing.** Documentation now describes `distribution_mediated` as a
   **Jensen-gap / interventional-mediation** term — non-zero only when a higher
   moment of the mediator responds to the exposure **and** the outcome is curved

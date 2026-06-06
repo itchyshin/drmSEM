@@ -74,7 +74,7 @@ What an active mediator passes downstream is the crux:
   It is therefore non-zero **only when both** (i) a higher moment of `M | x`
   responds to `X` **and** (ii) the outcome `mu_Y` is *curved* in `M` — it is
   identically zero under mean mediation, and zero when the outcome is linear in
-  `M` even if `sigma(M)` depends on `X` (V-27b / V-33). Because it is a
+  `M` even if `sigma(M)` depends on `X` (V-27b / V-38). Because it is a
   propagation remainder it also reflects the curvature of the *fitted* outcome
   model, so it presumes a correctly specified mediator distribution (its higher
   moments, not just its mean) and outcome model. As an estimand this is the
