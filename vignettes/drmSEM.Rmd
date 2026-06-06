@@ -60,11 +60,13 @@ residual coupling -- it is *not* a mean effect and *not* a directed `y1 -> y2`
 arrow. Targeting `rho12` requires a bivariate `drmTMB` fit (e.g.
 `family = c(gaussian(), gaussian())`, with components `mu1`/`mu2`/`sigma1`/`sigma2`/`rho12`)
 supplied via `drm_psem()`; it is then extracted and labelled like any other
-component path. A first-class bivariate node constructor (`drm_pair()`),
-representing the residual coupling itself as a double-headed covariance edge,
-random-effect correlations via `corpairs()` / `covariances()`, double-headed-arc
-plotting, and d-separation awareness of covarying responses are on the roadmap
-(see `docs/design/07-bivariate-covariance-edges.md`).
+component path. The covariance-edge grammar now ships: `covary()` declares a
+residual or higher-level covariance edge, `covariances()` reports those edges
+separately from `paths()`, and d-separation is aware of covarying responses
+(dropping the `y1 _||_ y2` claim). A first-class bivariate node constructor
+(`drm_pair()`), `corpairs()` read-back from a live fit, and double-headed-arc
+plotting remain on the roadmap (see
+`docs/design/07-bivariate-covariance-edges.md`).
 
 ## A worked system: `size -> abundance -> survival`
 

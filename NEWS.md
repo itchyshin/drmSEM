@@ -1,5 +1,29 @@
 # drmSEM 0.1.0.9000 (development version)
 
+## Inference hardening (towards 0.2)
+
+* **Analytic effect cross-checks** are now asserted tests (`test-analytic-effects.R`,
+  pure-R, no engine): the Gaussian identity-link mean-mediated effect equals the
+  coefficient product `a*b*w`; a non-mean (`sigma`) path contributes *exactly*
+  nothing to the mean channel and the distribution-mediated effect goes to zero
+  when the outcome is linear in the mediator; the distribution-mediated effect
+  matches the lognormal closed form (and flips sign) across a downstream
+  nonlinearity; natural and controlled effects diverge under an exposure-mediator
+  interaction by the predicted amount; and the Poisson `Pr(Y>0)` and Gaussian
+  `Var(Y)` outcome-functional effects match their closed forms.
+* **Standardization conventions finalized and documented** (OQ-4; see
+  `docs/design/08-standardization.md` and `?standardize`): standardized
+  coefficients are reported on the link scale only; factor predictors keep SD = 1
+  (raw per-contrast effect, lavaan `std.nox` convention); the `latent` divisor is
+  per-component, so `sigma`/`zi` paths standardize on their own link scale. A
+  Gelman 2-SD opt-in for continuous-vs-factor comparability and a theoretical-
+  variance term for GLM mean paths are noted as tracked refinements.
+* **Calibration vignette scaffold** (`vignettes/calibration.Rmd`, OQ-6): a
+  precomputed, never-fits article that reads a cached results object produced in
+  the live-drmTMB lane by `inst/calibration/generate.R`. The any-component
+  d-separation test stays labelled experimental until the cached study meets its
+  acceptance criteria.
+
 ## Covariance edges: rho12 and corpair (OQ-14, grammar layer)
 
 * `covary(y1, y2, level = )` declares a **covariance edge** between two responses

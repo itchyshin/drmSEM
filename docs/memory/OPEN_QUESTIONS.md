@@ -51,7 +51,20 @@ columns also resolves. Edge cases to pin down: a downstream formula that uses
 `alive` directly; collisions between a column name and a node name; multivariate
 responses sharing a column. Documented as a known edge in `01-semantics.md`.
 
-## OQ-4 — Standardization scale conventions
+## OQ-4 — Standardization scale conventions  [RESOLVED 2026-06-06, see D-15]
+
+**Resolution (conventions finalized + documented, `docs/design/08-standardization.md`,
+`?standardize`):** report on the **link scale only** (no back-transform); **factor
+predictors keep SD = 1** (raw per-contrast effect, lavaan `std.nox` convention —
+existing behaviour, now documented); **`latent` is per-component** so `sigma`/`zi`
+paths standardize on their own link scale (the correct and only latent-scale
+standardization for a non-`mu` component). Two refinements remain open and need a
+live-fit cross-check before changing behaviour/tests: (1) add the theoretical-
+variance term `sigma_E` (e.g. `pi^2/3` for logit) to the `latent` divisor for
+non-identity-link **mu** paths — current `sd(eta)` mildly over-standardizes GLM
+mean paths (Grace et al. 2019 / piecewiseSEM `latent.linear`); (2) a Gelman (2008)
+2-SD opt-in for continuous-vs-factor comparability as an explicit argument.
+Original questions below.
 
 `standardize()` offers `sd_x` (multiply by predictor SD) and `latent` (also
 divide by the SD of the component's fitted linear predictor, after Grace &
@@ -75,13 +88,25 @@ routing sufficient for the target audience, or do we need per-path / per-compone
 effect attribution? This interacts with how distribution-mediated effects are
 attributed when a mediator has several non-mean components.
 
-## OQ-6 — Fisher's C calibration under the any-component augmentation
+## OQ-6 — Fisher's C calibration under the any-component augmentation  [SCAFFOLDED 2026-06-06]
 
 The any-component d-separation test augments every component of Y with X, so the
 LRT df can be larger than the mean-only case, and the independence-claim
 p-values may not be uniform under the null in finite samples. We have not
 established the Type-I rate or power of Fisher's C under this scheme. Blocks
 V-17. Resolve by a simulation study before promoting d-sep to "validated".
+
+**Scaffolded (2026-06-06).** The study is fully designed (DGP ladder: mean-only /
+distributional `zi`-`sigma` / cross-link; `n` in {100,250,500,1000}; reps;
+Type-I + uniformity + power; the centrepiece diagnostic is empirical Type-I
+**stratified by augmented-component count** `q`) with explicit acceptance criteria
+to promote V-17. The precomputed vignette (`vignettes/calibration.Rmd`, never
+fits) and the live-drmTMB regeneration script (`inst/calibration/generate.R`,
+produces `inst/calibration/calibration-results.rds`) are in place; the cache must
+be generated in the Codex/live-drmTMB lane (millions of TMB fits — far outside the
+CI budget). Until the cache exists and meets the criteria, the d-sep test stays
+labelled **experimental** everywhere (no "validated"/"calibrated"/"near nominal"
+wording). The 20-rep `test-calibration.R` remains the fast smoke check only.
 
 ## OQ-7 — `TMB::sdreport` returns NaN standard errors on the canonical test DGP
 

@@ -261,3 +261,33 @@ Validation: `test-covariances.R` (pure-R) — covary() construction + validation
 drm_build_covariances() node resolution / labelling / de-dup, covariances()
 accessor, and basis_set() dropping the y1 _||_ y2 claim for residual and
 higher-level edges. See V-25.
+
+## D-15 — Standardization conventions finalized (OQ-4); non-breaking, documented
+
+The 0.2 "standardization conventions finalized and documented" item. Decisions
+(full rationale + citations in `docs/design/08-standardization.md`):
+
+- **Link scale only** is the reporting scale; standardized coefficients are not
+  back-transformed (no constant response-scale counterpart under a nonlinear
+  link). Response-scale/functional interpretation is the effect engine's job.
+- **Factor predictors keep SD = 1** (raw per-contrast effect) — lavaan `std.nox`
+  / piecewiseSEM convention. This is the existing behaviour, so **no code change**
+  and **no broken tests**; it is now documented rather than implicit. SD-rescaling
+  a 0/1 dummy by `sqrt(p(1-p))` was rejected as data-dependent and non-comparable.
+- **`latent` is per-component**: `sigma`/`zi`/`sd(*)` paths standardize by the SD
+  of their own linear predictor (no marginal outcome SD exists for a non-`mu`
+  component). This per-component latent standardization is drmSEM's distinct
+  contribution (no other tool standardizes distributional-component paths).
+
+**Deferred (tracked under OQ-4, need a live-fit cross-check before changing
+behaviour/tests):** (1) add the distribution-specific theoretical-variance term
+`sigma_E` (e.g. `pi^2/3` for logit) to the `latent` divisor for non-identity-link
+**mu** paths — current `sd(eta)` mildly over-standardizes GLM mean paths (Grace
+et al. 2019 / piecewiseSEM `latent.linear`); (2) a Gelman (2008) 2-SD opt-in for
+continuous-vs-factor comparability, as an explicit argument, not a default.
+
+Chose documentation + a non-breaking default over a blind code change because
+this lane cannot run R to verify a new standardization denominator against a
+fit; the refinements are specified precisely for the engine lane. Recorded the
+`sd(eta)`-omits-`sigma_E` finding as a known limitation in `?standardize` and the
+design doc rather than silently leaving it undocumented.

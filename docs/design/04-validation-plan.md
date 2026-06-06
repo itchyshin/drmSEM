@@ -14,7 +14,7 @@ Two test tiers exist:
    to end. Gated by `skip_if_not_installed("drmTMB")`; run in the Codex cloud
    environment (see `CLOUD.md`).
 
-## Tier 1 — pure-logic kernel tests (18/18 PASS locally, R 4.3.3)
+## Tier 1 — pure-logic kernel tests (the pure-logic kernel suite PASSES locally, R 4.3.3)
 
 `tests/testthat/test-utils.R`:
 - Fixed-effect predictor extraction drops random-effect bars `(g | h)` and
@@ -41,8 +41,24 @@ Two test tiers exist:
   adds a positive effect (> 0.1, ~0.99 in the design) when `sigma` rises with x.
   This is the load-bearing test for the package's key novelty. PASS.
 
-All 18 kernel assertions pass under R 4.3.3 in the dev container, and all 13 R/
-source files parse clean.
+`tests/testthat/test-effect-api.R`:
+- The unified effect-API normalizers (OQ-12): `uncertainty` / `nsim` /
+  `population` / `method` mapping, new-vs-old-argument parity, and the
+  honest early-abort errors for `bootstrap` / `marginal`. PASS.
+
+`tests/testthat/test-covariances.R`:
+- Covariance-edge grammar (OQ-14): `covary()` construction + validation,
+  `drm_build_covariances()` node resolution / labelling / de-dup, the
+  `covariances()` accessor, and `basis_set()` dropping the `y1 _||_ y2` claim
+  for residual and higher-level edges. PASS.
+
+`tests/testthat/test-analytic-effects.R`:
+- Analytic effect cross-checks (Gaussian-mean product identity; distribution-
+  mediated channel vanishing when scale is held fixed) plus the natural /
+  functional effect kernels. PASS.
+
+The pure-logic kernel suite passes under R 4.3.3 in the dev container, and all
+17 R/ source files parse clean.
 
 ## Tier 2 — drmTMB-integration tests (WRITTEN, runtime PENDING)
 

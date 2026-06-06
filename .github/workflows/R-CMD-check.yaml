@@ -19,7 +19,7 @@ concurrency:
 jobs:
   R-CMD-check:
     runs-on: ${{ matrix.config.os }}
-    timeout-minutes: 30
+    timeout-minutes: 45
     name: ${{ matrix.config.os }} (${{ matrix.config.r }})
 
     strategy:
@@ -54,8 +54,9 @@ jobs:
             github::itchyshin/drmTMB
           needs: check
 
-      # Generate man/*.Rd and NAMESPACE from roxygen comments so R CMD check
-      # finds documentation for every export (no man/ is committed).
+      # man/*.Rd and NAMESPACE ARE committed/tracked in the repo; this step
+      # re-runs roxygenise() to regenerate them so R CMD check sees them in
+      # sync with the roxygen comments for every export.
       - name: Document (roxygen2)
         run: Rscript -e 'roxygen2::roxygenise()'
         shell: bash

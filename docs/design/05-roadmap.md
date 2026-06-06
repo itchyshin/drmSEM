@@ -5,10 +5,11 @@ Staged plan for drmSEM. Each stage ships only with the Definition of Done
 AGENT_LOG entry, review). Scope boundaries from the charter hold: observed-
 variable, piecewise, DAG-only, drmTMB as the only engine.
 
-## 0.1 — Core + effects (CURRENT)
+## 0.1 — Core + effects (RELEASED, 0.1.0)
 
-The first usable release. Status: code complete and kernel-validated;
-drmTMB-integration runtime pending (see `04-validation-plan.md`).
+The first public release, tagged 0.1.0. Status: code complete and kernel-
+validated; drmTMB-integration runtime was validated in CI where `drmTMB` is
+compiled (see `04-validation-plan.md`).
 
 - Graph grammar: `drm_node()`, `drm_sem()` (declarative), `drm_psem()` (core),
   component-labelled typed edges, DAG/cycle enforcement. (`R/edges.R`,
@@ -22,6 +23,17 @@ drmTMB-integration runtime pending (see `04-validation-plan.md`).
 - Canonical `size -> abundance -> survival` example and vignette.
 - Exit criterion: Tier-2 integration tests pass in the cloud env; ledger flips
   distribution-mediated effects and d-sep from "kernel-validated" to "validated".
+
+## 0.1.x dev (CURRENT)
+
+Post-0.1.0 development on the `0.1.0.9000` line:
+- OQ-12 — unified effect-API surface (`method` / `uncertainty` / `nsim` /
+  `population` shared across the effect functions, old args kept as deprecated
+  aliases; `R/effects_api.R`).
+- OQ-14 / D-14 — bivariate covariance-edge *grammar* as a pure-R layer:
+  `covary()` declaration, `covariances()` accessor (separate from `paths()`),
+  and covariance-aware d-separation (dropping the `y1 _||_ y2` claim).
+  (`R/covariances.R`). The joint bivariate *fit* stays in 0.4 (below).
 
 ## 0.2 — Inference hardening
 
@@ -38,11 +50,17 @@ drmTMB-integration runtime pending (see `04-validation-plan.md`).
   toward lavaan-style measurement while staying likelihood-based per node. Out of
   scope until the observed-variable core is validated.
 
-## 0.4 — Joint multivariate SEM
+## 0.4 — Joint multivariate SEM (joint-FIT milestone)
 
 - Optionally fit correlated endogenous responses as one joint drmTMB model
   (`rho12` becomes a first-class structural target rather than a per-node
   residual correlation), moving beyond the strictly piecewise assumption.
+- This is the joint-*fit* milestone for bivariate covariance edges (OQ-14,
+  D-14): `drm_pair()` joint bivariate fitting, `rho12()` / `corpairs()`
+  read-back from a live fit, and double-headed / dashed-arc plotting. The
+  covariance-edge *grammar* + d-separation-*awareness* layer already landed in
+  0.1.x (`R/covariances.R`); only the engine-dependent fit/read-back/render
+  pieces remain here.
 
 ## 0.5 — Cyclic / feedback graphs
 

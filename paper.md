@@ -157,12 +157,16 @@ indirect_effects(sem, from = "temp", to = "survival")  # incl. distribution-medi
 **observed-variable, piecewise, and DAG-only**: one `drmTMB` fit per endogenous
 node, no cycles, and no latent variables. A path can already target a bivariate
 node's residual correlation (`rho12`, the residual coupling `eps_y1 <-> eps_y2`,
-not a directed `y1 -> y2` path), but bivariate covariance *edges* — the residual
-`rho12` and higher-level `corpairs` random-effect correlations treated as
-joint-response / covariance modules with double-headed arcs and d-separation
-awareness — are on the roadmap, alongside latent-variable and full joint
-(single-likelihood) multivariate SEM. None of these are in the current scope, and
-`drmSEM` never introduces new likelihoods of its own.
+not a directed `y1 -> y2` path). The bivariate covariance-edge *grammar* and
+d-separation *awareness* ship as a pure-R layer: `covary()` declares a residual
+(`rho12`) or higher-level (`corpair`) random-effect covariance edge,
+`covariances()` reports those edges separately from `paths()`, and d-separation
+drops the `y1 _||_ y2` claim for a declared pair. Only the joint bivariate *fit*
+— a `drm_pair()` node, fitted-correlation read-back (`corpairs()`), and
+double-headed-arc rendering — remains on the roadmap, alongside latent-variable
+and full joint (single-likelihood) multivariate SEM. None of the roadmap items
+are in the current scope, and `drmSEM` never introduces new likelihoods of its
+own.
 
 # Acknowledgements
 
