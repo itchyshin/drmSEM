@@ -63,7 +63,8 @@ test_that("drm_pair honours explicit and suppressed levels", {
 })
 
 test_that("drm_pair validates its inputs", {
-  expect_error(drm_pair(~ x, boldness ~ x), "formulas")
+  expect_error(drm_pair(~ x, boldness ~ x), "two-sided")
+  expect_error(drm_pair("y ~ x", boldness ~ x), "must both be formulas")
   expect_error(drm_pair(y ~ x, y ~ z), "distinct")
   expect_error(drm_pair(activity ~ x, boldness ~ x, rho12 = "x"), "one-sided formula")
   expect_error(
