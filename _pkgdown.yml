@@ -54,6 +54,7 @@ reference:
       - direct_effects
       - indirect_effects
       - total_effects
+      - path_effects
       - plot.drm_effect
   - title: Model comparison
     desc: Compare competing causal DAGs by Fisher's C / CICc.

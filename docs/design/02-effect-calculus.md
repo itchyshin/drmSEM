@@ -270,6 +270,39 @@ abort early with a pointer to the open question rather than silently doing
 something else. The normalization helpers (`drm_effect_controls()`,
 `drm_resolve_mediation()`) are pure R and unit-tested in `test-effect-api.R`.
 
+## Per-mediator path-specific attribution (OQ-5 — partial)
+
+`path_effects()` splits the set-level indirect effect into a contribution per
+mediator, by toggling which mediators are active in `drm_propagate` — no new
+kernel. For exposure `X`, outcome `Y`, mediators `M`, and `T(S)` the response
+contrast when the mediators in `S` respond:
+
+| quantity | definition |
+| --- | --- |
+| `inclusion(Mj)` | `T({Mj}) - direct` — `Mj`'s path with all other mediators frozen |
+| `exclusion(Mj)` | `T(all) - T(all \ Mj)` — `Mj`'s marginal given all others active |
+| `total_indirect` | `T(all) - direct` |
+| `interaction_remainder` | `total_indirect - sum_j inclusion(Mj)` |
+
+**Additivity (stated honestly).** `inclusion` and `exclusion` coincide, and
+`sum_j inclusion = total_indirect` (remainder `= 0`), **iff** the effects are
+additive — parallel mediators, no downstream nonlinearity, no exposure-mediator
+or mediator-mediator interaction (the identity-link Gaussian case, V-26c /
+`test-path-effects.R` P-1). Otherwise the remainder is non-zero and is reported
+as an explicit row — the per-mediator effects are **never** rescaled to force a
+sum. Downstream nonlinearity (P-2) makes `inclusion != exclusion`; sequential
+mediators `M1 -> M2` (P-3) make each `inclusion = 0` while each `exclusion =
+total` (both are necessary), with the chain effect carried by the remainder.
+
+This is a **model-based decomposition**, not a claim of nonparametric
+path-specific identification: the cross-world natural path-specific effects are
+identified only under the recanting-witness criterion (Avin, Shpitser & Pearl
+2005). **Status (OQ-5 — PARTIAL):** the controlled per-mediator split ships and
+is kernel-verified in `test-path-effects.R`. Open: the per-*component*
+(`mu`/`sigma`/`zi`) attribution (needs a one-argument `freeze` plumbing change to
+`drm_propagate`), the natural variant with a recanting-witness guard, and a
+live-fit integration test before any "validated" wording.
+
 ## References
 
 - Pearl J (2001). *Direct and indirect effects.* UAI 2001.

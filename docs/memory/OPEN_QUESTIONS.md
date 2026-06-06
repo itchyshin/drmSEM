@@ -78,7 +78,20 @@ Bollen). Open:
 - Should standardized effects be reported on the link scale only, or also
   back-transformed?
 
-## OQ-5 — Expose path-specific effects beyond a mediator set?
+## OQ-5 — Expose path-specific effects beyond a mediator set?  [PARTIAL 2026-06-06, see D-17]
+
+**Partial.** `path_effects(object, from, to, through=)` ships the **per-mediator**
+decomposition (D-17, V-32): `inclusion(Mj) = T({Mj}) - direct` and
+`exclusion(Mj) = T(all) - T(all \ Mj)`, plus `total_indirect` and an explicit
+`interaction_remainder` that is ~0 only in the additive case and is never forced
+to sum. Pure active-set toggling, no new kernel; kernel-verified in
+`test-path-effects.R` (additive P-1, nonlinear-non-additive P-2, sequential P-3).
+Honest scope: model-based attribution, not nonparametric path-specific
+identification (recanting-witness criterion). **Still open:** per-*component*
+(`mu`/`sigma`/`zi`) attribution (needs a small `freeze` plumbing arg in
+`drm_propagate`), the cross-world natural variant with a recanting-witness guard,
+`NA` handling for unconfirmed-sampler families, and a live-fit integration test
+before promotion. Original note below.
 
 `indirect_effects(..., through = )` routes through a *set* of mediator nodes. We
 do not currently decompose by individual *path* (e.g. separating

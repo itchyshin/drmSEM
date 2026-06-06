@@ -321,3 +321,31 @@ separately from `paths()`, mirroring the `covariances()` pattern (D-14).
 Validation: `test-composite.R` (pure-R) — construction (fixed + pca, sign/prop_var),
 scoring, validation errors, `drm_build_composites`/`drm_apply_composites`, and the
 `loadings()` accessor. See V-31.
+
+## D-17 — OQ-5 ships per-mediator attribution first; per-component/natural deferred
+
+`path_effects()` decomposes the indirect effect by mediator using only active-set
+toggling of the existing engine (`R/path_effects.R`, kernel `drm_path_contrasts`):
+`inclusion(Mj) = T({Mj}) - direct`, `exclusion(Mj) = T(all) - T(all \ Mj)`.
+
+**Choices.**
+- *Two estimands, both reported.* Inclusion and exclusion answer different
+  questions and only coincide when additive; we report both rather than inventing
+  one "canonical" per-mediator number.
+- *Honesty remainder, never force-sum.* Every call emits `total_indirect` and
+  `interaction_remainder = total_indirect - sum(inclusion)`; ~0 in the additive
+  case, non-zero otherwise. The per-mediator effects are never rescaled to sum.
+- *Model-based, not identified.* Labelled as attribution-by-construction, not a
+  nonparametric path-specific effect (which needs the recanting-witness criterion,
+  Avin-Shpitser-Pearl 2005). No "validated" wording until a live-fit integration
+  test exists.
+- *Pure-R testable.* The kernel takes engines, so it is unit-tested with hand-
+  built engines + mean mediation + draw=FALSE for deterministic closed forms
+  (`test-path-effects.R`: P-1 additive, P-2 nonlinear, P-3 sequential).
+- *Deferred (OQ-5 follow-up):* per-component (mu/sigma/zi) attribution needs a
+  one-argument `freeze` plumbing change to `drm_propagate` (hold one component at
+  its x0 value); the cross-world natural variant needs a recanting-witness guard;
+  unconfirmed-sampler families must return NA. These are riskier and wait for a
+  careful pass (and a live fit).
+
+Validation: V-32.
