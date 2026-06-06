@@ -1,5 +1,5 @@
 Package: drmSEM
-Title: Distributional Piecewise Structural Equation Modelling on drmTMB
+Title: Distributional Piecewise Structural Equation Models on 'drmTMB'
 Version: 0.2.0.9000
 Authors@R:
     person("Shinichi", "Nakagawa", email = "itchyshin@gmail.com",

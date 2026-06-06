@@ -8,7 +8,7 @@
 
 📖 **Documentation & articles:** <https://itchyshin.github.io/drmSEM>
 
-DRMSEM is a distributional piecewise SEM framework built on
+The `drmSEM` package is a distributional piecewise SEM framework built on
 [`drmTMB`](https://github.com/itchyshin/drmTMB), where causal paths can target
 not only the expected response but also scale, shape, zero-inflation, hurdle
 probability, random-effect scale, and residual correlation.
