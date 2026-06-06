@@ -334,6 +334,12 @@ indirect_effects <- function(object, from, to, through = NULL,
 print.drm_effect <- function(x, ...) {
   cli::cli_text("<drmSEM effect>")
   df <- as.data.frame(x)
+  # drop the helper columns only when they carry no information: `identified`
+  # (natural path_effects only) and `mediator` (set-level rows) when all-NA. Value
+  # columns (conf.low/high) are kept even when NA so a missing interval is visible.
+  for (col in c("identified", "mediator")) {
+    if (col %in% names(df) && all(is.na(df[[col]]))) df[[col]] <- NULL
+  }
   num <- vapply(df, is.numeric, logical(1))
   df[num] <- lapply(df[num], function(v) round(v, 4))
   print.data.frame(df, row.names = FALSE)
