@@ -97,7 +97,20 @@ drm_validate_effect_args <- function(object, from, to) {
     cli::cli_abort("{.arg to} = {.val {to}} must be an endogenous node.")
   }
   if (identical(from, to)) cli::cli_abort("{.arg from} and {.arg to} must differ.")
+  # Effects through a declared feedback motif are an equilibrium (fixed-point)
+  # quantity, not a single topological sweep; the standard propagator would give
+  # an order-dependent, non-equilibrium answer, so refuse rather than mislead.
+  # The fixed-point propagator exists internally; effect-API integration is the
+  # 0.5.x increment (docs/design/10-cyclic-feedback.md).
+  if (length(drm_feedback_nodes(object)) > 0L) {
+    cli::cli_abort(c(
+      "Effects are not yet defined for a SEM with a declared feedback motif.",
+      "x" = "An effect through a cycle is an equilibrium quantity, not a single-sweep propagation.",
+      "i" = "Equilibrium-effect support is the 0.5.x increment; see {.file docs/design/10-cyclic-feedback.md}."
+    ))
+  }
 }
+
 
 #' Response-scale direct (controlled) effect of a predictor on a node
 #'

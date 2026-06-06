@@ -659,3 +659,28 @@ DEFERRED (engine-review secondary findings, not decomposition-specific): silent
 point-estimate fallback when a node's vcov is non-PD / non-convergent (interval
 too narrow, no flag) and log-link inverse overflow dropped by na.rm. Logged for a
 follow-up; see CODEX_HANDOFF.
+
+## 2026-06-06 — 0.5.0 feedback engine (grammar + equilibrium propagator)
+
+Shipped the pure-R half of 0.5 (R/feedback.R + test-feedback.R):
+- drm_cycle() declares a feedback motif; drm_sem()/drm_psem() gain feedback=,
+  wired through new_drm_sem with a RELAXED toposort (drm_toposort_feedback
+  condenses each declared motif to one layer; undeclared cycles still abort).
+  cycles() accessor + print. Stored in a $feedback slot.
+- HONEST fit: drm_sem warns that node-wise ML of a declared cycle is inconsistent
+  under simultaneity (consistent IV/joint estimation = engine).
+- basis_set.drm_sem drops independence claims among motif nodes (merged with the
+  covariance-pair suppression). d-sep GoF scoped to the acyclic part.
+- Effect API REFUSES a feedback SEM (guard in drm_validate_effect_args, covering
+  direct/total/indirect/path_effects) rather than return a non-equilibrium single
+  sweep.
+- propagate_fixedpoint() (internal): iterate the mean map to equilibrium with a
+  spectral-radius/max-iter guard + non-convergence reporting; drm_reduced_form /
+  drm_spectral_radius give the linear (I-B)^-1 Gamma. Closed-form test: simulated
+  equilibrium == reduced form for a linear 2-cycle; rho(B)>=1 flagged
+  non-convergent.
+Exported drm_cycle, cycles (+ print methods). propagate_fixedpoint and the
+reduced-form helpers stay internal pending effect-API integration (the 0.5.x
+increment). Updated NEWS, 05-roadmap, 10-cyclic-feedback (current-state),
+_pkgdown reference. The earlier decomposition-hardening PR (#22) is already on
+main; this builds on it cleanly.
