@@ -9,6 +9,7 @@ indirect_effects(
   from,
   to,
   through = NULL,
+  effect = c("controlled", "natural"),
   at = NULL,
   B = 200L,
   n_sim = 50L,
@@ -28,6 +29,13 @@ indirect_effects(
 \item{through}{Optional set of mediator node names to route through. Defaults
 to all mediators between \code{from} and \code{to}.}
 
+\item{effect}{\code{"controlled"} (default) decomposes the total into a controlled
+direct effect (mediators at observed values) plus mean-mediated and
+distribution-mediated parts. \code{"natural"} reports the cross-world natural
+direct/indirect effects (Pearl/Imai), holding the mediators at their
+predicted \code{M(x0)} / \code{M(x1)} distributions; see
+\code{docs/design/02-effect-calculus.md}.}
+
 \item{at}{Optional length-2 contrast values for \code{from}.}
 
 \item{B}{Monte-Carlo draws for coefficient uncertainty.}
@@ -43,8 +51,10 @@ to all mediators between \code{from} and \code{to}.}
 \item{...}{Unused.}
 }
 \value{
-A \code{drm_effect} data frame with rows for \code{total_path}, \code{direct},
-\code{indirect}, \code{mean_mediated}, and \code{distribution_mediated}.
+A \code{drm_effect} data frame. For \code{effect = "controlled"}, rows
+\code{total_path}, \code{direct}, \code{indirect}, \code{mean_mediated}, \code{distribution_mediated}.
+For \code{effect = "natural"}, rows \code{total_path}, \code{natural_direct},
+\code{natural_indirect}, \code{mediated_interaction}.
 }
 \description{
 The indirect effect is the simulation-based total path effect (mediators in

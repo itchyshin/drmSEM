@@ -34,6 +34,15 @@ one `drmTMB` fit and the system is piecewise over a DAG.
 * The indirect decomposition reports `mean_mediated` and `distribution_mediated`
   parts, so effects flowing through a mediator's scale, zero-inflation, or shape
   are visible rather than collapsed into a mean effect.
+* `indirect_effects(effect = "natural")` adds the cross-world natural
+  decomposition — `natural_direct`, `natural_indirect`, and
+  `mediated_interaction` (Pearl; Imai, Keele & Yamamoto) — alongside the default
+  controlled-direct / simulation-indirect split, validated on the linear-Gaussian
+  recovery case.
+* `total_effects(target = c("p_gt", "p_zero", "var"))` reports
+  distribution-mediated effects on outcome functionals beyond the mean — `Pr(Y >
+  threshold)`, `Pr(Y = 0)`, and `Var(Y)` — with the `p_zero` effect recovery-tested
+  against the Poisson zero-probability change.
 * `standardize()` reports standardized path coefficients on the component's link
   scale.
 

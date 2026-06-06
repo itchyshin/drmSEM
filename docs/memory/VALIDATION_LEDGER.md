@@ -208,3 +208,35 @@ OQ-9 (marginal RE effects) and OQ-11 (outcome functionals) defined.
 roxygen blocks in `R/`. The hand-written `.Rd` match that output (verified via
 `checkRd`); re-run `roxygen2::roxygenise()` on a roxygen-equipped machine before
 tagging a release to confirm byte-parity.
+
+## 2026-06-06 — PR #4 effect engine reconciled into the phylo branch
+
+PR #4 (`effects-counterfactual-theory`) was not docs-only: it carried a more
+advanced effect engine than the phylo branch had. Reconciled fully (per the
+release plan) — `R/effects.R` and `tests/testthat/test-effect-kernels.R` were
+identical to main on the phylo branch, so #4's versions were taken wholesale;
+`R/simulate_effects.R` was merged (#4's natural/functional helpers +
+`drm_functional_target`/`drm_functional_contrast`/`drm_natural_target`/
+`drm_outcome_functional`, with the phylo branch's `zero_one_beta`/`tweedie`
+samplers re-injected). Newly available + kernel-validated locally
+(`test-effect-kernels.R`, base-R harness, no engine):
+
+- **V-22 / OQ-8 — Natural (cross-world) effects** via
+  `indirect_effects(effect = "natural")`: on an identity-link chain x->m->y with a
+  direct x->y edge, `natural_direct = c`, `natural_indirect = a*b`,
+  `total = c + a*b`, and `natural_indirect = 0` with no x->m path. **PARTIAL** —
+  validated only on the linear-Gaussian recovery; general cross-world
+  identification under arbitrary links/interactions + CIs remain open (OQ-8).
+- **V-23 / OQ-11 — Outcome functionals** via
+  `total_effects(target = c("p_gt","p_zero","var"), threshold=)`: the `p_zero`
+  effect recovers the Poisson zero-probability change `exp(-mu_hi) - exp(-mu_lo)`.
+  **PARTIAL** — first functionals validated; more functionals / reporting-scale /
+  CI construction remain open (OQ-11).
+
+Regression check: `test-dsep-kernels` (incl. the new p==0 Fisher's-C floor),
+`test-effect-kernels` (incl. the natural + functional kernels), and
+`test-standardize` all pass under the base-R harness after the merge; all `R/`
+parse clean. Engine-path validation (natural effects + functionals on a live
+nonlinear drmTMB fit) is CI/roadmap (OQ-8/OQ-11). Migrated #4's design/memory
+content too: D-10/D-11, OQ-8/OQ-10/OQ-12, the 02-effect-calculus essay, and the
+05-roadmap phylo pointer.

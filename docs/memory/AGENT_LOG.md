@@ -273,3 +273,30 @@ PROCESS LESSON (Rose): when adding an `@export`ed R file, regenerate + commit
 `NAMESPACE` + `man/` and update NEWS/ledger/OQ in the SAME commit. CI's
 `roxygenise()` masks stale committed artifacts, so source/GitHub/pkgdown-from-
 source installs can ship an incomplete man/ even while CI is green.
+
+## 2026-06-06 — PR #4 reconciled into the phylo branch (release prep)
+
+Per the approved release plan (merge #6 → tag v0.1.0; reconcile #4 fully), PR #4
+(`effects-counterfactual-theory`) turned out to carry a MORE ADVANCED effect
+engine than #6, not just docs. Reconciled fully via parallel agents on disjoint
+files:
+- **Code (orchestrator):** `R/effects.R` + `test-effect-kernels.R` were identical
+  to main on #6, so #4's versions (controlled + natural NDE/NIE + outcome
+  functionals) were taken wholesale; `R/simulate_effects.R` merged (#4's
+  natural/functional helpers + #6's zero_one_beta/tweedie samplers re-injected).
+  All R/ parse; dsep/effect/standardize kernels pass under a base-R harness incl.
+  the natural NDE/NIE and Poisson p_zero recoveries.
+- **Narrative (Ada):** paper.md / NEWS.md / overview.Rmd were already upgraded in
+  the closeout pass; 02-effect-calculus.md merged to one coherent essay with
+  OQ-8/OQ-11 marked PARTIAL (implemented + kernel-verified).
+- **Memory (Ada):** DECISIONS D-10/D-11 appended; OPEN_QUESTIONS de-duplicated to
+  a single OQ-1..13 (OQ-8/10/12 from #4, OQ-9/13 from #6); 05-roadmap phylo
+  pointer added.
+- **man (Grace):** indirect_effects.Rd (+effect), total_effects.Rd (+target,
+  +threshold) updated; full man/ passes tools::checkRd.
+- **Ledger:** V-22 (natural effects, PARTIAL) + V-23 (outcome functionals,
+  PARTIAL) recorded.
+
+After this lands and #6 CI is green: merge #6 → main, bump 0.1.0 + NEWS +
+cran-comments, tag v0.1.0, and close #4 as reconciled (its unique content now
+lives on #6).

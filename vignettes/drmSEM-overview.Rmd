@@ -130,10 +130,13 @@ to two contrasting values, pushes the change through every downstream node in
 topological order (random effects held at zero), and reads off the
 population-average change in the response-scale target. This is counterfactual,
 `do()`-style propagation in the tradition of Pearl and of Imai, Keele and
-Yamamoto. The `direct` quantity is a **controlled direct effect** (mediators
-held at their observed values), and the total/indirect split is simulation-based;
-these coincide with natural direct and indirect effects only under linearity with
-no exposure-mediator interaction.
+Yamamoto. By default the `direct` quantity is a **controlled direct effect**
+(mediators held at their observed values), and the total/indirect split is
+simulation-based; these coincide with natural direct and indirect effects only
+under linearity with no exposure-mediator interaction. When they diverge,
+`indirect_effects(effect = "natural")` returns the cross-world **natural**
+decomposition (`natural_direct`, `natural_indirect`, `mediated_interaction`)
+instead.
 
 **Mean vs distribution mediation.** What an active mediator passes downstream is
 the crux. Under `mediation = "mean"` it passes its expected `mu`; under
@@ -153,14 +156,19 @@ Only the latter carries signal that lives in a mediator's scale, zeros, or shape
 
 So `indirect` is approximately `mean_mediated + distribution_mediated`, and the
 `distribution_mediated` row isolates exactly the contribution that no
-coefficient-product method can express. Because `direct` is a controlled direct
-effect, these coincide with natural direct and indirect effects only under
-linearity with no exposure-mediator interaction.
+coefficient-product method can express. The default `direct` is a controlled
+direct effect, which coincides with the natural direct and indirect effects only
+under linearity with no exposure-mediator interaction. For the general case,
+`indirect_effects(effect = "natural")` returns the cross-world natural
+decomposition — `natural_direct`, `natural_indirect`, and
+`mediated_interaction` (Pearl; Imai, Keele and Yamamoto) — validated against the
+linear-Gaussian recovery case.
 
 ```{r effects}
 direct_effects(sem,   from = "temp", to = "survival")
 total_effects(sem,    from = "temp", to = "survival", mediation = "distribution")
 indirect_effects(sem, from = "temp", to = "survival")  # the five-row decomposition
+indirect_effects(sem, from = "temp", to = "survival", effect = "natural")  # NDE / NIE / mediated interaction
 ```
 
 Note: `direct_effects()` reports the mean (response) scale only. Non-mean
@@ -168,11 +176,21 @@ channels (`sigma`, `zi`, ...) do not appear here — they show up in `paths()` a
 in the `distribution_mediated` row of `indirect_effects()`.
 
 **Outcome functionals.** Because effects come from simulated populations, the
-target need not be a mean. The same machinery supports response-scale functionals
-— `Pr(Y > t)`, the variance of `Y`, a zero probability — reported as effects on
-those functionals. Coefficient uncertainty is propagated by drawing each node's
-coefficients from `MVN(coef, vcov)` and repeating the whole propagation. See
+target need not be a mean. `total_effects(target = ...)` reports the
+distribution-mediated effect on a response-scale functional — `Pr(Y > t)`
+(`"p_gt"`), the zero probability `Pr(Y = 0)` (`"p_zero"`), or the variance of
+`Y` (`"var"`) — which is often the scientifically relevant quantity and is the
+headline estimand of distributional SEM. These are recovery-tested (for example,
+the `p_zero` effect recovers the Poisson zero-probability change). Coefficient
+uncertainty is propagated by drawing each node's coefficients from
+`MVN(coef, vcov)` and repeating the whole propagation. See
 `effect-decomposition.Rmd` for the full treatment.
+
+```{r functionals}
+total_effects(sem, from = "temp", to = "survival", target = "p_gt", threshold = 0)
+total_effects(sem, from = "temp", to = "survival", target = "p_zero")
+total_effects(sem, from = "temp", to = "survival", target = "var")
+```
 
 ## d-separation: an any-component test
 
@@ -246,9 +264,10 @@ Phase 3) ship today; phylogenetic paths *into* distributional components and
 | Component-labelled paths (`mu`, `sigma`, `nu`, `zi`, `hu`, `sd(group)`, `rho12`) | now |
 | Any-component d-separation + Fisher's C | now (experimental calibration) |
 | Simulation-based direct / mean-mediated / distribution-mediated / total effects | now |
+| Natural direct / indirect / mediated-interaction effects (`indirect_effects(effect = "natural")`) | now (cross-world split, validated on the linear-Gaussian case) |
+| Outcome functionals beyond the mean (`Pr(Y>t)`, `Pr(Y=0)`, var via `total_effects(target = ...)`) | now (first set; more functionals + bootstrap CIs on roadmap) |
 | Component-labelled DAG plot + effect forest plot | now |
 | Phylogenetic correction inside piecewise SEM (Phase 1, intercept-only) | now |
-| Outcome functionals beyond the mean (`Pr(Y>t)`, var, zero prob.) | partial / roadmap |
 | Phylopath-style model-set comparison (best / averaged model) | now (Phase 2; `drm_dag` / `drm_model_set` / `compare` / `best` / `average`) |
 | Evolutionary covariance models (BM / OU / Pagel's lambda / kappa) | now (Phase 3; `drm_phylo_cov`, fixed grid — not jointly estimated) |
 | Jointly estimated evolutionary covariance (λ / OU / κ) | roadmap |

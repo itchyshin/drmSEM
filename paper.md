@@ -95,14 +95,19 @@ with random effects held at zero. A mediator passes either its expected mean
 mediation). `indirect_effects()` reports `total_path`, `direct`, `indirect`,
 `mean_mediated`, and `distribution_mediated`, where the
 distribution-mediated row isolates exactly the contribution that no
-coefficient-product method can express. `direct` is a **controlled direct
-effect** (mediators held at their observed values), and the total/indirect split
-is simulation-based; in the mediation-analysis tradition of @Imai2010, these
-coincide with the natural direct and indirect effects only under linearity with
-no exposure-mediator interaction. Effects
-are reported on the response scale of the target, and outcome functionals beyond
-the mean (e.g. `Pr(Y > t)`, the variance of `Y`, the zero probability) are
-planned outputs of the same simulated populations.
+coefficient-product method can express. By default `direct` is a **controlled
+direct effect** (mediators held at their observed values) and the total/indirect
+split is simulation-based; these coincide with the natural direct and indirect
+effects only under linearity with no exposure-mediator interaction. For the cases
+where they diverge, `indirect_effects(effect = "natural")` additionally returns
+the cross-world **natural** decomposition — `natural_direct`, `natural_indirect`,
+and `mediated_interaction` — in the mediation-analysis tradition of @Pearl2001
+and @Imai2010, validated against the linear-Gaussian recovery case. Effects are
+reported on the response scale of the target, and `total_effects(target = ...)`
+reports the same distribution-mediated effects on outcome **functionals** beyond
+the mean — `Pr(Y > t)`, `Pr(Y = 0)`, and the variance of `Y` — the headline
+estimands of distributional SEM, also recovery-tested (e.g. the `p_zero` effect
+recovers the Poisson zero-probability change).
 
 **Phylogenetic distributional SEM (Phase 1).** `drmTMB` exports structured-effect
 markers (`phylo()`, `animal()`, `relmat()`, `spatial()`). `drmSEM` recognizes
