@@ -28,7 +28,10 @@ missing arrow (see \code{docs/design/03-dsep.md}).
 A covariance edge declared with \code{\link[=covary]{covary()}} (a residual \code{rho12} or higher-level
 \code{corpair} arc) is an allowance that the two responses stay associated, so the
 \code{y1 _||_ y2} claim is dropped from the basis set (Shipley's bidirected-edge
-rule; OQ-14).
+rule; OQ-14). A declared feedback motif (\code{\link[=drm_cycle]{drm_cycle()}}, 0.5) likewise drops
+independence claims among its nodes — DAG d-separation does not hold across a
+cycle, and the goodness-of-fit test is scoped to the acyclic part until
+sigma-separation lands.
 }
 \examples{
 \dontrun{

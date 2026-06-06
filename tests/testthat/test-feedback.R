@@ -124,7 +124,7 @@ lin_engine <- function(name, fn) {
        predict = function(scenario, beta = NULL) data.frame(mu = fn(scenario)))
 }
 
-test_that("propagate_fixedpoint recovers the linear 2-cycle equilibrium (I-B)^-1 Gamma", {
+test_that("V-42: propagate_fixedpoint recovers the linear 2-cycle equilibrium (I-B)^-1 Gamma", {
   a1 <- 0.5; a2 <- 0.3; b12 <- 0.4; b21 <- 0.2
   eng <- list(
     y1 = lin_engine("y1", function(s) a1 * s$x + b12 * s$y2),

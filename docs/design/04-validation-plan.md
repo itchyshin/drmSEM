@@ -57,9 +57,11 @@ Two test tiers exist:
   mediated channel vanishing when scale is held fixed) plus the natural /
   functional effect kernels. PASS.
 
-The pure-logic kernel suite (including `test-composite.R` and
-`test-path-effects.R`, which carry V-31..V-34) passes in CI, and all 19 R/ source
-files parse clean.
+The pure-logic kernel suite (including `test-composite.R` and `test-path-effects.R`,
+which carry the OQ-5 / composite V-31..V-35; `test-pair.R` for the `drm_pair()`
+declaration grammar; `test-feedback.R` for `drm_cycle()` + the fixed-point
+recovery V-42; and the decomposition-pairing V-36..V-41 in `test-analytic-effects.R`)
+passes in CI, and all 21 R/ source files parse clean.
 
 ## Tier 2 — drmTMB-integration tests (WRITTEN, runtime PENDING)
 

@@ -57,14 +57,15 @@ live-fit analytic-effect tier flip, and OQ-14 joint fit.
   (`rho12` becomes a first-class structural target rather than a per-node
   residual correlation), moving beyond the strictly piecewise assumption.
 - This is the joint-*fit* milestone for bivariate covariance edges (OQ-14,
-  D-14): `drm_pair()` joint bivariate fitting, `rho12()` / `corpairs()`
-  read-back from a live fit, and double-headed / dashed-arc plotting. The
-  covariance-edge *grammar* + d-separation-*awareness* layer landed in 0.2.0
-  (`R/covariances.R`), and the bivariate-node *declaration* grammar —
-  `drm_pair()`, `drm_expand_pair()`, and the `rho12()` / `corpairs()` accessors
-  returning the declared edges with an `NA` (engine-hook) estimate — landed in
-  0.2.x (`R/pair.R`). Only the engine-dependent joint fit / read-back / render
-  pieces remain here.
+  D-14): `drm_pair()` joint bivariate fitting and `rho12()` / `corpairs()`
+  read-back from a live fit. The covariance-edge *grammar* + d-separation-
+  *awareness* layer landed in 0.2.0 (`R/covariances.R`); the bivariate-node
+  *declaration* grammar — `drm_pair()`, `drm_expand_pair()`, and the `rho12()` /
+  `corpairs()` accessors returning the declared edges with an `NA` (engine-hook)
+  estimate — landed in 0.2.x (`R/pair.R`); and double-headed / dashed-arc
+  plotting shipped in 0.2.x (`plot.drm_sem(show=)`). Only the engine-dependent
+  joint *fit* and the fitted-correlation read-back (a non-`NA` estimate) remain
+  here.
 
 ## 0.5 — Cyclic / feedback graphs
 

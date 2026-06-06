@@ -111,10 +111,10 @@ total_effects(sem,    from = "temp", to = "survival", method = "simulate")
 plot(sem)         # DAG with component-labelled edges
 ```
 
-`indirect_effects()` / the decomposition report
-`total_path`, `direct`, `indirect`, `mean_mediated`, and
-`distribution_mediated` components, so distribution-mediated pathways (e.g.
-through `sigma` or `zi`) are visible rather than collapsed into a mean effect.
+`indirect_effects()` reports `total_path`, `direct`, `indirect`,
+`mean_mediated`, and `distribution_mediated` rows, so a distribution-mediated
+pathway (e.g. one acting through a mediator's `sigma` or `zi` given a curved
+outcome) is visible rather than collapsed into a mean effect.
 
 ## More
 

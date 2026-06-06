@@ -5,7 +5,7 @@
 \alias{summary.drm_sem}
 \title{Assemble a distributional piecewise SEM from fitted drmTMB models}
 \usage{
-drm_psem(..., data = NULL, covariances = NULL, composites = NULL)
+drm_psem(..., data = NULL, covariances = NULL, composites = NULL, feedback = NULL)
 
 \method{summary}{drm_sem}(object, ...)
 }
@@ -26,6 +26,12 @@ decomposition.}
 \item{composites}{Optional \code{\link[=drm_composite]{drm_composite()}} declaration(s). For \code{drm_psem()}
 the construct column(s) must already be present in the data the nodes were
 fitted on; the declarations are recorded so \code{\link[=loadings]{loadings()}} can report them.}
+
+\item{feedback}{Optional \code{\link[=drm_cycle]{drm_cycle()}} declaration(s) naming a feedback
+(cyclic) motif. Cycles are an error unless declared; a declared motif relaxes
+the topological-order requirement and is reported by \code{\link[=cycles]{cycles()}}. Node-wise
+fitting of a declared cycle is inconsistent under simultaneity (a warning is
+emitted); see \code{docs/design/10-cyclic-feedback.md}.}
 
 \item{object}{A \code{drm_sem} object.}
 }

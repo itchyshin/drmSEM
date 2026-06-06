@@ -168,12 +168,13 @@ not a directed `y1 -> y2` path). The bivariate covariance-edge *grammar* and
 d-separation *awareness* ship as a pure-R layer: `covary()` declares a residual
 (`rho12`) or higher-level (`corpair`) random-effect covariance edge,
 `covariances()` reports those edges separately from `paths()`, and d-separation
-drops the `y1 _||_ y2` claim for a declared pair. Only the joint bivariate *fit*
-— a `drm_pair()` node, fitted-correlation read-back (`corpairs()`), and
-double-headed-arc rendering — remains on the roadmap, alongside latent-variable
-and full joint (single-likelihood) multivariate SEM. None of the roadmap items
-are in the current scope, and `drmSEM` never introduces new likelihoods of its
-own.
+drops the `y1 _||_ y2` claim for a declared pair. The bivariate-node declaration
+grammar (`drm_pair()`, the `rho12()` / `corpairs()` accessors) and
+double-headed / dashed-arc rendering also ship; only the joint bivariate *fit*
+and its fitted-correlation read-back (a non-`NA` `rho12()` / `corpairs()`
+estimate) remain on the roadmap, alongside reflective latent-variable and full
+joint (single-likelihood) multivariate SEM. None of the roadmap items are in the
+current scope, and `drmSEM` never introduces new likelihoods of its own.
 
 # Acknowledgements
 

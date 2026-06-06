@@ -4,7 +4,7 @@
 \alias{drm_sem}
 \title{Fit and assemble a distributional piecewise SEM}
 \usage{
-drm_sem(..., data, covariances = NULL, composites = NULL)
+drm_sem(..., data, covariances = NULL, composites = NULL, feedback = NULL)
 }
 \arguments{
 \item{...}{Named \code{\link[=drm_node]{drm_node()}} specifications, one per endogenous node.}
@@ -19,6 +19,12 @@ between responses; see \code{\link[=covariances]{covariances()}}.}
 column is materialized from its indicators \emph{before} fitting, so node
 formulas can reference it as an ordinary observed column; the loadings are
 reported by \code{\link[=loadings]{loadings()}}.}
+
+\item{feedback}{Optional \code{\link[=drm_cycle]{drm_cycle()}} declaration(s) naming a feedback
+(cyclic) motif, allowing those nodes to form a cycle (every undeclared cycle
+stays an error). Node-wise ML of a declared cycle is inconsistent under
+simultaneity (a warning is emitted); equilibrium effects use the fixed-point
+propagator. See \code{docs/design/10-cyclic-feedback.md}.}
 }
 \value{
 A \code{drm_sem} object.

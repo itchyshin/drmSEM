@@ -89,7 +89,7 @@ the ledger names a live-fit gate.
     is dropped by `na.rm` in `drm_effect_contrast`, biasing the average over a
     shrinking row set — clamp `eta` or count/flag dropped rows. The pairing bug
     and the framing/over-claims from that audit are already fixed in the Claude
-    lane (`drm_decomp_legs()`, V-31..V-36).
+    lane (`drm_decomp_legs()`, V-36..V-41).
 9. **`plot.drm_sem` visual polish** (needs rendering): standardized-coefficient
    edge labels + significance encoding without colliding with the component
    linetype; CI smoke test (`pdf(NULL); plot(sem); dev.off()`). `R/plotting.R`.

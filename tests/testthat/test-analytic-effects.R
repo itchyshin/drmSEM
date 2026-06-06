@@ -243,7 +243,7 @@ decomp <- function(eng, to, active, lo, hi, n_sim, seed = 7L) {
        distribution_mediated = mean(td - tm))
 }
 
-test_that("V-31: production decomposition closes (indirect == mean + distribution)", {
+test_that("V-36: production decomposition closes (indirect == mean + distribution)", {
   a <- 0.4; k <- 0.5
   eng <- list(
     M = gauss_engine("M", function(s) a * s$x, function(s) exp(-0.2 + 0.9 * s$x)),
@@ -260,7 +260,7 @@ test_that("V-31: production decomposition closes (indirect == mean + distributio
                tolerance = 1e-12)
 })
 
-test_that("V-32: production distribution_mediated matches the lognormal Jensen gap", {
+test_that("V-37: production distribution_mediated matches the lognormal Jensen gap", {
   a <- 0.4; k <- 0.5; s0 <- -0.2; x0 <- 0; x1 <- 1
   mk <- function(s1) list(
     M = gauss_engine("M", function(s) a * s$x, function(s) exp(s0 + s1 * s$x)),
@@ -280,7 +280,7 @@ test_that("V-32: production distribution_mediated matches the lognormal Jensen g
   expect_lt(dn, 0)
 })
 
-test_that("V-33: production distribution_mediated is ~0 when the outcome is linear in M", {
+test_that("V-38: production distribution_mediated is ~0 when the outcome is linear in M", {
   a <- 0.4; b <- 0.6
   eng <- list(
     M = gauss_engine("M", function(s) a * s$x, function(s) exp(-0.2 + 0.9 * s$x)),
@@ -293,7 +293,7 @@ test_that("V-33: production distribution_mediated is ~0 when the outcome is line
   expect_equal(d$mean_mediated, a * b, tolerance = 1e-8)
 })
 
-test_that("V-34: production mean_mediated recovers a chain a*c*b through 2 mediators", {
+test_that("V-39: production mean_mediated recovers a chain a*c*b through 2 mediators", {
   a <- 0.5; cc <- 0.8; b <- 0.6   # x -> M1 -> M2 -> Y, all linear Gaussian
   eng <- list(
     M1 = gauss_engine("M1", function(s) a  * s$x),
@@ -307,7 +307,7 @@ test_that("V-34: production mean_mediated recovers a chain a*c*b through 2 media
   expect_equal(d$distribution_mediated, 0, tolerance = 0.02)
 })
 
-test_that("V-35: the decomposition is reproducible (seed plumbing through the legs)", {
+test_that("V-40: the decomposition is reproducible (seed plumbing through the legs)", {
   a <- 0.4; k <- 0.5
   eng <- list(
     M = gauss_engine("M", function(s) a * s$x, function(s) exp(-0.2 + 0.9 * s$x)),
