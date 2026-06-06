@@ -312,11 +312,17 @@ This is a **model-based decomposition**, not a claim of nonparametric
 path-specific identification: the cross-world natural path-specific effects are
 identified only under the recanting-witness criterion (Avin, Shpitser & Pearl
 2005). **Status (OQ-5 — PARTIAL):** the controlled per-mediator split *and* the
-per-component (`mean`/`sigma`/`zi`) split ship and are kernel-verified. Open: the
-cross-world natural variant with a recanting-witness guard, `NA` handling for
-unconfirmed-sampler families, and a live-fit integration test (the per-component
-attribution is exact for hand-built engines; the real-family sampler accuracy
-needs the engine) before any "validated" wording.
+per-component (`mean`/`sigma`/`zi`) split ship and are kernel-verified. The
+**cross-world natural per-mediator variant** ships too — `path_effects(effect =
+"natural")` reports each mediator's natural indirect effect (reusing the validated
+`drm_natural_target` kernel) with an `identified` flag set `FALSE` under a
+**recanting witness** (a mediator that is both a descendant of the exposure and an
+ancestor of the target mediator; Avin, Shpitser & Pearl 2005), detected by pure
+graph logic (`drm_recanting_witness()`, kernel-verified). Open: `NA` handling for
+unconfirmed-sampler families and a live-fit integration test (the attribution is
+exact for hand-built engines; real-family sampler accuracy and the natural
+identification under strong nonlinearity need the engine) before any "validated"
+wording.
 
 ## References
 
