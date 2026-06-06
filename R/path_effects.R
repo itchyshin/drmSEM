@@ -56,6 +56,56 @@ drm_path_contrasts <- function(engines, scenarios, to, meds,
        remainder = remainder)
 }
 
+# Return a copy of `engines` in which mediator `mediator`'s component `component`
+# is FROZEN at the value it takes under `ref_scenario` (the x0 / reference world).
+# Implemented by wrapping that node's predict() and splicing the frozen component
+# back in before sampling -- no change to drm_propagate. Used to attribute a
+# mediator's distribution-mediated effect to one component (OQ-5 per-component).
+drm_freeze_engine <- function(engines, mediator, component, ref_scenario) {
+  eng <- engines[[mediator]]
+  ref_vals <- eng$predict(ref_scenario)[[component]]
+  orig_predict <- eng$predict
+  eng$predict <- function(scenario, beta = NULL) {
+    p <- orig_predict(scenario, beta)
+    p[[component]] <- ref_vals[seq_len(nrow(scenario))]
+    p
+  }
+  engines[[mediator]] <- eng
+  engines
+}
+
+# Per-component attribution for a single mediator `mj` (OQ-5). Splits Mj's
+# indirect effect into a mean channel (Mj passes only its mean) and one channel
+# per non-mean component (sigma / zi / ...), each the drop in the
+# distribution-mediated effect when that component is frozen at its x0 value. A
+# component_remainder carries the non-separable part (channels do not partition
+# exactly under a nonlinear outcome). Pure function of engines (no drmTMB).
+drm_component_contrasts <- function(engines, scenarios, to, mj,
+                                    B = 200L, n_sim = 50L, draw = TRUE, seed = NULL) {
+  ctr <- function(eng, med) {
+    drm_effect_contrast(eng, scenarios, to, active = mj, mediation = med,
+                        B = B, n_sim = if (identical(med, "mean")) 1L else n_sim,
+                        draw = draw, seed = seed)
+  }
+  cde <- drm_effect_contrast(engines, scenarios, to, active = character(0),
+                             mediation = "mean", B = B, n_sim = 1L,
+                             draw = draw, seed = seed)
+  full <- ctr(engines, "distribution")        # T_dist({Mj})
+  mean_channel <- ctr(engines, "mean") - cde   # Mj's mean channel
+  inclusion <- full - cde
+  comps <- setdiff(engines[[mj]]$components, "mu")
+  channels <- stats::setNames(lapply(comps, function(cc) {
+    frozen <- drm_effect_contrast(drm_freeze_engine(engines, mj, cc, scenarios$lo),
+                                  scenarios, to, active = mj, mediation = "distribution",
+                                  B = B, n_sim = n_sim, draw = draw, seed = seed)
+    full - frozen
+  }), comps)
+  channel_sum <- if (length(channels)) Reduce(`+`, channels) else 0
+  remainder <- inclusion - mean_channel - channel_sum
+  list(inclusion = inclusion, mean = mean_channel,
+       channels = channels, remainder = remainder)
+}
+
 #' Path-specific (per-mediator) decomposition of an indirect effect
 #'
 #' Splits the indirect effect of `from` on `to` into a contribution for each
@@ -83,16 +133,17 @@ drm_path_contrasts <- function(engines, scenarios, to, meds,
 #' @param by `"mediator"` (default) reports the per-mediator `inclusion` /
 #'   `exclusion` split with an `interaction_remainder`. `"component"` instead
 #'   splits each mediator's indirect effect into a `mean_channel` (the mediator
-#'   passes only its mean) and a `distributional_channel` (the extra effect from
-#'   passing realized draws through its `sigma` / `zi` / shape). These two sum
-#'   **exactly** to that mediator's inclusion effect, so no remainder row is
-#'   needed. The finer split into individual non-mean components (`sigma` vs `zi`)
-#'   is the OQ-5 follow-up.
+#'   passes only its mean) and one channel per non-mean component
+#'   (`sigma_channel`, `zi_channel`, ... -- the drop when that component is frozen
+#'   at its reference value), plus a `component_remainder` for the part that does
+#'   not separate cleanly (the channels are not an exact partition under a
+#'   nonlinear outcome).
 #' @return A `drm_effect` data frame with columns `from`, `to`, `through`,
 #'   `mediator`, `estimand`, `estimate`, `conf.low`, `conf.high`. For
 #'   `by = "mediator"` the `estimand` values are `total_indirect`, `inclusion`,
 #'   `exclusion`, `interaction_remainder`; for `by = "component"` they are
-#'   `total_indirect`, `mean_channel`, `distributional_channel`.
+#'   `total_indirect`, `mean_channel`, `<component>_channel` (one per non-mean
+#'   component), and `component_remainder`.
 #' @seealso [indirect_effects()], [total_effects()].
 #' @examples
 #' \dontrun{
@@ -140,9 +191,13 @@ path_effects <- function(object, from, to, through = NULL,
     rows <- add_row(rows, NA_character_, "interaction_remainder", pc$remainder)
   } else {
     for (mj in meds) {
-      rows <- add_row(rows, mj, "mean_channel", pc$mean_inclusion[[mj]])
-      rows <- add_row(rows, mj, "distributional_channel",
-                      pc$inclusion[[mj]] - pc$mean_inclusion[[mj]])
+      cc <- drm_component_contrasts(engines, scen, to, mj, B = B,
+                                    n_sim = ctl$n_sim, draw = ctl$draw, seed = seed)
+      rows <- add_row(rows, mj, "mean_channel", cc$mean)
+      for (comp in names(cc$channels)) {
+        rows <- add_row(rows, mj, paste0(comp, "_channel"), cc$channels[[comp]])
+      }
+      rows <- add_row(rows, mj, "component_remainder", cc$remainder)
     }
   }
   out <- cbind(

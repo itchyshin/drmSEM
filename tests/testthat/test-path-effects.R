@@ -120,6 +120,41 @@ test_that("by-component: mean channel is exact, distributional channel matches t
   expect_equal(mean(pc_lin$inclusion$M - pc_lin$mean_inclusion$M), 0, tolerance = 0.02)
 })
 
+test_that("by-component freeze attributes the sigma channel (OQ-5 per-component)", {
+  skip_on_cran()
+  a <- 0.4; k <- 0.5; s0 <- -0.2; x0 <- 0; x1 <- 1
+  sig <- function(x) exp(s0 + 0.9 * x)
+  ms_engine <- function(s1) list(
+    M = list(name = "M", identifier = "M", family = "gaussian",
+             components = c("mu", "sigma"), coef = list(), vcov = NULL,
+             predict = function(scenario, beta = NULL)
+               data.frame(mu = a * scenario$x, sigma = exp(s0 + s1 * scenario$x))),
+    Y = pe_engine("Y", function(s) exp(k * s$M))
+  )
+  scen <- list(lo = pe_rows(data.frame(x = x0, M = 0, Y = 0), 120),
+               hi = pe_rows(data.frame(x = x1, M = 0, Y = 0), 120), column = "x")
+  # seed gives common random numbers across the full / frozen contrasts.
+  cc <- drmSEM:::drm_component_contrasts(ms_engine(0.9), scen, "Y", "M",
+                                         B = 1, n_sim = 4000, draw = FALSE, seed = 1)
+  # mean channel is deterministic
+  expect_equal(mean(cc$mean), exp(k * a * x1) - exp(k * a * x0), tolerance = 1e-8)
+  # sigma channel: exp(ka + 0.5 k^2 sig1^2) - exp(ka + 0.5 k^2 sig0^2)
+  pce_sigma <- exp(k * a * x1 + 0.5 * k^2 * sig(x1)^2) -
+               exp(k * a * x1 + 0.5 * k^2 * sig(x0)^2)
+  expect_equal(mean(cc$channels$sigma), pce_sigma, tolerance = 0.06)
+  # the channels do NOT partition exactly under the nonlinear outcome; the
+  # remainder is (e^{ka}-1)(e^{0.5 k^2 sig0^2}-1), reported rather than hidden
+  rem <- (exp(k * a) - 1) * (exp(0.5 * k^2 * sig(x0)^2) - 1)
+  expect_equal(mean(cc$remainder), rem, tolerance = 0.06)
+  # the pieces reconstruct the inclusion effect exactly (by construction)
+  expect_equal(mean(cc$mean) + mean(cc$channels$sigma) + mean(cc$remainder),
+               mean(cc$inclusion), tolerance = 1e-12)
+  # negative control: a flat scale path (s1 = 0) -> sigma channel is exactly 0
+  cc0 <- drmSEM:::drm_component_contrasts(ms_engine(0), scen, "Y", "M",
+                                          B = 1, n_sim = 4000, draw = FALSE, seed = 1)
+  expect_equal(mean(cc0$channels$sigma), 0, tolerance = 1e-9)
+})
+
 test_that("a single mediator: inclusion = exclusion = total, remainder 0", {
   a <- 0.5; b <- 0.6
   eng <- list(

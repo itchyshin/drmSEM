@@ -333,3 +333,16 @@ need the live-drmTMB lane.
   **validated (kernel).** The finer sigma-vs-zi split (a `freeze` plumbing arg in
   `drm_propagate`), the natural variant, and a live-fit integration test remain
   open (OQ-5).
+
+## 2026-06-06 — V-34: per-component (sigma/zi) path attribution via freeze (OQ-5)
+
+- **V-34 — `path_effects(by = "component")` per-component split.** `drm_freeze_engine()`
+  wraps a mediator's predict to hold one component at its x0 value;
+  `drm_component_contrasts()` attributes the distribution-mediated effect to each
+  non-mean component (`PCE(c) = T_dist(full) - T_dist(c frozen)`), with a
+  `component_remainder` for the non-separable part. Kernel-verified in
+  `test-path-effects.R` (seeded, common random numbers): mean channel exact (1e-8);
+  sigma channel = `exp(ka+0.5k^2 s1^2) - exp(ka+0.5k^2 s0^2)` (MC, tol 0.06);
+  component_remainder = `(e^{ka}-1)(e^{0.5k^2 s0^2}-1)`; flat-scale sigma channel = 0
+  exactly. **validated (kernel)** — no drmTMB. Real-family sampler accuracy + the
+  natural variant + a live-fit integration test remain OQ-5 (Codex).

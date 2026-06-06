@@ -125,8 +125,11 @@ path_effects(sem3, from = "temp", to = "survival")
 ```
 
 By component (`by = "component"`), each mediator's effect is split into a
-`mean_channel` and a `distributional_channel` (the part flowing through its
-`sigma` / `zi` / shape); these two partition the mediator's effect exactly:
+`mean_channel` plus one channel per non-mean component (`sigma_channel`,
+`zi_channel`, ...) — the drop in the effect when that component is frozen at its
+reference value — and a `component_remainder` for the part that does not separate
+cleanly (under a nonlinear outcome the channels are not an exact partition, so the
+remainder is reported rather than hidden):
 
 ```{r path-component}
 path_effects(sem3, from = "temp", to = "survival", by = "component")
@@ -134,6 +137,5 @@ path_effects(sem3, from = "temp", to = "survival", by = "component")
 
 This is a **model-based decomposition**, not a claim of nonparametric
 path-specific identification (which requires the recanting-witness criterion). The
-per-component split into individual non-mean components (`sigma` vs `zi`) and the
-cross-world natural variant are on the roadmap. See
+cross-world natural per-mediator variant is on the roadmap. See
 `docs/design/02-effect-calculus.md`.

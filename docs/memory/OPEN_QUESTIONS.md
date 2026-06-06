@@ -88,12 +88,12 @@ to sum. Pure active-set toggling, no new kernel; kernel-verified in
 `test-path-effects.R` (additive P-1, nonlinear-non-additive P-2, sequential P-3).
 Honest scope: model-based attribution, not nonparametric path-specific
 identification (recanting-witness criterion). `path_effects(by = "component")`
-also ships the per-mediator **mean vs distributional channel** split (exact
-partition of inclusion, no kernel change; by-component test). **Still open:** the
-finer split of the distributional channel into individual non-mean components
-(`sigma` vs `zi`, needs a small `freeze` plumbing arg in `drm_propagate`), the
-cross-world natural variant with a recanting-witness guard, `NA` handling for
-unconfirmed-sampler families, and a live-fit integration test before promotion.
+ships the **per-component** split — `mean_channel` + `sigma_channel`/`zi_channel`/...
+(each via `drm_freeze_engine()`, freezing that component at its x0 value) + a
+`component_remainder` for the non-separable part — kernel-verified against the
+lognormal closed forms (V-34). **Still open:** the cross-world natural variant with
+a recanting-witness guard, `NA` handling for unconfirmed-sampler families, and a
+live-fit integration test (real-family sampler accuracy) before promotion.
 Original note below.
 
 `indirect_effects(..., through = )` routes through a *set* of mediator nodes. We
