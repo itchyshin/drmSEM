@@ -85,9 +85,17 @@ live-fit analytic-effect tier flip, and OQ-14 joint fit.
 
 ## Interop and distribution
 
-- brms / lavaan interop: import or export drmSEM graphs to/from neighbouring
-  ecosystems for users who live there. (Arbitrary brms/glmmTMB/lme4 adapters stay
-  out of scope; this is graph interchange, not new engines.)
+- **Graph-interchange layer — SHIPPED** (pure-R, `R/interop.R`): `as_lavaan()`
+  exports a drmSEM graph as lavaan model syntax (mean structure `~` + covariance
+  `~~`, with every non-`mu` distributional-component path *dropped-with-notice*,
+  never misrepresented as a mean regression); `from_lavaan()` parses lavaan
+  syntax back into a `drm_dag()` + `covary()` skeleton (reflective `=~`
+  measurement ignored-with-warning); `as_dot()` exports the component-labelled
+  DAG as Graphviz DOT (every component path kept). Round-trip
+  `from_lavaan(as_lavaan(sem))` recovers the directed mean structure and the
+  covariance edges. This is graph interchange, not new engines: brms/lavaan
+  *FITTING* interop stays out of scope (drmSEM never fits its own likelihoods),
+  and arbitrary brms/glmmTMB/lme4 adapters stay out of scope.
 - CRAN submission once the engine surface is stable and integration tests run on
   all platforms (the Grace track in `CLOUD.md`).
 
