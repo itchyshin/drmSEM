@@ -13,7 +13,7 @@ DRMSEM is a distributional piecewise SEM framework built on
 not only the expected response but also scale, shape, zero-inflation, hurdle
 probability, random-effect scale, and residual correlation.
 
-> Status: early / experimental (version 0.1.0.9000). See [Status](#status).
+> Status: early / experimental (version 0.2.0.9000). See [Status](#status).
 
 ![Component-labelled DAG for the canonical size, abundance, and survival example. Black solid arrows target the mean, green dashed arrows target sigma, and orange dotted arrows target zero inflation.](man/figures/drmsem-hero-dag.png)
 
@@ -115,6 +115,14 @@ through `sigma` or `zi`) are visible rather than collapsed into a mean effect.
 - **Model selection.** Define a candidate set with `drm_dag()` /
   `drm_model_set()`, then `compare()` / `best()` / `average()` to rank and
   model-average competing DAGs. See `vignette("comparison")`.
+- **Covariance edges & composites.** Declare residual / random-effect covariance
+  edges with `covary()` (reported by `covariances()`, respected by `dsep()`), and
+  build composite (formative / PCA) constructs with `drm_composite()` /
+  `loadings()`. See `vignette("covariance-edges-and-composites")` and
+  `vignette("latent-variables")`.
+- **Path attribution.** `path_effects()` splits an indirect effect by mediator
+  (inclusion / exclusion) and by distributional component (mean / sigma / zi),
+  with a cross-world natural variant and recanting-witness flag.
 - **Phylogenetic SEM.** Build an evolutionary relatedness matrix with
   `drm_phylo_cov()` and feed it to a node via `relmat()`. See
   `vignette("phylogenetic-sem")`.
