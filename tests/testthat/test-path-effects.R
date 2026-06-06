@@ -75,6 +75,51 @@ test_that("P-3: sequential mediators -> inclusion under-attributes, exclusion = 
   expect_equal(mean(pc$remainder), acb, tolerance = 1e-8)
 })
 
+test_that("by-component: mean channel is exact, distributional channel matches the lognormal form", {
+  skip_on_cran()
+  set.seed(7)
+  a <- 0.4; k <- 0.5; s0 <- -0.2; x0 <- 0; x1 <- 1
+  pe_engine2 <- function(name, mu_fn, sigma_fn) {
+    list(name = name, identifier = name, family = "gaussian",
+         components = c("mu", "sigma"), coef = list(), vcov = NULL,
+         predict = function(scenario, beta = NULL)
+           data.frame(mu = mu_fn(scenario), sigma = sigma_fn(scenario)))
+  }
+  scen <- list(lo = pe_rows(data.frame(x = x0, M = 0, Y = 0), 120),
+               hi = pe_rows(data.frame(x = x1, M = 0, Y = 0), 120), column = "x")
+  run <- function(s1) {
+    eng <- list(
+      M = pe_engine2("M", function(s) a * s$x, function(s) exp(s0 + s1 * s$x)),
+      Y = pe_engine("Y", function(s) exp(k * s$M))
+    )
+    drmSEM:::drm_path_contrasts(eng, scen, "Y", "M", mediation = "distribution",
+                                B = 1, n_sim = 2000, draw = FALSE)
+  }
+  pc <- run(0.9)
+  # mean channel is deterministic: exp(k*a*x1) - exp(k*a*x0)
+  expect_equal(mean(pc$mean_inclusion$M), exp(k * a * x1) - exp(k * a * x0), tolerance = 1e-8)
+  # distributional channel matches the V-28 lognormal closed form
+  sig <- function(x) exp(s0 + 0.9 * x)
+  D <- (exp(k * a * x1 + 0.5 * k^2 * sig(x1)^2) - exp(k * a * x1)) -
+       (exp(k * a * x0 + 0.5 * k^2 * sig(x0)^2) - exp(k * a * x0))
+  dist_ch <- mean(pc$inclusion$M - pc$mean_inclusion$M)
+  expect_equal(dist_ch, D, tolerance = 0.06)
+  # the two channels partition the inclusion effect exactly
+  expect_equal(mean(pc$mean_inclusion$M) + dist_ch, mean(pc$inclusion$M), tolerance = 1e-12)
+  # negative control: a LINEAR outcome has no Jensen gap, so the distributional
+  # channel is zero regardless of the scale path. (A flat sigma does NOT zero the
+  # channel under a nonlinear outcome: the constant variance-inflation still moves
+  # with the mean through the nonlinearity.)
+  eng_lin <- list(
+    M = pe_engine2("M", function(s) a * s$x, function(s) exp(s0 + 0.9 * s$x)),
+    Y = pe_engine("Y", function(s) 0.6 * s$M)
+  )
+  pc_lin <- drmSEM:::drm_path_contrasts(eng_lin, scen, "Y", "M",
+                                        mediation = "distribution",
+                                        B = 1, n_sim = 2000, draw = FALSE)
+  expect_equal(mean(pc_lin$inclusion$M - pc_lin$mean_inclusion$M), 0, tolerance = 0.02)
+})
+
 test_that("a single mediator: inclusion = exclusion = total, remainder 0", {
   a <- 0.5; b <- 0.6
   eng <- list(

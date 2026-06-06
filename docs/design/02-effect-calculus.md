@@ -294,14 +294,29 @@ sum. Downstream nonlinearity (P-2) makes `inclusion != exclusion`; sequential
 mediators `M1 -> M2` (P-3) make each `inclusion = 0` while each `exclusion =
 total` (both are necessary), with the chain effect carried by the remainder.
 
+`path_effects(by = "component")` adds a second granularity: each mediator's
+indirect effect is split into a **mean channel** (`T_mean({Mj}) - direct`, the
+mediator passes only its mean) and a **distributional channel**
+(`T_dist({Mj}) - T_mean({Mj})`, the extra effect from passing realized draws
+through its `sigma`/`zi`/shape). These two sum **exactly** to that mediator's
+inclusion effect, so there is no remainder — it is the per-mediator analogue of
+the set-level `mean_mediated` / `distribution_mediated` split, with no kernel
+change. The mean channel is deterministic; the distributional channel matches the
+lognormal closed form (`test-path-effects.R`, by-component). Note the
+distributional channel captures the whole **Jensen-gap response** to `x`, so it is
+non-zero even when `sigma` is *constant* in `x` (a flat but non-trivial spread
+still moves with the mean through a nonlinear outcome); it is zero only when the
+outcome is linear in the mediator.
+
 This is a **model-based decomposition**, not a claim of nonparametric
 path-specific identification: the cross-world natural path-specific effects are
 identified only under the recanting-witness criterion (Avin, Shpitser & Pearl
-2005). **Status (OQ-5 — PARTIAL):** the controlled per-mediator split ships and
-is kernel-verified in `test-path-effects.R`. Open: the per-*component*
-(`mu`/`sigma`/`zi`) attribution (needs a one-argument `freeze` plumbing change to
-`drm_propagate`), the natural variant with a recanting-witness guard, and a
-live-fit integration test before any "validated" wording.
+2005). **Status (OQ-5 — PARTIAL):** the controlled per-mediator split and the
+mean/distributional channel split ship and are kernel-verified in
+`test-path-effects.R`. Open: the finer split of the distributional channel into
+individual non-mean components (`sigma` vs `zi`, needs a one-argument `freeze`
+plumbing change to `drm_propagate`), the natural variant with a recanting-witness
+guard, and a live-fit integration test before any "validated" wording.
 
 ## References
 

@@ -321,3 +321,15 @@ need the live-drmTMB lane.
   degenerate case. **validated (kernel)** — no drmTMB. The user-facing
   `path_effects()` wrapper + the per-component/natural follow-ups are CI/Codex-gated;
   a live-fit integration test is the missing evidence before promotion (OQ-5).
+
+## 2026-06-06 — V-33: per-mediator mean/distributional channel split (OQ-5)
+
+- **V-33 — `path_effects(by = "component")`.** Splits each mediator's indirect
+  effect into a mean channel (`T_mean({Mj}) - direct`, deterministic) and a
+  distributional channel (`T_dist({Mj}) - T_mean({Mj})`); the two partition the
+  inclusion effect exactly (no remainder). Kernel-verified in `test-path-effects.R`
+  (by-component): mean channel exact (1e-8); distributional channel matches the
+  lognormal closed form (MC, tol 0.06, seeded); flat-scale negative control ~0.
+  **validated (kernel).** The finer sigma-vs-zi split (a `freeze` plumbing arg in
+  `drm_propagate`), the natural variant, and a live-fit integration test remain
+  open (OQ-5).
