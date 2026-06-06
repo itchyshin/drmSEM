@@ -78,10 +78,15 @@ live-fit analytic-effect tier flip, and OQ-14 joint fit.
 - Shipped (0.5.0 pure-R grammar + equilibrium engine, `R/feedback.R`):
   `drm_cycle()` / `feedback =` declaration, relaxed toposort (cycles stay an error
   unless declared), `cycles()` accessor, basis-set suppression among motif nodes,
-  the effect-API refusal for a feedback SEM, and the internal
-  `propagate_fixedpoint()` (stability-guarded, non-convergence-reporting, recovers
-  `(I − B)⁻¹ Γ`). Remaining: wiring equilibrium effects into the effect API, and
-  consistent estimation (IV/2SLS or a joint likelihood) — the engine part.
+  and the internal `propagate_fixedpoint()` (stability-guarded,
+  non-convergence-reporting, recovers `(I − B)⁻¹ Γ`).
+- Shipped (0.5.x equilibrium effects): `total_effects()` reports the equilibrium
+  total effect of a feedback SEM (`mediation = "equilibrium"`, `target = "mean"`,
+  `NA` on divergence); `direct_effects()` (the controlled direct effect) works;
+  `indirect_effects()` / `path_effects()` refuse a feedback SEM (the
+  mean/distribution decomposition through a cycle is undefined). Remaining: full
+  sigma-separation, distributional feedback equilibria, and consistent estimation
+  (IV/2SLS or a joint likelihood) — the engine part.
 
 ## Interop and distribution
 

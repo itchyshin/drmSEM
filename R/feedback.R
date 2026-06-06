@@ -298,3 +298,32 @@ drm_reduced_form <- function(B, Gamma) {
   Tm <- tryCatch(solve(diag(k) - B) %*% Gamma, error = function(e) NULL)
   structure(Tm, spectral_radius = rho, stable = rho < 1)
 }
+
+# Equilibrium total-effect contrast of `from` on `to` for a feedback SEM. Per
+# uncertainty replicate, one shared coefficient draw is propagated to the
+# system's fixed point under the high and low scenarios; the contrast of the
+# equilibrium mean of `to` is returned. `converged` is FALSE if ANY propagation
+# (any replicate, either scenario) failed to reach a stable equilibrium -- the
+# honest signal that no population-average equilibrium effect is defined (the
+# feedback diverges, spectral radius >= 1). Used by total_effects() (0.5.x);
+# the equilibrium is on the deterministic MEAN map, so this is target = "mean"
+# only and the mean/distribution decomposition through a cycle is out of scope.
+drm_equilibrium_contrast <- function(engines, scenarios, to, B, draw, seed = NULL,
+                                     max_iter = 200L, tol = 1e-8) {
+  if (!is.null(seed)) set.seed(seed)
+  reps <- if (isTRUE(draw)) B else 1L
+  vals <- numeric(reps)
+  ok <- logical(reps)
+  active <- names(engines)
+  for (b in seq_len(reps)) {
+    beta_list <- lapply(engines, drm_draw_beta, draw = draw)
+    names(beta_list) <- names(engines)
+    hi <- propagate_fixedpoint(engines, scenarios$hi, active = active,
+                               beta_list = beta_list, max_iter = max_iter, tol = tol)
+    lo <- propagate_fixedpoint(engines, scenarios$lo, active = active,
+                               beta_list = beta_list, max_iter = max_iter, tol = tol)
+    ok[[b]] <- isTRUE(hi$converged) && isTRUE(lo$converged)
+    vals[[b]] <- mean(hi$mean[[to]] - lo$mean[[to]], na.rm = TRUE)
+  }
+  list(vals = vals, converged = all(ok))
+}

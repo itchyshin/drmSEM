@@ -11,15 +11,20 @@
   simultaneity, so `drm_sem()` **warns**: consistent estimation (IV/2SLS or a
   joint likelihood) is an engine capability, not something drmSEM fakes.
 * **d-separation** drops independence claims among a motif's nodes (DAG
-  d-separation does not hold across a cycle; full sigma-separation is deferred),
-  and the standard **effect functions refuse** a feedback SEM rather than return a
-  non-equilibrium single-sweep number.
-* **Equilibrium propagator (internal).** `propagate_fixedpoint()` iterates the
-  mean propagation map to its fixed point with a spectral-radius / max-iter
-  stability guard, reporting **non-convergence** honestly; a closed-form test
-  confirms it recovers the linear reduced form `(I − B)⁻¹ Γ` (V-42). Wiring it
-  into the effect API is the 0.5.x increment. Design:
-  `docs/design/10-cyclic-feedback.md`.
+  d-separation does not hold across a cycle; full sigma-separation is deferred).
+* **Equilibrium total effects (0.5.x).** `total_effects()` now reports the
+  **equilibrium** response of a feedback SEM, iterating the mean-propagation map
+  to its fixed point (the `mediation` column reads `"equilibrium"`); if the
+  feedback diverges (no stable equilibrium, spectral radius `>= 1`) the estimate
+  is `NA` with a warning — never a fabricated number. `direct_effects()` (the
+  controlled direct effect, which does not traverse the cycle) also works. The
+  mean/distribution **decomposition** through a cycle is out of scope, so
+  `indirect_effects()` / `path_effects()` refuse a feedback SEM and point to
+  `total_effects()`. The internal `propagate_fixedpoint()` carries a
+  spectral-radius / max-iter stability guard; closed-form tests confirm it
+  recovers the linear reduced form `(I − B)⁻¹ Γ` (V-42) and that the equilibrium
+  total effect equals the reduced-form total effect of the exposure (V-43).
+  Design: `docs/design/10-cyclic-feedback.md`.
 
 ## Effect decomposition: paired Monte-Carlo and honest framing
 

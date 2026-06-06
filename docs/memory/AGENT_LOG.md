@@ -712,3 +712,22 @@ it found:
   decomposition report").
 Audit confirmed CLEAN: version strings (0.2.0.9000), the #22 honesty pass propagation,
 the adapter boundary, .codex/.claude mirror, locked decisions in code.
+
+## 2026-06-06 — 0.5.x equilibrium effects wired into total_effects()
+
+Turned the feedback engine from "grammar + internal propagator" into a usable
+effect. total_effects() now routes a declared-feedback SEM through
+drm_equilibrium_contrast() -> propagate_fixedpoint(): per uncertainty replicate,
+one shared beta draw is propagated to the system's fixed point under hi/lo
+scenarios and the equilibrium-mean contrast of `to` is returned. mediation column
+reads "equilibrium"; target="mean" only (the equilibrium is the deterministic
+mean map); non-convergence (rho(B)>=1) -> NA + warning, never a fabricated number.
+direct_effects() (CDE, no cycle traversal) works as-is. The mean/distribution
+DECOMPOSITION through a cycle is undefined, so indirect_effects()/path_effects()
+refuse a feedback SEM (drm_block_feedback_decomp) and point to total_effects().
+Replaced the old blanket drm_validate_effect_args feedback abort with these
+targeted guards. Tests: V-43 kernel (equilibrium contrast == reduced-form total
+effect column for x; divergence flagged) + updated the drmTMB-gated end-to-end
+(total_effects returns mediation="equilibrium" finite; indirect_effects errors).
+Updated NEWS, 10-cyclic-feedback (current-state), 05-roadmap, overview/comparison
+vignette rows, ledger V-43.

@@ -97,16 +97,18 @@ drm_validate_effect_args <- function(object, from, to) {
     cli::cli_abort("{.arg to} = {.val {to}} must be an endogenous node.")
   }
   if (identical(from, to)) cli::cli_abort("{.arg from} and {.arg to} must differ.")
-  # Effects through a declared feedback motif are an equilibrium (fixed-point)
-  # quantity, not a single topological sweep; the standard propagator would give
-  # an order-dependent, non-equilibrium answer, so refuse rather than mislead.
-  # The fixed-point propagator exists internally; effect-API integration is the
-  # 0.5.x increment (docs/design/10-cyclic-feedback.md).
+}
+
+# The mean/distribution *decomposition* through a declared feedback motif is not
+# defined (an equilibrium has no single topological sweep to split). indirect_/
+# path_effects refuse a feedback SEM and point to total_effects(), which reports
+# the equilibrium total effect via the fixed-point propagator. (0.5.x.)
+drm_block_feedback_decomp <- function(object, fn) {
   if (length(drm_feedback_nodes(object)) > 0L) {
     cli::cli_abort(c(
-      "Effects are not yet defined for a SEM with a declared feedback motif.",
-      "x" = "An effect through a cycle is an equilibrium quantity, not a single-sweep propagation.",
-      "i" = "Equilibrium-effect support is the 0.5.x increment; see {.file docs/design/10-cyclic-feedback.md}."
+      "{.fn {fn}} is not defined for a SEM with a declared feedback motif.",
+      "x" = "A mean/distribution decomposition needs a topological order, which a cycle lacks.",
+      "i" = "Use {.fn total_effects} for the equilibrium total effect; see {.file docs/design/10-cyclic-feedback.md}."
     ))
   }
 }
@@ -206,6 +208,17 @@ direct_effects <- function(object, from, to, component = NULL,
 #' zero-inflation, or shape (distribution-mediated paths) are included; with
 #' `method = "gcomp"` only the mediator means propagate.
 #'
+#' **Feedback SEMs.** When the model declares a feedback motif (see [drm_cycle()]),
+#' the total effect is the system's **equilibrium** response, computed by
+#' iterating the mean-propagation map to its fixed point rather than by a single
+#' topological sweep. Only `target = "mean"` is supported (the equilibrium is on
+#' the deterministic mean map), the `mediation` column reads `"equilibrium"`, and
+#' if the feedback diverges (no stable equilibrium, spectral radius `>= 1`) the
+#' estimate is reported as `NA` with a warning — never a fabricated number. The
+#' mean/distribution decomposition through a cycle is out of scope, so
+#' [indirect_effects()] / [path_effects()] refuse a feedback SEM. See
+#' `docs/design/10-cyclic-feedback.md`.
+#'
 #' @inheritParams direct_effects
 #' @param method `"gcomp"` (mean mediation: deterministic g-computation on
 #'   mediator expectations, the default) or `"simulate"` (mediators pass realized
@@ -245,6 +258,39 @@ total_effects <- function(object, from, to, method = NULL,
   drm_require_drmTMB()
   engines <- drm_engines_from_sem(object)
   scen <- drm_build_scenarios(object, from, at)
+
+  # Feedback SEM: the total effect is the system's EQUILIBRIUM response, computed
+  # by the fixed-point propagator rather than a single topological sweep (0.5.x).
+  # The equilibrium is on the deterministic mean map, so only target = "mean" is
+  # supported; non-convergence (no stable equilibrium) is reported honestly as NA.
+  if (length(drm_feedback_nodes(object)) > 0L) {
+    if (!identical(target, "mean")) {
+      cli::cli_abort(c(
+        "Outcome functionals are not yet defined through a feedback motif.",
+        "i" = "Only {.code target = \"mean\"} (the equilibrium mean response) is supported for a feedback SEM."
+      ))
+    }
+    eq <- drm_equilibrium_contrast(engines, scen, to, B, ctl$draw, seed)
+    summ <- if (isTRUE(eq$converged)) {
+      drm_summ(eq$vals, level)
+    } else {
+      cli::cli_warn(c(
+        "The feedback system did not reach a stable equilibrium (spectral radius >= 1?).",
+        "i" = "No population-average equilibrium effect is defined; reporting {.val NA}."
+      ))
+      data.frame(estimate = NA_real_, conf.low = NA_real_, conf.high = NA_real_)
+    }
+    out <- cbind(
+      data.frame(from = from, to = to, scale = "response",
+                 mediation = "equilibrium", target = target,
+                 stringsAsFactors = FALSE),
+      summ
+    )
+    attr(out, "converged") <- eq$converged
+    class(out) <- c("drm_effect", "data.frame")
+    return(out)
+  }
+
   active <- setdiff(object$endogenous, c(from, to))
   vals <- if (identical(target, "mean")) {
     drm_effect_contrast(engines, scen, to, active = active,
@@ -314,6 +360,7 @@ indirect_effects <- function(object, from, to, through = NULL,
                              draw = NULL, n_sim = NULL, ...) {
   effect <- match.arg(effect)
   drm_validate_effect_args(object, from, to)
+  drm_block_feedback_decomp(object, "indirect_effects")
   ctl <- drm_effect_controls(uncertainty, nsim, population, draw, n_sim,
                              default_draw = TRUE, default_nsim = 50L)
   drm_require_drmTMB()

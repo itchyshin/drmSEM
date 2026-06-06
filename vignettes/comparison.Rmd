@@ -242,8 +242,10 @@ Being honest about scope is part of choosing the right tool. Per the charter and
 - **DAG-only by default.** *Undeclared* cyclic / feedback graphs are an
   **error**. A feedback motif declared with `drm_cycle()` / `feedback=` is now
   allowed (0.5.0): the relaxed toposort, d-separation suppression, and the
-  internal equilibrium (fixed-point) propagator ship; wiring equilibrium effects
-  into the public effect API is the 0.5.x increment.
+  fixed-point propagator ship, and `total_effects()` reports the **equilibrium**
+  total effect of a feedback system (`NA` if it diverges). The mean/distribution
+  decomposition through a cycle stays out of scope, so `indirect_effects()` /
+  `path_effects()` refuse a feedback SEM.
 - **No new likelihoods and no arbitrary backends.** `drmSEM` never fits its own
   likelihoods; `drmTMB` is the only engine. Arbitrary `brms` / `glmmTMB` /
   `lme4` adapters are out of scope (graph interchange with neighbouring

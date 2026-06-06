@@ -114,16 +114,23 @@ The pure-R grammar and equilibrium engine now ship (`R/feedback.R`,
 - **Relaxed toposort** (`drm_toposort_feedback()`): a declared motif is condensed
   into one layer; every *undeclared* cycle is still a hard error.
 - **`basis_set()` suppression** of independence claims among a motif's nodes.
-- **Effect-API refusal**: `direct_effects()` / `total_effects()` /
-  `indirect_effects()` / `path_effects()` abort on a feedback SEM rather than
-  return a misleading single-sweep number.
+- **Equilibrium total effects** (0.5.x): `total_effects()` routes a feedback SEM
+  through the fixed-point propagator and reports the **equilibrium** response
+  (`mediation = "equilibrium"`, `target = "mean"` only), with non-convergence
+  surfaced as `NA` + a warning. `direct_effects()` (the controlled direct effect,
+  which does not traverse the cycle) also works. The mean/distribution
+  **decomposition** through a cycle is undefined, so `indirect_effects()` /
+  `path_effects()` refuse a feedback SEM and point to `total_effects()`.
 - **`propagate_fixedpoint()`** (internal): iterate-to-equilibrium with a
   spectral-radius / max-iter guard and honest non-convergence; `drm_reduced_form()`
-  / `drm_spectral_radius()` give the linear `(I − B)^{-1} Gamma` estimand. A
-  closed-form test confirms the simulated equilibrium equals the reduced form.
+  / `drm_spectral_radius()` give the linear `(I − B)^{-1} Gamma` estimand;
+  `drm_equilibrium_contrast()` is the per-replicate effect contrast behind
+  `total_effects()`. Closed-form tests confirm the simulated equilibrium equals
+  the reduced form (V-42) and that the equilibrium total effect equals the
+  reduced-form total effect of the exposure (V-43).
 
-Remaining (next increments): wiring equilibrium effects into the public effect
-API, full sigma-separation, and **consistent estimation** (IV/2SLS or a joint
+Remaining (next increments): full sigma-separation, distributional (not just
+mean-map) feedback equilibria, and **consistent estimation** (IV/2SLS or a joint
 likelihood) — the engine part.
 
 ## What is pure-R vs engine
