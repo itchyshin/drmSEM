@@ -240,3 +240,14 @@ parse clean. Engine-path validation (natural effects + functionals on a live
 nonlinear drmTMB fit) is CI/roadmap (OQ-8/OQ-11). Migrated #4's design/memory
 content too: D-10/D-11, OQ-8/OQ-10/OQ-12, the 02-effect-calculus essay, and the
 05-roadmap phylo pointer.
+
+- **V-24 / OQ-12 — Unified effect-API surface.** `drm_effect_controls()` and
+  `drm_resolve_mediation()` (pure R, no drmTMB) map `uncertainty`/`nsim`/
+  `population`/`method` onto the engine knobs: defaults (`draw=TRUE`, `n_sim=50`),
+  `uncertainty` none/parametric → `draw` FALSE/TRUE, `nsim`→`n_sim` (integer),
+  `method` gcomp/simulate → mediation mean/distribution. Deprecated
+  `mediation`/`draw`/`n_sim` warn and are overridden by the new args.
+  `uncertainty="bootstrap"`→OQ-10 abort; `population="marginal"`→OQ-9 abort.
+  **DONE (pure-R, unit-tested in `test-effect-api.R`).** Engine-path parity
+  (new surface == deprecated aliases, identical estimates under a fixed seed) and
+  `direct_effects(target="p_zero")` finiteness are CI-gated in the same file.

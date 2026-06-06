@@ -180,7 +180,7 @@ draws* from its negative-binomial family, so the spread and zeros it carries are
 included:
 
 ```{r total, eval = has_engine}
-total_effects(sem, from = "size", to = "fitness", mediation = "distribution")
+total_effects(sem, from = "size", to = "fitness", method = "simulate")
 ```
 
 And the full five-number decomposition -- the object plotted at the top of this

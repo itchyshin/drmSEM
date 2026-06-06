@@ -9,11 +9,17 @@ direct_effects(
   from,
   to,
   component = NULL,
+  target = c("mean", "p_gt", "p_zero", "var"),
+  threshold = 0,
   at = NULL,
   B = 200L,
-  draw = TRUE,
+  uncertainty = NULL,
+  nsim = NULL,
+  population = NULL,
   level = 0.95,
   seed = NULL,
+  draw = NULL,
+  n_sim = NULL,
   ...
 )
 }
@@ -26,27 +32,49 @@ direct_effects(
 
 \item{component}{Optional component filter for the attached coefficient table.}
 
+\item{target}{Functional of the outcome distribution to report the effect on:
+\code{"mean"} (default), \code{"p_gt"} (Pr(Y > \code{threshold})), \code{"p_zero"} (Pr(Y = 0)),
+or \code{"var"} (Var(Y)). Non-mean targets simulate the outcome from its family
+(OQ-11).}
+
+\item{threshold}{Cutoff for \code{target = "p_gt"}.}
+
 \item{at}{Optional length-2 contrast values for \code{from}.}
 
-\item{B}{Monte-Carlo draws for coefficient uncertainty.}
+\item{B}{Number of uncertainty replicates (coefficient draws) used when
+\code{uncertainty = "parametric"}.}
 
-\item{draw}{Whether to propagate coefficient uncertainty (needs \code{vcov}).}
+\item{uncertainty}{How to propagate parameter uncertainty: \code{"parametric"}
+(draw coefficients from \code{MVN(coef, vcov)}, the default), \code{"none"} (MLE point
+estimate, no interval), or \code{"bootstrap"} (refit per replicate; not yet
+implemented, OQ-10).}
+
+\item{nsim}{Inner distributional realizations per uncertainty draw (used for
+non-mean \code{target}s).}
+
+\item{population}{\code{"conditional"} (random effects held at zero, the default)
+or \code{"marginal"} (integrate over the fitted random-effect distribution; not
+yet implemented, OQ-9).}
 
 \item{level}{Confidence level for the Monte-Carlo interval.}
 
 \item{seed}{Optional RNG seed.}
 
+\item{draw, n_sim}{Deprecated aliases for \code{uncertainty} (\code{draw = TRUE}/\code{FALSE}
+maps to \code{"parametric"}/\code{"none"}) and \code{nsim}; supplying either emits a
+deprecation warning.}
+
 \item{...}{Unused.}
 }
 \value{
-A one-row data frame (\code{from}, \code{to}, \code{scale}, \code{estimate},
+A one-row data frame (\code{from}, \code{to}, \code{scale}, \code{target}, \code{estimate},
 \code{conf.low}, \code{conf.high}) with a \code{coefficients} attribute.
 }
 \description{
 The controlled direct effect holds all mediators at their observed values and
 changes only \code{from}, so only the arrow(s) from \code{from} directly into \code{to}
-operate. Reported as the population-average change in the response-scale mean
-of \code{to} for a one-SD (numeric) or first-to-second-level (factor) change in
-\code{from}. The fitted direct coefficients are attached as a \code{coefficients}
-attribute.
+operate. Reported as the population-average change in the chosen \code{target}
+functional of \code{to} for a one-SD (numeric) or first-to-second-level (factor)
+change in \code{from}. The fitted direct coefficients are attached as a
+\code{coefficients} attribute.
 }

@@ -8,15 +8,19 @@ total_effects(
   object,
   from,
   to,
-  mediation = c("mean", "distribution"),
+  method = NULL,
   target = c("mean", "p_gt", "p_zero", "var"),
   threshold = 0,
   at = NULL,
   B = 200L,
-  n_sim = 50L,
-  draw = TRUE,
+  uncertainty = NULL,
+  nsim = NULL,
+  population = NULL,
   level = 0.95,
   seed = NULL,
+  mediation = NULL,
+  draw = NULL,
+  n_sim = NULL,
   ...
 )
 }
@@ -27,8 +31,9 @@ total_effects(
 
 \item{to}{Endogenous target node.}
 
-\item{mediation}{\code{"mean"} (mediator means propagate) or \code{"distribution"}
-(realized mediator draws propagate).}
+\item{method}{\code{"gcomp"} (mean mediation: deterministic g-computation on
+mediator expectations, the default) or \code{"simulate"} (mediators pass realized
+draws from their fitted families, capturing distribution-mediated paths).}
 
 \item{target}{Functional of the outcome distribution to report the effect on:
 \code{"mean"} (default), \code{"p_gt"} (Pr(Y > \code{threshold})), \code{"p_zero"} (Pr(Y = 0)),
@@ -39,15 +44,31 @@ family (OQ-11); see \code{docs/design/02-effect-calculus.md}.}
 
 \item{at}{Optional length-2 contrast values for \code{from}.}
 
-\item{B}{Monte-Carlo draws for coefficient uncertainty.}
+\item{B}{Number of uncertainty replicates (coefficient draws) used when
+\code{uncertainty = "parametric"}.}
 
-\item{n_sim}{Inner realizations per draw when \code{mediation = "distribution"}.}
+\item{uncertainty}{How to propagate parameter uncertainty: \code{"parametric"}
+(draw coefficients from \code{MVN(coef, vcov)}, the default), \code{"none"} (MLE point
+estimate, no interval), or \code{"bootstrap"} (refit per replicate; not yet
+implemented, OQ-10).}
 
-\item{draw}{Whether to propagate coefficient uncertainty (needs \code{vcov}).}
+\item{nsim}{Inner distributional realizations per uncertainty draw (used for
+non-mean \code{target}s).}
+
+\item{population}{\code{"conditional"} (random effects held at zero, the default)
+or \code{"marginal"} (integrate over the fitted random-effect distribution; not
+yet implemented, OQ-9).}
 
 \item{level}{Confidence level for the Monte-Carlo interval.}
 
 \item{seed}{Optional RNG seed.}
+
+\item{mediation}{Deprecated alias for \code{method} (\code{"mean"} maps to \code{"gcomp"},
+\code{"distribution"} to \code{"simulate"}); supplying it emits a deprecation warning.}
+
+\item{draw, n_sim}{Deprecated aliases for \code{uncertainty} (\code{draw = TRUE}/\code{FALSE}
+maps to \code{"parametric"}/\code{"none"}) and \code{nsim}; supplying either emits a
+deprecation warning.}
 
 \item{...}{Unused.}
 }
@@ -56,9 +77,9 @@ A one-row \code{drm_effect} data frame.
 }
 \description{
 Propagates a do()-style change in \code{from} through the whole DAG (all mediators
-respond) and reports the population-average change in the response-scale mean
-of \code{to}. With \code{mediation = "distribution"}, mediators pass realized draws from
-their families, so effects flowing through a mediator's scale, zero-inflation,
-or shape (distribution-mediated paths) are included; with \code{"mean"} only the
-mediator means propagate.
+respond) and reports the population-average change in the chosen \code{target}
+functional of \code{to}. With \code{method = "simulate"}, mediators pass realized draws
+from their families, so effects flowing through a mediator's scale,
+zero-inflation, or shape (distribution-mediated paths) are included; with
+\code{method = "gcomp"} only the mediator means propagate.
 }

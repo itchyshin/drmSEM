@@ -27,9 +27,9 @@ test_that("V-15: Gaussian mean-mediated effect equals the product of fitted path
   b_my <- p$estimate[p$from == "m" & p$to == "y" & p$component == "mu"]
   s <- contrast_width(dat$x)
 
-  # draw = FALSE makes the propagation deterministic; on identity links the
-  # mean-mediated effect is exactly b_xm * b_my * s.
-  ie <- indirect_effects(sem, from = "x", to = "y", draw = FALSE, n_sim = 1)
+  # uncertainty = "none" makes the propagation deterministic; on identity links
+  # the mean-mediated effect is exactly b_xm * b_my * s.
+  ie <- indirect_effects(sem, from = "x", to = "y", uncertainty = "none", nsim = 1)
   mm <- ie$estimate[ie$quantity == "mean_mediated"]
 
   expect_equal(mm, b_xm * b_my * s, tolerance = 0.02)
@@ -57,8 +57,8 @@ test_that("V-14: total = direct + indirect on an identity-link DAG with a direct
   b_my <- p$estimate[p$from == "m" & p$to == "y" & p$component == "mu"]
   s <- contrast_width(dat$x)
 
-  tot <- total_effects(sem, from = "x", to = "y", mediation = "mean", draw = FALSE)
-  ie <- indirect_effects(sem, from = "x", to = "y", draw = FALSE, n_sim = 1)
+  tot <- total_effects(sem, from = "x", to = "y", method = "gcomp", uncertainty = "none")
+  ie <- indirect_effects(sem, from = "x", to = "y", uncertainty = "none", nsim = 1)
   direct <- ie$estimate[ie$quantity == "direct"]
   indirect <- ie$estimate[ie$quantity == "mean_mediated"]
 

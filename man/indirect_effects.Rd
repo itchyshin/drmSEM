@@ -12,10 +12,13 @@ indirect_effects(
   effect = c("controlled", "natural"),
   at = NULL,
   B = 200L,
-  n_sim = 50L,
-  draw = TRUE,
+  uncertainty = NULL,
+  nsim = NULL,
+  population = NULL,
   level = 0.95,
   seed = NULL,
+  draw = NULL,
+  n_sim = NULL,
   ...
 )
 }
@@ -38,15 +41,28 @@ predicted \code{M(x0)} / \code{M(x1)} distributions; see
 
 \item{at}{Optional length-2 contrast values for \code{from}.}
 
-\item{B}{Monte-Carlo draws for coefficient uncertainty.}
+\item{B}{Number of uncertainty replicates (coefficient draws) used when
+\code{uncertainty = "parametric"}.}
 
-\item{n_sim}{Inner realizations per draw when \code{mediation = "distribution"}.}
+\item{uncertainty}{How to propagate parameter uncertainty: \code{"parametric"}
+(draw coefficients from \code{MVN(coef, vcov)}, the default), \code{"none"} (MLE point
+estimate, no interval), or \code{"bootstrap"} (refit per replicate; not yet
+implemented, OQ-10).}
 
-\item{draw}{Whether to propagate coefficient uncertainty (needs \code{vcov}).}
+\item{nsim}{Inner distributional realizations per uncertainty draw (used for
+non-mean \code{target}s).}
+
+\item{population}{\code{"conditional"} (random effects held at zero, the default)
+or \code{"marginal"} (integrate over the fitted random-effect distribution; not
+yet implemented, OQ-9).}
 
 \item{level}{Confidence level for the Monte-Carlo interval.}
 
 \item{seed}{Optional RNG seed.}
+
+\item{draw, n_sim}{Deprecated aliases for \code{uncertainty} (\code{draw = TRUE}/\code{FALSE}
+maps to \code{"parametric"}/\code{"none"}) and \code{nsim}; supplying either emits a
+deprecation warning.}
 
 \item{...}{Unused.}
 }
@@ -63,4 +79,12 @@ decomposed into a \strong{mean-mediated} part (mediator means propagate) and a
 \strong{distribution-mediated} part (the extra effect that appears when mediators
 pass realized draws, i.e. flowing through mediator scale / zero-inflation /
 shape).
+}
+\details{
+\code{indirect_effects()} does not take a \code{method} argument: the controlled
+decomposition is formed from \emph{both} the mean-mediated and
+distribution-mediated legs, and the natural decomposition always uses
+distribution mediation, so neither has a single mean/distribution choice to
+make. The shared \code{uncertainty}, \code{nsim}, and \code{population} controls apply as
+elsewhere.
 }

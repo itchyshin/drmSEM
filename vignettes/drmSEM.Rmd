@@ -223,12 +223,12 @@ direct_effects(sem, from = "temp", to = "survival")
 ```
 
 **Total effect.** Let every mediator respond. With
-`mediation = "distribution"`, mediators pass *realized draws* from their fitted
+`method = "simulate"`, mediators pass *realized draws* from their fitted
 families, so effects flowing through a mediator's `sigma`, `zi`, or `nu` are
-included. With `mediation = "mean"`, only mediator means propagate.
+included. With `method = "gcomp"` (the default), only mediator means propagate.
 
 ```{r total}
-total_effects(sem, from = "temp", to = "survival", mediation = "distribution")
+total_effects(sem, from = "temp", to = "survival", method = "simulate")
 ```
 
 **Indirect effect with a distributional decomposition.** This is the heart of

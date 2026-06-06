@@ -148,7 +148,21 @@ analytic (non-simulated) functionals, and decide the default reporting scale and
 CI construction. This is the headline for Phase 4 (distributional phylogenetic
 SEM, see `06-phylogenetic-sem.md`).
 
-## OQ-12 — Effect API harmonization
+## OQ-12 — Effect API harmonization  [RESOLVED 2026-06-06, see D-13]
+
+**Resolution.** The unified surface ships in `R/effects_api.R`:
+`direct_effects()`, `total_effects()`, and `indirect_effects()` share
+`uncertainty = c("parametric","none","bootstrap")`, `nsim`, and `population =
+c("conditional","marginal")`; `total_effects()` adds `method =
+c("gcomp","simulate")`; `target` is now on `direct_effects()` as well as
+`total_effects()`. `drm_effect_controls()` / `drm_resolve_mediation()` map these
+onto the unchanged engine knobs (`mediation`/`draw`/`B`/`n_sim`). The old
+`mediation`/`draw`/`n_sim` remain as **deprecated aliases** (warn, new arg wins).
+Not-yet-implemented choices abort early with an OQ pointer: `uncertainty =
+"bootstrap"` (OQ-10) and `population = "marginal"` (OQ-9). The pure-R
+normalizers are unit-tested in `test-effect-api.R` (no drmTMB), and new-vs-old
+parity + early-abort are CI-gated in the same file. `indirect_effects()`
+intentionally has no `method` (it needs both legs). Original note below.
 
 Surface `indirect_effects(..., method = c("gcomp","simulate"), uncertainty =
 c("none","parametric","bootstrap"), nsim, population, target)` mapping onto the

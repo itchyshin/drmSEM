@@ -152,8 +152,8 @@ decomposition (`natural_direct`, `natural_indirect`, `mediated_interaction`)
 instead.
 
 **Mean vs distribution mediation.** What an active mediator passes downstream is
-the crux. Under `mediation = "mean"` it passes its expected `mu`; under
-`mediation = "distribution"` it passes a **realized draw** from its fitted family,
+the crux. Under `total_effects(method = "gcomp")` it passes its expected `mu`;
+under `method = "simulate"` it passes a **realized draw** from its fitted family,
 using all of its response-scale parameters (`sigma`, `zi`, `nu`, trials, ...).
 Only the latter carries signal that lives in a mediator's scale, zeros, or shape.
 
@@ -179,7 +179,7 @@ linear-Gaussian recovery case.
 
 ```{r effects}
 direct_effects(sem,   from = "temp", to = "survival")
-total_effects(sem,    from = "temp", to = "survival", mediation = "distribution")
+total_effects(sem,    from = "temp", to = "survival", method = "simulate")
 indirect_effects(sem, from = "temp", to = "survival")  # the five-row decomposition
 indirect_effects(sem, from = "temp", to = "survival", effect = "natural")  # NDE / NIE / mediated interaction
 ```

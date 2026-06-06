@@ -300,3 +300,34 @@ files:
 After this lands and #6 CI is green: merge #6 → main, bump 0.1.0 + NEWS +
 cran-comments, tag v0.1.0, and close #4 as reconciled (its unique content now
 lives on #6).
+
+## 2026-06-06 — OQ-12 unified effect-API surface (post-0.1, branch claude/resume-aybDD)
+
+Resumed after the 0.1.0 release (PR #6 merged; tree == main). Picked OQ-12 — the
+pure-R/CI-validatable next step from issue #5 — over the drmTMB-dependent handoff
+tasks in #2 (this lane still cannot compile drmTMB).
+
+- **New file `R/effects_api.R`:** `drm_effect_controls()` maps
+  `uncertainty`/`nsim`/`population` (+ deprecated `draw`/`n_sim`) onto the engine
+  `draw`/`n_sim`; `drm_resolve_mediation()` maps `method` (+ deprecated
+  `mediation`) onto mean/distribution. No simulation kernel touched.
+- **`R/effects.R`:** all three effect functions take the unified surface;
+  `total_effects()` gains `method`, `direct_effects()` gains `target`/`threshold`
+  (controlled functional direct effect via the existing functional kernel).
+  Deprecated aliases warn (plain `cli_warn`, every call, so reliably testable) and
+  are overridden by the new args. `uncertainty="bootstrap"`→OQ-10 abort,
+  `population="marginal"`→OQ-9 abort, both fired before `drm_require_drmTMB()`.
+- **Hand-wrote `man/{direct,total,indirect}_effects.Rd`** to match the new
+  roxygen (no R/roxygen in this lane; per the standing process lesson, man/ ships
+  in the same commit). NAMESPACE unchanged (helpers are internal).
+- **Tests `test-effect-api.R`:** pure-R unit tests for both normalizers (mapping,
+  deprecation warnings, OQ-9/OQ-10 aborts) that need no drmTMB, plus drmTMB-gated
+  parity (new surface == deprecated aliases under a fixed seed) and a
+  `direct_effects(target="p_zero")` smoke.
+- **Docs/memory:** 02-effect-calculus "API harmonization" flipped planned→
+  implemented (+ knob list + speed tiers + OQ-8/OQ-11 status lines); vignettes
+  migrated `mediation=`→`method=`; OQ-12 marked RESOLVED; D-13 added; V-24
+  recorded; NEWS dev section + version bump to 0.1.0.9000.
+
+Engine-path parity is CI-gated (the lane cannot run drmTMB locally); the pure-R
+normalizer tests run everywhere.

@@ -158,7 +158,7 @@ test_that("dsep() augment-refit resolves the phylo tree and succeeds (OQ-13)", {
 
 test_that("total_effects() propagates through a phylogenetic node", {
   sem <- make_phylo_sem()
-  te <- total_effects(sem, from = "x", to = "y2", B = 50, n_sim = 20)
+  te <- total_effects(sem, from = "x", to = "y2", B = 50, nsim = 20)
   expect_s3_class(te, "drm_effect")
   expect_true(is.finite(te$estimate))
 })

@@ -70,35 +70,67 @@ drm_validate_effect_args <- function(object, from, to) {
 #'
 #' The controlled direct effect holds all mediators at their observed values and
 #' changes only `from`, so only the arrow(s) from `from` directly into `to`
-#' operate. Reported as the population-average change in the response-scale mean
-#' of `to` for a one-SD (numeric) or first-to-second-level (factor) change in
-#' `from`. The fitted direct coefficients are attached as a `coefficients`
-#' attribute.
+#' operate. Reported as the population-average change in the chosen `target`
+#' functional of `to` for a one-SD (numeric) or first-to-second-level (factor)
+#' change in `from`. The fitted direct coefficients are attached as a
+#' `coefficients` attribute.
 #'
 #' @param object A `drm_sem` object.
 #' @param from Predictor variable or node name.
 #' @param to Endogenous target node.
 #' @param component Optional component filter for the attached coefficient table.
+#' @param target Functional of the outcome distribution to report the effect on:
+#'   `"mean"` (default), `"p_gt"` (Pr(Y > `threshold`)), `"p_zero"` (Pr(Y = 0)),
+#'   or `"var"` (Var(Y)). Non-mean targets simulate the outcome from its family
+#'   (OQ-11).
+#' @param threshold Cutoff for `target = "p_gt"`.
 #' @param at Optional length-2 contrast values for `from`.
-#' @param B Monte-Carlo draws for coefficient uncertainty.
-#' @param draw Whether to propagate coefficient uncertainty (needs `vcov`).
+#' @param B Number of uncertainty replicates (coefficient draws) used when
+#'   `uncertainty = "parametric"`.
+#' @param uncertainty How to propagate parameter uncertainty: `"parametric"`
+#'   (draw coefficients from `MVN(coef, vcov)`, the default), `"none"` (MLE point
+#'   estimate, no interval), or `"bootstrap"` (refit per replicate; not yet
+#'   implemented, OQ-10).
+#' @param nsim Inner distributional realizations per uncertainty draw (used for
+#'   non-mean `target`s).
+#' @param population `"conditional"` (random effects held at zero, the default)
+#'   or `"marginal"` (integrate over the fitted random-effect distribution; not
+#'   yet implemented, OQ-9).
 #' @param level Confidence level for the Monte-Carlo interval.
 #' @param seed Optional RNG seed.
+#' @param draw,n_sim Deprecated aliases for `uncertainty` (`draw = TRUE`/`FALSE`
+#'   maps to `"parametric"`/`"none"`) and `nsim`; supplying either emits a
+#'   deprecation warning.
 #' @param ... Unused.
-#' @return A one-row data frame (`from`, `to`, `scale`, `estimate`,
+#' @return A one-row data frame (`from`, `to`, `scale`, `target`, `estimate`,
 #'   `conf.low`, `conf.high`) with a `coefficients` attribute.
 #' @export
-direct_effects <- function(object, from, to, component = NULL, at = NULL,
-                           B = 200L, draw = TRUE, level = 0.95, seed = NULL, ...) {
+direct_effects <- function(object, from, to, component = NULL,
+                           target = c("mean", "p_gt", "p_zero", "var"),
+                           threshold = 0, at = NULL, B = 200L,
+                           uncertainty = NULL, nsim = NULL, population = NULL,
+                           level = 0.95, seed = NULL,
+                           draw = NULL, n_sim = NULL, ...) {
+  target <- match.arg(target)
   drm_validate_effect_args(object, from, to)
+  ctl <- drm_effect_controls(uncertainty, nsim, population, draw, n_sim,
+                             default_draw = TRUE, default_nsim = 50L)
   drm_require_drmTMB()
   engines <- drm_engines_from_sem(object)
   scen <- drm_build_scenarios(object, from, at)
-  vals <- drm_effect_contrast(engines, scen, to, active = character(0),
-                              mediation = "mean", B = B, n_sim = 1L,
-                              draw = draw, seed = seed)
+  vals <- if (identical(target, "mean")) {
+    drm_effect_contrast(engines, scen, to, active = character(0),
+                        mediation = "mean", B = B, n_sim = 1L,
+                        draw = ctl$draw, seed = seed)
+  } else {
+    drm_functional_contrast(engines, scen, to, active = character(0),
+                            mediation = "distribution", target = target,
+                            threshold = threshold, B = B, n_sim = ctl$n_sim,
+                            draw = ctl$draw, seed = seed)
+  }
   out <- cbind(data.frame(from = from, to = to, scale = "response",
-                          stringsAsFactors = FALSE), drm_summ(vals, level))
+                          target = target, stringsAsFactors = FALSE),
+               drm_summ(vals, level))
   ptab <- paths(object)
   ptab <- ptab[ptab$to == to & ptab$from == from, , drop = FALSE]
   if (!is.null(component)) ptab <- ptab[ptab$component %in% component, , drop = FALSE]
@@ -110,46 +142,52 @@ direct_effects <- function(object, from, to, component = NULL, at = NULL,
 #' Total effect of a predictor on a node by simulation
 #'
 #' Propagates a do()-style change in `from` through the whole DAG (all mediators
-#' respond) and reports the population-average change in the response-scale mean
-#' of `to`. With `mediation = "distribution"`, mediators pass realized draws from
-#' their families, so effects flowing through a mediator's scale, zero-inflation,
-#' or shape (distribution-mediated paths) are included; with `"mean"` only the
-#' mediator means propagate.
+#' respond) and reports the population-average change in the chosen `target`
+#' functional of `to`. With `method = "simulate"`, mediators pass realized draws
+#' from their families, so effects flowing through a mediator's scale,
+#' zero-inflation, or shape (distribution-mediated paths) are included; with
+#' `method = "gcomp"` only the mediator means propagate.
 #'
 #' @inheritParams direct_effects
-#' @param mediation `"mean"` (mediator means propagate) or `"distribution"`
-#'   (realized mediator draws propagate).
-#' @param n_sim Inner realizations per draw when `mediation = "distribution"`.
+#' @param method `"gcomp"` (mean mediation: deterministic g-computation on
+#'   mediator expectations, the default) or `"simulate"` (mediators pass realized
+#'   draws from their fitted families, capturing distribution-mediated paths).
 #' @param target Functional of the outcome distribution to report the effect on:
 #'   `"mean"` (default), `"p_gt"` (Pr(Y > `threshold`)), `"p_zero"` (Pr(Y = 0)),
 #'   or `"var"` (Var(Y)). Distributional targets simulate the outcome from its
 #'   family (OQ-11); see `docs/design/02-effect-calculus.md`.
 #' @param threshold Cutoff for `target = "p_gt"`.
+#' @param mediation Deprecated alias for `method` (`"mean"` maps to `"gcomp"`,
+#'   `"distribution"` to `"simulate"`); supplying it emits a deprecation warning.
 #' @return A one-row `drm_effect` data frame.
 #' @export
-total_effects <- function(object, from, to, mediation = c("mean", "distribution"),
-                          target = c("mean", "p_gt", "p_zero", "var"), threshold = 0,
-                          at = NULL, B = 200L, n_sim = 50L, draw = TRUE,
-                          level = 0.95, seed = NULL, ...) {
-  mediation <- match.arg(mediation)
+total_effects <- function(object, from, to, method = NULL,
+                          target = c("mean", "p_gt", "p_zero", "var"),
+                          threshold = 0, at = NULL, B = 200L,
+                          uncertainty = NULL, nsim = NULL, population = NULL,
+                          level = 0.95, seed = NULL,
+                          mediation = NULL, draw = NULL, n_sim = NULL, ...) {
   target <- match.arg(target)
+  mediation_resolved <- drm_resolve_mediation(method, mediation)
   drm_validate_effect_args(object, from, to)
+  ctl <- drm_effect_controls(uncertainty, nsim, population, draw, n_sim,
+                             default_draw = TRUE, default_nsim = 50L)
   drm_require_drmTMB()
   engines <- drm_engines_from_sem(object)
   scen <- drm_build_scenarios(object, from, at)
   active <- setdiff(object$endogenous, c(from, to))
   vals <- if (identical(target, "mean")) {
     drm_effect_contrast(engines, scen, to, active = active,
-                        mediation = mediation, B = B, n_sim = n_sim,
-                        draw = draw, seed = seed)
+                        mediation = mediation_resolved, B = B, n_sim = ctl$n_sim,
+                        draw = ctl$draw, seed = seed)
   } else {
     drm_functional_contrast(engines, scen, to, active = active,
-                            mediation = mediation, target = target,
-                            threshold = threshold, B = B, n_sim = n_sim,
-                            draw = draw, seed = seed)
+                            mediation = mediation_resolved, target = target,
+                            threshold = threshold, B = B, n_sim = ctl$n_sim,
+                            draw = ctl$draw, seed = seed)
   }
   out <- cbind(data.frame(from = from, to = to, scale = "response",
-                          mediation = mediation, target = target,
+                          mediation = mediation_resolved, target = target,
                           stringsAsFactors = FALSE),
                drm_summ(vals, level))
   class(out) <- c("drm_effect", "data.frame")
@@ -174,6 +212,13 @@ total_effects <- function(object, from, to, mediation = c("mean", "distribution"
 #'   direct/indirect effects (Pearl/Imai), holding the mediators at their
 #'   predicted `M(x0)` / `M(x1)` distributions; see
 #'   `docs/design/02-effect-calculus.md`.
+#' @details
+#' `indirect_effects()` does not take a `method` argument: the controlled
+#' decomposition is formed from *both* the mean-mediated and
+#' distribution-mediated legs, and the natural decomposition always uses
+#' distribution mediation, so neither has a single mean/distribution choice to
+#' make. The shared `uncertainty`, `nsim`, and `population` controls apply as
+#' elsewhere.
 #' @return A `drm_effect` data frame. For `effect = "controlled"`, rows
 #'   `total_path`, `direct`, `indirect`, `mean_mediated`, `distribution_mediated`.
 #'   For `effect = "natural"`, rows `total_path`, `natural_direct`,
@@ -181,10 +226,14 @@ total_effects <- function(object, from, to, mediation = c("mean", "distribution"
 #' @export
 indirect_effects <- function(object, from, to, through = NULL,
                              effect = c("controlled", "natural"),
-                             at = NULL, B = 200L, n_sim = 50L, draw = TRUE,
-                             level = 0.95, seed = NULL, ...) {
+                             at = NULL, B = 200L,
+                             uncertainty = NULL, nsim = NULL, population = NULL,
+                             level = 0.95, seed = NULL,
+                             draw = NULL, n_sim = NULL, ...) {
   effect <- match.arg(effect)
   drm_validate_effect_args(object, from, to)
+  ctl <- drm_effect_controls(uncertainty, nsim, population, draw, n_sim,
+                             default_draw = TRUE, default_nsim = 50L)
   drm_require_drmTMB()
   engines <- drm_engines_from_sem(object)
   scen <- drm_build_scenarios(object, from, at)
@@ -193,13 +242,13 @@ indirect_effects <- function(object, from, to, through = NULL,
 
   if (identical(effect, "natural")) {
     if (!is.null(seed)) set.seed(seed)
-    reps <- if (isTRUE(draw)) B else 1L
+    reps <- if (isTRUE(ctl$draw)) B else 1L
     mat <- matrix(NA_real_, reps, 3L, dimnames = list(NULL, c("nde", "nie", "total")))
     for (bi in seq_len(reps)) {
-      beta_list <- lapply(engines, drm_draw_beta, draw = draw)
+      beta_list <- lapply(engines, drm_draw_beta, draw = ctl$draw)
       names(beta_list) <- names(engines)
       mat[bi, ] <- drm_natural_target(engines, scen, scen$column, to, active,
-                                      "distribution", beta_list, n_sim)
+                                      "distribution", beta_list, ctl$n_sim)
     }
     rows <- rbind(
       cbind(data.frame(quantity = "total_path"), drm_summ(mat[, "total"], level)),
@@ -219,9 +268,9 @@ indirect_effects <- function(object, from, to, through = NULL,
   }
 
 
-  cde <- drm_effect_contrast(engines, scen, to, character(0), "mean", B, 1L, draw, seed)
-  tot_mean <- drm_effect_contrast(engines, scen, to, active, "mean", B, n_sim, draw, seed)
-  tot_dist <- drm_effect_contrast(engines, scen, to, active, "distribution", B, n_sim, draw, seed)
+  cde <- drm_effect_contrast(engines, scen, to, character(0), "mean", B, 1L, ctl$draw, seed)
+  tot_mean <- drm_effect_contrast(engines, scen, to, active, "mean", B, ctl$n_sim, ctl$draw, seed)
+  tot_dist <- drm_effect_contrast(engines, scen, to, active, "distribution", B, ctl$n_sim, ctl$draw, seed)
 
   ind_mean <- tot_mean - cde
   ind_dist <- tot_dist - cde
