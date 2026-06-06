@@ -106,9 +106,18 @@ test_that("by-component: mean channel is exact, distributional channel matches t
   expect_equal(dist_ch, D, tolerance = 0.06)
   # the two channels partition the inclusion effect exactly
   expect_equal(mean(pc$mean_inclusion$M) + dist_ch, mean(pc$inclusion$M), tolerance = 1e-12)
-  # flat scale (s1 = 0) -> the distributional channel carries nothing
-  pc0 <- run(0)
-  expect_equal(mean(pc0$inclusion$M - pc0$mean_inclusion$M), 0, tolerance = 0.02)
+  # negative control: a LINEAR outcome has no Jensen gap, so the distributional
+  # channel is zero regardless of the scale path. (A flat sigma does NOT zero the
+  # channel under a nonlinear outcome: the constant variance-inflation still moves
+  # with the mean through the nonlinearity.)
+  eng_lin <- list(
+    M = pe_engine2("M", function(s) a * s$x, function(s) exp(s0 + 0.9 * s$x)),
+    Y = pe_engine("Y", function(s) 0.6 * s$M)
+  )
+  pc_lin <- drmSEM:::drm_path_contrasts(eng_lin, scen, "Y", "M",
+                                        mediation = "distribution",
+                                        B = 1, n_sim = 2000, draw = FALSE)
+  expect_equal(mean(pc_lin$inclusion$M - pc_lin$mean_inclusion$M), 0, tolerance = 0.02)
 })
 
 test_that("a single mediator: inclusion = exclusion = total, remainder 0", {

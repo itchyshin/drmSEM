@@ -302,7 +302,11 @@ through its `sigma`/`zi`/shape). These two sum **exactly** to that mediator's
 inclusion effect, so there is no remainder — it is the per-mediator analogue of
 the set-level `mean_mediated` / `distribution_mediated` split, with no kernel
 change. The mean channel is deterministic; the distributional channel matches the
-lognormal closed form (`test-path-effects.R`, by-component).
+lognormal closed form (`test-path-effects.R`, by-component). Note the
+distributional channel captures the whole **Jensen-gap response** to `x`, so it is
+non-zero even when `sigma` is *constant* in `x` (a flat but non-trivial spread
+still moves with the mean through a nonlinear outcome); it is zero only when the
+outcome is linear in the mediator.
 
 This is a **model-based decomposition**, not a claim of nonparametric
 path-specific identification: the cross-world natural path-specific effects are
