@@ -1,9 +1,12 @@
-# drmSEM 0.0.0.9000 (development)
+# drmSEM 0.1.0
 
-First development version of **drmSEM** — a distributional piecewise structural
+First public release of **drmSEM** — a distributional piecewise structural
 equation modelling layer built on the [`drmTMB`](https://github.com/itchyshin/drmTMB)
 fitting engine. drmSEM does not fit its own likelihoods; each endogenous node is
-one `drmTMB` fit and the system is piecewise over a DAG.
+one `drmTMB` fit and the system is piecewise over a DAG. Causal paths can target
+any distributional component (mean, scale, zero-inflation, shape, random-effect
+scale, residual correlation), and effects are estimated by Monte-Carlo
+counterfactual propagation rather than coefficient products.
 
 ## Building a SEM
 
