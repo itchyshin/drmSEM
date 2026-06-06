@@ -59,8 +59,11 @@ live-fit analytic-effect tier flip, and OQ-14 joint fit.
 - This is the joint-*fit* milestone for bivariate covariance edges (OQ-14,
   D-14): `drm_pair()` joint bivariate fitting, `rho12()` / `corpairs()`
   read-back from a live fit, and double-headed / dashed-arc plotting. The
-  covariance-edge *grammar* + d-separation-*awareness* layer already landed in
-  0.1.x (`R/covariances.R`); only the engine-dependent fit/read-back/render
+  covariance-edge *grammar* + d-separation-*awareness* layer landed in 0.2.0
+  (`R/covariances.R`), and the bivariate-node *declaration* grammar —
+  `drm_pair()`, `drm_expand_pair()`, and the `rho12()` / `corpairs()` accessors
+  returning the declared edges with an `NA` (engine-hook) estimate — landed in
+  0.2.x (`R/pair.R`). Only the engine-dependent joint fit / read-back / render
   pieces remain here.
 
 ## 0.5 — Cyclic / feedback graphs

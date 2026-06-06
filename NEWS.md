@@ -1,5 +1,23 @@
 # drmSEM 0.2.0.9000 (development version)
 
+## Bivariate nodes (0.4, grammar layer)
+
+* `drm_pair()` declares a **bivariate (joint two-response) node** — two response
+  formulas, two families, an optional `rho12 ~ x` residual-correlation model (a
+  directed path *into* the `rho12` component), and an auto-detected higher-level
+  `corpair` edge where the two responses share a grouping level. It is the
+  bivariate counterpart of `drm_node()`.
+* `drm_expand_pair()` bridges a pair onto the shipped covariance-edge grammar
+  (two `drm_node()` sub-nodes + `covary()` edges), so the residual (`rho12`) and
+  higher-level (`corpair`) arcs flow through `covariances()` / `basis_set()` /
+  `dsep()` unchanged — the documented hook point for the 0.4 joint fit.
+* `rho12()` and `corpairs()` accessors report the declared residual and
+  higher-level correlation edges (of a `drm_pair` or a `drm_sem`), kept separate
+  from `paths()`. **The `estimate` is `NA`:** drmSEM never fits its own
+  likelihoods, so reading a *fitted* correlation back needs a live bivariate
+  `drmTMB` fit (the 0.4 engine deliverable). The declaration is never a
+  fabricated estimate. See `docs/design/07-bivariate-covariance-edges.md`.
+
 ## Path-specific effects (OQ-5)
 
 * `path_effects(effect = "natural")` reports each mediator's cross-world **natural
