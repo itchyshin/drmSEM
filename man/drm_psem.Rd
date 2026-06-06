@@ -5,7 +5,7 @@
 \alias{summary.drm_sem}
 \title{Assemble a distributional piecewise SEM from fitted drmTMB models}
 \usage{
-drm_psem(..., data = NULL, covariances = NULL)
+drm_psem(..., data = NULL, covariances = NULL, composites = NULL)
 
 \method{summary}{drm_sem}(object, ...)
 }
@@ -22,6 +22,10 @@ recording residual (\code{rho12}) or higher-level (\code{corpair}) covariance ed
 between responses. These are reported by \code{\link[=covariances]{covariances()}} and respected by
 \code{\link[=basis_set]{basis_set()}} / \code{\link[=dsep]{dsep()}}, but never enter \code{\link[=paths]{paths()}} or the effect
 decomposition.}
+
+\item{composites}{Optional \code{\link[=drm_composite]{drm_composite()}} declaration(s). For \code{drm_psem()}
+the construct column(s) must already be present in the data the nodes were
+fitted on; the declarations are recorded so \code{\link[=loadings]{loadings()}} can report them.}
 
 \item{object}{A \code{drm_sem} object.}
 }

@@ -291,3 +291,33 @@ this lane cannot run R to verify a new standardization denominator against a
 fit; the refinements are specified precisely for the engine lane. Recorded the
 `sd(eta)`-omits-`sigma_E` finding as a known limitation in `?standardize` and the
 design doc rather than silently leaving it undocumented.
+
+## D-16 — 0.3 starts with composite (formative) constructs; reflective deferred
+
+The 0.3 "latent variables" milestone is split. **Composite constructs ship now**
+(`R/composite.R`): `drm_composite()` materializes a deterministic weighted-sum
+(`fixed`) or first-PC (`pca`) index of observed indicators as a column before
+fitting, so it is an ordinary observed variable to the rest of the engine — no
+joint likelihood, no drmTMB change. `loadings()` reports the measurement loadings
+separately from `paths()`, mirroring the `covariances()` pattern (D-14).
+
+**Choices.**
+- *Pre-fit materialization.* The construct column is built before node fitting
+  (`drm_apply_composites()` in `drm_sem()`); `drm_psem()` only records the spec
+  (the column must already be in the fitted data). The score is recomputed from
+  the fitting data via the stored loadings so the reported loadings and the
+  materialized column are always consistent.
+- *Not a node.* A composite is a derived column, not a fitted node, so it never
+  appears in `object$records`/`order`; d-separation therefore generates no
+  `indicator _||_ construct` claim (nothing to special-case). Loadings are kept
+  out of `$edges`/`paths()`.
+- *Honest limitations, documented:* indicators are leaves (intervene on the
+  construct, not an indicator); loadings are not yet drawn as measurement arcs.
+- *Reflective deferred.* A reflective latent needs a joint measurement likelihood
+  drmTMB does not fit piecewise → 0.4 / lavaan interop, not 0.3. A pre-fit
+  factor-score plug-in would just be a composite with external weights that
+  ignores score uncertainty, so it is not advertised as reflective SEM.
+
+Validation: `test-composite.R` (pure-R) — construction (fixed + pca, sign/prop_var),
+scoring, validation errors, `drm_build_composites`/`drm_apply_composites`, and the
+`loadings()` accessor. See V-31.

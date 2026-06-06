@@ -37,6 +37,11 @@ reference:
     contents:
       - covary
       - covariances
+  - title: Latent constructs
+    desc: Build composite (formative) constructs from observed indicators.
+    contents:
+      - drm_composite
+      - loadings
   - title: d-separation
     desc: Test missing arrows on any distributional component.
     contents:
