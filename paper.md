@@ -83,8 +83,10 @@ added to *every* component sub-formula and comparing to the base node with a
 likelihood-ratio test (`df` equal to the number of added coefficients).
 `fisher_c()` combines the claim p-values into Fisher's C [@Shipley2009] on `2k`
 degrees of freedom. The any-component definition is a deliberate, novel research
-choice; its small-sample calibration is an open question, and the test is
-labelled experimental.
+choice; its OQ-6 calibration grid (mean-only, distributional, and cross-link
+DGPs; `n` from 100 to 1000; 200 replicates per cell) met the pre-specified
+Type-I, augmented-component-count, Fisher-uniformity, and power criteria. Broader
+Fisher's C and d-separation settings remain claim-scoped until separately tested.
 
 **Simulation-based direct, indirect, and total effects.** Coefficient products
 are valid only on a single linear identity-link scale; `drmSEM` paths cross links

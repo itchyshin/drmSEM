@@ -78,7 +78,7 @@ Bollen). Open:
 - Should standardized effects be reported on the link scale only, or also
   back-transformed?
 
-## OQ-5 — Expose path-specific effects beyond a mediator set?  [PARTIAL 2026-06-06, see D-17]
+## OQ-5 — Expose path-specific effects beyond a mediator set?  [PARTIAL 2026-06-06, see D-17/D-19]
 
 **Partial.** `path_effects(object, from, to, through=)` ships the **per-mediator**
 decomposition (D-17, V-32): `inclusion(Mj) = T({Mj}) - direct` and
@@ -92,8 +92,9 @@ ships the **per-component** split — `mean_channel` + `sigma_channel`/`zi_chann
 (each via `drm_freeze_engine()`, freezing that component at its x0 value) + a
 `component_remainder` for the non-separable part — kernel-verified against the
 lognormal closed forms (V-34). **Still open:** the cross-world natural variant with
-a recanting-witness guard, `NA` handling for unconfirmed-sampler families, and a
-live-fit integration test (real-family sampler accuracy) before promotion.
+a recanting-witness guard; the `identified` flag is kernel-verified (V-35).
+**Still open:** `NA` handling for unconfirmed-sampler families and a live-fit
+integration test (real-family sampler accuracy) before broad promotion.
 Original note below.
 
 `indirect_effects(..., through = )` routes through a *set* of mediator nodes. We
@@ -104,25 +105,43 @@ routing sufficient for the target audience, or do we need per-path / per-compone
 effect attribution? This interacts with how distribution-mediated effects are
 attributed when a mediator has several non-mean components.
 
-## OQ-6 — Fisher's C calibration under the any-component augmentation  [SCAFFOLDED 2026-06-06]
+## OQ-6 — Fisher's C calibration under the any-component augmentation  [RESOLVED 2026-06-06]
 
 The any-component d-separation test augments every component of Y with X, so the
 LRT df can be larger than the mean-only case, and the independence-claim
-p-values may not be uniform under the null in finite samples. We have not
-established the Type-I rate or power of Fisher's C under this scheme. Blocks
-V-17. Resolve by a simulation study before promoting d-sep to "validated".
+p-values may not be uniform under the null in finite samples.
 
 **Scaffolded (2026-06-06).** The study is fully designed (DGP ladder: mean-only /
 distributional `zi`-`sigma` / cross-link; `n` in {100,250,500,1000}; reps;
 Type-I + uniformity + power; the centrepiece diagnostic is empirical Type-I
-**stratified by augmented-component count** `q`) with explicit acceptance criteria
-to promote V-17. The precomputed vignette (`vignettes/calibration.Rmd`, never
-fits) and the live-drmTMB regeneration script (`inst/calibration/generate.R`,
-produces `inst/calibration/calibration-results.rds`) are in place; the cache must
-be generated in the Codex/live-drmTMB lane (millions of TMB fits — far outside the
-CI budget). Until the cache exists and meets the criteria, the d-sep test stays
-labelled **experimental** everywhere (no "validated"/"calibrated"/"near nominal"
-wording). The 20-rep `test-calibration.R` remains the fast smoke check only.
+**stratified by augmented-component count** `q`). The precomputed vignette
+(`vignettes/calibration.Rmd`, never fits) and the live-drmTMB regeneration script
+(`inst/calibration/generate.R`, produces
+`inst/calibration/calibration-results.rds`) are in place; the cache must be
+generated in the Codex/live-drmTMB lane (outside the CI budget). The 20-rep
+`test-calibration.R` remains the fast smoke check only.
+
+**Acceptance criteria for V-17 (explicit 2026-06-06).** Promote only if all five
+pass in `cal$acceptance`: (1) every family x n x beta cell has at least 95% ok
+finite claim p-values; (2) every beta=0 family x n Type-I estimate lies inside
+the 99% binomial Monte-Carlo band around alpha; (3) every beta=0 family x
+augmented-component-count (`claim_df`) Type-I estimate lies inside the same band;
+(4) null Fisher's C p-values have KS p >= 0.01 and median p in [0.40, 0.60]; and
+(5) power is high and ordered: beta=0.8 gives power >= 0.80 in every family x n
+cell, beta=0.5 gives power >= 0.70 for n >= 250, and power is nondecreasing aside
+from at most 0.05 Monte-Carlo jitter.
+
+**Resolution.** Codex generated the cache on 2026-06-06 with live `drmTMB`
+0.1.3.9000 at Git SHA `17b1321` and `drmSEM` 0.2.0.9000 at git SHA `c951d31`.
+The full grid (3 DGP families x 4 sample sizes x 6 omitted-edge strengths x 200
+reps = 14,400 replicates) completed with all finite ok claims. All five C1-C5 checks in
+`cal$acceptance` passed: Type-I by family/n stayed in the 99% binomial
+Monte-Carlo band (range 0.025-0.080), Type-I by family/claim_df passed
+(`claim_df=1`: 0.0525 and 0.05625; `claim_df=2`: 0.045), null Fisher's C
+p-values were uniform enough (KS p = 0.631, median p = 0.499), and power was 1.0
+for beta=0.8 in every cell and beta=0.5 for n>=250. V-17 is validated for this
+OQ-6 grid; do not generalize beyond these DGP families without a new calibration
+study.
 
 ## OQ-7 — `TMB::sdreport` returns NaN standard errors on the canonical test DGP
 

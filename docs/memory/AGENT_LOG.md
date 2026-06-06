@@ -515,3 +515,44 @@ stays clean. Holding NEWS/ledger bullets for a reconciliation pass after Codex l
   reflective-flavoured (pca) reading.
 Next increments (B) composite-as-response + effects/d-sep through a composite;
 (C) latent-variables vignette.
+
+## 2026-06-06 — Codex live-drmTMB OQ-6 calibration closeout
+
+Codex picked up the live-engine handoff on branch `codex/live-drmtmb-closeout`
+from `origin/main` (`3ab2c63`, after PR #12), then rebased the uncommitted
+calibration work onto `c951d31` after the 0.2.0 release and OQ-5 natural-variant
+work landed. Baseline GitHub `main` was green on R-CMD-check and pkgdown before
+the calibration run. Local runtime had R 4.5.2 and TMB 1.9.21. A broad local
+test run exposed a stale `drmTMB` install (missing exported `zero_one_beta` and
+failing phylo/relmat environment tests), so Codex updated `drmTMB` from GitHub to
+0.1.3.9000 at SHA `17b1321` and reran the calibration cache.
+
+Found a handoff/spec discrepancy: `CODEX_HANDOFF.md` referred to five acceptance
+criteria, but the current vignette/OQ-6 text only had qualitative criteria.
+Added explicit C1-C5 checks to `inst/calibration/generate.R`, stored them in
+`cal$acceptance`, made `vignettes/calibration.Rmd` render the criteria table, and
+let the source-tree cache override `system.file()` so freshly generated caches
+render before reinstalling the package. Routine fit messages are suppressed in
+the generator; warnings would still reach the log.
+
+Ran `Rscript inst/calibration/generate.R`: 14,400 live `drm_sem()`/`dsep()`
+calibration replicates completed in 14.5 minutes under `drmTMB@17b1321` and
+wrote `inst/calibration/calibration-results.rds` with `drmSEM` 0.2.0.9000 at git
+SHA `c951d31`. The cache passed all five checks:
+Type-I family/n range 0.025-0.080 inside the 99% band 0.015-0.095; Type-I by
+claim_df passed (`claim_df=1`: 0.0525 and 0.05625; `claim_df=2`: 0.045);
+Fisher's C null uniformity KS p=0.631, median=0.499; beta=0.8 and beta=0.5
+n>=250 power were 1.0 in all required cells. Rendered
+`vignettes/calibration.Rmd` from the source-tree cache.
+
+Promoted V-17 to "validated for OQ-6 grid" and swept stale calibration wording in
+NEWS, paper.md, the overview vignette, roadmap, CODEX_HANDOFF, OPEN_QUESTIONS,
+VALIDATION_LEDGER, and DECISIONS. Remaining P0 live-engine work: V-7/live-fit
+analytic identities and OQ-4 `sigma_E`.
+
+Verification: `vignettes/calibration.Rmd` rendered from the source-tree cache;
+`devtools::test()` passed (`FAIL 0 | WARN 5 | SKIP 1 | PASS 383`) under
+`drmTMB@17b1321`; `pkgdown::check_pkgdown()` reported no problems; and
+`devtools::check()` finished with 0 errors, 0 warnings, and 1 existing NOTE
+(`LICENSE` file not mentioned in DESCRIPTION). Removed the unused `utils` import
+from DESCRIPTION during this pass, clearing the second check NOTE.

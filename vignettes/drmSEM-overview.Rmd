@@ -120,8 +120,8 @@ that residual coupling, *not* the mean and *not* a directed `y1 -> y2` arrow.
 Targeting `rho12` today requires a bivariate `drmTMB` fit (e.g.
 `family = c(gaussian(), gaussian())`, components `mu1`/`mu2`/`sigma1`/`sigma2`/`rho12`)
 supplied via `drm_psem()`, after which the `rho12` path is extracted and labelled
-like any other component path. The covariance-edge grammar now ships
-(0.1.0.9000): `covary()` declares a residual or higher-level covariance edge,
+like any other component path. The covariance-edge grammar now ships:
+`covary()` declares a residual or higher-level covariance edge,
 `covariances()` reports those edges separately from `paths()`, and d-separation
 knows two covarying responses should not get a `y1 _||_ y2` claim. A first-class
 bivariate node constructor (`drm_pair()`), `corpairs()` read-back from a live
@@ -232,9 +232,12 @@ fisher_c(sem)    # combined goodness-of-fit
 
 The any-component definition is a deliberate, novel research choice: it treats "X
 is irrelevant to Y" as a statement about Y's whole conditional distribution. Its
-small-sample calibration is an open question, and the test is labelled
-experimental. Claims whose augmented refit cannot be formed are flagged and
-dropped from Fisher's C rather than silently scored.
+OQ-6 calibration grid (mean-only, distributional, and cross-link DGPs; `n` from
+100 to 1000; 200 replicates per cell) met the pre-specified Type-I,
+augmented-component-count, Fisher-uniformity, and power criteria. Broader
+Fisher's C and d-separation settings remain claim-scoped until separately tested.
+Claims whose augmented refit cannot be formed are flagged and dropped from
+Fisher's C rather than silently scored.
 
 ## Phylogenetic distributional SEM
 
@@ -276,9 +279,9 @@ Phase 3) ship today; phylogenetic paths *into* distributional components and
 | Capability | Status |
 | --- | --- |
 | Component-labelled paths (`mu`, `sigma`, `nu`, `zi`, `hu`, `sd(group)`, `rho12`) | now (a `x -> rho12` path requires a bivariate `drmTMB` fit via `drm_psem()`) |
-| Bivariate covariance-edge grammar: `covary()` declaration + `covariances()` accessor + covariance-aware d-separation (drops the `y1 _||_ y2` claim) | now (0.1.0.9000) |
+| Bivariate covariance-edge grammar: `covary()` declaration + `covariances()` accessor + covariance-aware d-separation (drops the `y1 _||_ y2` claim) | now |
 | Bivariate covariance edges: first-class bivariate node (`drm_pair`), `corpairs()` read-back from a live fit, double-headed-arc plotting | roadmap |
-| Any-component d-separation + Fisher's C | now (experimental calibration) |
+| Any-component d-separation + Fisher's C | now (OQ-6 calibration grid validated; broader settings claim-scoped) |
 | Simulation-based direct / mean-mediated / distribution-mediated / total effects | now |
 | Natural direct / indirect / mediated-interaction effects (`indirect_effects(effect = "natural")`) | now (cross-world split, validated on the linear-Gaussian case) |
 | Outcome functionals beyond the mean (`Pr(Y>t)`, `Pr(Y=0)`, var via `direct_effects()` / `total_effects(target = ...)`) | now (first set; more functionals + bootstrap CIs on roadmap) |
