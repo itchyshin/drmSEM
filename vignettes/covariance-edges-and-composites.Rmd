@@ -1,0 +1,139 @@
+---
+title: "Covariance edges, composites, and path attribution"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Covariance edges, composites, and path attribution}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+# Every model-fitting chunk uses the drmTMB engine (compiled from source), so the
+# chunks below are illustrative and not executed; `eval = has_engine` keeps them
+# from running. The pure-R declaration helpers (covary(), drm_composite()) DO run.
+has_engine <- FALSE
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = has_engine)
+library(drmSEM)
+```
+
+This vignette covers three pieces of `drmSEM` that go *beyond* a plain directed
+DAG of distributional paths:
+
+1. **Covariance edges** — two responses that stay coupled after their predictors,
+   declared with `covary()` and reported by `covariances()`.
+2. **Composite constructs** — a weighted-sum or principal-component index of
+   observed indicators, declared with `drm_composite()`.
+3. **Path attribution** — splitting an indirect effect by mediator and by
+   distributional channel with `path_effects()`.
+
+## 1. Covariance edges: `covary()` and `covariances()`
+
+A directed path says "`X` causes a component of `Y`". A **covariance edge** says
+something different: two responses are *allowed to remain associated* after their
+modelled predictors, with **no direction and no mediated effect**. drmSEM keeps
+the two ideas strictly separate (`docs/design/07-bivariate-covariance-edges.md`).
+
+There are two kinds, and they answer different biological questions:
+
+- a **residual** correlation `rho12` (within-observation, `eps_y1 <-> eps_y2`):
+  "on a single occasion, when this individual's `activity` is above its predicted
+  mean, is its `boldness` also above its predicted mean?";
+- a **higher-level** random-effect correlation `corpair` (between-unit,
+  `u_id,y1 <-> u_id,y2`): "do individuals that *average* high on `activity` also
+  average high on `boldness`?".
+
+`covary()` is the pure-R declaration primitive (it runs without the engine):
+
+```{r covary, eval = TRUE}
+# residual (rho12) edge:
+covary("activity", "boldness")
+# higher-level (corpair) edge sharing the `id` grouping:
+covary("activity", "boldness", level = "id")
+```
+
+Pass declarations to `drm_sem()` / `drm_psem()` via `covariances =`. They are
+reported by `covariances()` — kept **out** of `paths()`, which stays
+directed-only — and they make `basis_set()` / `dsep()` drop the
+`activity _||_ boldness` independence claim (Shipley's bidirected-edge rule),
+because the model explicitly allowed the two to stay coupled.
+
+```{r covariances}
+sem <- drm_sem(
+  activity = drm_node(drmTMB::bf(activity ~ temp), family = stats::gaussian()),
+  boldness = drm_node(drmTMB::bf(boldness ~ temp), family = stats::gaussian()),
+  data = dat,
+  covariances = covary("activity", "boldness")
+)
+covariances(sem)   # the residual rho12 edge, separate from paths()
+paths(sem)         # directed-only: temp -> activity, temp -> boldness
+dsep(sem)          # the activity _||_ boldness claim is dropped
+```
+
+> The grammar and the d-separation consequence ship today. A first-class
+> bivariate node constructor (`drm_pair()`), `rho12()` / `corpairs()` read-back
+> from a live fit, and double-headed-arc plotting need a bivariate `drmTMB` fit
+> and are on the roadmap.
+
+## 2. Composite constructs: `drm_composite()` and `loadings()`
+
+A **composite (formative) construct** is a deterministic index built from two or
+more observed indicators *before* fitting — a weighted sum (`method = "fixed"`)
+or the first principal-component score (`method = "pca"`). Once materialized it is
+an ordinary column, so a node formula can use it as a predictor or response, with
+**no engine change**. `drm_composite()` runs in pure R:
+
+```{r composite, eval = TRUE}
+dat_ind <- data.frame(len = rnorm(50), mass = rnorm(50), wing = rnorm(50))
+body_size <- drm_composite("body_size", c("len", "mass", "wing"),
+                           method = "pca", data = dat_ind)
+body_size
+```
+
+Pass composites to `drm_sem()` via `composites =`; the construct column is built
+before fitting, and `loadings()` reports the indicator weights (kept separate from
+the structural `paths()`):
+
+```{r composite-sem}
+sem2 <- drm_sem(
+  fitness = drm_node(drmTMB::bf(fitness ~ body_size + temp),
+                     family = stats::gaussian()),
+  data = dat,
+  composites = drm_composite("body_size", c("len", "mass", "wing"), data = dat)
+)
+loadings(sem2)
+```
+
+> This is the *formative* construct (indicators define the index). *Reflective*
+> latent variables — a latent common cause with a measurement model — need a joint
+> likelihood drmTMB does not fit piecewise, and are out of scope here
+> (`docs/design/09-latent-variables.md`).
+
+## 3. Path attribution: `path_effects()`
+
+`indirect_effects()` routes through a *set* of mediators. `path_effects()`
+attributes that indirect effect to **each mediator** and to each mediator's
+**distributional channel**.
+
+By mediator (`by = "mediator"`, the default), each gets an **inclusion** effect
+(only that mediator responds) and an **exclusion** effect (its marginal given the
+others), plus an explicit `interaction_remainder` — the pieces sum to the total
+only when the mediators act additively, and the remainder is reported rather than
+hidden:
+
+```{r path-mediator}
+path_effects(sem3, from = "temp", to = "survival")
+```
+
+By component (`by = "component"`), each mediator's effect is split into a
+`mean_channel` and a `distributional_channel` (the part flowing through its
+`sigma` / `zi` / shape); these two partition the mediator's effect exactly:
+
+```{r path-component}
+path_effects(sem3, from = "temp", to = "survival", by = "component")
+```
+
+This is a **model-based decomposition**, not a claim of nonparametric
+path-specific identification (which requires the recanting-witness criterion). The
+per-component split into individual non-mean components (`sigma` vs `zi`) and the
+cross-world natural variant are on the roadmap. See
+`docs/design/02-effect-calculus.md`.

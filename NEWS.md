@@ -1,5 +1,11 @@
 # drmSEM 0.1.0.9000 (development version)
 
+## Documentation
+
+* New vignette **"Covariance edges, composites, and path attribution"** walks
+  through `covary()`/`covariances()`, `drm_composite()`/`loadings()`, and
+  `path_effects()`. Every exported function now carries an example.
+
 ## Path-specific effects (OQ-5, per-mediator)
 
 * `path_effects(object, from, to, through=)` decomposes the indirect effect into
