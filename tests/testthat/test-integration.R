@@ -62,7 +62,7 @@ test_that("effects run and total decomposes into direct + indirect", {
   # Effects must stay finite even when a node's sdreport returned NaN SEs:
   # drm_draw_beta() falls back to the point estimate for non-finite vcov blocks.
   expect_true(is.finite(de$estimate))
-  ie <- indirect_effects(sem, from = "temp", to = "survival", B = 40, n_sim = 20)
+  ie <- indirect_effects(sem, from = "temp", to = "survival", B = 40, nsim = 20)
   expect_true(all(c("total_path", "direct", "indirect",
                     "distribution_mediated") %in% ie$quantity))
   expect_true(all(is.finite(ie$estimate)))

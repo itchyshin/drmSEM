@@ -1,3 +1,23 @@
+# drmSEM 0.1.0.9000 (development version)
+
+## Unified effect-API surface (OQ-12)
+
+* `direct_effects()`, `total_effects()`, and `indirect_effects()` now share one
+  argument vocabulary: `uncertainty = c("parametric", "none", "bootstrap")`,
+  `nsim` (inner distributional realizations), and `population = c("conditional",
+  "marginal")`. `total_effects()` selects mediation with `method = c("gcomp",
+  "simulate")`.
+* The previous `mediation`, `draw`, and `n_sim` arguments are **deprecated
+  aliases** — they still work but emit a deprecation warning, and the new
+  argument wins when both are supplied. `B` (the number of uncertainty
+  replicates) is unchanged. No simulation kernel changed.
+* Not-yet-implemented choices fail fast with a pointer to the tracking question:
+  `uncertainty = "bootstrap"` (refit bootstrap, OQ-10) and `population =
+  "marginal"` (marginalizing over the random-effect distribution, OQ-9).
+* `direct_effects()` gains `target` / `threshold`, so a controlled direct effect
+  can be read on an outcome functional (`p_gt`, `p_zero`, `var`) as well as the
+  mean, matching `total_effects()`.
+
 # drmSEM 0.1.0
 
 First public release of **drmSEM** — a distributional piecewise structural

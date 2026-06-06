@@ -134,7 +134,7 @@ test_that("paths() exposes the x -> sigma(m) distributional edge and hides phylo
 
 test_that("indirect_effects() returns a finite distribution-mediated effect", {
   sem <- make_phylo_dist_sem()
-  eff <- indirect_effects(sem, from = "x", to = "y", B = 40, n_sim = 20)
+  eff <- indirect_effects(sem, from = "x", to = "y", B = 40, nsim = 20)
   expect_s3_class(eff, "drm_effect")
 
   # The five decomposition quantities are all present...

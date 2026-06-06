@@ -188,3 +188,37 @@ model never asserted and would feed a spurious indirect effect into the path
 algebra. A residual correlation is a covariance, exactly like a residual
 covariance in classical SEM (Shipley): bidirected, effect-free, but
 d-separation-relevant. Spec in `07-bivariate-covariance-edges.md`.
+
+## D-13 — Unified effect-API surface (OQ-12), additive with deprecated aliases
+
+The three effect functions now share one vocabulary (`R/effects_api.R`):
+`uncertainty = c("parametric","none","bootstrap")` (→ `draw`), `nsim` (→ `n_sim`),
+`population = c("conditional","marginal")`, plus `method = c("gcomp","simulate")`
+(→ `mediation`) on `total_effects()` and `target`/`threshold` extended to
+`direct_effects()`. `drm_effect_controls()` and `drm_resolve_mediation()` do the
+mapping; **no simulation kernel changed**.
+
+**Choices.**
+- *Additive, not breaking.* The old `mediation`/`draw`/`n_sim` stay as deprecated
+  aliases (a plain `cli_warn`, every call, so the deprecation is reliably
+  testable); when both an old and new form are supplied the new one wins with a
+  warning. `B` keeps its name (it is the uncertainty-replicate count, a distinct
+  loop from the inner `nsim` realizations — collapsing them would change kernel
+  behaviour, which OQ-12 forbids).
+- *No `method` on `indirect_effects()`.* The controlled decomposition is built
+  from both the mean and distribution legs, and the natural split is always
+  distribution-mediated; there is no single mean/distribution choice to expose.
+  The shared `uncertainty`/`nsim`/`population` controls do apply.
+- *Honest "not yet" errors.* `uncertainty = "bootstrap"` (OQ-10) and
+  `population = "marginal"` (OQ-9) abort early with a pointer to the open
+  question, rather than silently falling back. These aborts fire in
+  `drm_effect_controls()` before `drm_require_drmTMB()`, so they are reachable
+  (and tested) without a live engine.
+- *`target` on `direct_effects()`.* Reuses `drm_functional_contrast()` with an
+  empty active set (controlled direct effect on a functional); partially advances
+  OQ-11. `target` on `indirect_effects()` stays open (decomposition-on-a-functional
+  semantics unsettled).
+
+Validation: pure-R unit tests for the normalizers in `test-effect-api.R`; new-vs-
+old parity and early-abort behaviour are CI-gated in the same file. Vignettes and
+the 02-effect-calculus design doc were migrated to the new vocabulary.

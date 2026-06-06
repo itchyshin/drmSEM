@@ -120,13 +120,20 @@ estimate is returned.
 
 ## Knobs
 
-- `B` — number of coefficient draws (outer Monte-Carlo, uncertainty).
-- `n_sim` — inner realizations per draw under distribution mediation.
-- `draw` — whether to propagate coefficient uncertainty (needs `vcov`).
+- `uncertainty` — `"parametric"` (draw from `MVN(coef, vcov)`, default),
+  `"none"` (MLE point), or `"bootstrap"` (OQ-10, not yet implemented).
+- `B` — number of uncertainty replicates (outer Monte-Carlo draws).
+- `nsim` — inner realizations per draw under distribution mediation.
+- `method` — `"gcomp"` (mean) / `"simulate"` (distribution) for `total_effects()`.
+- `population` — `"conditional"` (RE = 0, default) or `"marginal"` (OQ-9).
 - `at` — override the contrast values.
 - `effect` — `"controlled"` (default) or `"natural"` for `indirect_effects()`.
-- `target`, `threshold` — outcome functional for `total_effects()`.
+- `target`, `threshold` — outcome functional (on `total_effects()` and
+  `direct_effects()`).
 - `level`, `seed` — interval width and reproducibility.
+
+(The pre-0.2 knobs `mediation`, `draw`, and `n_sim` are deprecated aliases for
+`method`, `uncertainty`, and `nsim`; see "API harmonization" below.)
 
 All effects are reported on the **response scale** of `to`.
 
@@ -181,8 +188,9 @@ channel, and it is the reason simulation is mandatory.
 the linear-Gaussian, no-interaction recovery case*. What remains open is
 cross-world generality beyond that regime — sensitivity to the
 sequential-ignorability assumption, interaction-heavy and strongly nonlinear
-mediators, bootstrap intervals for the natural rows (OQ-10), and harmonizing the
-opt-in surface with the `method`/`uncertainty` API (OQ-12).
+mediators, and bootstrap intervals for the natural rows (OQ-10). The natural
+rows already accept the unified `uncertainty` / `nsim` / `population` controls
+(OQ-12).
 
 ## Conditional vs marginal effects (random effects)
 
@@ -200,10 +208,10 @@ can be given a response-scale marginal effect.
 | Tier | What | drmSEM knobs |
 | --- | --- | --- |
 | 1 | exact linear shortcut `a×b` (validation only) | n/a — used as the recovery check V-15 (sim ≈ product on a Gaussian identity-link chain) |
-| 2 | deterministic g-computation on expectations | `draw = FALSE`, `mediation = "mean"` |
-| 3 | + parameter uncertainty from `MVN(coef, vcov)` | `draw = TRUE`, `B` |
-| 4 | + mediator-distribution simulation | `mediation = "distribution"`, `n_sim` |
-| 5 | parametric/nonparametric **bootstrap** (refit) | planned (OQ-10) |
+| 2 | deterministic g-computation on expectations | `uncertainty = "none"`, `method = "gcomp"` |
+| 3 | + parameter uncertainty from `MVN(coef, vcov)` | `uncertainty = "parametric"`, `B` |
+| 4 | + mediator-distribution simulation | `method = "simulate"`, `nsim` |
+| 5 | parametric/nonparametric **bootstrap** (refit) | `uncertainty = "bootstrap"` (planned, OQ-10) |
 
 drmSEM already implements Tiers 1–4; only the refit-bootstrap (Tier 5) is
 roadmap. Default workflow: fit once, draw from `vcov`, predict counterfactuals,
@@ -231,19 +239,36 @@ population.
 **Status (OQ-11 — PARTIAL).** A first set of functionals (`p_gt`, `p_zero`,
 `var`) is *implemented and recovery-tested* — the `p_zero` effect recovers the
 Poisson zero-probability change `exp(-mu_hi) - exp(-mu_lo)` in
-`test-effect-kernels.R`. What remains open: surfacing `target` on
-`direct_effects()` / `indirect_effects()` (today it lives on `total_effects()`),
-adding more functionals (quantiles) and analytic (non-simulated) variants,
-bootstrap intervals for functional effects (OQ-10), and settling the default
-reporting scale.
+`test-effect-kernels.R`. `target` is now exposed on `direct_effects()` as well
+as `total_effects()` (OQ-12); what remains open: surfacing it on
+`indirect_effects()` (the decomposition-on-a-functional semantics are
+unsettled), adding more functionals (quantiles) and analytic (non-simulated)
+variants, bootstrap intervals for functional effects (OQ-10), and settling the
+default reporting scale.
 
-## API harmonization (planned)
+## API harmonization (OQ-12 — implemented)
 
-The current knobs (`mediation`, `draw`, `B`, `n_sim`, `effect`, `target`) map
-onto the tiers and estimands above; a clearer unified surface
-`indirect_effects(..., method = c("gcomp","simulate"), uncertainty =
-c("none","parametric","bootstrap"), nsim = , population = , target = )` is
-planned (OQ-12) without changing the underlying engine.
+The three effect functions share one vocabulary that maps onto the engine knobs
+without touching any kernel (`R/effects_api.R`):
+
+| unified argument | values | engine mapping |
+| --- | --- | --- |
+| `method` (`total_effects` only) | `"gcomp"` / `"simulate"` | `mediation = "mean"` / `"distribution"` |
+| `uncertainty` | `"parametric"` / `"none"` / `"bootstrap"` | `draw = TRUE` / `FALSE` / (OQ-10, aborts) |
+| `nsim` | integer | `n_sim` (inner realizations) |
+| `population` | `"conditional"` / `"marginal"` | RE = 0 / (OQ-9, aborts) |
+| `target`, `threshold` | functional | outcome functional (now on `direct_effects()` too) |
+| `B` | integer | number of uncertainty replicates (unchanged) |
+
+`indirect_effects()` deliberately has no `method`: the controlled decomposition
+needs *both* the mean and distribution legs, and the natural split always uses
+distribution mediation. The previous knobs `mediation`, `draw`, and `n_sim`
+remain as **deprecated aliases** — they still work but emit a deprecation
+warning, and the unified argument wins if both are supplied. Not-yet-implemented
+choices (`uncertainty = "bootstrap"`, OQ-10; `population = "marginal"`, OQ-9)
+abort early with a pointer to the open question rather than silently doing
+something else. The normalization helpers (`drm_effect_controls()`,
+`drm_resolve_mediation()`) are pure R and unit-tested in `test-effect-api.R`.
 
 ## References
 

@@ -100,7 +100,7 @@ fisher_c(sem)     # Fisher's C goodness-of-fit for the SEM
 # Effects of temperature on survival, propagated through the fitted DAG
 direct_effects(sem,   from = "temp", to = "survival")
 indirect_effects(sem, from = "temp", to = "survival")
-total_effects(sem,    from = "temp", to = "survival", mediation = "distribution")
+total_effects(sem,    from = "temp", to = "survival", method = "simulate")
 
 plot(sem)         # DAG with component-labelled edges
 ```
