@@ -482,3 +482,19 @@ calibration STUDY stays experimental/scaffolded (compute-heavy live-drmTMB run,
 issue #13) -- 0.2.0 is honest about that single item. After merge: tag GitHub
 Release v0.2.0 (deploys release-mode pkgdown site to root + R-CMD-check on the
 tag), then bump to 0.2.0.9000 dev.
+
+## 2026-06-06 — OQ-5 natural per-mediator variant + recanting-witness (parallel-safe)
+
+Post-0.2.0 dev (0.2.0.9000). Parallel-safe Claude work while Codex runs the
+calibration lane (avoided inst/calibration/*, vignettes/calibration.Rmd, and
+docs/memory/OPEN_QUESTIONS.md).
+- `path_effects(effect = "natural")`: per-mediator cross-world natural indirect
+  effect (reuses the validated `drm_natural_target` kernel) + an `identified`
+  column flagged FALSE under a recanting witness. `drm_recanting_witness()` is
+  pure graph logic (Avin-Shpitser-Pearl 2005), kernel-tested in
+  `test-path-effects.R` (parallel -> identified; sequential M1->M2 -> M2 not).
+- Bumped DESCRIPTION to 0.2.0.9000 + NEWS dev section; man/path_effects.Rd,
+  02-effect-calculus updated. Kept d-sep/Fisher's C wording untouched (experimental).
+- DEFERRED to avoid collision with Codex: the OQ-5 entry in OPEN_QUESTIONS.md is
+  NOT edited here; the natural-variant status update there is pending Codex's
+  calibration closeout / handoff back of that file.

@@ -166,3 +166,20 @@ test_that("a single mediator: inclusion = exclusion = total, remainder 0", {
   expect_equal(mean(pc$exclusion$M1), a * b, tolerance = 1e-8)
   expect_equal(mean(pc$remainder), 0, tolerance = 1e-8)
 })
+
+test_that("recanting-witness detection flags sequential mediators (OQ-5 natural)", {
+  # parallel mediators (x -> m1 -> y, x -> m2 -> y): neither recants
+  obj_par <- structure(list(var_edges = data.frame(
+    from = c("x", "x", "m1", "m2"), to = c("m1", "m2", "y", "y"),
+    stringsAsFactors = FALSE)), class = "drm_sem")
+  expect_false(drmSEM:::drm_recanting_witness(obj_par, "x", "m1", c("m1", "m2")))
+  expect_false(drmSEM:::drm_recanting_witness(obj_par, "x", "m2", c("m1", "m2")))
+
+  # sequential mediators (x -> m1 -> m2 -> y): m1 recants for m2 (descendant of x
+  # AND ancestor of m2); m2 does not recant for m1
+  obj_seq <- structure(list(var_edges = data.frame(
+    from = c("x", "m1", "m2"), to = c("m1", "m2", "y"),
+    stringsAsFactors = FALSE)), class = "drm_sem")
+  expect_true(drmSEM:::drm_recanting_witness(obj_seq, "x", "m2", c("m1", "m2")))
+  expect_false(drmSEM:::drm_recanting_witness(obj_seq, "x", "m1", c("m1", "m2")))
+})

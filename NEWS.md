@@ -1,3 +1,14 @@
+# drmSEM 0.2.0.9000 (development version)
+
+## Path-specific effects (OQ-5)
+
+* `path_effects(effect = "natural")` reports each mediator's cross-world **natural
+  indirect effect**, with an `identified` column flagged `FALSE` under a
+  **recanting witness** (another mediator that is a descendant of `from` and an
+  ancestor of this one), after Avin, Shpitser & Pearl (2005). The detection is
+  pure graph logic; the cross-world computation reuses the validated
+  `drm_natural_target` kernel.
+
 # drmSEM 0.2.0
 
 Second release. Post-0.1 work: a unified effect-API surface, first-class

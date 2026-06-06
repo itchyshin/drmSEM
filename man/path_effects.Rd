@@ -10,6 +10,7 @@ path_effects(
   to,
   through = NULL,
   by = c("mediator", "component"),
+  effect = c("controlled", "natural"),
   at = NULL,
   B = 200L,
   uncertainty = NULL,
@@ -41,6 +42,14 @@ at its reference value), plus a \code{component_remainder} for the part that doe
 not separate cleanly (the channels are not an exact partition under a nonlinear
 outcome).}
 
+\item{effect}{\code{"controlled"} (default) gives the model-based per-mediator /
+per-component decomposition above. \code{"natural"} instead reports each mediator's
+cross-world \strong{natural indirect effect} (the \code{nie} leg when only that
+mediator is set to its counterfactual world), with an \code{identified} column that
+is \code{FALSE} when a \strong{recanting witness} (another mediator that is a
+descendant of \code{from} and an ancestor of this one) makes the natural
+path-specific effect non-identified. \code{by} is ignored when \code{effect = "natural"}.}
+
 \item{at}{Optional length-2 contrast values for \code{from}.}
 
 \item{B}{Number of uncertainty replicates (coefficient draws) used when
@@ -71,7 +80,8 @@ A \code{drm_effect} data frame with columns \code{from}, \code{to}, \code{throug
 \code{by = "mediator"} the \code{estimand} values are \code{total_indirect}, \code{inclusion},
 \code{exclusion}, \code{interaction_remainder}; for \code{by = "component"} they are
 \code{total_indirect}, \code{mean_channel}, \code{<component>_channel} (one per non-mean
-component), and \code{component_remainder}.
+component), and \code{component_remainder}. The frame also carries an \code{identified}
+column (\code{NA} for controlled rows; logical for natural rows).
 }
 \description{
 Splits the indirect effect of \code{from} on \code{to} into a contribution for each
