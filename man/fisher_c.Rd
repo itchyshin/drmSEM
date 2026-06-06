@@ -26,3 +26,14 @@ Combines the independence-claim p-values from \code{\link[=dsep]{dsep()}} into F
 under the hypothesis that all missing arrows are absent. A small p-value
 indicates the DAG omits a needed path.
 }
+\examples{
+\dontrun{
+sem <- drm_sem(
+  size = drm_node(drmTMB::bf(size ~ temp + habitat, sigma ~ temp),
+                  family = stats::gaussian()),
+  abundance = drm_node(drmTMB::bf(abundance ~ size + temp, zi ~ habitat),
+                       family = drmTMB::nbinom2()),
+  data = dat)
+fisher_c(sem)
+}
+}

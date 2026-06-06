@@ -83,3 +83,16 @@ from their families, so effects flowing through a mediator's scale,
 zero-inflation, or shape (distribution-mediated paths) are included; with
 \code{method = "gcomp"} only the mediator means propagate.
 }
+\examples{
+\dontrun{
+sem <- drm_sem(
+  size = drm_node(drmTMB::bf(size ~ temp + habitat, sigma ~ temp),
+                  family = stats::gaussian()),
+  abundance = drm_node(drmTMB::bf(abundance ~ size + temp, zi ~ habitat),
+                       family = drmTMB::nbinom2()),
+  data = dat)
+# Total effect of temp on abundance, mediators allowed to respond by simulation.
+total_effects(sem, from = "temp", to = "abundance",
+              method = "simulate", uncertainty = "parametric", nsim = 50)
+}
+}

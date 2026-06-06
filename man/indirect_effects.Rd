@@ -88,3 +88,16 @@ distribution mediation, so neither has a single mean/distribution choice to
 make. The shared \code{uncertainty}, \code{nsim}, and \code{population} controls apply as
 elsewhere.
 }
+\examples{
+\dontrun{
+sem <- drm_sem(
+  size = drm_node(drmTMB::bf(size ~ temp + habitat, sigma ~ temp),
+                  family = stats::gaussian()),
+  abundance = drm_node(drmTMB::bf(abundance ~ size + temp, zi ~ habitat),
+                       family = drmTMB::nbinom2()),
+  data = dat)
+# Indirect effect of temp on abundance routed through size.
+indirect_effects(sem, from = "temp", to = "abundance", through = "size",
+                 uncertainty = "parametric", nsim = 50)
+}
+}

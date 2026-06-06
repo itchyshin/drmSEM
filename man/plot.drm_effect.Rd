@@ -34,3 +34,15 @@ acts on dispersion rather than the mean is visible.
 \details{
 Requires \code{ggplot2} (Suggests); returns a \code{ggplot} object you can restyle.
 }
+\examples{
+\dontrun{
+sem <- drm_sem(
+  size = drm_node(drmTMB::bf(size ~ temp + habitat, sigma ~ temp),
+                  family = stats::gaussian()),
+  abundance = drm_node(drmTMB::bf(abundance ~ size + temp, zi ~ habitat),
+                       family = drmTMB::nbinom2()),
+  data = dat)
+eff <- indirect_effects(sem, from = "temp", to = "abundance", through = "size")
+plot(eff, style = "forest")
+}
+}

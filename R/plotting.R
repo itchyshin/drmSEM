@@ -31,6 +31,16 @@ drm_component_style <- function(component) {
 #' @param x A `drm_sem` object.
 #' @param ... Passed to the underlying plot.
 #' @return `x`, invisibly.
+#' @examples
+#' \dontrun{
+#' sem <- drm_sem(
+#'   size = drm_node(drmTMB::bf(size ~ temp + habitat, sigma ~ temp),
+#'                   family = stats::gaussian()),
+#'   abundance = drm_node(drmTMB::bf(abundance ~ size + temp, zi ~ habitat),
+#'                        family = drmTMB::nbinom2()),
+#'   data = dat)
+#' plot(sem)
+#' }
 #' @export
 plot.drm_sem <- function(x, ...) {
   if (!requireNamespace("igraph", quietly = TRUE)) {
@@ -84,6 +94,17 @@ plot.drm_sem <- function(x, ...) {
 #'   `"forest"` if they are absent.
 #' @param ... Unused.
 #' @return A `ggplot` object (invisibly printed by default).
+#' @examples
+#' \dontrun{
+#' sem <- drm_sem(
+#'   size = drm_node(drmTMB::bf(size ~ temp + habitat, sigma ~ temp),
+#'                   family = stats::gaussian()),
+#'   abundance = drm_node(drmTMB::bf(abundance ~ size + temp, zi ~ habitat),
+#'                        family = drmTMB::nbinom2()),
+#'   data = dat)
+#' eff <- indirect_effects(sem, from = "temp", to = "abundance", through = "size")
+#' plot(eff, style = "forest")
+#' }
 #' @export
 plot.drm_effect <- function(x, style = c("forest", "stacked"), ...) {
   if (!requireNamespace("ggplot2", quietly = TRUE)) {

@@ -104,6 +104,18 @@ drm_validate_effect_args <- function(object, from, to) {
 #' @param ... Unused.
 #' @return A one-row data frame (`from`, `to`, `scale`, `target`, `estimate`,
 #'   `conf.low`, `conf.high`) with a `coefficients` attribute.
+#' @examples
+#' \dontrun{
+#' sem <- drm_sem(
+#'   size = drm_node(drmTMB::bf(size ~ temp + habitat, sigma ~ temp),
+#'                   family = stats::gaussian()),
+#'   abundance = drm_node(drmTMB::bf(abundance ~ size + temp, zi ~ habitat),
+#'                        family = drmTMB::nbinom2()),
+#'   data = dat)
+#' # Controlled direct effect of temp on abundance, with parametric uncertainty.
+#' direct_effects(sem, from = "temp", to = "abundance",
+#'                uncertainty = "parametric", nsim = 50)
+#' }
 #' @export
 direct_effects <- function(object, from, to, component = NULL,
                            target = c("mean", "p_gt", "p_zero", "var"),
@@ -160,6 +172,18 @@ direct_effects <- function(object, from, to, component = NULL,
 #' @param mediation Deprecated alias for `method` (`"mean"` maps to `"gcomp"`,
 #'   `"distribution"` to `"simulate"`); supplying it emits a deprecation warning.
 #' @return A one-row `drm_effect` data frame.
+#' @examples
+#' \dontrun{
+#' sem <- drm_sem(
+#'   size = drm_node(drmTMB::bf(size ~ temp + habitat, sigma ~ temp),
+#'                   family = stats::gaussian()),
+#'   abundance = drm_node(drmTMB::bf(abundance ~ size + temp, zi ~ habitat),
+#'                        family = drmTMB::nbinom2()),
+#'   data = dat)
+#' # Total effect of temp on abundance, mediators allowed to respond by simulation.
+#' total_effects(sem, from = "temp", to = "abundance",
+#'               method = "simulate", uncertainty = "parametric", nsim = 50)
+#' }
 #' @export
 total_effects <- function(object, from, to, method = NULL,
                           target = c("mean", "p_gt", "p_zero", "var"),
@@ -223,6 +247,18 @@ total_effects <- function(object, from, to, method = NULL,
 #'   `total_path`, `direct`, `indirect`, `mean_mediated`, `distribution_mediated`.
 #'   For `effect = "natural"`, rows `total_path`, `natural_direct`,
 #'   `natural_indirect`, `mediated_interaction`.
+#' @examples
+#' \dontrun{
+#' sem <- drm_sem(
+#'   size = drm_node(drmTMB::bf(size ~ temp + habitat, sigma ~ temp),
+#'                   family = stats::gaussian()),
+#'   abundance = drm_node(drmTMB::bf(abundance ~ size + temp, zi ~ habitat),
+#'                        family = drmTMB::nbinom2()),
+#'   data = dat)
+#' # Indirect effect of temp on abundance routed through size.
+#' indirect_effects(sem, from = "temp", to = "abundance", through = "size",
+#'                  uncertainty = "parametric", nsim = 50)
+#' }
 #' @export
 indirect_effects <- function(object, from, to, through = NULL,
                              effect = c("controlled", "natural"),

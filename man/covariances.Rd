@@ -28,6 +28,16 @@ that distinguishes them; they answer different biological questions and are
 never collapsed. A declared edge also makes \code{\link[=basis_set]{basis_set()}} / \code{\link[=dsep]{dsep()}} drop the
 \code{y1 _||_ y2} independence claim.
 }
+\examples{
+\dontrun{
+sem <- drm_sem(
+  activity = drm_node(drmTMB::bf(activity ~ x), family = stats::gaussian()),
+  boldness = drm_node(drmTMB::bf(boldness ~ x), family = stats::gaussian()),
+  data = dat,
+  covariances = covary("activity", "boldness"))
+covariances(sem)   # the residual rho12 edge, reported separately from paths()
+}
+}
 \seealso{
 \code{\link[=covary]{covary()}}, \code{\link[=paths]{paths()}}, \code{\link[=basis_set]{basis_set()}}.
 }

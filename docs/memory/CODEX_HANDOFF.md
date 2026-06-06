@@ -1,77 +1,85 @@
 # Codex handoff — tasks that need a live drmTMB environment
 
 This file lists work the Codex team (running in a cloud env that can compile
-drmTMB/TMB and, if scoped, access the `itchyshin/drmTMB` repo) should do, because
-the Claude Code session that built drmSEM 0.1 could **not** do them: it had no
-network to compile drmTMB, no local `igraph`/`ggplot2`, and GitHub access scoped
-to `drmSEM` only (so no drmTMB source reads and no drmTMB issue filing). Claude
-drove everything through ~2-minute CI rounds instead.
+drmTMB/TMB) should do, because the Claude Code lane that built drmSEM 0.1 and the
+post-0.1 increments **cannot**: it has no R or compiler in-container, so it
+validates everything through CI and pure-R kernel tests. Every item below needs a
+**live drmTMB fit** (or rendering, or drmTMB-repo access).
 
-The launchable team is mirrored in `.codex/agents/` — launch the same roles
-(Ada/Gauss/Curie/Fisher/Florence/Grace/Rose…) as needed. Coordinate on a separate
-branch; update `docs/memory/` (AGENT_LOG, VALIDATION_LEDGER, DECISIONS) as you go.
+Coordinate on a separate branch; the launchable team is mirrored in
+`.codex/agents/*.toml` (Ada/Gauss/Curie/Fisher/Florence/Grace/Rose…). Update
+`docs/memory/` (`AGENT_LOG.md`, `VALIDATION_LEDGER.md`, `DECISIONS.md`,
+`OPEN_QUESTIONS.md`) as you go.
 
-## Status drmSEM 0.1 reached (all green in CI, run 26984153215, PASS 83/FAIL 0)
-Core builders, component-labelled `paths()`, any-component d-sep + Fisher's C,
-simulation effects with the distribution-mediated decomposition, validated family
-samplers (OQ-1: gaussian/poisson/nbinom2/beta/lognormal/Gamma), `plot.drm_sem`
-(DAG) + `plot.drm_effect` (forest + stacked), recovery (V-14/15/16) and
-calibration (V-17) tests, three vignettes, themed pkgdown + deploy workflow.
+## What shipped (pure-R / CI-green) up to this handoff
 
-## High-value tasks for Codex (roughly in priority order)
+drmSEM 0.1.0 released; then, on the `0.1.0.9000` dev line (all merged, CI-green on
+3 OSes): **OQ-12** unified effect API (`method`/`uncertainty`/`nsim`/`population`,
+deprecated `mediation`/`draw`/`n_sim`), **OQ-14** covariance-edge *grammar*
+(`covary()`/`covariances()`/covariance-aware d-sep), **0.2** analytic effect
+cross-checks (V-26..V-30) + standardization conventions (OQ-4) + calibration
+scaffold (OQ-6), **0.3** composite constructs (`drm_composite()`/`loadings()`),
+**OQ-5** per-mediator + per-channel path attribution (`path_effects()`), and the
+GitHub Pages deploy fix. The whole pure-R surface is kernel-validated.
 
-1. **OQ-7 — root-cause the `sdreport` NaN.** `test-integration.R`'s canonical
-   `size -> abundance -> survival` DGP (n=300) makes `TMB::sdreport()` emit
-   "NaNs produced" (3 warnings; tests still pass). With a live drmTMB session,
-   bisect which node/parameter is weakly identified (likely the Gaussian
-   `sigma ~ temp` or the beta-binomial overdispersion), then EITHER recondition
-   the DGP (larger n / gentler slopes) so the warning disappears, OR confirm it
-   is a genuine drmTMB robustness gap. If the latter, file it on drmTMB and move
-   the note from `docs/memory/DRMTMB_ISSUES.md` to "confirmed". drmSEM already
-   guards effects against NaN vcov (`drm_draw_beta`), so this is about clean
-   diagnostics, not correctness.
+## P0 — close out 0.2 (gates the 0.2.0 tag)
 
-2. **`plot.drm_sem` visual polish (needs rendering).** D-8 in `DECISIONS.md`:
-   add standardized-coefficient edge labels (from `paths()`/`standardize()`) and
-   encode non-significance (e.g. lighter/thinner edge or a `*` on significant
-   ones) WITHOUT colliding with the component linetype already in use. Claude
-   deferred this because it cannot render igraph to eyeball it. Add a CI smoke
-   test (`pdf(NULL); plot(sem); dev.off()`, engine+igraph gated) plus a rendered
-   check. Files: `R/plotting.R` (`plot.drm_sem`, `drm_component_style`).
+1. **OQ-6 — run the Fisher's C calibration study.** `Rscript inst/calibration/generate.R`
+   (engine-gated, self-contained) → produce **`inst/calibration/calibration-results.rds`**;
+   confirm `vignettes/calibration.Rmd` renders from the cache. Design + acceptance
+   criteria are in the vignette / `OQ-6`: DGP ladder (mean-only / distributional
+   `zi`+`sigma` / cross-link), `n in {100,250,500,1000}`; the centrepiece diagnostic
+   is empirical Type-I **stratified by augmented-component count `q`**. Promote
+   **V-17 -> validated** only when criteria 1-5 pass. Until then no doc may call the
+   d-sep test "validated/calibrated/near nominal".
+2. **Flip the kernel tiers to *validated*.** Integration tests on a live fit that
+   promote **V-7** (distribution-mediated mechanism) and the d-sep claims from
+   "kernel-validated" -> "validated" — run the `test-analytic-effects.R` identities
+   through a real `drm_sem()` fit, not just hand-built engines.
+3. **OQ-4 — standardization `sigma_E` term.** `R/standardize.R`'s `latent` divisor
+   omits the distribution-specific theoretical variance (`pi^2/3` logit, etc.) for
+   non-identity-link **`mu`** paths -> mild over-standardization. Add it, cross-check
+   on a live GLM fit, update `test-standardize.R`. Spec: `docs/design/08-standardization.md`.
 
-3. **Extra family samplers in `drm_sample_family()`** (`R/simulate_effects.R`).
-   Currently beta_binomial / tweedie / zero_one_beta / cumulative_logit mediators
-   fall back to their mean. Derive each parameterization from
-   `drmTMB::simulate(fit)` on a live fit (the pattern from OQ-1: drmTMB `sigma` is
-   SD-like, dispersion = 1/sigma^2) and extend the moment-recovery test
-   `test-oq1-samplers.R`. beta_binomial is the tricky one — the number of trials
-   must come from the response (`cbind(alive,dead)` row totals); decide and
-   document how a beta_binomial *mediator* is sampled.
+## P1 — feature completion needing a live fit
 
-4. **Larger V-17 calibration study.** `test-calibration.R` is a fast 20-rep
-   smoke check (Type-I < 0.25, power > 0.70). Run a proper study (hundreds of
-   reps, several DGPs, power curves) locally — too slow for CI — and write it up
-   as a precomputed `vignettes/calibration.Rmd` (cache results; do not refit on
-   site build). This promotes V-17 from "lightweight" to a real calibration claim
-   and addresses OQ-6.
+4. **OQ-5 follow-up.** (a) per-component **sigma-vs-zi** split: add a one-arg
+   `freeze` to `drm_propagate` (hold one component of a mediator at its x0 value),
+   so `path_effects(by="component")` can split the distributional channel by
+   component; return **`NA`** for mean-fallback families. (b) the **natural**
+   per-mediator variant with a **recanting-witness** guard. (c) a `path_effects()`
+   integration test on the canonical fit. Spec: `OQ-5`, `DECISIONS.md` D-17,
+   `docs/design/02-effect-calculus.md`.
+5. **OQ-14 — bivariate joint fit.** Grammar ships; still need a **live bivariate
+   drmTMB fit** for: **`drm_pair()`** joint node, **`rho12(fit)` / `corpairs(fit)`**
+   read-back accessors, **double-headed/dashed-arc plotting** in
+   `plot(sem, show="all")`, and **deep level-compatibility validation**. Spec:
+   `docs/design/07-bivariate-covariance-edges.md`.
+6. **0.3 composites — integration test.** Confirm `drm_composite()` +
+   `drm_sem(composites=)` fits end-to-end and `loadings()`/d-sep behave; document
+   the indicator-intervention limitation. `docs/design/09-latent-variables.md`.
 
-5. **pkgdown: build, preview, and add a hero figure.** Build the site locally
-   (`pkgdown::build_site()`), eyeball the flatly+teal theme, and add a rendered
-   component-labelled DAG (`plot(sem)`) as a hero image in `README.md` /
-   `man/figures/` — Claude could not render it. Confirm the `pkgdown.yaml` deploy
-   workflow publishes to `gh-pages` cleanly (enable Pages on the repo).
+## P2 — robustness / parameterization
 
-6. **Confirm drmTMB family parameterizations from source.** With drmTMB repo
-   access, verify the OQ-1 / D-7 / D-9 mappings against drmTMB's actual family
-   definitions and `simulate.drmTMB` (Claude inferred them from fitted moments
-   because the API/source was rate-limited/out of scope).
+7. **OQ-1 / V-19** — confirm family-sampler parameterizations against
+   `drmTMB::simulate()`: `zero_one_beta` (zoi/coi), `tweedie` (mean-fallback),
+   beta_binomial trials. Extend `test-oq1-samplers.R`.
+8. **OQ-7** — root-cause the `sdreport` NaN on the canonical n=300 DGP (recondition
+   or confirm a drmTMB robustness gap; file upstream). `docs/memory/DRMTMB_ISSUES.md`.
+9. **`plot.drm_sem` visual polish** (needs rendering): standardized-coefficient
+   edge labels + significance encoding without colliding with the component
+   linetype; CI smoke test (`pdf(NULL); plot(sem); dev.off()`). `R/plotting.R`.
 
-7. **Verify the mirrored agent kit in the Codex runtime.** Launch the
-   `.codex/agents/*.toml` team and confirm one-to-one parity with
-   `.claude/agents/*.md` still holds; fix drift in the same commit (the mirror
-   rule in `AGENTS.md`).
+## P3 — release
+
+10. **CRAN.** drmTMB must be on CRAN first; then drop `Remotes:` from `DESCRIPTION`
+    (CRAN forbids it), keep `drmTMB` in `Suggests` (engine use is
+    `requireNamespace`-guarded), get `R CMD check --as-cran` clean. The Claude lane
+    has added runnable / `\dontrun` examples for the exported functions.
+11. **0.4** — joint multivariate SEM / reflective latent measurement models (need a
+    joint likelihood; deliberately out of scope for 0.x piecewise).
 
 ## What does NOT need Codex
-Everything pure-R/logic and ggplot2 (paths, d-sep graph logic, effect simulation
-kernels, `plot.drm_effect`, recovery tests) is already validated and can stay with
-the Claude Code lane via CI.
+Everything pure-R/logic and ggplot2 (the effect kernels, grammar layers, d-sep
+graph logic, recovery/analytic tests, standardization math) is already validated
+and stays in the Claude Code lane via CI.

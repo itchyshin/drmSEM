@@ -44,6 +44,11 @@ NULL
 #'   `"unstructured"`, `"phylo"`.
 #' @return A `drm_covary` declaration object.
 #' @seealso [covariances()], [drm_sem()].
+#' @examples
+#' # A residual (rho12) covariance edge between two responses:
+#' covary("activity", "boldness")
+#' # A higher-level random-effect (corpair) edge sharing the `id` grouping:
+#' covary("activity", "boldness", level = "id")
 #' @export
 covary <- function(y1, y2, level = NULL, structure = "unstructured") {
   chk_name <- function(v, arg) {
@@ -171,6 +176,15 @@ drm_covariance_pairs <- function(object) {
 #' @return A `drm_covariances` data frame with columns `y1`, `y2`, `class`
 #'   (`"residual"` / `"higher_level"`), `level`, `structure`, `label`.
 #' @seealso [covary()], [paths()], [basis_set()].
+#' @examples
+#' \dontrun{
+#' sem <- drm_sem(
+#'   activity = drm_node(drmTMB::bf(activity ~ x), family = stats::gaussian()),
+#'   boldness = drm_node(drmTMB::bf(boldness ~ x), family = stats::gaussian()),
+#'   data = dat,
+#'   covariances = covary("activity", "boldness"))
+#' covariances(sem)   # the residual rho12 edge, reported separately from paths()
+#' }
 #' @export
 covariances <- function(object, ...) {
   UseMethod("covariances")

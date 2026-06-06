@@ -94,6 +94,13 @@ drm_path_contrasts <- function(engines, scenarios, to, meds,
 #'   `exclusion`, `interaction_remainder`; for `by = "component"` they are
 #'   `total_indirect`, `mean_channel`, `distributional_channel`.
 #' @seealso [indirect_effects()], [total_effects()].
+#' @examples
+#' \dontrun{
+#' # per-mediator attribution of temp's indirect effect on survival
+#' path_effects(sem, from = "temp", to = "survival")
+#' # split each mediator's effect into mean vs distributional channels
+#' path_effects(sem, from = "temp", to = "survival", by = "component")
+#' }
 #' @export
 path_effects <- function(object, from, to, through = NULL,
                          by = c("mediator", "component"),

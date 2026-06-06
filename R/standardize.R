@@ -57,6 +57,16 @@ NULL
 #' equation models. *Ecosphere* (latent-theoretic standardization for GLM
 #' outcomes). Gelman A (2008). Scaling regression inputs by dividing by two
 #' standard deviations. *Stat. Med.* 27:2865-2873.
+#' @examples
+#' \dontrun{
+#' sem <- drm_sem(
+#'   size = drm_node(drmTMB::bf(size ~ temp + habitat, sigma ~ temp),
+#'                   family = stats::gaussian()),
+#'   abundance = drm_node(drmTMB::bf(abundance ~ size + temp, zi ~ habitat),
+#'                        family = drmTMB::nbinom2()),
+#'   data = dat)
+#' standardize(sem, method = "latent")
+#' }
 #' @export
 standardize <- function(object, method = c("sd_x", "latent"), ...) {
   UseMethod("standardize")

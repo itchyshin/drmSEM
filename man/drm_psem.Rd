@@ -42,6 +42,19 @@ tables, d-separation tests, and simulation-based effects on top.
 Fit nodes with \code{control = drmTMB::drm_control(se = TRUE)} so that \code{\link[=vcov]{vcov()}},
 Wald intervals, and d-separation refits are available.
 }
+\examples{
+\dontrun{
+ctrl <- drmTMB::drm_control(se = TRUE)
+size_fit <- drmTMB::drmTMB(
+  drmTMB::bf(size ~ temp + habitat, sigma ~ temp),
+  family = stats::gaussian(), data = dat, control = ctrl)
+abundance_fit <- drmTMB::drmTMB(
+  drmTMB::bf(abundance ~ size + temp, zi ~ habitat),
+  family = drmTMB::nbinom2(), data = dat, control = ctrl)
+sem <- drm_psem(size = size_fit, abundance = abundance_fit, data = dat)
+paths(sem)
+}
+}
 \seealso{
 \code{\link[=drm_sem]{drm_sem()}} for the declarative interface that fits nodes for you.
 }

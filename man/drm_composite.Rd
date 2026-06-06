@@ -40,6 +40,13 @@ construct), which stays fully within drmSEM's piecewise, likelihood-based core.
 measurement model) require a joint likelihood drmTMB does not fit piecewise and
 are out of scope here; see \code{docs/design/09-latent-variables.md}.
 }
+\examples{
+dat <- data.frame(len = rnorm(50), mass = rnorm(50), wing = rnorm(50))
+# equal-weighted index of three indicators:
+drm_composite("body_size", c("len", "mass", "wing"), data = dat)
+# first principal-component index instead:
+drm_composite("body_size", c("len", "mass", "wing"), method = "pca", data = dat)
+}
 \seealso{
 \code{\link[=loadings]{loadings()}}, \code{\link[=drm_sem]{drm_sem()}}.
 }

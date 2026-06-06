@@ -81,6 +81,7 @@ articles:
     desc: The ideas that make drmSEM a distributional SEM.
     contents:
       - effect-decomposition
+      - covariance-edges-and-composites
       - comparison
       - phylogenetic-sem
       - calibration

@@ -448,3 +448,25 @@ Deferred (OQ-5 follow-up, riskier / engine-gated): per-component (mu/sigma/zi)
 attribution via a `freeze` plumbing arg in drm_propagate; the natural cross-world
 variant + recanting-witness guard; NA for unconfirmed-sampler families; a live-fit
 integration test before "validated".
+
+## 2026-06-06 — CRAN-readiness: examples + refreshed Codex handoff (orchestrator + Grace)
+
+CRAN-readiness polish (Option A). Every exported function now carries an
+`@examples` block (only the package doc is exempt).
+- **Orchestrator:** runnable pure-R examples for `covary()` and `drm_composite()`
+  (they execute under R CMD check — verified by signature), and `\dontrun` examples
+  for the new `covariances()` / `loadings()` / `path_effects()`. Refreshed
+  `docs/memory/CODEX_HANDOFF.md` to the current post-0.1 state (P0 calibration
+  cache + tier flips, P1 OQ-5 freeze / OQ-14 joint fit / composites integration,
+  P2 samplers / sdreport / plotting, P3 CRAN / 0.4).
+- **Grace (parallel, disjoint files):** `\dontrun` examples for the 12
+  engine-dependent exports (effects, paths, basis_set/dsep/fisher_c, standardize,
+  plot.drm_sem/plot.drm_effect, check_sem, drm_psem), roxygen + hand-synced man/.
+  All use the canonical size->abundance chain and the new effect-API surface
+  (method=/uncertainty=/nsim=).
+
+File ownership partitioned up front (orchestrator: covariances.R/composite.R/
+path_effects.R + handoff; Grace: effects.R/paths.R/dsep.R/standardize.R/plotting.R/
+diagnostics.R/drm_sem.R) so the concurrent edits never touched the same file.
+NOT done (submission-time / engine): drop `Remotes:`, `--as-cran` lane (would red
+on the Remotes NOTE until drmTMB is on CRAN) — recorded in CODEX_HANDOFF P3.
