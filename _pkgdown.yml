@@ -32,6 +32,11 @@ reference:
       - paths
       - standardize
       - plot.drm_sem
+  - title: Covariance edges (bivariate)
+    desc: Declare and inspect residual (rho12) and higher-level (corpair) covariance edges.
+    contents:
+      - covary
+      - covariances
   - title: d-separation
     desc: Test missing arrows on any distributional component.
     contents:
@@ -72,3 +77,4 @@ articles:
       - effect-decomposition
       - comparison
       - phylogenetic-sem
+      - calibration

@@ -120,11 +120,12 @@ that residual coupling, *not* the mean and *not* a directed `y1 -> y2` arrow.
 Targeting `rho12` today requires a bivariate `drmTMB` fit (e.g.
 `family = c(gaussian(), gaussian())`, components `mu1`/`mu2`/`sigma1`/`sigma2`/`rho12`)
 supplied via `drm_psem()`, after which the `rho12` path is extracted and labelled
-like any other component path. A first-class bivariate node constructor
-(`drm_pair()`), the residual coupling represented as a double-headed covariance
-edge, random-effect correlations via `corpairs()` / `covariances()`,
-double-headed-arc plotting, and d-separation that knows two covarying responses
-should not get a `y1 _||_ y2` claim are roadmap items (see
+like any other component path. The covariance-edge grammar now ships
+(0.1.0.9000): `covary()` declares a residual or higher-level covariance edge,
+`covariances()` reports those edges separately from `paths()`, and d-separation
+knows two covarying responses should not get a `y1 _||_ y2` claim. A first-class
+bivariate node constructor (`drm_pair()`), `corpairs()` read-back from a live
+fit, and double-headed-arc plotting remain roadmap items (see
 `docs/design/07-bivariate-covariance-edges.md`).
 
 ```{r paths}
@@ -275,7 +276,8 @@ Phase 3) ship today; phylogenetic paths *into* distributional components and
 | Capability | Status |
 | --- | --- |
 | Component-labelled paths (`mu`, `sigma`, `nu`, `zi`, `hu`, `sd(group)`, `rho12`) | now (a `x -> rho12` path requires a bivariate `drmTMB` fit via `drm_psem()`) |
-| Bivariate covariance edges: first-class bivariate node (`drm_pair`), residual + random-effect correlation modules (`covariances` / `corpairs`), double-headed arcs, covariance-aware d-separation | roadmap |
+| Bivariate covariance-edge grammar: `covary()` declaration + `covariances()` accessor + covariance-aware d-separation (drops the `y1 _||_ y2` claim) | now (0.1.0.9000) |
+| Bivariate covariance edges: first-class bivariate node (`drm_pair`), `corpairs()` read-back from a live fit, double-headed-arc plotting | roadmap |
 | Any-component d-separation + Fisher's C | now (experimental calibration) |
 | Simulation-based direct / mean-mediated / distribution-mediated / total effects | now |
 | Natural direct / indirect / mediated-interaction effects (`indirect_effects(effect = "natural")`) | now (cross-world split, validated on the linear-Gaussian case) |

@@ -13,7 +13,7 @@ DRMSEM is a distributional piecewise SEM framework built on
 not only the expected response but also scale, shape, zero-inflation, hurdle
 probability, random-effect scale, and residual correlation.
 
-> Status: early / experimental (version 0.0.0.9000). See [Status](#status).
+> Status: early / experimental (version 0.1.0.9000). See [Status](#status).
 
 ![Component-labelled DAG for the canonical size, abundance, and survival example. Black solid arrows target the mean, green dashed arrows target sigma, and orange dotted arrows target zero inflation.](man/figures/drmsem-hero-dag.png)
 

@@ -5,7 +5,7 @@
 \alias{summary.drm_sem}
 \title{Assemble a distributional piecewise SEM from fitted drmTMB models}
 \usage{
-drm_psem(..., data = NULL)
+drm_psem(..., data = NULL, covariances = NULL)
 
 \method{summary}{drm_sem}(object, ...)
 }
@@ -16,6 +16,12 @@ node by its name or its response variable.}
 
 \item{data}{The data frame all nodes were fitted to. Defaults to the data of
 the first node.}
+
+\item{covariances}{Optional \code{\link[=covary]{covary()}} declaration(s) (one object or a list)
+recording residual (\code{rho12}) or higher-level (\code{corpair}) covariance edges
+between responses. These are reported by \code{\link[=covariances]{covariances()}} and respected by
+\code{\link[=basis_set]{basis_set()}} / \code{\link[=dsep]{dsep()}}, but never enter \code{\link[=paths]{paths()}} or the effect
+decomposition.}
 
 \item{object}{A \code{drm_sem} object.}
 }

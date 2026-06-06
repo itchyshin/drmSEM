@@ -12,10 +12,12 @@ Status of each claim drmSEM makes. Update when a claim moves between states.
   characteristics (e.g. calibration) are not yet established.
 - **pending** — code written, runtime evidence not yet collected.
 
-Environment: R 4.3.3 in the dev container; all 13 R/ source files parse clean;
-18/18 pure-logic kernel tests pass locally. drmTMB-integration tests are written
-but cannot run here (network allowlist blocks CRAN/Posit/r-universe, so TMB and
-drmTMB cannot be compiled); they run in the Codex cloud env (`CLOUD.md`).
+Environment: the dev container has no R; all R/ source files are reviewed and
+parse-checked by inspection, and the pure-logic kernel suite passes in CI (which
+compiles drmTMB). drmTMB-integration tests cannot run in this lane (no
+compiler/network); they run in CI and the Codex cloud env (`CLOUD.md`). Claims
+past V-21 are recorded in the dated narrative sections below (the 2026-06-04
+table is a snapshot, not the full list).
 
 | # | Claim | Status (2026-06-04) | Evidence |
 | --- | --- | --- | --- |
@@ -35,7 +37,7 @@ drmTMB cannot be compiled); they run in the Codex cloud env (`CLOUD.md`).
 | V-14 | Total ≈ direct + indirect within Monte-Carlo CI on the canonical SEM | pending | planned recovery check (`04-validation-plan.md`) |
 | V-15 | Gaussian-mean analytic cross-check: simulated mean-mediated = product of path coefficients on identity-link chain | pending | planned recovery check |
 | V-16 | d-sep passes a true non-edge (low false-positive rate) | pending | planned recovery check |
-| V-17 | Fisher's C calibration (Type-I / power) under the any-component augmentation | experimental | reasoned in `03-dsep.md`; no simulation yet |
+| V-17 | Fisher's C calibration (Type-I / power) under the any-component augmentation | experimental | reasoned in `03-dsep.md`; 20-rep smoke check in `test-calibration.R`; full precomputed study scaffolded (`vignettes/calibration.Rmd` + `inst/calibration/generate.R`, OQ-6) — awaiting the live-drmTMB cache before promotion |
 | V-18 | `model.matrix()` contrast coding matches drmTMB's internal fixed-effect coding | pending | needs live drmTMB fit (OQ-2); isolated in `drm_fixed_design` |
 | V-19 | Exact family-sampler parameterizations match drmTMB (nbinom2 `size`, beta_binomial trials, lognormal scale) | pending | needs live drmTMB fit (OQ-1) |
 | V-20 | drmTMB adapter shapes (`bf()$entries`, `coef`/`fixef`/`vcov` `dpar:term`, `logLik`, `is_converged`, `predict_parameters`) | pending | written against drmTMB 0.1.3.9000 source; runtime confirmation pending |
@@ -251,3 +253,47 @@ content too: D-10/D-11, OQ-8/OQ-10/OQ-12, the 02-effect-calculus essay, and the
   **DONE (pure-R, unit-tested in `test-effect-api.R`).** Engine-path parity
   (new surface == deprecated aliases, identical estimates under a fixed seed) and
   `direct_effects(target="p_zero")` finiteness are CI-gated in the same file.
+
+- **V-25 / OQ-14 — Covariance-edge grammar + d-sep awareness (pure R).**
+  `covary()` builds residual/higher-level declarations and rejects malformed ones;
+  `drm_build_covariances()` resolves responses to nodes, labels edges
+  (`rho12(a, b)` / `corpair(id: a, b)`), de-duplicates unordered pairs, and errors
+  on unknown / self-referential responses; `covariances()` returns a classed table
+  separating residual vs higher-level; `basis_set()` drops the `y1 _||_ y2` claim
+  for a declared residual OR higher-level edge and is unchanged when none is
+  declared (missing `$covariances` slot ⇒ no-op). **DONE (pure-R, unit-tested in
+  `test-covariances.R`).** Engine-dependent OQ-14 remainder (`drm_pair()` joint
+  fit, `rho12()`/`corpairs()` read-back, arc plotting, deep level-compat) is
+  Codex-lane / roadmap.
+
+## 2026-06-06 — V-26..V-30: analytic effect cross-checks asserted (0.2)
+
+The 0.2 "analytic effect cross-checks" item: promoted the effect-engine identities
+from planned/kernel-only to ASSERTED pure-R tests in `test-analytic-effects.R`
+(no drmTMB; hand-built engine harness as in `test-effect-kernels.R`). Derivations
+checked by the math-consistency pass (Noether).
+
+- **V-26 — Gaussian mean-mediated = a*b*w.** Bare product (a*b*w), the
+  controlled-direct / mean-mediated split closing on a chain with a direct edge,
+  and two parallel mediators summing to a1*b1 + a2*b2. Deterministic mean channel,
+  tolerance 1e-8. **validated (kernel).**
+- **V-27 — a non-mean (sigma) path is invisible to the mean channel.** (a) the
+  mean channel is *bit-identical* with and without a sigma~x path (exact, the
+  falsifiable core); (b) the distribution-mediated effect -> 0 when the outcome is
+  linear in the mediator (MC, tol 0.02, seeded). **validated (kernel).**
+- **V-28 — distribution-mediated effect across a downstream nonlinearity** matches
+  the lognormal closed form `exp(k*mu + 0.5 k^2 sigma^2)` and flips sign with the
+  sigma slope (MC, tol 0.06, seeded). **validated (kernel).**
+- **V-29 — natural vs controlled under an x:M interaction.** NDE/NIE/mediated-
+  interaction recover their closed forms (`w*(c+d*a*x0)`, `a*w*(b+d*x0)`,
+  `d*a*w^2`) and the controlled direct effect differs from the natural direct,
+  tolerance 1e-8. **validated (kernel).**
+- **V-30 — outcome functionals.** Poisson `Pr(Y>0)` effect = `exp(-mu_lo) -
+  exp(-mu_hi)`; a pure-sigma path moves `Var(Y)` on the closed form
+  `exp(2 eta_hi) - exp(2 eta_lo)` with zero mean effect, and constant sigma gives a
+  zero Var contrast (MC, tol 0.03/0.15, seeded). **validated (kernel).**
+- Plus a standalone `drm_nominal_link` table assertion (pure-R link labels).
+
+These discharge the 0.2 analytic-cross-check item. The remaining 0.2 items
+(Fisher's C calibration study V-17, and flipping V-7/V-10/d-sep to "validated")
+need the live-drmTMB lane.

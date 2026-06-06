@@ -331,3 +331,76 @@ tasks in #2 (this lane still cannot compile drmTMB).
 
 Engine-path parity is CI-gated (the lane cannot run drmTMB locally); the pure-R
 normalizer tests run everywhere.
+
+## 2026-06-06 — OQ-14 covariance-edge grammar (pure-R layer; branch claude/resume-aybDD)
+
+After OQ-12 merged (PR #7, squash 6ca9980), reset the branch to main and built
+the next bounded step: the pure-R grammar + d-separation layer of OQ-14
+(first-class bivariate covariance edges), chosen because the marquee feature's
+graph semantics are fully testable here while joint bivariate fitting is not.
+
+- **New `R/covariances.R`:** `covary(y1, y2, level=)` declares a residual
+  (`rho12`) or higher-level (`corpair`) covariance edge; `drm_build_covariances()`
+  validates declarations against node records and builds a labelled `$covariances`
+  table; `covariances(sem)` accessor reports residual vs higher-level separately;
+  `drm_covariance_pairs()` feeds basis_set. Edges live in a dedicated `$covariances`
+  slot, NEVER in `$edges`, so `paths()` stays directed-only (the class-1 vs
+  class-2/3 split of D-12/D-14).
+- **`R/drm_sem.R`:** `new_drm_sem()`, `drm_sem()`, `drm_psem()` gain a
+  `covariances =` argument threaded to the constructor.
+- **`R/dsep.R`:** `basis_set.drm_sem()` drops the `y1 _||_ y2` claim for any
+  declared covariance pair (unordered key; Shipley's bidirected-edge rule).
+  Back-compatible: a missing slot ⇒ no covariance pairs ⇒ unchanged behaviour.
+- **Tests `test-covariances.R`:** pure-R (no drmTMB) — covary construction +
+  validation, node resolution/labelling/de-dup, the accessor, and basis_set
+  dropping for residual AND higher-level edges, plus the missing-slot no-op.
+- **Docs/memory:** NAMESPACE (covary/covariances exports + 3 S3 methods) and
+  man/ hand-updated (covary.Rd, covariances.Rd, basis_set/drm_sem/drm_psem Rd);
+  `_pkgdown.yml` "Covariance edges" reference section; design doc 07 current-state
+  + feature table updated; OQ-14 → PARTIAL; D-14 + V-25 + NEWS recorded.
+
+Deferred to the Codex lane (need a live bivariate drmTMB fit): `drm_pair()` joint
+fitting, `rho12(fit)`/`corpairs(fit)` read-back, double-headed-arc plotting, deep
+RE-block level-compatibility validation.
+
+## 2026-06-06 — 0.2 inference-hardening push (6 design agents + 2 parallel implementers)
+
+Drove the 0.2 "inference hardening" milestone with a large parallel agent batch,
+honest about the lane limit (no R/drmTMB here; engine-dependent items are CI/Codex).
+
+**Design/spec/audit (6 parallel read-only agents):** Fisher (Fisher's C calibration
+study design + acceptance criteria, OQ-6), Noether (the analytic effect identities
+with derivations + tolerances + harness contract), Jason (standardization landscape
+-> OQ-4 recommendations, with citations), Emmy (standardize code review + 0.3
+composite-construct architecture), Rose (0.1->0.2 drift punch-list), Grace
+(reproducibility: 0.2 version mechanics + the precomputed-calibration pattern + CI).
+
+**Implementation (2 parallel edit agents on disjoint file-sets + orchestrator):**
+- Grace built the calibration scaffold: `vignettes/calibration.Rmd` (precomputed,
+  `eval=FALSE`, `knit_exit` until the cache exists), `inst/calibration/generate.R`
+  (live-drmTMB regenerator, engine-gated, self-contained), `_pkgdown.yml` article,
+  and two safe CI tweaks (timeout 30->45, fixed the stale "no man/ committed" note).
+- A doc-sweep agent reconciled the user-facing docs to the shipped OQ-14 grammar
+  (README version, the four vignettes, paper.md scope, roadmap status, validation-
+  plan counts) per Rose's punch-list.
+- Orchestrator (disjoint, no collision): `test-analytic-effects.R` (V-26..V-30,
+  pure-R analytic cross-checks from Noether's plan); standardization conventions
+  finalized + documented (`R/standardize.R` roxygen, `man/standardize.Rd`,
+  `docs/design/08-standardization.md`, non-breaking — SD=1 default kept); all
+  memory files (NEWS, ledger V-26..30 + V-17 scaffold note, D-15, OQ-4 RESOLVED,
+  OQ-6 SCAFFOLDED).
+
+File ownership was partitioned up front (calibration files | user-facing docs |
+standardization+memory) so the two background editors and the orchestrator never
+touched the same file; the orchestrator owned all `docs/memory/*` + `NEWS.md`
+centrally to serialize the shared-file writes.
+
+PROCESS LESSON (Rose): when an OQ ships, sweep ALL user-facing surfaces in the
+same pass — the OQ-14 grammar landed in NEWS/DECISIONS/design-doc-07 but the four
+vignettes + paper.md still called it "roadmap" until this sweep. Add "sweep the 5
+vignettes + paper.md + roadmap status tables" to the OQ-shipping checklist next to
+the existing "regenerate man/NAMESPACE" rule.
+
+Still 0.2-blocking and Codex-only: the Fisher's C calibration cache (OQ-6), the
+standardization `sigma_E` refinement (OQ-4), and flipping V-7/V-10/d-sep from
+kernel-validated to validated on a live fit.

@@ -60,11 +60,12 @@ The columns are filled in conservatively: each "Yes" reflects a documented,
 shipped capability, and the "No" entries mark genuine scope boundaries rather
 than missing polish. The `rho12` "Yes" covers a path *targeting* the residual
 correlation of a bivariate node (a `x -> rho12` component path, requiring a
-bivariate `drmTMB` fit via `drm_psem()`); first-class bivariate covariance
-*edges* — a `drm_pair()` node, residual and random-effect correlation modules
-(`covariances` / `corpairs`) drawn as double-headed arcs, and covariance-aware
-d-separation — are a roadmap item, not yet shipped (see
-`docs/design/07-bivariate-covariance-edges.md`).
+bivariate `drmTMB` fit via `drm_psem()`); the covariance-edge *grammar* now
+ships, with `covary()` declaring an edge, `covariances()` reporting it separately
+from `paths()`, and covariance-aware d-separation dropping the `y1 _||_ y2`
+claim. Only the joint bivariate *fit* — a `drm_pair()` node, `corpairs()`
+read-back from a live fit, and double-headed-arc plotting — is not yet shipped
+(see `docs/design/07-bivariate-covariance-edges.md`).
 
 ## When to use which
 
@@ -225,12 +226,14 @@ Being honest about scope is part of choosing the right tool. Per the charter and
 - **No joint multivariate likelihood.** The model is **piecewise** — one
   `drmTMB` fit per node, not a single joint fit. A path *can* already target a
   bivariate node's residual correlation (`x -> rho12`, where `rho12` is the
-  residual coupling `eps_y1 <-> eps_y2`), but the residual coupling itself is not
-  yet a first-class double-headed covariance *edge*. First-class bivariate
-  covariance edges — a `drm_pair()` node, residual and random-effect correlation
-  modules (`covariances` / `corpairs`), and covariance-aware d-separation — are a
-  roadmap item (see `docs/design/07-bivariate-covariance-edges.md`); a single
-  joint multivariate likelihood remains out of scope for 0.x.
+  residual coupling `eps_y1 <-> eps_y2`). The covariance-edge *grammar* now
+  ships: `covary()` declares a residual or higher-level covariance edge,
+  `covariances()` reports it separately from `paths()`, and covariance-aware
+  d-separation drops the `y1 _||_ y2` claim. Only the joint bivariate *fit* — a
+  `drm_pair()` node, `corpairs()` read-back from a live fit, and
+  double-headed-arc plotting — remains a roadmap item (see
+  `docs/design/07-bivariate-covariance-edges.md`); a single joint multivariate
+  likelihood remains out of scope for 0.x.
 - **DAG-only.** Cyclic / feedback graphs are an **error**. (Specific feedback
   motifs are planned for **0.5**.)
 - **No new likelihoods and no arbitrary backends.** `drmSEM` never fits its own
