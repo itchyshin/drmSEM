@@ -74,7 +74,7 @@ make_distributional <- function(seed, beta, n) {
   set.seed(seed)
   x <- stats::rnorm(n)
   m <- stats::rnorm(n, 0.7 * x, 1)
-  log_sd <- 0.0 + beta * x          # x perturbs the SPREAD of y, not its mean
+  log_sd <- 0.0 + beta * x # x perturbs the SPREAD of y, not its mean
   y <- stats::rnorm(n, 0.7 * m, exp(log_sd))
   dat <- data.frame(x = x, m = m, y = y)
   sem <- drm_sem(
@@ -114,7 +114,10 @@ DGP <- list(
 # Fisher's C p-value. Returns a one-row data.frame; never returns a fit.
 # ----------------------------------------------------------------------------
 run_one <- function(family, seed, beta, n) {
-  built <- tryCatch(DGP[[family]](seed, beta, n), error = function(e) NULL)
+  built <- tryCatch(
+    suppressMessages(DGP[[family]](seed, beta, n)),
+    error = function(e) NULL
+  )
   if (is.null(built)) {
     return(data.frame(
       family = family, n = n, beta = beta, seed = seed,
@@ -122,7 +125,10 @@ run_one <- function(family, seed, beta, n) {
       fisher_c_p = NA_real_, stringsAsFactors = FALSE
     ))
   }
-  d <- tryCatch(dsep(built$sem), error = function(e) NULL)
+  d <- tryCatch(
+    suppressMessages(dsep(built$sem)),
+    error = function(e) NULL
+  )
   if (is.null(d)) {
     return(data.frame(
       family = family, n = n, beta = beta, seed = seed,
@@ -133,13 +139,13 @@ run_one <- function(family, seed, beta, n) {
   row <- d$x == "x" & d$y == "y"
   fc <- attr(d, "fisher_c")
   data.frame(
-    family   = family,
-    n        = n,
-    beta     = beta,
-    seed     = seed,
-    claim_p  = if (any(row)) d$p.value[row][[1L]] else NA_real_,
+    family = family,
+    n = n,
+    beta = beta,
+    seed = seed,
+    claim_p = if (any(row)) d$p.value[row][[1L]] else NA_real_,
     claim_df = if (any(row)) as.integer(d$df[row][[1L]]) else NA_integer_,
-    status   = if (any(row)) d$status[row][[1L]] else "claim_absent",
+    status = if (any(row)) d$status[row][[1L]] else "claim_absent",
     fisher_c_p = if (!is.null(fc)) fc$p.value else NA_real_,
     stringsAsFactors = FALSE
   )
@@ -149,11 +155,13 @@ run_one <- function(family, seed, beta, n) {
 # Full grid sweep: family x n x beta x reps. Seeds are deterministic per cell
 # so the cache is reproducible.
 # ----------------------------------------------------------------------------
-message("drmSEM OQ-6 calibration: ",
-        length(GRID$family), " families x ", length(GRID$n), " n x ",
-        length(GRID$beta), " beta x ", GRID$reps, " reps = ",
-        length(GRID$family) * length(GRID$n) * length(GRID$beta) * GRID$reps,
-        " fits.")
+message(
+  "drmSEM OQ-6 calibration: ",
+  length(GRID$family), " families x ", length(GRID$n), " n x ",
+  length(GRID$beta), " beta x ", GRID$reps, " reps = ",
+  length(GRID$family) * length(GRID$n) * length(GRID$beta) * GRID$reps,
+  " fits."
+)
 
 results <- list()
 k <- 0L
@@ -164,9 +172,9 @@ for (family in GRID$family) {
         # Stable, collision-free seed across the whole grid.
         seed <- as.integer(
           1e6 * match(family, GRID$family) +
-          1e4 * match(n, GRID$n) +
-          1e2 * match(beta, GRID$beta) +
-          r
+            1e4 * match(n, GRID$n) +
+            1e2 * match(beta, GRID$beta) +
+            r
         )
         k <- k + 1L
         results[[k]] <- run_one(family, seed, beta, n)
@@ -218,25 +226,140 @@ power <- agg(
 # beta == 0, where the DAG is correctly specified).
 fisher_c_null_p <- per_rep$fisher_c_p[per_rep$beta == 0 & is.finite(per_rep$fisher_c_p)]
 
+# ----------------------------------------------------------------------------
+# Acceptance checks for promoting V-17. These are deliberately stored in the
+# cache so the vignette and validation ledger can report the same decision.
+# ----------------------------------------------------------------------------
+mc_band <- function(n, alpha, prob = 0.99) {
+  tail <- (1 - prob) / 2
+  c(
+    lower = stats::qbinom(tail, n, alpha) / n,
+    upper = stats::qbinom(1 - tail, n, alpha) / n
+  )
+}
+
+add_mc_band <- function(tab) {
+  bands <- t(vapply(tab$n_rep, mc_band, numeric(2), alpha = alpha))
+  tab$mc_lower <- bands[, "lower"]
+  tab$mc_upper <- bands[, "upper"]
+  tab$pass <- tab$reject >= tab$mc_lower & tab$reject <= tab$mc_upper
+  tab
+}
+
+type1 <- add_mc_band(type1)
+type1_by_df <- add_mc_band(type1_by_df)
+
+status_summary <- aggregate(
+  list(ok = per_rep$status == "ok" & is.finite(per_rep$claim_p)),
+  by = list(family = per_rep$family, n = per_rep$n, beta = per_rep$beta),
+  FUN = function(z) mean(z, na.rm = TRUE)
+)
+names(status_summary)[names(status_summary) == "ok"] <- "ok_rate"
+status_n <- aggregate(
+  list(n_rep = per_rep$status),
+  by = list(family = per_rep$family, n = per_rep$n, beta = per_rep$beta),
+  FUN = length
+)
+status_summary <- merge(status_summary, status_n,
+  by = c("family", "n", "beta")
+)
+status_summary$pass <- status_summary$ok_rate >= 0.95
+
+fisher_uniform <- data.frame(
+  n_rep = length(fisher_c_null_p),
+  ks_p = NA_real_,
+  median_p = NA_real_,
+  pass = FALSE
+)
+if (length(fisher_c_null_p) >= 2L) {
+  ks <- stats::ks.test(fisher_c_null_p, "punif")
+  fisher_uniform$ks_p <- ks$p.value
+  fisher_uniform$median_p <- stats::median(fisher_c_null_p)
+  fisher_uniform$pass <- fisher_uniform$ks_p >= 0.01 &&
+    fisher_uniform$median_p >= 0.40 &&
+    fisher_uniform$median_p <= 0.60
+}
+
+power_strong <- power[power$beta == max(GRID$beta), , drop = FALSE]
+power_strong$pass <- power_strong$reject >= 0.80
+power_mid <- power[power$beta == 0.5 & power$n >= 250, , drop = FALSE]
+power_mid$pass <- power_mid$reject >= 0.70
+power_monotone <- do.call(rbind, lapply(
+  split(power, list(power$family, power$n), drop = TRUE),
+  function(df) {
+    df <- df[order(df$beta), , drop = FALSE]
+    diffs <- diff(df$reject)
+    data.frame(
+      family = df$family[[1L]],
+      n = df$n[[1L]],
+      min_step = if (length(diffs)) min(diffs, na.rm = TRUE) else NA_real_,
+      pass = !length(diffs) || all(diffs >= -0.05),
+      stringsAsFactors = FALSE
+    )
+  }
+))
+
+acceptance <- list(
+  status_summary = status_summary,
+  fisher_uniform = fisher_uniform,
+  power_strong = power_strong,
+  power_mid = power_mid,
+  power_monotone = power_monotone,
+  criteria = data.frame(
+    criterion = c(
+      "C1 usable claim rate",
+      "C2 Type-I by family and n",
+      "C3 Type-I by augmented-component count",
+      "C4 Fisher's C null uniformity",
+      "C5 power against omitted edges"
+    ),
+    rule = c(
+      "Every family x n x beta cell has at least 95% ok finite claim p-values.",
+      "Every beta=0 family x n cell lies inside the 99% binomial Monte-Carlo band around alpha.",
+      "Every beta=0 family x claim_df stratum lies inside the 99% binomial Monte-Carlo band around alpha.",
+      "Null Fisher's C p-values have KS p >= 0.01 and median in [0.40, 0.60].",
+      "At beta=0.8 every family x n cell has power >= 0.80; at beta=0.5 and n>=250 power >= 0.70; power is nondecreasing up to 0.05 Monte-Carlo jitter."
+    ),
+    pass = c(
+      all(status_summary$pass),
+      all(type1$pass),
+      all(type1_by_df$pass),
+      fisher_uniform$pass[[1L]],
+      all(power_strong$pass) && all(power_mid$pass) &&
+        all(power_monotone$pass)
+    ),
+    stringsAsFactors = FALSE
+  )
+)
+
 git_sha <- tryCatch(
   {
     s <- system2("git", c("rev-parse", "--short", "HEAD"),
-                 stdout = TRUE, stderr = FALSE)
+      stdout = TRUE, stderr = FALSE
+    )
     if (length(s)) s[[1L]] else NA_character_
   },
   error = function(e) NA_character_
 )
 
+drmTMB_desc <- utils::packageDescription("drmTMB")
+drmTMB_remote_sha <- if (is.null(drmTMB_desc$RemoteSha)) {
+  NA_character_
+} else {
+  drmTMB_desc$RemoteSha
+}
+
 meta <- list(
-  generated_at  = format(Sys.time(), tz = "UTC", usetz = TRUE),
-  date          = as.character(Sys.Date()),
+  generated_at = format(Sys.time(), tz = "UTC", usetz = TRUE),
+  date = as.character(Sys.Date()),
   drmTMB_version = as.character(utils::packageVersion("drmTMB")),
+  drmTMB_remote_sha = drmTMB_remote_sha,
   drmSEM_version = as.character(utils::packageVersion("drmSEM")),
-  R_version     = R.version.string,
-  git_sha       = git_sha,
-  reps          = GRID$reps,
-  alpha         = alpha,
-  grid          = GRID
+  R_version = R.version.string,
+  git_sha = git_sha,
+  reps = GRID$reps,
+  alpha = alpha,
+  grid = GRID
 )
 
 cal <- list(
@@ -245,10 +368,14 @@ cal <- list(
   type1           = type1,
   type1_by_df     = type1_by_df,
   power           = power,
+  acceptance      = acceptance,
   fisher_c_null_p = fisher_c_null_p
 )
 
 out_path <- file.path("inst", "calibration", "calibration-results.rds")
 saveRDS(cal, out_path)
-message("Wrote ", out_path, " (drmTMB ", meta$drmTMB_version,
-        ", sha ", meta$git_sha, ").")
+message(
+  "Wrote ", out_path, " (drmTMB ", meta$drmTMB_version,
+  ", drmTMB sha ", meta$drmTMB_remote_sha,
+  ", drmSEM sha ", meta$git_sha, ")."
+)

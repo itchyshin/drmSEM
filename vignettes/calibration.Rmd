@@ -18,9 +18,20 @@ knitr::opts_chunk$set(
   eval     = FALSE
 )
 
-results_path <- system.file("calibration", "calibration-results.rds",
-                            package = "drmSEM")
-cal <- if (nzchar(results_path)) readRDS(results_path) else NULL
+source_results_path <- file.path("inst", "calibration",
+                                 "calibration-results.rds")
+installed_results_path <- system.file("calibration", "calibration-results.rds",
+                                      package = "drmSEM")
+results_path <- if (file.exists(source_results_path)) {
+  source_results_path
+} else {
+  installed_results_path
+}
+cal <- if (nzchar(results_path) && file.exists(results_path)) {
+  readRDS(results_path)
+} else {
+  NULL
+}
 ```
 
 All results below are **precomputed on live drmTMB; this document performs no
@@ -58,10 +69,8 @@ that question.
 It is deliberately distinct from the fast smoke check in
 `tests/testthat/test-calibration.R` (V-17), which runs only 20 reps of a single
 chain to catch gross regressions in CI. That smoke test is **not** calibration
-evidence; this study is. Until the cache here meets the acceptance criteria
-(Type-I within Monte-Carlo error of the nominal level across families and
-augmented-component counts, and Fisher's C p-values uniform under the null), the
-d-separation test remains labelled **experimental**.
+evidence; this study is. Until the cache here meets all five acceptance criteria
+below, the d-separation test remains labelled **experimental**.
 
 ## The study design (shown, never run)
 
@@ -115,16 +124,45 @@ fc <- attr(d, "fisher_c")$p.value
 This study code is shown **for transparency only** and is never evaluated when
 the vignette is built.
 
+## Acceptance criteria for promoting V-17
+
+The cached study object stores these checks in `cal$acceptance`. V-17 can move
+from experimental to validated only if all five pass:
+
+1. Every family x n x beta cell has at least 95% usable d-separation claims
+   (`status == "ok"` and finite p-value).
+2. Every beta = 0 family x n Type-I estimate lies inside the 99% binomial
+   Monte-Carlo band around the nominal alpha.
+3. Every beta = 0 family x augmented-component-count (`claim_df`) Type-I
+   estimate lies inside the same 99% Monte-Carlo band.
+4. Fisher's C p-values under the null are close to Uniform(0, 1): one-sample
+   KS p >= 0.01 and median p in [0.40, 0.60].
+5. Power behaves as expected: beta = 0.8 gives power >= 0.80 in every family x n
+   cell; beta = 0.5 gives power >= 0.70 for n >= 250; and power is nondecreasing
+   aside from at most 0.05 Monte-Carlo jitter.
+
+```{r acceptance-table, echo = FALSE, eval = !is.null(cal)}
+knitr::kable(
+  cal$acceptance$criteria,
+  col.names = c("Criterion", "Rule", "Pass"),
+  caption = "Acceptance checks for promoting V-17."
+)
+```
+
 ## Type-I error by family and sample size
 
 ```{r type1-table, echo = FALSE, eval = !is.null(cal)}
+type1_tab <- cal$type1[order(cal$type1$family, cal$type1$n),
+                       c("family", "n", "reject", "mc_lower", "mc_upper",
+                         "n_rep", "pass")]
 knitr::kable(
-  cal$type1[order(cal$type1$family, cal$type1$n), ],
+  type1_tab,
   digits  = 3,
-  col.names = c("DGP family", "n", "Type-I (rejection at beta = 0)", "reps"),
+  col.names = c("DGP family", "n", "Type-I", "MC lower", "MC upper",
+                "reps", "pass"),
   caption = sprintf(
-    "Empirical Type-I rate at the nominal alpha = %.2f. Values near %.2f are well calibrated.",
-    cal$meta$alpha, cal$meta$alpha
+    "Empirical Type-I rate at nominal alpha = %.2f, with the 99%% Monte-Carlo acceptance band.",
+    cal$meta$alpha
   )
 )
 ```
@@ -218,8 +256,9 @@ on this page is traceable to the exact engine that produced it.
 ```{r provenance, echo = FALSE, eval = !is.null(cal)}
 m <- cal$meta
 cat(sprintf(
-  "Cache provenance:\n  generated:      %s\n  drmTMB version: %s\n  drmSEM version: %s\n  R version:      %s\n  git SHA:        %s\n  reps per cell:  %s\n",
-  m$generated_at, m$drmTMB_version, m$drmSEM_version, m$R_version,
-  m$git_sha, m$reps
+  "Cache provenance:\n  generated:      %s\n  drmTMB version: %s\n  drmTMB SHA:     %s\n  drmSEM version: %s\n  R version:      %s\n  git SHA:        %s\n  reps per cell:  %s\n",
+  m$generated_at, m$drmTMB_version,
+  if (is.null(m$drmTMB_remote_sha)) NA_character_ else m$drmTMB_remote_sha,
+  m$drmSEM_version, m$R_version, m$git_sha, m$reps
 ))
 ```

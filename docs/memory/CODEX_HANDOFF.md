@@ -13,26 +13,29 @@ Coordinate on a separate branch; the launchable team is mirrored in
 
 ## What shipped (pure-R / CI-green) up to this handoff
 
-drmSEM 0.1.0 released; then, on the `0.1.0.9000` dev line (all merged, CI-green on
-3 OSes): **OQ-12** unified effect API (`method`/`uncertainty`/`nsim`/`population`,
-deprecated `mediation`/`draw`/`n_sim`), **OQ-14** covariance-edge *grammar*
-(`covary()`/`covariances()`/covariance-aware d-sep), **0.2** analytic effect
-cross-checks (V-26..V-30) + standardization conventions (OQ-4) + calibration
-scaffold (OQ-6), **0.3** composite constructs (`drm_composite()`/`loadings()`),
-**OQ-5** per-mediator + per-channel path attribution (`path_effects()`), and the
-GitHub Pages deploy fix. The whole pure-R surface is kernel-validated.
+drmSEM 0.2.0 released, and `main` is now on the `0.2.0.9000` dev line. The merged
+post-0.1/0.2 surface includes **OQ-12** unified effect API
+(`method`/`uncertainty`/`nsim`/`population`, deprecated `mediation`/`draw`/
+`n_sim`), **OQ-14** covariance-edge *grammar* (`covary()`/`covariances()`/
+covariance-aware d-sep), analytic effect cross-checks (V-26..V-30),
+standardization conventions (OQ-4), **OQ-6** calibration scaffold,
+**0.3** composite constructs (`drm_composite()`/`loadings()`), **OQ-5**
+per-mediator, per-component, and natural path attribution (`path_effects()`),
+and the GitHub Pages deploy fix. The pure-R surface is kernel-validated unless
+the ledger names a live-fit gate.
 
-## P0 — close out 0.2 (gates the 0.2.0 tag)
+## P0 — live-engine closeout for the next dev slice
 
-1. **OQ-6 — run the Fisher's C calibration study.** `Rscript inst/calibration/generate.R`
-   (engine-gated, self-contained) → produce **`inst/calibration/calibration-results.rds`**;
-   confirm `vignettes/calibration.Rmd` renders from the cache. Design + acceptance
-   criteria are in the vignette / `OQ-6`: DGP ladder (mean-only / distributional
-   `zi`+`sigma` / cross-link), `n in {100,250,500,1000}`; the centrepiece diagnostic
-   is empirical Type-I **stratified by augmented-component count `q`**. Promote
-   **V-17 -> validated** only when criteria 1-5 pass. Until then no doc may call the
-   d-sep test "validated/calibrated/near nominal".
-2. **Flip the kernel tiers to *validated*.** Integration tests on a live fit that
+1. **DONE 2026-06-06 — OQ-6 Fisher's C calibration study.**
+   `Rscript inst/calibration/generate.R` produced
+   **`inst/calibration/calibration-results.rds`** (`drmTMB` 0.1.3.9000,
+   `drmTMB` Git SHA `17b1321`, `drmSEM` 0.2.0.9000, git SHA `c951d31`,
+   14,400 replicates) and
+   `vignettes/calibration.Rmd` rendered from the source-tree cache. All five
+   C1-C5 checks in `cal$acceptance` passed, so **V-17 -> validated** for the
+   OQ-6 grid only. Keep future Fisher's C / d-sep claims scoped to that grid
+   unless new calibration scenarios are added.
+2. **Flip the remaining kernel tiers to *validated*.** Integration tests on a live fit that
    promote **V-7** (distribution-mediated mechanism) and the d-sep claims from
    "kernel-validated" -> "validated" — run the `test-analytic-effects.R` identities
    through a real `drm_sem()` fit, not just hand-built engines.
@@ -43,12 +46,12 @@ GitHub Pages deploy fix. The whole pure-R surface is kernel-validated.
 
 ## P1 — feature completion needing a live fit
 
-4. **OQ-5 follow-up.** (a) per-component **sigma-vs-zi** split: add a one-arg
-   `freeze` to `drm_propagate` (hold one component of a mediator at its x0 value),
-   so `path_effects(by="component")` can split the distributional channel by
-   component; return **`NA`** for mean-fallback families. (b) the **natural**
-   per-mediator variant with a **recanting-witness** guard. (c) a `path_effects()`
-   integration test on the canonical fit. Spec: `OQ-5`, `DECISIONS.md` D-17,
+4. **OQ-5 follow-up.** Per-component **sigma-vs-zi** attribution and the
+   **natural** per-mediator variant with a **recanting-witness** guard now ship
+   and are kernel-validated (V-34/V-35). Remaining live-fit work: return **`NA`**
+   for mean-fallback/unconfirmed-sampler families where attribution is not
+   defensible, and add a `path_effects()` integration test on the canonical fit.
+   Spec: `OQ-5`, `DECISIONS.md` D-17/D-19,
    `docs/design/02-effect-calculus.md`.
 5. **OQ-14 — bivariate joint fit.** Grammar ships; still need a **live bivariate
    drmTMB fit** for: **`drm_pair()`** joint node, **`rho12(fit)` / `corpairs(fit)`**

@@ -9,6 +9,15 @@
   pure graph logic; the cross-world computation reuses the validated
   `drm_natural_target` kernel.
 
+## Calibration (OQ-6)
+
+* The live-drmTMB lane generated `inst/calibration/calibration-results.rds`
+  (`drmTMB` 0.1.3.9000, Git SHA `17b1321`, 14,400 calibration replicates). All
+  five pre-specified acceptance checks pass, so V-17 is promoted to validated
+  for the OQ-6 mean-only / distributional / cross-link calibration grid only;
+  broader Fisher's C / d-sep settings remain claim-scoped until separately
+  tested.
+
 # drmSEM 0.2.0
 
 Second release. Post-0.1 work: a unified effect-API surface, first-class
@@ -70,12 +79,6 @@ CI-validated against a live drmTMB or kernel-validated by closed-form tests.
   per-component, so `sigma`/`zi` paths standardize on their own link scale. A
   Gelman 2-SD opt-in for continuous-vs-factor comparability and a theoretical-
   variance term for GLM mean paths are noted as tracked refinements.
-* **Calibration vignette scaffold** (`vignettes/calibration.Rmd`, OQ-6): a
-  precomputed, never-fits article that reads a cached results object produced in
-  the live-drmTMB lane by `inst/calibration/generate.R`. The any-component
-  d-separation test stays labelled experimental until the cached study meets its
-  acceptance criteria.
-
 ## Covariance edges: rho12 and corpair (OQ-14, grammar layer)
 
 * `covary(y1, y2, level = )` declares a **covariance edge** between two responses
