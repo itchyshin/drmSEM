@@ -95,8 +95,11 @@ with random effects held at zero. A mediator passes either its expected mean
 mediation). `indirect_effects()` reports `total_path`, `direct`, `indirect`,
 `mean_mediated`, and `distribution_mediated`, where the
 distribution-mediated row isolates exactly the contribution that no
-coefficient-product method can express — and corresponds to the natural
-direct/indirect effect decomposition of mediation analysis [@Imai2010]. Effects
+coefficient-product method can express. `direct` is a **controlled direct
+effect** (mediators held at their observed values), and the total/indirect split
+is simulation-based; in the mediation-analysis tradition of @Imai2010, these
+coincide with the natural direct and indirect effects only under linearity with
+no exposure-mediator interaction. Effects
 are reported on the response scale of the target, and outcome functionals beyond
 the mean (e.g. `Pr(Y > t)`, the variance of `Y`, the zero probability) are
 planned outputs of the same simulated populations.
@@ -106,9 +109,17 @@ markers (`phylo()`, `animal()`, `relmat()`, `spatial()`). `drmSEM` recognizes
 these markers and excludes them from the causal edge set, so a node may carry a
 phylogenetic random effect today while `paths()`, `dsep()`, `fisher_c()`, and the
 effect engine operate on the fixed-effect DAG. This covers the `phylopath` niche
-[@vanderBijl2018] within a distributional engine; phylogenetic paths into
-distributional components, model-set comparison, and evolutionary covariance
-models (BM/OU/lambda) are on the roadmap.
+[@vanderBijl2018] within a distributional engine. Building on this, `drmSEM` also
+ships phylopath-style confirmatory model comparison — `drm_dag()` and
+`drm_model_set()` define a candidate set, `compare()` ranks the candidates by a
+small-sample-corrected information criterion (CICc) built on Fisher's C, and
+`best()` / `average()` return the top model and CICc-weighted model-averaged
+paths — and `drm_phylo_cov()`, which constructs the phylogenetic relatedness
+matrix under a fixed evolutionary model (Brownian motion, Pagel's lambda or
+kappa, or Ornstein-Uhlenbeck) for a node to consume via `relmat()`. Jointly
+estimating that evolutionary parameter, a phylogenetic-covariance-aware model
+comparison, and phylogenetic paths into distributional components are on the
+roadmap.
 
 **Built on `drmTMB`.** Every assumption about the engine's return shapes is
 isolated in a single adapter, so `drmSEM` re-uses, rather than re-implements,
@@ -124,8 +135,8 @@ sem <- drm_sem(
                        family = stats::gaussian()),
   abundance = drm_node(drmTMB::bf(abundance ~ size + temp, zi ~ habitat),
                        family = drmTMB::nbinom2()),
-  survival  = drm_node(drmTMB::bf(cbind(alive, dead) ~ abundance + size),
-                       family = drmTMB::beta_binomial()),
+  survival  = drm_node(drmTMB::bf(survival ~ abundance + size),
+                       family = drmTMB::nbinom2()),
   data = dat
 )
 

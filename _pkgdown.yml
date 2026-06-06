@@ -53,6 +53,10 @@ reference:
       - compare
       - best
       - average
+  - title: Phylogenetic SEM
+    desc: Build evolutionary covariance matrices for phylogenetic nodes.
+    contents:
+      - drm_phylo_cov
   - title: Diagnostics
     contents:
       - check_sem

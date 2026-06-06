@@ -50,7 +50,7 @@ these tasks one of the others is the correct choice.
 | **piecewiseSEM** | Piecewise SEM with d-separation over separately fitted local models | No (observed-variable) | Yes (wraps `lm`/`glm`/`glmer`/`glmmTMB` etc.) | No — works on the **mean** structure only | `plot.psem()` draws the path diagram; it does **not** plot an effect decomposition |
 | **glmmTMB** | A fitting engine for (distributional) GLMMs — not an SEM | No | Yes (rich families, dispersion, zero-inflation) | Yes, *within a single model* (`disp`/`zi` formulas), but there is no graph, d-separation, or path propagation | N/A — not an SEM; no path effects |
 | **dsem** | Dynamic, time-series / state-space SEM | Yes (latent states) | Limited; Gaussian state-space focus | No — temporal paths on the mean / state | Plots the DAG (`plot.dsem()`); **total effects returned as a matrix**, not plotted as a decomposition |
-| **drmSEM** | Observed-variable, hierarchical, **distributional** piecewise SEM on `drmTMB` | **No** (planned for 0.3) | Yes (one `drmTMB` fit per node) | **Yes — first-class, component-labelled path targets** | Component-labelled DAG via `plot()`; simulation-based direct / indirect / total with a distribution-mediated channel |
+| **drmSEM** | Observed-variable, hierarchical, **distributional** piecewise SEM on `drmTMB` | **No** (out of scope for 0.x) | Yes (one `drmTMB` fit per node) | **Yes — first-class, component-labelled path targets** | Component-labelled DAG via `plot()`; simulation-based direct / indirect / total with a distribution-mediated channel |
 
 The columns are filled in conservatively: each "Yes" reflects a documented,
 shipped capability, and the "No" entries mark genuine scope boundaries rather
@@ -65,9 +65,9 @@ SEM**: latent constructs measured by multiple indicators, fitted as a single
 joint multivariate likelihood, with a mature path-diagram ecosystem
 (`semPlot::semPaths()`). If your model is fundamentally about **latent
 variables** — measurement models, factor structure, latent regressions — use
-`lavaan`. `drmSEM` does not do latent variables (see the roadmap: latent
-variables are 0.3, joint multivariate fitting is 0.4) and does not aim to
-replace `lavaan` for covariance-structure SEM.
+`lavaan`. `drmSEM` does not do latent variables (these and joint multivariate
+fitting are out of scope for 0.x, though both are possible future directions) and
+does not aim to replace `lavaan` for covariance-structure SEM.
 
 ```r
 # lavaan: latent-variable, joint-likelihood SEM (illustrative; not run here)
@@ -209,12 +209,13 @@ Being honest about scope is part of choosing the right tool. Per the charter and
 [roadmap](https://github.com/itchyshin/drmSEM), `drmSEM` (0.x) deliberately does
 **not**:
 
-- **No latent variables.** Variables are observed. (Latent constructs are
-  planned for **0.3**; for measurement models today, use `lavaan`.)
+- **No latent variables.** Variables are observed. (Latent constructs are out of
+  scope for 0.x and a possible future direction; for measurement models today,
+  use `lavaan`.)
 - **No joint multivariate likelihood.** The model is **piecewise** — one
   `drmTMB` fit per node, not a single joint fit. (Joint multivariate SEM, where
   `rho12` becomes a structural target rather than a per-node residual
-  correlation, is planned for **0.4**.)
+  correlation, is out of scope for 0.x and a possible future direction.)
 - **DAG-only.** Cyclic / feedback graphs are an **error**. (Specific feedback
   motifs are planned for **0.5**.)
 - **No new likelihoods and no arbitrary backends.** `drmSEM` never fits its own

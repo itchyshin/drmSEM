@@ -248,3 +248,28 @@ phylo demo, paper+overview) integrated on PR #6; after three CI-surfaced fixes
 (test-model-set ordering/expect_silent, drm_node NSE auto-wrap, pkgdown pak dep
 conflict) the whole batch is green on 3 OSes + pkgdown build (run 27007984275).
 Phase 2 compare()/best()/average() validated end-to-end on live drmTMB.
+
+## 2026-06-05 — Phase 3 covariance + audit-driven closeout (Ada, parallel agents)
+
+Phase 3 evolutionary covariance shipped + a full audit-driven closeout, run as
+parallel agents on disjoint files:
+- **Curie** built `R/phylo_cov.R` (`drm_phylo_cov()`: BM / Pagel's λ / Martins-
+  Hansen OU / Pagel's κ → relatedness matrix for `relmat()`) + `test-phylo-cov.R`.
+  Pure-matrix transforms verified locally (base R); ape/drmTMB paths CI-gated.
+- **Rose** (systems audit) produced the closeout punch-list.
+- **Grace** hand-wrote the 5 stale Phase-2 `man/*.Rd`; whole `man/` passes
+  `tools::checkRd()` with no broken links.
+- **Ada (Boole-style integration)** reclassified Phase 2/3 as shipped across
+  vignettes/paper/overview; switched the paper marquee node off `beta_binomial`
+  (no sampler) to `nbinom2` so the headline mediated effect is real; fixed the
+  `NEWS.md` `standardize()` over-claim (link-scale only).
+- Orchestrator: NAMESPACE export + `_pkgdown.yml` entry for `drm_phylo_cov`;
+  `zero_one_beta` added to `drm_supported_sampler_families()`; removed a broken
+  internal `\link` from the phylo_cov roxygen; design-doc Phase-1 contradiction
+  cleared; OQ-9/OQ-11 defined, OQ-13 marked resolved; ledger V-rows added and
+  sampler claims downgraded to continuous-part-only.
+
+PROCESS LESSON (Rose): when adding an `@export`ed R file, regenerate + commit
+`NAMESPACE` + `man/` and update NEWS/ledger/OQ in the SAME commit. CI's
+`roxygenise()` masks stale committed artifacts, so source/GitHub/pkgdown-from-
+source installs can ship an incomplete man/ even while CI is green.

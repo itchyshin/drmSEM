@@ -9,11 +9,11 @@ vignette: >
 
 ```{r setup, include = FALSE}
 # drmSEM never fits its own likelihoods: every endogenous node is one drmTMB
-# fit, and drmTMB compiles TMB (C++) from source. While the drmTMB-integration
-# layer is still pending end-to-end validation (see
-# docs/memory/VALIDATION_LEDGER.md), the model-fitting chunks below are shown
-# for illustration but not evaluated. Flip `has_engine` to
-# requireNamespace("drmTMB", quietly = TRUE) once integration is validated.
+# fit, and drmTMB compiles TMB (C++) from source. The code chunks below are
+# illustrative only and are never executed: this vignette has no simulate step,
+# so it defines no `dat` or `phy`, and `eval = has_engine` keeps the chunks
+# from running. For runnable, end-to-end examples see the companion vignettes
+# (`drmSEM.Rmd`, `phylogenetic-sem.Rmd`).
 has_engine <- FALSE
 knitr::opts_chunk$set(
   collapse = TRUE,
@@ -130,7 +130,10 @@ to two contrasting values, pushes the change through every downstream node in
 topological order (random effects held at zero), and reads off the
 population-average change in the response-scale target. This is counterfactual,
 `do()`-style propagation in the tradition of Pearl and of Imai, Keele and
-Yamamoto's natural direct/indirect effects.
+Yamamoto. The `direct` quantity is a **controlled direct effect** (mediators
+held at their observed values), and the total/indirect split is simulation-based;
+these coincide with natural direct and indirect effects only under linearity with
+no exposure-mediator interaction.
 
 **Mean vs distribution mediation.** What an active mediator passes downstream is
 the crux. Under `mediation = "mean"` it passes its expected `mu`; under
@@ -150,14 +153,19 @@ Only the latter carries signal that lives in a mediator's scale, zeros, or shape
 
 So `indirect` is approximately `mean_mediated + distribution_mediated`, and the
 `distribution_mediated` row isolates exactly the contribution that no
-coefficient-product method can express. These map onto natural direct and
-indirect effects in counterfactual mediation analysis.
+coefficient-product method can express. Because `direct` is a controlled direct
+effect, these coincide with natural direct and indirect effects only under
+linearity with no exposure-mediator interaction.
 
 ```{r effects}
 direct_effects(sem,   from = "temp", to = "survival")
 total_effects(sem,    from = "temp", to = "survival", mediation = "distribution")
 indirect_effects(sem, from = "temp", to = "survival")  # the five-row decomposition
 ```
+
+Note: `direct_effects()` reports the mean (response) scale only. Non-mean
+channels (`sigma`, `zi`, ...) do not appear here — they show up in `paths()` and
+in the `distribution_mediated` row of `indirect_effects()`.
 
 **Outcome functionals.** Because effects come from simulated populations, the
 target need not be a mean. The same machinery supports response-scale functionals
@@ -206,9 +214,9 @@ set, so a node can carry a phylogenetic random effect *today* while `paths()`,
 
 ```{r phylo}
 sem_phylo <- drm_sem(
-  y1 = drm_node(drmTMB::bf(y1 ~ x + phylo(1 | species, tree = tree)),
+  y1 = drm_node(drmTMB::bf(y1 ~ x + phylo(1 | species, tree = phy)),
                 family = stats::gaussian()),
-  y2 = drm_node(drmTMB::bf(y2 ~ y1 + x + phylo(1 | species, tree = tree)),
+  y2 = drm_node(drmTMB::bf(y2 ~ y1 + x + phylo(1 | species, tree = phy)),
                 family = stats::gaussian()),
   data = dat
 )
@@ -221,12 +229,15 @@ This is the genuinely new contribution. Existing phylogenetic SEM tools
 phylogenetic covariance; `drmSEM` extends this to **distributional** SEM, where
 shared ancestry can be incorporated while direct and indirect effects are
 estimated for changes in means, variances, zero probabilities, and other
-response-distribution components. Practical notes: the `tree` is an `ape` "phylo"
+response-distribution components. Practical notes: `phy` is an `ape` "phylo"
 object and must be ultrametric (rescale a raw tree with
-`ape::compute.brlen(tree, "Grafen")`), and every `species` level must be a tip
-label. The Phase-1 slice is intercept-only `phylo(1 | species)`; phylogenetic
-paths *into* distributional components, model-set comparison, and jointly
-estimated evolutionary covariance are roadmap items. See `phylogenetic-sem.Rmd`.
+`ape::compute.brlen(phy, "Grafen")`), and every `species` level must be a tip
+label. Phylopath-style model-set comparison (`drm_dag()` / `drm_model_set()` /
+`compare()` / `best()` / `average()`, Phase 2) and evolutionary covariance
+models (`drm_phylo_cov()` for BM / lambda / OU / kappa on a *fixed* grid,
+Phase 3) ship today; phylogenetic paths *into* distributional components and
+*jointly estimated* evolutionary covariance remain roadmap items. See
+`phylogenetic-sem.Rmd`.
 
 ## Roadmap
 
@@ -238,8 +249,9 @@ estimated evolutionary covariance are roadmap items. See `phylogenetic-sem.Rmd`.
 | Component-labelled DAG plot + effect forest plot | now |
 | Phylogenetic correction inside piecewise SEM (Phase 1, intercept-only) | now |
 | Outcome functionals beyond the mean (`Pr(Y>t)`, var, zero prob.) | partial / roadmap |
-| Phylopath-style model-set comparison (best / averaged model) | roadmap (Phase 2) |
-| Evolutionary covariance models (BM / OU / Pagel's lambda / kappa) | roadmap (Phase 3) |
+| Phylopath-style model-set comparison (best / averaged model) | now (Phase 2; `drm_dag` / `drm_model_set` / `compare` / `best` / `average`) |
+| Evolutionary covariance models (BM / OU / Pagel's lambda / kappa) | now (Phase 3; `drm_phylo_cov`, fixed grid — not jointly estimated) |
+| Jointly estimated evolutionary covariance (λ / OU / κ) | roadmap |
 | Phylogenetic paths *into* distributional components | roadmap (Phase 4) |
 | Latent variables | out of scope for 0.x |
 | Full joint (single-likelihood) multivariate SEM | out of scope for 0.x |

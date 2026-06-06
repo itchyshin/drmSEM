@@ -237,20 +237,69 @@ effect decomposition all run over the fixed-effect DAG while each node is fitted
 conditional on shared ancestry. This is the worked example above (subject to the
 same drmTMB-integration validation caveat as the rest of the package).
 
-**Phase 2 -- phylopath-style model comparison (roadmap).** Ranking a *set* of
-candidate phylogenetic DAGs by a C-statistic information criterion (the
-`phylopath` workflow), with model-averaged paths, is planned but not yet
-implemented.
+**Phase 2 -- phylopath-style model comparison (works today).** A *set* of
+candidate DAGs can be ranked by a C-statistic information criterion (the
+`phylopath` workflow), with model-averaged paths. `drm_dag()` captures one
+unfitted candidate, `drm_model_set()` collects the named candidates,
+`compare()` fits each with `drm_sem()`, runs the any-component d-separation test,
+and ranks them by CICc (a small-sample-corrected criterion built on Fisher's C)
+with delta-CICc and Akaike weights. `best()` returns the top fitted SEM and
+`average()` returns CICc-weighted standardized paths. Each candidate's nodes may
+carry the same `phylo(...)` / `relmat(...)` term, so the comparison is
+phylogenetically corrected node-by-node.
 
-**Phase 3 -- evolutionary process models (roadmap).** First-class choice of the
-phylogenetic covariance -- Brownian motion (BM), Ornstein-Uhlenbeck (OU), and
-Pagel's lambda / kappa transformations -- as a per-node option, rather than the
-single default correlation structure available now.
+```{r modelset, eval = has_engine}
+models <- drm_model_set(
+  direct   = drm_dag(fitness ~ temp + size),
+  mediated = drm_dag(size ~ temp, fitness ~ size + temp)
+)
+cmp <- compare(models, data = dat,
+               family = list(size = stats::gaussian(),
+                             fitness = drmTMB::nbinom2()))
+cmp                 # CICc, delta-CICc, Akaike weight per candidate
+best(cmp)           # the lowest-CICc fitted drm_sem
+average(cmp)        # CICc-weighted standardized path coefficients
+```
+
+**Phase 3 -- evolutionary process models (works today).** `drm_phylo_cov()`
+builds the phylogenetic relatedness matrix under a *fixed* evolutionary model --
+Brownian motion (`"BM"`), Pagel's lambda (`"lambda"`) or kappa (`"kappa"`), or
+an Ornstein-Uhlenbeck decay (`"OU"`) -- and you feed it to a node through the
+`relmat(1 | species, K = K)` marker (which drmSEM strips from the causal edge
+set exactly as it strips `phylo(...)`). The evolutionary parameter is supplied
+on a grid by the caller; it is not jointly estimated with the node.
+
+```{r phylocov, eval = has_engine}
+# an OU relatedness matrix at a fixed decay rate; tip labels == dat$species
+K <- drm_phylo_cov(phy, model = "OU", alpha = 2)
+
+sem_ou <- drm_sem(
+  size = drm_node(
+    drmTMB::bf(size ~ temp + relmat(1 | species, K = K), sigma ~ temp),
+    family = stats::gaussian()
+  ),
+  fitness = drm_node(
+    drmTMB::bf(fitness ~ size + relmat(1 | species, K = K)),
+    family = drmTMB::nbinom2()
+  ),
+  data = dat
+)
+```
+
+The matrix-building step itself (`drm_phylo_cov()`) needs only `ape`, not the
+engine, so you can inspect `K` directly; the `drm_sem()` fit above is gated on
+the engine like the rest of this vignette.
 
 **Phase 4 -- distributional phylo paths (roadmap).** Letting the phylogenetic
 *structure itself* differ by component (e.g. a distinct evolutionary process on
 `sigma` or `zi`), so that "how variance evolves" becomes a modelled,
 component-labelled target.
+
+The remaining roadmap is narrow: *jointly* estimating the evolutionary
+parameter (lambda / OU's alpha / kappa) rather than scanning a fixed grid, a
+*phylogenetic-covariance-aware* model comparison (the shipped `compare()` is the
+general, non-phylo C-statistic ranking), and the Phase-4 distributional phylo
+paths above.
 
 Per `docs/design/06-phylogenetic-sem.md`, the non-goals are deliberate and
 inherited from the charter: `drmSEM` will not fit its own phylogenetic
@@ -268,8 +317,10 @@ re-implementation of the comparative-methods stack.
   **fixed-effect DAG**, phylogenetically corrected.
 - The novel surface is **phylogenetic distributional** paths: effects into
   `sigma`, `zi`, or shape that survive correction for shared ancestry.
-- Phase 1 (phylo nodes) works today; Phases 2-4 (phylopath-style comparison,
-  BM/OU/lambda/kappa, distributional phylo paths) are roadmap. See
-  `docs/design/06-phylogenetic-sem.md`.
+- Phase 1 (phylo nodes), Phase 2 (phylopath-style comparison via `drm_dag()` /
+  `drm_model_set()` / `compare()` / `best()` / `average()`), and Phase 3
+  (fixed-grid BM/OU/lambda/kappa via `drm_phylo_cov()`) all work today; jointly
+  estimated covariance, covariance-aware comparison, and Phase 4 distributional
+  phylo paths remain roadmap. See `docs/design/06-phylogenetic-sem.md`.
 </content>
 </invoke>

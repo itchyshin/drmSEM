@@ -5,8 +5,12 @@ NULL
 # Families drmSEM has realized-value samplers for (distribution-mediated effects
 # are fully supported only for these). Others fall back to mean propagation.
 drm_supported_sampler_families <- function() {
+  # zero_one_beta is listed: its continuous (beta) part is drmTMB-confirmed and it
+  # degrades to a plain beta draw when zoi/coi are absent (the zoi/coi inflation
+  # mapping is the only unconfirmed piece; see drm_sample_family). tweedie is
+  # deliberately omitted -- it has no realized-value sampler and falls back to mean.
   c("gaussian", "student", "lognormal", "Gamma", "gamma", "poisson",
-    "nbinom2", "truncated_nbinom2", "beta")
+    "nbinom2", "truncated_nbinom2", "beta", "zero_one_beta")
 }
 
 #' Diagnose a fitted distributional SEM

@@ -157,7 +157,13 @@ dsep.drm_sem <- function(object, ...) {
 }
 
 drm_fisher_c_from_p <- function(p) {
-  p <- p[!is.na(p) & p > 0]
+  # Drop only un-tested claims (NA). A claim with p == 0 (a decisively rejected
+  # independence -- the strongest possible evidence of a missing arrow) must NOT
+  # be dropped: doing so removes log(0) = -Inf from C and shrinks df, biasing
+  # Fisher's C toward non-rejection exactly when the DAG is most wrong. Floor p
+  # at the smallest positive double so such a claim inflates C instead.
+  p <- p[!is.na(p)]
+  p <- pmax(p, .Machine$double.xmin)
   k <- length(p)
   C <- -2 * sum(log(p))
   df <- 2L * k

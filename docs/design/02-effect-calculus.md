@@ -85,6 +85,21 @@ So `indirect ≈ mean_mediated + distribution_mediated`, and the
 distribution-mediated row isolates exactly the contribution that no
 coefficient-product method can express.
 
+**Controlled vs natural effects (identification caveat).** `direct` here is a
+*controlled* direct effect — mediators are held at their **observed** values
+while `X` moves — and `indirect = total − direct`. This coincides with the
+*natural* direct/indirect effect decomposition of mediation analysis
+(Pearl; Imai, Keele & Yamamoto) **only under linearity with no
+exposure–mediator interaction**. drmSEM paths routinely cross nonlinear links
+and the engine permits `X × M` interaction terms — exactly the cases where the
+controlled and natural effects differ — so the package reports a controlled
+direct effect and a simulation-based total/indirect split, and does **not**
+claim a natural-effects identification. The recovery tests that cross-check the
+decomposition use identity-link, no-interaction Gaussian DAGs (the one regime
+where the two coincide), so they validate the arithmetic, not the natural-effect
+identification. (See inference-review B-2; the roxygen for `direct_effects()`
+already states "controlled direct effect".)
+
 ## Monte-Carlo coefficient uncertainty
 
 `drm_draw_beta()` draws each node's coefficient vector from

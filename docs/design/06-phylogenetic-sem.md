@@ -57,19 +57,22 @@ Gaussian and Poisson/NB2 q=1 means — no non-Gaussian phylo *slopes* or slope
 correlations yet. `ape` is a test/vignette Suggests, gated on
 `requireNamespace("ape")`.
 
-**Phase-1 d-sep refit (RESOLVED):** `dsep()` augment-refits a structured
+**Phase-1 d-sep refit (RESOLVED, OQ-13):** `dsep()` augment-refits a structured
 node by evaluating the refit in the SEM's specification environment
-(`object$fit_env`), so the `tree` resolves. (Earlier this failed:) `dsep()` could not augment-refit
-a node that carries a structured term (`phylo()/animal()/...`) -- the tree/
-pedigree object is not resolvable in the refit, so such claims return
-`status="refit_failed"` and drop out of Fisher's C (drmSEM degrades
-gracefully, no crash). So d-separation goodness-of-fit is currently
-incomplete for phylo SEMs. Tracked as OQ-13 / DRMTMB_ISSUES.
+(`object$fit_env`), so the `tree` (and any `animal()/relmat()` object) resolves
+and the `phylo()` term is preserved in the augmented model. Phylo d-separation
+claims therefore return `status="ok"` with a real LRT p-value and contribute to
+Fisher's C — d-separation goodness-of-fit is complete for phylo SEMs. (Earlier
+this failed: the tree was not resolvable in the refit, claims returned
+`status="refit_failed"` and dropped out of Fisher's C; drmSEM degraded gracefully
+without crashing. That limitation is closed.) Validated end-to-end on live drmTMB
+in `tests/testthat/test-phylo.R` (asserts `status == "ok"` + finite p-value).
 
-**Outstanding for Phase 1:** a drmTMB-gated integration test fitting phylo nodes,
-a worked vignette, and confirmation that `dsep()`'s augmented refits preserve the
-`phylo()` term. (Tracked: OQ-13.) Effects are conditional (RE = 0); a path into
-`sd(species)` needs the marginal option from OQ-9 (see `02-effect-calculus.md`).
+**Phase-1 status:** complete end-to-end — build / `paths()` / `dsep()` /
+`fisher_c()` / effects on a live phylo node, a drmTMB-gated integration test, and
+a worked vignette (`vignettes/phylogenetic-sem.Rmd`). Effects are conditional
+(RE = 0); a path into `sd(species)` needs the marginal option from OQ-9 (see
+`02-effect-calculus.md`).
 
 ## Phase 2 — phylopath-compatible model comparison
 
@@ -90,12 +93,39 @@ Mirrors `define_model_set()`/`phylo_path()`/`best()`/`average()` but with drmTMB
 families and component-labelled paths. Selection by Fisher's C, CICc, ΔCICc,
 weights — reusing the existing `dsep()`/`fisher_c()` machinery per model.
 
-## Phase 3 — evolutionary covariance models
+## Phase 3 — evolutionary covariance models (**implemented, short term**)
 
-Expose `phylo_model = c("BM","lambda","OU","kappa")`. Short term: construct/
-transform the phylogenetic covariance matrix before it enters the structured-effect
-layer (a fixed λ/OU/κ grid). Long term: estimate λ/OU/κ jointly — a larger
-engine problem that belongs in drmTMB, not drmSEM (file upstream if needed).
+`drm_phylo_cov(tree, model = c("BM","lambda","OU","kappa"), ...)` constructs/
+transforms the phylogenetic covariance matrix on a fixed λ/OU/κ grid *before* it
+enters the structured-effect layer, returning a relatedness matrix to feed a node
+via the `relmat()` marker:
+
+```r
+K <- drm_phylo_cov(tree, "lambda", lambda = 0.7)   # or "BM" / "OU" (alpha) / "kappa"
+sem <- drm_sem(
+  y = drm_node(bf(y ~ x + relmat(1 | species, K = K)), family = gaussian()),
+  data = dat)
+```
+
+The four models all start from the Brownian-motion covariance `C = ape::vcv(tree)`:
+
+- **BM** — `C` unchanged.
+- **Pagel's λ** — scale off-diagonals by λ, keep the diagonal: `λ=1`→BM, `λ=0`→star
+  phylogeny. Pure matrix transform (`phylo_transform_lambda`).
+- **OU** — Martins & Hansen (1997) exponential-decay *correlation*
+  `exp(-α · d_ij)` over patristic distance `d_ij = C_ii + C_jj − 2C_ij`: `α→0`
+  strong-inertia (all-ones, singular), large `α`→identity. Pure matrix transform
+  (`phylo_transform_ou`).
+- **Pagel's κ** — raises branch lengths to the power κ before `vcv` (genuinely
+  tree-structured, ape-only): `κ=1`→BM.
+
+`standardize = TRUE` (default) returns a correlation-style relatedness matrix
+(unit diagonal), the natural input to `relmat()`. The λ/OU/standardise transforms
+are pure base R and unit-tested without ape (`test-phylo-cov.R`); the ape (κ, real
+tree) and drmTMB (`relmat` node) paths are gated and validated in CI.
+
+**Long term:** estimate λ/OU/κ jointly — a larger engine problem that belongs in
+drmTMB, not drmSEM (file upstream if needed).
 
 ## Phase 4 — distributional phylogenetic SEM (the novel contribution)
 
@@ -121,7 +151,7 @@ expected fitness, Pr(fitness > t), variance of fitness, zero probability, etc.
 | Best / averaged model | yes | yes | Phase 2 |
 | Plot fitted DAGs | yes | yes | yes |
 | BM covariance | yes | yes | Phase 1/3 |
-| OU / λ / κ | limited | yes | Phase 3 |
+| OU / λ / κ | limited | yes | **yes (Phase 3, fixed grid)** |
 | Missing-trait imputation | no | yes | later |
 | Cyclic / non-recursive | no | yes | later (maybe not core) |
 | Non-Gaussian responses | some | some | **yes (drmTMB)** |

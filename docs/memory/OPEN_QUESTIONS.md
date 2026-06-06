@@ -96,3 +96,49 @@ and whether a better-conditioned DGP (larger n, gentler scale slope) removes the
 warning. Needs a live drmTMB session to bisect by node. Until then the canonical
 example inherits NaN SEs, so Monte-Carlo effect intervals there collapse to point
 estimates.
+
+## OQ-9 — Marginal (population-averaged) effects through random-effect scale
+
+The effect engine currently propagates with random effects held at zero, so
+reported direct/indirect/total effects are **conditional** (RE = 0). This means a
+causal path *into* a random-effect scale — e.g. `X -> sd(group)` or a path into
+`sd(species)` under a phylogenetic node — cannot be expressed as an effect on the
+response, because integrating it out requires marginalizing over the RE
+distribution. Open: add a `marginal = TRUE` option that integrates over the
+fitted RE distribution (needs drmTMB to expose the RE variance components and a
+way to draw/integrate them on the response scale). Until then, `sd(group)` paths
+appear in `paths()` but have no entry in the effect decomposition, and this is
+documented as a conditional-effects limitation (see `02-effect-calculus.md`,
+`06-phylogenetic-sem.md`). Needs a live drmTMB session to confirm the ranef
+variance API.
+
+## OQ-10 — (unused)
+
+Reserved; no current references.
+
+## OQ-11 — Outcome functionals beyond the mean
+
+Distribution-mediated effects are most compelling when reported on functionals of
+the outcome distribution other than its mean — `Pr(Y > t)`, `Pr(Y = 0)`,
+`Var(Y)`, quantiles — since a path that moves only `sigma`/`zi` may leave `E[Y]`
+nearly unchanged while sharply changing a tail or zero probability. The
+simulation engine already produces realized draws of the outcome, so these
+functionals are computable from the same Monte-Carlo sample. Open: expose an
+`outcome = c("mean","prob_gt","prob_zero","var","quantile")` argument on the
+effect functions (with a threshold/quantile arg) and decide the default reporting
+scale and CI construction. This is the headline for Phase 4 (distributional
+phylogenetic SEM, see `06-phylogenetic-sem.md`).
+
+## OQ-13 — d-separation augment-refit of a structured (phylo/animal/relmat) node  [RESOLVED 2026-06-05, see D-entry / VALIDATION_LEDGER]
+
+**Resolution.** `dsep()` could not augment-refit a node carrying a structured
+term because the `tree`/pedigree object was not resolvable in the refit (claims
+returned `status="refit_failed"` and dropped out of Fisher's C). Fixed
+drmSEM-side: `drm_sem()`/`drm_psem()` capture the specification environment
+(`fit_env = parent.frame()`); `dsep()` passes it to `drm_refit_augmented(...,
+env = object$fit_env)`, which builds the augmented formula and refits via
+`do.call(..., envir = env)`, so the tree resolves and the `phylo()` term is
+preserved. Phylo d-sep claims now return `status="ok"` with a real LRT p-value
+and contribute to Fisher's C. Validated on live drmTMB (CI run 27006262081
+green; asserted in `tests/testthat/test-phylo.R`). No drmTMB change required
+(see `DRMTMB_ISSUES.md`).

@@ -108,6 +108,15 @@ plot(sem)         # DAG with component-labelled edges
 `distribution_mediated` components, so distribution-mediated pathways (e.g.
 through `sigma` or `zi`) are visible rather than collapsed into a mean effect.
 
+## More
+
+- **Model selection.** Define a candidate set with `drm_dag()` /
+  `drm_model_set()`, then `compare()` / `best()` / `average()` to rank and
+  model-average competing DAGs. See `vignette("comparison")`.
+- **Phylogenetic SEM.** Build an evolutionary relatedness matrix with
+  `drm_phylo_cov()` and feed it to a node via `relmat()`. See
+  `vignette("phylogenetic-sem")`.
+
 ## Status
 
 Early and experimental. The kernel logic — d-separation bookkeeping, the
