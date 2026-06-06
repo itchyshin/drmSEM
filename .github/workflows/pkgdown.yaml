@@ -49,6 +49,14 @@ jobs:
       - name: Build site
         run: pkgdown::build_site_github_pages(dest_dir = "pkgdown-site", new_process = FALSE, install = FALSE)
         shell: Rscript {0}
+      # Ensure GitHub Pages is enabled and its Source is "GitHub Actions" (not a
+      # branch), so the artifact below is actually what gets served. enablement:
+      # true makes this self-healing instead of a one-time manual Settings toggle.
+      - name: Configure Pages
+        if: github.event_name != 'pull_request'
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
       - name: Upload Pages artifact
         if: github.event_name != 'pull_request'
         uses: actions/upload-pages-artifact@v3
