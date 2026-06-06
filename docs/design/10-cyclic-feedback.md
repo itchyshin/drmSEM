@@ -103,6 +103,29 @@ and is out of scope for the pure-R lane.
 nonlinear stability proofs, and cycles of length > 2 with mixed links (supported
 in principle by the fixed-point engine, validated incrementally).
 
+## Current state (0.5.0 shipped)
+
+The pure-R grammar and equilibrium engine now ship (`R/feedback.R`,
+`test-feedback.R`):
+
+- **`drm_cycle()` / `feedback =`** declaration, validated against the node
+  records; `drm_sem()` / `drm_psem()` accept it and **warn** that node-wise ML is
+  inconsistent under simultaneity. `cycles()` lists the declared motifs.
+- **Relaxed toposort** (`drm_toposort_feedback()`): a declared motif is condensed
+  into one layer; every *undeclared* cycle is still a hard error.
+- **`basis_set()` suppression** of independence claims among a motif's nodes.
+- **Effect-API refusal**: `direct_effects()` / `total_effects()` /
+  `indirect_effects()` / `path_effects()` abort on a feedback SEM rather than
+  return a misleading single-sweep number.
+- **`propagate_fixedpoint()`** (internal): iterate-to-equilibrium with a
+  spectral-radius / max-iter guard and honest non-convergence; `drm_reduced_form()`
+  / `drm_spectral_radius()` give the linear `(I − B)^{-1} Gamma` estimand. A
+  closed-form test confirms the simulated equilibrium equals the reduced form.
+
+Remaining (next increments): wiring equilibrium effects into the public effect
+API, full sigma-separation, and **consistent estimation** (IV/2SLS or a joint
+likelihood) — the engine part.
+
 ## What is pure-R vs engine
 
 - **Pure-R (designable/prototypable now):** the `drm_cycle()`/`feedback`

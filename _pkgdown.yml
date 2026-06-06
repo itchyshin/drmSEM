@@ -52,6 +52,14 @@ reference:
     contents:
       - drm_composite
       - loadings
+  - title: Feedback / cyclic motifs
+    desc: >
+      Declare a feedback motif so specific cycles are allowed (every undeclared
+      cycle stays an error). The equilibrium effect engine and consistent
+      estimation are staged in docs/design/10-cyclic-feedback.md.
+    contents:
+      - drm_cycle
+      - cycles
   - title: d-separation
     desc: Test missing arrows on any distributional component.
     contents:

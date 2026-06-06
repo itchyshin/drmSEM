@@ -74,6 +74,13 @@ live-fit analytic-effect tier flip, and OQ-14 joint fit.
   reduced-form / fixed-point equilibrium estimand, sigma-separation, and the
   staged plan (pure-R fixed-point propagation now; consistent IV/joint estimation
   is the engine part).
+- Shipped (0.5.0 pure-R grammar + equilibrium engine, `R/feedback.R`):
+  `drm_cycle()` / `feedback =` declaration, relaxed toposort (cycles stay an error
+  unless declared), `cycles()` accessor, basis-set suppression among motif nodes,
+  the effect-API refusal for a feedback SEM, and the internal
+  `propagate_fixedpoint()` (stability-guarded, non-convergence-reporting, recovers
+  `(I − B)⁻¹ Γ`). Remaining: wiring equilibrium effects into the effect API, and
+  consistent estimation (IV/2SLS or a joint likelihood) — the engine part.
 
 ## Interop and distribution
 

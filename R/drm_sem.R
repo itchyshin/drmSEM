@@ -8,7 +8,8 @@ NULL
 # `covariances` holds covary() declarations (residual rho12 / higher-level
 # corpair edges), stored separately from the directed `$edges` (OQ-14).
 new_drm_sem <- function(fits, data, call, fit_env = parent.frame(),
-                        covariances = NULL, composites = NULL) {
+                        covariances = NULL, composites = NULL,
+                        feedback = NULL) {
   if (length(fits) == 0L) {
     cli::cli_abort("A drmSEM model needs at least one endogenous node.")
   }
@@ -32,13 +33,28 @@ new_drm_sem <- function(fits, data, call, fit_env = parent.frame(),
   node_names <- names(fits)
   exo <- setdiff(unique(edges$from[!edges$endogenous]), node_names)
 
-  topo <- drm_toposort(node_names, vedges)
+  # Feedback motifs (0.5): a declared drm_cycle() motif relaxes the DAG check --
+  # the motif is condensed into one topological layer, so the only cycles allowed
+  # are inside declared motifs. Every undeclared cycle stays a hard error.
+  fb <- drm_build_feedback(feedback, records)
+  motifs <- drm_motifs_from_table(fb)
+  topo <- if (nrow(fb) > 0L) {
+    drm_toposort_feedback(node_names, vedges, motifs)
+  } else {
+    drm_toposort(node_names, vedges)
+  }
   if (!topo$acyclic) {
     cyc <- setdiff(node_names, topo$order)
     cli::cli_abort(c(
-      "The structural graph contains a cycle; drmSEM requires a DAG.",
-      "x" = "Nodes involved in or downstream of the cycle: {.val {cyc}}.",
-      "i" = "Remove feedback arrows or split the offending node."
+      "The structural graph contains a cycle; drmSEM requires a DAG or a declared feedback motif.",
+      "x" = "Nodes in or downstream of an undeclared cycle: {.val {cyc}}.",
+      "i" = "Remove the feedback arrows, split the node, or declare the motif with {.code feedback = drm_cycle(...)}."
+    ))
+  }
+  if (nrow(fb) > 0L) {
+    cli::cli_warn(c(
+      "A declared feedback motif is fitted node-wise; ordinary ML is inconsistent under simultaneity.",
+      "i" = "Consistent estimation (IV/2SLS or a joint likelihood) is an engine capability; equilibrium effects use the fixed-point propagator on the supplied coefficients (see {.file docs/design/10-cyclic-feedback.md})."
     ))
   }
 
@@ -51,6 +67,7 @@ new_drm_sem <- function(fits, data, call, fit_env = parent.frame(),
       var_edges = vedges,
       covariances = covs,
       composites = comps,
+      feedback = fb,
       endogenous = node_names,
       exogenous = exo,
       order = topo$order,
@@ -84,6 +101,11 @@ new_drm_sem <- function(fits, data, call, fit_env = parent.frame(),
 #' @param composites Optional [drm_composite()] declaration(s). For `drm_psem()`
 #'   the construct column(s) must already be present in the data the nodes were
 #'   fitted on; the declarations are recorded so [loadings()] can report them.
+#' @param feedback Optional [drm_cycle()] declaration(s) naming a feedback
+#'   (cyclic) motif. Cycles are an error unless declared; a declared motif relaxes
+#'   the topological-order requirement and is reported by [cycles()]. Node-wise
+#'   fitting of a declared cycle is inconsistent under simultaneity (a warning is
+#'   emitted); see `docs/design/10-cyclic-feedback.md`.
 #'
 #' @return A `drm_sem` object.
 #' @seealso [drm_sem()] for the declarative interface that fits nodes for you.
@@ -100,7 +122,8 @@ new_drm_sem <- function(fits, data, call, fit_env = parent.frame(),
 #' paths(sem)
 #' }
 #' @export
-drm_psem <- function(..., data = NULL, covariances = NULL, composites = NULL) {
+drm_psem <- function(..., data = NULL, covariances = NULL, composites = NULL,
+                     feedback = NULL) {
   fits <- list(...)
   if (!all(vapply(fits, is_drmTMB_fit, logical(1)))) {
     cli::cli_abort(c(
@@ -112,7 +135,8 @@ drm_psem <- function(..., data = NULL, covariances = NULL, composites = NULL) {
     data <- drm_fit_data(fits[[1L]])
   }
   new_drm_sem(fits, data, match.call(), fit_env = parent.frame(),
-              covariances = covariances, composites = composites)
+              covariances = covariances, composites = composites,
+              feedback = feedback)
 }
 
 #' Fit and assemble a distributional piecewise SEM
@@ -132,6 +156,11 @@ drm_psem <- function(..., data = NULL, covariances = NULL, composites = NULL) {
 #'   column is materialized from its indicators *before* fitting, so node
 #'   formulas can reference it as an ordinary observed column; the loadings are
 #'   reported by [loadings()].
+#' @param feedback Optional [drm_cycle()] declaration(s) naming a feedback
+#'   (cyclic) motif, allowing those nodes to form a cycle (every undeclared cycle
+#'   stays an error). Node-wise ML of a declared cycle is inconsistent under
+#'   simultaneity (a warning is emitted); equilibrium effects use the fixed-point
+#'   propagator. See `docs/design/10-cyclic-feedback.md`.
 #'
 #' @return A `drm_sem` object.
 #' @seealso [drm_psem()], [paths()], [dsep()], [indirect_effects()].
@@ -154,7 +183,8 @@ drm_psem <- function(..., data = NULL, covariances = NULL, composites = NULL) {
 #' dsep(sem)
 #' indirect_effects(sem, from = "temp", to = "abundance")
 #' }
-drm_sem <- function(..., data, covariances = NULL, composites = NULL) {
+drm_sem <- function(..., data, covariances = NULL, composites = NULL,
+                    feedback = NULL) {
   specs <- list(...)
   if (missing(data)) {
     cli::cli_abort("{.arg data} is required for {.fn drm_sem}.")
@@ -183,7 +213,8 @@ drm_sem <- function(..., data, covariances = NULL, composites = NULL) {
   }
   names(fits) <- nms
   new_drm_sem(fits, data, match.call(), fit_env = parent.frame(),
-              covariances = covariances, composites = composites)
+              covariances = covariances, composites = composites,
+              feedback = feedback)
 }
 
 #' @export
@@ -210,6 +241,10 @@ print.drm_sem <- function(x, ...) {
   np <- if (is.null(x$composites)) 0L else length(x$composites)
   if (np > 0L) {
     cli::cli_text("{np} composite construct{?s}. Use {.fn loadings} to list the indicators.")
+  }
+  nf <- length(drm_feedback_motifs(x))
+  if (nf > 0L) {
+    cli::cli_text("{nf} declared feedback motif{?s} (cyclic). Use {.fn cycles} to list them.")
   }
   invisible(x)
 }

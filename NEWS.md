@@ -1,5 +1,25 @@
 # drmSEM 0.2.0.9000 (development version)
 
+## Feedback / cyclic motifs (0.5.0, grammar + equilibrium engine)
+
+* `drm_cycle("y1", "y2")` declares a **feedback motif**; `drm_sem()` / `drm_psem()`
+  gain a `feedback =` argument that accepts it. Cycles remain a hard error
+  **unless declared** — a declared motif is condensed into one topological layer,
+  so the DAG check still rejects every *undeclared* cycle. `cycles(sem)` lists the
+  declared motifs.
+* **Honest fitting.** Node-wise ML of a declared cycle is inconsistent under
+  simultaneity, so `drm_sem()` **warns**: consistent estimation (IV/2SLS or a
+  joint likelihood) is an engine capability, not something drmSEM fakes.
+* **d-separation** drops independence claims among a motif's nodes (DAG
+  d-separation does not hold across a cycle; full sigma-separation is deferred),
+  and the standard **effect functions refuse** a feedback SEM rather than return a
+  non-equilibrium single-sweep number.
+* **Equilibrium propagator (internal).** `propagate_fixedpoint()` iterates the
+  mean propagation map to its fixed point with a spectral-radius / max-iter
+  stability guard, reporting **non-convergence** honestly; a closed-form test
+  confirms it recovers the linear reduced form `(I − B)⁻¹ Γ`. Wiring it into the
+  effect API is the 0.5.x increment. Design: `docs/design/10-cyclic-feedback.md`.
+
 ## Effect decomposition: paired Monte-Carlo and honest framing
 
 * **Bug fix (intervals).** `indirect_effects()` now computes the
