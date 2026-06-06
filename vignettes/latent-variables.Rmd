@@ -1,0 +1,103 @@
+---
+title: "Latent constructs: composites and reliability"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Latent constructs: composites and reliability}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+# Model-fitting chunks use the drmTMB engine and are eval-gated; the pure-R
+# construct helpers (drm_composite, print, summary) run.
+has_engine <- FALSE
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = has_engine)
+library(drmSEM)
+set.seed(1)
+```
+
+drmSEM lets a node load on a **latent construct** while staying inside its hard
+constraints — observed-variable, piecewise, DAG-only, each node one `drmTMB` fit,
+no joint likelihood. The piece that fits this paradigm is the **composite
+construct**: a deterministic index of observed indicators, materialized as a
+column *before* fitting, so it can be used as an ordinary predictor or response.
+
+## A formative composite
+
+A **formative** construct is *defined* by its indicators (they are causes, not
+effects, of the construct). `drm_composite()` builds it; the helper is pure R and
+runs without the engine:
+
+```{r formative, eval = TRUE}
+dat <- data.frame(
+  bill = rnorm(200), tarsus = rnorm(200), mass = rnorm(200), x = rnorm(200)
+)
+# equal-weighted index of three size indicators:
+size <- drm_composite("size", c("bill", "tarsus", "mass"), data = dat)
+size
+```
+
+Pass it to `drm_sem(..., composites = )`; the column is materialized before
+fitting, so a node formula can use `size` like any observed predictor, and
+`loadings()` reports the indicator weights (kept separate from `paths()`):
+
+```{r formative-sem}
+sem <- drm_sem(
+  fitness = drm_node(drmTMB::bf(fitness ~ size + x), family = stats::gaussian()),
+  data = dat,
+  composites = drm_composite("size", c("bill", "tarsus", "mass"), data = dat)
+)
+loadings(sem)
+```
+
+## A reflective-flavoured composite, and construct quality
+
+When the indicators are thought to be *effects* of one underlying dimension
+(reflective), the first principal component approximates that common factor.
+`method = "pca"` records the PC1 loadings and the proportion of variance it
+captures, and every composite reports its **reliability** (Cronbach's alpha — the
+internal consistency of the indicator set):
+
+```{r reflective, eval = TRUE}
+# correlated indicators of one latent dimension
+z <- rnorm(200)
+ind <- data.frame(i1 = z + rnorm(200, sd = .4),
+                  i2 = z + rnorm(200, sd = .4),
+                  i3 = z + rnorm(200, sd = .4))
+boldness <- drm_composite("boldness", c("i1", "i2", "i3"),
+                          method = "pca", data = ind, standardize = TRUE)
+summary(boldness)
+```
+
+A high alpha (indicators move together) supports a reflective reading; a low or
+negative alpha is an honest signal that the indicators do *not* form a coherent
+scale. `standardize = TRUE` puts the score on a mean-0 / sd-1 scale so it enters a
+model comparably to other standardized predictors. (For a *formative* construct
+alpha is reported for information only — internal consistency is not the right
+criterion when indicators are causes.)
+
+## A construct as a response
+
+Because the construct is just a column, a node can also be fit *on* it — e.g. to
+ask what predicts `size`:
+
+```{r response}
+sem2 <- drm_sem(
+  size    = drm_node(drmTMB::bf(size ~ x), family = stats::gaussian()),
+  fitness = drm_node(drmTMB::bf(fitness ~ size), family = stats::gaussian()),
+  data = dat,
+  composites = drm_composite("size", c("bill", "tarsus", "mass"), data = dat)
+)
+paths(sem2)
+```
+
+## What is *not* a composite
+
+A true **reflective measurement model** — estimating the latent's loadings and
+score *jointly* with the structural model, propagating score uncertainty —
+requires a single joint likelihood across all indicators, which a piecewise,
+one-fit-per-node engine cannot provide. That belongs to the **0.4 joint
+multivariate** work (or lavaan interop), and drmSEM does not pretend a composite
+is it. A composite is an *observed* index with transparent, recorded weights; use
+it when that is what you mean, and reach for a joint factor model when you need
+the latent estimated.

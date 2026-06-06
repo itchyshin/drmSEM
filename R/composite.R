@@ -45,7 +45,12 @@ NULL
 #'   principal-component score of the scaled indicators).
 #' @param data A data frame containing the `indicators` (used to validate them
 #'   and, for `"pca"`, to derive the loadings).
-#' @return A `drm_composite` declaration object.
+#' @param standardize If `TRUE`, the materialized construct column is standardized
+#'   (mean 0, sd 1). Default `FALSE`.
+#' @return A `drm_composite` declaration object. It records the indicator
+#'   `loadings` and the construct's reliability (Cronbach's alpha, an
+#'   internal-consistency measure for *reflective* indicator sets), shown by
+#'   `print()` / `summary()`.
 #' @seealso [loadings()], [drm_sem()].
 #' @examples
 #' dat <- data.frame(len = rnorm(50), mass = rnorm(50), wing = rnorm(50))
@@ -55,13 +60,16 @@ NULL
 #' drm_composite("body_size", c("len", "mass", "wing"), method = "pca", data = dat)
 #' @export
 drm_composite <- function(name, indicators, weights = NULL,
-                          method = c("fixed", "pca"), data) {
+                          method = c("fixed", "pca"), data, standardize = FALSE) {
   method <- match.arg(method)
   if (!is.character(name) || length(name) != 1L || !nzchar(name)) {
     cli::cli_abort("{.arg name} must be a single non-empty string.")
   }
   if (!is.character(indicators) || length(indicators) < 2L) {
     cli::cli_abort("{.arg indicators} must name at least two indicator columns.")
+  }
+  if (!is.logical(standardize) || length(standardize) != 1L) {
+    cli::cli_abort("{.arg standardize} must be a single logical.")
   }
   if (missing(data) || !is.data.frame(data)) {
     cli::cli_abort("{.arg data} (a data frame holding the indicators) is required.")
@@ -97,10 +105,24 @@ drm_composite <- function(name, indicators, weights = NULL,
 
   out <- list(
     name = name, indicators = indicators, method = method,
-    loadings = loadings, scale = scale_indicators, prop_var = prop_var
+    loadings = loadings, scale = scale_indicators, prop_var = prop_var,
+    standardize = standardize, reliability = drm_cronbach_alpha(M)
   )
   class(out) <- "drm_composite"
   out
+}
+
+# Cronbach's alpha for the indicator set: a reflective-construct reliability
+# (internal consistency). NA for a single indicator; can be negative when the
+# indicators are not positively correlated (a useful "these don't form a scale"
+# signal), which is honest rather than clamped.
+drm_cronbach_alpha <- function(M) {
+  k <- ncol(M)
+  if (k < 2L) return(NA_real_)
+  cv <- stats::cov(M)
+  total_var <- sum(cv)
+  if (!is.finite(total_var) || total_var <= 0) return(NA_real_)
+  (k / (k - 1)) * (1 - sum(diag(cv)) / total_var)
 }
 
 #' @export
@@ -109,7 +131,27 @@ print.drm_composite <- function(x, ...) {
   if (!is.na(x$prop_var)) {
     cli::cli_text("  first-PC proportion of variance: {round(x$prop_var, 3)}")
   }
+  if (!is.na(x$reliability)) {
+    cli::cli_text("  reliability (Cronbach's alpha): {round(x$reliability, 3)}")
+  }
+  if (isTRUE(x$standardize)) cli::cli_text("  score standardized (mean 0, sd 1)")
   invisible(x)
+}
+
+#' @export
+summary.drm_composite <- function(object, ...) {
+  cli::cli_text("<composite construct> {.strong {object$name}} ({object$method})")
+  ld <- data.frame(indicator = object$indicators,
+                   loading = round(as.numeric(object$loadings[object$indicators]), 4),
+                   stringsAsFactors = FALSE)
+  print(ld, row.names = FALSE)
+  if (!is.na(object$prop_var)) {
+    cli::cli_text("First-PC proportion of variance: {round(object$prop_var, 3)}")
+  }
+  if (!is.na(object$reliability)) {
+    cli::cli_text("Reliability (Cronbach's alpha): {round(object$reliability, 3)}")
+  }
+  invisible(object)
 }
 
 # Score a composite spec on a (possibly new) data frame. Recomputing from the
@@ -122,7 +164,9 @@ drm_score_composite <- function(spec, data) {
   }
   M <- as.matrix(data[, spec$indicators, drop = FALSE])
   if (isTRUE(spec$scale)) M <- scale(M)
-  as.numeric(M %*% spec$loadings[spec$indicators])
+  score <- as.numeric(M %*% spec$loadings[spec$indicators])
+  if (isTRUE(spec$standardize)) score <- as.numeric(scale(score))
+  score
 }
 
 # Normalize a composites argument (NULL / one drm_composite / list) to a list,

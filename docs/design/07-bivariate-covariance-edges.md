@@ -213,12 +213,12 @@ the basis set.
 | Residual covariance `eps_y1 <-> eps_y2` (`rho12`) as arc | yes | partial | no | **yes** |
 | Higher-level RE covariance (`corpair`) as arc | limited | no | no | **yes** |
 | `rho12()` / `corpairs()` accessors (read from fit) | n/a | no | no | **yes** |
-| `covary()` declaration + `covariances()` separate from `paths()` | n/a | no | **yes (0.1.0.9000)** | yes |
+| `covary()` declaration + `covariances()` separate from `paths()` | n/a | no | **yes (0.2.0)** | yes |
 | Double-headed / dashed arc plotting | yes (semPaths) | no | no | **yes** |
 | Level-compatibility rule for RE correlations | manual | no | partial (declared; deep RE-block check needs fit) | **yes** |
-| d-sep aware of covariance edges (drop `y1 _||_ y2`) | yes (Shipley) | partial | **yes (0.1.0.9000)** | yes |
+| d-sep aware of covariance edges (drop `y1 _||_ y2`) | yes (Shipley) | partial | **yes (0.2.0)** | yes |
 
-## Current state (0.1.0.9000)
+## Current state (0.2.0)
 
 drmSEM already extracts `x -> rho12` as a **directed-path component** *if* it is
 given a bivariate drmTMB fit through `drm_psem()`: a predictor on the `rho12`

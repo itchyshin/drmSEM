@@ -24,10 +24,10 @@ new_drm_sem <- function(fits, data, call, fit_env = parent.frame(),
   vedges <- drm_collapse_edges(edges)
   covs <- drm_build_covariances(covariances, records)
   comps <- drm_build_composites(composites)
-  clash <- intersect(vapply(comps, function(c) c$name, character(1)), names(fits))
-  if (length(clash)) {
-    cli::cli_abort("Composite name{?s} {.val {clash}} collide{?s/} with a node name.")
-  }
+  # NB: a composite name MAY coincide with a node name -- that is the
+  # construct-as-response pattern (a node models the materialized composite). The
+  # dangerous case (a composite overwriting a real data column) is caught earlier
+  # by drm_apply_composites(); no node-name clash check is needed here.
 
   node_names <- names(fits)
   exo <- setdiff(unique(edges$from[!edges$endogenous]), node_names)

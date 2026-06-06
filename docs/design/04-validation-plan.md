@@ -57,8 +57,9 @@ Two test tiers exist:
   mediated channel vanishing when scale is held fixed) plus the natural /
   functional effect kernels. PASS.
 
-The pure-logic kernel suite passes under R 4.3.3 in the dev container, and all
-17 R/ source files parse clean.
+The pure-logic kernel suite (including `test-composite.R` and
+`test-path-effects.R`, which carry V-31..V-34) passes in CI, and all 19 R/ source
+files parse clean.
 
 ## Tier 2 — drmTMB-integration tests (WRITTEN, runtime PENDING)
 

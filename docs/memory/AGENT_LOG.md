@@ -499,6 +499,23 @@ docs/memory/OPEN_QUESTIONS.md).
   NOT edited here; the natural-variant status update there is pending Codex's
   calibration closeout / handoff back of that file.
 
+## 2026-06-06 — 0.3 latent push (increment A): composite reliability + standardize
+
+Parallel-safe 0.3 work while Codex runs the calibration lane. Touched ONLY
+non-shared files (R/composite.R, NAMESPACE, man/drm_composite.Rd, test-composite.R,
+docs/design/09-latent-variables.md, AGENT_LOG) -- avoided NEWS/ledger/DECISIONS/
+OPEN_QUESTIONS/roadmap/paper/overview/calibration (Codex-owned), so their rebase
+stays clean. Holding NEWS/ledger bullets for a reconciliation pass after Codex lands.
+- `drm_composite()` now records **reliability** (Cronbach's alpha, `drm_cronbach_alpha()`,
+  unclamped, NA for a single indicator) and accepts `standardize = TRUE`
+  (mean-0/sd-1 score). `print()`/new `summary.drm_composite()` report loadings +
+  prop_var + reliability. Tests in test-composite.R (alpha formula on identical /
+  single / uncorrelated indicators; standardize moments; summary no-error).
+- 09-latent-variables.md expanded: reliability, standardize, formative vs
+  reflective-flavoured (pca) reading.
+Next increments (B) composite-as-response + effects/d-sep through a composite;
+(C) latent-variables vignette.
+
 ## 2026-06-06 — Codex live-drmTMB OQ-6 calibration closeout
 
 Codex picked up the live-engine handoff on branch `codex/live-drmtmb-closeout`
@@ -539,3 +556,17 @@ Verification: `vignettes/calibration.Rmd` rendered from the source-tree cache;
 `devtools::check()` finished with 0 errors, 0 warnings, and 1 existing NOTE
 (`LICENSE` file not mentioned in DESCRIPTION). Removed the unused `utils` import
 from DESCRIPTION during this pass, clearing the second check NOTE.
+
+## 2026-06-06 — post-#18 reconciliation (Claude lane)
+
+After Codex's OQ-6 calibration PR (#18) merged to main, merged main into the 0.3
+branch (only AGENT_LOG conflicted -- both lanes appended; kept both). Then folded
+in the deferred shared-doc bullets that were held during the freeze:
+- NEWS 0.2.0.9000: added the "Latent constructs (0.3)" section (composite
+  reliability/standardize/summary.drm_composite, composite-as-response, the
+  latent-variables vignette).
+- drmSEM-overview roadmap table: added "now" rows for path_effects attribution and
+  composite constructs; softened "Latent variables out of scope" -> "reflective
+  measurement models out of scope (0.4); composites ship".
+Codex's calibration cache + V-17 (OQ-6-grid validated) + the utils-import removal
+are in. d-sep/Fisher's C wording stays scoped to the OQ-6 grid.

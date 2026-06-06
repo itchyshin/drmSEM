@@ -102,3 +102,61 @@ test_that("loadings() reports indicator loadings, empty when there are none", {
 
   expect_identical(nrow(loadings(structure(list(), class = "drm_sem"))), 0L)
 })
+
+# 0.3 — composite reliability (Cronbach's alpha), standardize option, summary.
+
+test_that("Cronbach's alpha matches the formula and handles edge cases", {
+  # two identical columns -> perfectly reliable (alpha = 1)
+  M <- cbind(a = c(1, 2, 3, 4, 5), b = c(1, 2, 3, 4, 5))
+  expect_equal(drmSEM:::drm_cronbach_alpha(M), 1, tolerance = 1e-8)
+  # a single indicator is undefined
+  expect_true(is.na(drmSEM:::drm_cronbach_alpha(matrix(1:5, ncol = 1))))
+  # poorly-correlated indicators give a low (here negative) alpha, not clamped
+  M2 <- cbind(c(1, 2, 3, 4, 5), c(5, 1, 4, 2, 3))
+  expect_lt(drmSEM:::drm_cronbach_alpha(M2), 1)
+})
+
+test_that("drm_composite records reliability and honours standardize", {
+  dat <- data.frame(a = c(1, 2, 3, 4, 5), b = c(1, 2, 3, 4, 5), cc = c(1, 2, 3, 4, 5))
+  sp <- drm_composite("idx", c("a", "b", "cc"), data = dat)
+  expect_equal(sp$reliability, 1, tolerance = 1e-8)   # identical indicators
+  expect_false(sp$standardize)
+
+  sp2 <- drm_composite("idx", c("a", "b", "cc"), data = dat, standardize = TRUE)
+  expect_true(sp2$standardize)
+  sc <- drmSEM:::drm_score_composite(sp2, dat)
+  expect_equal(mean(sc), 0, tolerance = 1e-8)
+  expect_equal(stats::sd(sc), 1, tolerance = 1e-8)
+
+  expect_error(drm_composite("idx", c("a", "b"), data = dat, standardize = "yes"),
+               "logical")
+  expect_no_error(summary(sp))
+})
+
+test_that("composites materialize and fit end-to-end (predictor and response)", {
+  skip_if_not_installed("drmTMB")
+  set.seed(3)
+  n <- 200
+  z <- rnorm(n)
+  dat <- data.frame(
+    i1 = z + rnorm(n, sd = .4), i2 = z + rnorm(n, sd = .4), i3 = z + rnorm(n, sd = .4),
+    x = rnorm(n))
+  dat$y <- 0.5 * z + 0.3 * dat$x + rnorm(n)
+
+  # composite as a PREDICTOR
+  sem <- drm_sem(
+    y = drm_node(drmTMB::bf(y ~ size + x), family = stats::gaussian()),
+    data = dat,
+    composites = drm_composite("size", c("i1", "i2", "i3"), method = "pca", data = dat))
+  expect_s3_class(sem, "drm_sem")
+  expect_true("size" %in% names(sem$data))           # materialized before fitting
+  expect_true(any(paths(sem)$from == "size" & paths(sem)$to == "y"))
+  expect_equal(sort(loadings(sem)$indicator), c("i1", "i2", "i3"))
+
+  # composite as a RESPONSE (node name == composite name; the construct is modelled)
+  sem2 <- drm_sem(
+    size = drm_node(drmTMB::bf(size ~ x), family = stats::gaussian()),
+    data = dat,
+    composites = drm_composite("size", c("i1", "i2", "i3"), method = "pca", data = dat))
+  expect_true(any(paths(sem2)$from == "x" & paths(sem2)$to == "size"))
+})

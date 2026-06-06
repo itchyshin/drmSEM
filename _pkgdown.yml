@@ -12,8 +12,8 @@ template:
     link-color: "#0f7887"
 
 # `release`, not `auto`: the GitHub-Actions Pages deploy replaces the whole site
-# with each build, so a dev version (0.1.0.9000) under `auto` would nest the site
-# under /dev/ and leave the root 404. `release` always builds to the site root.
+# with each build, so a dev version (e.g. 0.2.0.9000) under `auto` would nest the
+# site under /dev/ and leave the root 404. `release` always builds to the site root.
 development:
   mode: release
 
@@ -85,6 +85,7 @@ articles:
     contents:
       - effect-decomposition
       - covariance-edges-and-composites
+      - latent-variables
       - comparison
       - phylogenetic-sem
       - calibration

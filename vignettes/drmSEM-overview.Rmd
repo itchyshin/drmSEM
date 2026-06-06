@@ -286,13 +286,15 @@ Phase 3) ship today; phylogenetic paths *into* distributional components and
 | Natural direct / indirect / mediated-interaction effects (`indirect_effects(effect = "natural")`) | now (cross-world split, validated on the linear-Gaussian case) |
 | Outcome functionals beyond the mean (`Pr(Y>t)`, `Pr(Y=0)`, var via `direct_effects()` / `total_effects(target = ...)`) | now (first set; more functionals + bootstrap CIs on roadmap) |
 | Unified effect-API surface (`method`, `uncertainty`, `nsim`, `population` shared across the effect functions) | now (`mediation` / `draw` / `n_sim` kept as deprecated aliases; bootstrap + marginal are roadmap) |
+| Path-specific attribution: per-mediator (`inclusion`/`exclusion`), per-component (`mean`/`sigma`/`zi`), and natural variant with recanting-witness flag (`path_effects()`) | now |
+| Composite (formative / PCA) latent constructs with reliability + loadings (`drm_composite()` / `loadings()`) | now |
 | Component-labelled DAG plot + effect forest plot | now |
 | Phylogenetic correction inside piecewise SEM (Phase 1, intercept-only) | now |
 | Phylopath-style model-set comparison (best / averaged model) | now (Phase 2; `drm_dag` / `drm_model_set` / `compare` / `best` / `average`) |
 | Evolutionary covariance models (BM / OU / Pagel's lambda / kappa) | now (Phase 3; `drm_phylo_cov`, fixed grid — not jointly estimated) |
 | Jointly estimated evolutionary covariance (λ / OU / κ) | roadmap |
 | Phylogenetic paths *into* distributional components | roadmap (Phase 4) |
-| Latent variables | out of scope for 0.x |
+| Reflective latent measurement models (latent estimated jointly with the structural model) | out of scope for 0.x (needs a joint likelihood; composite constructs ship — see above) |
 | Full joint (single-likelihood) multivariate SEM | out of scope for 0.x |
 | Cyclic / feedback graphs | not supported (cycles are an error) |
 | New likelihoods | out of scope (drmSEM never fits its own) |
