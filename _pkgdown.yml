@@ -85,6 +85,7 @@ articles:
     contents:
       - effect-decomposition
       - covariance-edges-and-composites
+      - latent-variables
       - comparison
       - phylogenetic-sem
       - calibration
