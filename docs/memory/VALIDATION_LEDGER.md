@@ -297,3 +297,14 @@ checked by the math-consistency pass (Noether).
 These discharge the 0.2 analytic-cross-check item. The remaining 0.2 items
 (Fisher's C calibration study V-17, and flipping V-7/V-10/d-sep to "validated")
 need the live-drmTMB lane.
+
+## 2026-06-06 — V-31: composite constructs (0.3, pure R)
+
+- **V-31 — `drm_composite()` + materialization + `loadings()`.** `drm_composite()`
+  builds `fixed` (weighted-sum) and `pca` (sign-fixed PC1, prop_var) specs and
+  rejects malformed declarations; `drm_score_composite()` recomputes the column
+  (raw %*% weights for fixed; scaled %*% loadings for pca); `drm_build_composites()`
+  normalizes/dedups; `drm_apply_composites()` materializes columns and guards
+  name collisions; `loadings()` reports indicator loadings (empty when none).
+  **validated (kernel)** — `test-composite.R`, no drmTMB. The engine path
+  (`drm_sem(composites=)` fitting a node on a materialized construct) is CI-gated.

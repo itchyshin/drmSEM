@@ -404,3 +404,25 @@ the existing "regenerate man/NAMESPACE" rule.
 Still 0.2-blocking and Codex-only: the Fisher's C calibration cache (OQ-6), the
 standardization `sigma_E` refinement (OQ-4), and flipping V-7/V-10/d-sep from
 kernel-validated to validated on a live fit.
+
+## 2026-06-06 — 0.3 first increment: composite constructs (orchestrator)
+
+After merging the post-0.1 hardening batch (#8), started 0.3 per Emmy's
+architecture: composite (formative) constructs, fully pure-R (no engine change).
+
+- **New `R/composite.R`:** `drm_composite()` (fixed weighted-sum / pca first-PC,
+  sign-fixed, prop_var), `drm_score_composite()`, `drm_build_composites()`,
+  `drm_apply_composites()` (materialize before fit), and the `loadings()` accessor
+  (separate from `paths()`, mirroring `covariances()`).
+- **`R/drm_sem.R`:** `drm_sem()`/`drm_psem()`/`new_drm_sem()` take `composites=`;
+  `drm_sem()` materializes construct columns before fitting; stored in a
+  `$composites` slot; `print.drm_sem()` notes them.
+- **Tests `test-composite.R`** (pure-R): construction, scoring, validation, build/
+  apply, loadings accessor. **NAMESPACE + man/ hand-updated** (drm_composite.Rd,
+  loadings.Rd, drm_sem/drm_psem Rd); `_pkgdown.yml` "Latent constructs" section.
+- **Docs/memory:** design doc `09-latent-variables.md` (composite vs reflective
+  boundary); NEWS; D-16; V-31; OQ-15 (follow-ups); this entry.
+
+Deferred (OQ-15): indicator-intervention propagation (needs a live fit),
+measurement-arc plotting (needs rendering), reflective constructs (0.4 / joint
+likelihood).

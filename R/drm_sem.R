@@ -8,7 +8,7 @@ NULL
 # `covariances` holds covary() declarations (residual rho12 / higher-level
 # corpair edges), stored separately from the directed `$edges` (OQ-14).
 new_drm_sem <- function(fits, data, call, fit_env = parent.frame(),
-                        covariances = NULL) {
+                        covariances = NULL, composites = NULL) {
   if (length(fits) == 0L) {
     cli::cli_abort("A drmSEM model needs at least one endogenous node.")
   }
@@ -23,6 +23,11 @@ new_drm_sem <- function(fits, data, call, fit_env = parent.frame(),
   edges <- drm_build_edges(records)
   vedges <- drm_collapse_edges(edges)
   covs <- drm_build_covariances(covariances, records)
+  comps <- drm_build_composites(composites)
+  clash <- intersect(vapply(comps, function(c) c$name, character(1)), names(fits))
+  if (length(clash)) {
+    cli::cli_abort("Composite name{?s} {.val {clash}} collide{?s/} with a node name.")
+  }
 
   node_names <- names(fits)
   exo <- setdiff(unique(edges$from[!edges$endogenous]), node_names)
@@ -45,6 +50,7 @@ new_drm_sem <- function(fits, data, call, fit_env = parent.frame(),
       edges = edges,
       var_edges = vedges,
       covariances = covs,
+      composites = comps,
       endogenous = node_names,
       exogenous = exo,
       order = topo$order,
@@ -75,11 +81,14 @@ new_drm_sem <- function(fits, data, call, fit_env = parent.frame(),
 #'   between responses. These are reported by [covariances()] and respected by
 #'   [basis_set()] / [dsep()], but never enter [paths()] or the effect
 #'   decomposition.
+#' @param composites Optional [drm_composite()] declaration(s). For `drm_psem()`
+#'   the construct column(s) must already be present in the data the nodes were
+#'   fitted on; the declarations are recorded so [loadings()] can report them.
 #'
 #' @return A `drm_sem` object.
 #' @seealso [drm_sem()] for the declarative interface that fits nodes for you.
 #' @export
-drm_psem <- function(..., data = NULL, covariances = NULL) {
+drm_psem <- function(..., data = NULL, covariances = NULL, composites = NULL) {
   fits <- list(...)
   if (!all(vapply(fits, is_drmTMB_fit, logical(1)))) {
     cli::cli_abort(c(
@@ -91,7 +100,7 @@ drm_psem <- function(..., data = NULL, covariances = NULL) {
     data <- drm_fit_data(fits[[1L]])
   }
   new_drm_sem(fits, data, match.call(), fit_env = parent.frame(),
-              covariances = covariances)
+              covariances = covariances, composites = composites)
 }
 
 #' Fit and assemble a distributional piecewise SEM
@@ -107,6 +116,10 @@ drm_psem <- function(..., data = NULL, covariances = NULL) {
 #' @param covariances Optional [covary()] declaration(s) (one object or a list)
 #'   recording residual (`rho12`) or higher-level (`corpair`) covariance edges
 #'   between responses; see [covariances()].
+#' @param composites Optional [drm_composite()] declaration(s). Each construct
+#'   column is materialized from its indicators *before* fitting, so node
+#'   formulas can reference it as an ordinary observed column; the loadings are
+#'   reported by [loadings()].
 #'
 #' @return A `drm_sem` object.
 #' @seealso [drm_psem()], [paths()], [dsep()], [indirect_effects()].
@@ -129,7 +142,7 @@ drm_psem <- function(..., data = NULL, covariances = NULL) {
 #' dsep(sem)
 #' indirect_effects(sem, from = "temp", to = "abundance")
 #' }
-drm_sem <- function(..., data, covariances = NULL) {
+drm_sem <- function(..., data, covariances = NULL, composites = NULL) {
   specs <- list(...)
   if (missing(data)) {
     cli::cli_abort("{.arg data} is required for {.fn drm_sem}.")
@@ -146,6 +159,10 @@ drm_sem <- function(..., data, covariances = NULL) {
   if (is.null(names(specs)) || any(!nzchar(names(specs)))) {
     cli::cli_abort("Every node passed to {.fn drm_sem} must be named.")
   }
+  # Materialize composite-construct columns BEFORE fitting, so node formulas can
+  # reference them as ordinary observed columns (drm_apply_composites is a no-op
+  # when composites is NULL).
+  data <- drm_apply_composites(data, composites)
   nms <- names(specs)
   fits <- vector("list", length(specs))
   for (i in seq_along(specs)) {
@@ -154,7 +171,7 @@ drm_sem <- function(..., data, covariances = NULL) {
   }
   names(fits) <- nms
   new_drm_sem(fits, data, match.call(), fit_env = parent.frame(),
-              covariances = covariances)
+              covariances = covariances, composites = composites)
 }
 
 #' @export
@@ -177,6 +194,10 @@ print.drm_sem <- function(x, ...) {
   nc <- if (is.null(x$covariances)) 0L else nrow(x$covariances)
   if (nc > 0L) {
     cli::cli_text("{nc} covariance edge{?s} (rho12/corpair). Use {.fn covariances} to list them.")
+  }
+  np <- if (is.null(x$composites)) 0L else length(x$composites)
+  if (np > 0L) {
+    cli::cli_text("{np} composite construct{?s}. Use {.fn loadings} to list the indicators.")
   }
   invisible(x)
 }

@@ -1,5 +1,17 @@
 # drmSEM 0.1.0.9000 (development version)
 
+## Composite latent constructs (0.3, first increment)
+
+* `drm_composite(name, indicators, weights, method = c("fixed", "pca"))` declares
+  a **composite (formative) construct** — a weighted sum or first-PC index of
+  observed indicator columns. It is materialized as an ordinary column *before*
+  fitting, so a node formula can use it as a predictor or response with no engine
+  change.
+* `drm_sem()` / `drm_psem()` gain a `composites =` argument; `loadings(sem)`
+  reports the indicator-to-construct loadings, kept separate from `paths()`.
+* Reflective (measurement-model) latent variables remain out of scope (they need
+  a joint likelihood); see `docs/design/09-latent-variables.md`.
+
 ## Inference hardening (towards 0.2)
 
 * **Analytic effect cross-checks** are now asserted tests (`test-analytic-effects.R`,

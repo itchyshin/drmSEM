@@ -260,3 +260,21 @@ Original open items below:
 
 Needs a **live bivariate drmTMB fit** to validate (cannot be tested in the dev
 container).
+
+## OQ-15 — Composite-construct follow-ups (0.3)
+
+The 0.3 first increment ships composite (formative) constructs (`drm_composite()`,
+`loadings()`, `composites=` on `drm_sem()`/`drm_psem()`; D-16, V-31). Open items:
+
+- **Indicator interventions.** A composite is frozen in the data, so the effect
+  engine cannot propagate an intervention on an *indicator* through the construct
+  (intervene on the construct instead). Propagating from indicators needs
+  `drm_build_scenarios()` to re-derive the construct column. Needs a live fit to
+  validate end-to-end.
+- **Measurement arcs in `plot()`.** Draw indicator→construct loadings as
+  measurement edges, visually distinct from structural paths (needs rendering).
+- **Reflective constructs** (a latent common cause with a measurement model) need
+  a joint likelihood drmTMB does not fit piecewise — deferred to 0.4 / lavaan
+  interop, not 0.3 (D-16).
+- **Standardized loadings / construct reliability** (e.g. an AVE / composite-
+  reliability summary) as an extension of `loadings()`.

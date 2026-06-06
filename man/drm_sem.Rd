@@ -4,7 +4,7 @@
 \alias{drm_sem}
 \title{Fit and assemble a distributional piecewise SEM}
 \usage{
-drm_sem(..., data, covariances = NULL)
+drm_sem(..., data, covariances = NULL, composites = NULL)
 }
 \arguments{
 \item{...}{Named \code{\link[=drm_node]{drm_node()}} specifications, one per endogenous node.}
@@ -14,6 +14,11 @@ drm_sem(..., data, covariances = NULL)
 \item{covariances}{Optional \code{\link[=covary]{covary()}} declaration(s) (one object or a list)
 recording residual (\code{rho12}) or higher-level (\code{corpair}) covariance edges
 between responses; see \code{\link[=covariances]{covariances()}}.}
+
+\item{composites}{Optional \code{\link[=drm_composite]{drm_composite()}} declaration(s). Each construct
+column is materialized from its indicators \emph{before} fitting, so node
+formulas can reference it as an ordinary observed column; the loadings are
+reported by \code{\link[=loadings]{loadings()}}.}
 }
 \value{
 A \code{drm_sem} object.
