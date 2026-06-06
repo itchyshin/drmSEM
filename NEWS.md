@@ -1,5 +1,24 @@
 # drmSEM 0.1.0.9000 (development version)
 
+## Covariance edges: rho12 and corpair (OQ-14, grammar layer)
+
+* `covary(y1, y2, level = )` declares a **covariance edge** between two responses
+  — a residual correlation (`rho12`, within-observation, `level = NULL`) or a
+  higher-level random-effect correlation (`corpair`, between-unit, a grouping
+  `level`). Covariance edges are double-headed arcs: they carry no direction and
+  no mediated effect.
+* `drm_sem()` / `drm_psem()` gain a `covariances =` argument that takes `covary()`
+  declarations and validates them against the node records.
+* `covariances(sem)` reports residual and higher-level edges **separately**, kept
+  out of `paths()` (which stays directed-only, including any `x -> rho12` path).
+* `basis_set()` / `dsep()` are now **covariance-aware**: a declared `rho12` /
+  `corpair` edge between `y1` and `y2` drops the `y1 _||_ y2 | predictors`
+  independence claim (Shipley's bidirected-edge rule).
+* This is the pure-R grammar/d-separation layer. `drm_pair()` (joint bivariate
+  fitting), `rho12()` / `corpairs()` accessors that read a live fit, and
+  double-headed-arc plotting need a bivariate `drmTMB` fit and remain on the
+  roadmap (OQ-14).
+
 ## Unified effect-API surface (OQ-12)
 
 * `direct_effects()`, `total_effects()`, and `indirect_effects()` now share one

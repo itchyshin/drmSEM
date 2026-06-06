@@ -331,3 +331,34 @@ tasks in #2 (this lane still cannot compile drmTMB).
 
 Engine-path parity is CI-gated (the lane cannot run drmTMB locally); the pure-R
 normalizer tests run everywhere.
+
+## 2026-06-06 — OQ-14 covariance-edge grammar (pure-R layer; branch claude/resume-aybDD)
+
+After OQ-12 merged (PR #7, squash 6ca9980), reset the branch to main and built
+the next bounded step: the pure-R grammar + d-separation layer of OQ-14
+(first-class bivariate covariance edges), chosen because the marquee feature's
+graph semantics are fully testable here while joint bivariate fitting is not.
+
+- **New `R/covariances.R`:** `covary(y1, y2, level=)` declares a residual
+  (`rho12`) or higher-level (`corpair`) covariance edge; `drm_build_covariances()`
+  validates declarations against node records and builds a labelled `$covariances`
+  table; `covariances(sem)` accessor reports residual vs higher-level separately;
+  `drm_covariance_pairs()` feeds basis_set. Edges live in a dedicated `$covariances`
+  slot, NEVER in `$edges`, so `paths()` stays directed-only (the class-1 vs
+  class-2/3 split of D-12/D-14).
+- **`R/drm_sem.R`:** `new_drm_sem()`, `drm_sem()`, `drm_psem()` gain a
+  `covariances =` argument threaded to the constructor.
+- **`R/dsep.R`:** `basis_set.drm_sem()` drops the `y1 _||_ y2` claim for any
+  declared covariance pair (unordered key; Shipley's bidirected-edge rule).
+  Back-compatible: a missing slot ⇒ no covariance pairs ⇒ unchanged behaviour.
+- **Tests `test-covariances.R`:** pure-R (no drmTMB) — covary construction +
+  validation, node resolution/labelling/de-dup, the accessor, and basis_set
+  dropping for residual AND higher-level edges, plus the missing-slot no-op.
+- **Docs/memory:** NAMESPACE (covary/covariances exports + 3 S3 methods) and
+  man/ hand-updated (covary.Rd, covariances.Rd, basis_set/drm_sem/drm_psem Rd);
+  `_pkgdown.yml` "Covariance edges" reference section; design doc 07 current-state
+  + feature table updated; OQ-14 → PARTIAL; D-14 + V-25 + NEWS recorded.
+
+Deferred to the Codex lane (need a live bivariate drmTMB fit): `drm_pair()` joint
+fitting, `rho12(fit)`/`corpairs(fit)` read-back, double-headed-arc plotting, deep
+RE-block level-compatibility validation.

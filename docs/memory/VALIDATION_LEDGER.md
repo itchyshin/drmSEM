@@ -251,3 +251,15 @@ content too: D-10/D-11, OQ-8/OQ-10/OQ-12, the 02-effect-calculus essay, and the
   **DONE (pure-R, unit-tested in `test-effect-api.R`).** Engine-path parity
   (new surface == deprecated aliases, identical estimates under a fixed seed) and
   `direct_effects(target="p_zero")` finiteness are CI-gated in the same file.
+
+- **V-25 / OQ-14 — Covariance-edge grammar + d-sep awareness (pure R).**
+  `covary()` builds residual/higher-level declarations and rejects malformed ones;
+  `drm_build_covariances()` resolves responses to nodes, labels edges
+  (`rho12(a, b)` / `corpair(id: a, b)`), de-duplicates unordered pairs, and errors
+  on unknown / self-referential responses; `covariances()` returns a classed table
+  separating residual vs higher-level; `basis_set()` drops the `y1 _||_ y2` claim
+  for a declared residual OR higher-level edge and is unchanged when none is
+  declared (missing `$covariances` slot ⇒ no-op). **DONE (pure-R, unit-tested in
+  `test-covariances.R`).** Engine-dependent OQ-14 remainder (`drm_pair()` joint
+  fit, `rho12()`/`corpairs()` read-back, arc plotting, deep level-compat) is
+  Codex-lane / roadmap.

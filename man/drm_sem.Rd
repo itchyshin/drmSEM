@@ -4,12 +4,16 @@
 \alias{drm_sem}
 \title{Fit and assemble a distributional piecewise SEM}
 \usage{
-drm_sem(..., data)
+drm_sem(..., data, covariances = NULL)
 }
 \arguments{
 \item{...}{Named \code{\link[=drm_node]{drm_node()}} specifications, one per endogenous node.}
 
 \item{data}{A data frame supplied to every node fit.}
+
+\item{covariances}{Optional \code{\link[=covary]{covary()}} declaration(s) (one object or a list)
+recording residual (\code{rho12}) or higher-level (\code{corpair}) covariance edges
+between responses; see \code{\link[=covariances]{covariances()}}.}
 }
 \value{
 A \code{drm_sem} object.

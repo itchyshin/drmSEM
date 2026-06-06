@@ -5,7 +5,10 @@ NULL
 # Internal constructor shared by drm_sem() and drm_psem(). `fit_env` is the
 # environment where the SEM was specified; d-separation refits are evaluated
 # there so structured-effect objects (e.g. a phylo `tree`) resolve (OQ-13).
-new_drm_sem <- function(fits, data, call, fit_env = parent.frame()) {
+# `covariances` holds covary() declarations (residual rho12 / higher-level
+# corpair edges), stored separately from the directed `$edges` (OQ-14).
+new_drm_sem <- function(fits, data, call, fit_env = parent.frame(),
+                        covariances = NULL) {
   if (length(fits) == 0L) {
     cli::cli_abort("A drmSEM model needs at least one endogenous node.")
   }
@@ -19,6 +22,7 @@ new_drm_sem <- function(fits, data, call, fit_env = parent.frame()) {
   records <- drm_build_node_records(fits)
   edges <- drm_build_edges(records)
   vedges <- drm_collapse_edges(edges)
+  covs <- drm_build_covariances(covariances, records)
 
   node_names <- names(fits)
   exo <- setdiff(unique(edges$from[!edges$endogenous]), node_names)
@@ -40,6 +44,7 @@ new_drm_sem <- function(fits, data, call, fit_env = parent.frame()) {
       data = data,
       edges = edges,
       var_edges = vedges,
+      covariances = covs,
       endogenous = node_names,
       exogenous = exo,
       order = topo$order,
@@ -65,11 +70,16 @@ new_drm_sem <- function(fits, data, call, fit_env = parent.frame()) {
 #'   node by its name or its response variable.
 #' @param data The data frame all nodes were fitted to. Defaults to the data of
 #'   the first node.
+#' @param covariances Optional [covary()] declaration(s) (one object or a list)
+#'   recording residual (`rho12`) or higher-level (`corpair`) covariance edges
+#'   between responses. These are reported by [covariances()] and respected by
+#'   [basis_set()] / [dsep()], but never enter [paths()] or the effect
+#'   decomposition.
 #'
 #' @return A `drm_sem` object.
 #' @seealso [drm_sem()] for the declarative interface that fits nodes for you.
 #' @export
-drm_psem <- function(..., data = NULL) {
+drm_psem <- function(..., data = NULL, covariances = NULL) {
   fits <- list(...)
   if (!all(vapply(fits, is_drmTMB_fit, logical(1)))) {
     cli::cli_abort(c(
@@ -80,7 +90,8 @@ drm_psem <- function(..., data = NULL) {
   if (is.null(data)) {
     data <- drm_fit_data(fits[[1L]])
   }
-  new_drm_sem(fits, data, match.call(), fit_env = parent.frame())
+  new_drm_sem(fits, data, match.call(), fit_env = parent.frame(),
+              covariances = covariances)
 }
 
 #' Fit and assemble a distributional piecewise SEM
@@ -93,6 +104,9 @@ drm_psem <- function(..., data = NULL) {
 #'
 #' @param ... Named [drm_node()] specifications, one per endogenous node.
 #' @param data A data frame supplied to every node fit.
+#' @param covariances Optional [covary()] declaration(s) (one object or a list)
+#'   recording residual (`rho12`) or higher-level (`corpair`) covariance edges
+#'   between responses; see [covariances()].
 #'
 #' @return A `drm_sem` object.
 #' @seealso [drm_psem()], [paths()], [dsep()], [indirect_effects()].
@@ -115,7 +129,7 @@ drm_psem <- function(..., data = NULL) {
 #' dsep(sem)
 #' indirect_effects(sem, from = "temp", to = "abundance")
 #' }
-drm_sem <- function(..., data) {
+drm_sem <- function(..., data, covariances = NULL) {
   specs <- list(...)
   if (missing(data)) {
     cli::cli_abort("{.arg data} is required for {.fn drm_sem}.")
@@ -139,7 +153,8 @@ drm_sem <- function(..., data) {
     fits[[i]] <- drm_fit_node(specs[[i]], data = data, name = nms[[i]])
   }
   names(fits) <- nms
-  new_drm_sem(fits, data, match.call(), fit_env = parent.frame())
+  new_drm_sem(fits, data, match.call(), fit_env = parent.frame(),
+              covariances = covariances)
 }
 
 #' @export
@@ -159,6 +174,10 @@ print.drm_sem <- function(x, ...) {
   }
   ne <- nrow(x$edges)
   cli::cli_text("{ne} component-labelled edge{?s}. Use {.fn paths} to list them.")
+  nc <- if (is.null(x$covariances)) 0L else nrow(x$covariances)
+  if (nc > 0L) {
+    cli::cli_text("{nc} covariance edge{?s} (rho12/corpair). Use {.fn covariances} to list them.")
+  }
   invisible(x)
 }
 

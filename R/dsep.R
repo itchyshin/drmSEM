@@ -25,6 +25,11 @@ drm_order_index <- function(object) {
 #' Y's existing parents. This any-component reading is drmSEM's definition of a
 #' missing arrow (see `docs/design/03-dsep.md`).
 #'
+#' A covariance edge declared with [covary()] (a residual `rho12` or higher-level
+#' `corpair` arc) is an allowance that the two responses stay associated, so the
+#' `y1 _||_ y2` claim is dropped from the basis set (Shipley's bidirected-edge
+#' rule; OQ-14).
+#'
 #' @param object A `drm_sem` object.
 #' @param ... Unused.
 #' @return A data frame with columns `claim`, `x`, `y`, `given` (comma-separated
@@ -40,6 +45,10 @@ basis_set.drm_sem <- function(object, ...) {
   edges <- object$edges
   ord <- drm_order_index(object)
   all_vars <- unique(c(object$endogenous, object$exogenous))
+  # A declared covariance edge (residual rho12 / higher-level corpair) is an
+  # allowance that y1 and y2 stay associated, so the basis set must NOT claim
+  # y1 _||_ y2 (OQ-14; cf. Shipley's bidirected-edge rule). Keyed unordered.
+  cov_pairs <- drm_covariance_pairs(object)
   rows <- list()
   for (y in object$order) {
     yi <- ord(y)
@@ -49,6 +58,7 @@ basis_set.drm_sem <- function(object, ...) {
       if (ord(x) > yi) next            # X must be causally no later than Y
       if (x %in% parents_y) next        # adjacent -> not a missing arrow
       if (drm_is_parent(y, x, edges)) next
+      if (paste(pmin(x, y), pmax(x, y), sep = "\r") %in% cov_pairs) next
       rows[[length(rows) + 1L]] <- data.frame(
         x = x, y = y,
         given = paste(parents_y, collapse = ", "),

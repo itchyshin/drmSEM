@@ -212,31 +212,50 @@ the basis set.
 | `drm_pair()` bivariate node type | n/a | no | no | **yes** |
 | Residual covariance `eps_y1 <-> eps_y2` (`rho12`) as arc | yes | partial | no | **yes** |
 | Higher-level RE covariance (`corpair`) as arc | limited | no | no | **yes** |
-| `rho12()` / `corpairs()` accessors | n/a | no | no | **yes** |
-| `covariances()` separate from `paths()` | n/a | no | no | **yes** |
+| `rho12()` / `corpairs()` accessors (read from fit) | n/a | no | no | **yes** |
+| `covary()` declaration + `covariances()` separate from `paths()` | n/a | no | **yes (0.1.0.9000)** | yes |
 | Double-headed / dashed arc plotting | yes (semPaths) | no | no | **yes** |
-| Level-compatibility rule for RE correlations | manual | no | no | **yes** |
-| d-sep aware of covariance edges (drop `y1 _||_ y2`) | yes (Shipley) | partial | no | **yes** |
+| Level-compatibility rule for RE correlations | manual | no | partial (declared; deep RE-block check needs fit) | **yes** |
+| d-sep aware of covariance edges (drop `y1 _||_ y2`) | yes (Shipley) | partial | **yes (0.1.0.9000)** | yes |
 
-## Honest current state (0.1)
+## Current state (0.1.0.9000)
 
 drmSEM already extracts `x -> rho12` as a **directed-path component** *if* it is
 given a bivariate drmTMB fit through `drm_psem()`: a predictor on the `rho12`
 component is treated like any other component-labelled path and flows into
 `paths()`/`dsep()`/effects. That much works today.
 
-What does **not** yet exist (the roadmap):
+**Shipped (pure-R grammar layer, `R/covariances.R`).** The covariance-edge
+*declaration and graph semantics* now exist and are unit-tested without a live
+fit (`test-covariances.R`):
 
-- **No `drm_pair()`** node type; bivariate structure must be built upstream in
-  drmTMB and handed in via `drm_psem()`.
-- **No `covariances()` / `rho12()` / `corpairs()`** accessors.
-- **Residual and RE covariance edges are not represented as double-headed arcs**
-  in `plot()`.
-- **`dsep()` has no covariance-awareness** — it does not yet drop the
-  `y1 _||_ y2 | predictors` claim when a covariance edge is declared.
+- **`covary(y1, y2, level = )`** declares a covariance edge — residual (`rho12`,
+  `level = NULL`) or higher-level (`corpair`, a grouping `level`). Declarations
+  are passed to `drm_sem()` / `drm_psem()` via the new `covariances =` argument,
+  validated against the node records (both must resolve to distinct response
+  nodes), and stored in a dedicated `$covariances` slot — **never** in `$edges`.
+- **`covariances(sem)`** reports the residual and higher-level edges *separately*
+  (a `class` column), kept out of `paths()` (which stays directed-only).
+- **`basis_set()` / `dsep()` are covariance-aware**: a declared `rho12` /
+  `corpair` edge between `y1` and `y2` drops the `y1 _||_ y2 | predictors`
+  independence claim (Shipley's bidirected-edge rule).
 
-These are tracked in OQ-14 and require a **live bivariate drmTMB fit** to
-validate (the dev container cannot fit one).
+What still does **not** exist (needs a **live bivariate drmTMB fit**, so it
+cannot be built/validated in the dev container — see `CODEX_HANDOFF.md`):
+
+- **No `drm_pair()`** node type yet; bivariate structure must still be built
+  upstream in drmTMB and handed in via `drm_psem()`. `covary()` is the pure-R
+  declaration primitive `drm_pair()` will eventually emit.
+- **No `rho12(fit)` / `corpairs(fit)`** accessors that read the *fitted* residual
+  / random-effect correlations back from a live bivariate fit.
+- **Residual and RE covariance edges are not yet drawn as double-headed /
+  dashed arcs** in `plot(sem, show = "all")` (needs rendering to validate).
+- **Deep level-compatibility validation** — confirming both nodes actually share
+  the declared grouping + a compatible covariance structure — needs to introspect
+  the fitted random-effect blocks; `covary()` currently records the declared
+  `level`/`structure` and validates only the response resolution.
+
+These remaining pieces are tracked in OQ-14.
 
 ## Honest non-goals (0.x)
 

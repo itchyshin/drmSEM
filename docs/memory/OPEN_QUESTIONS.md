@@ -184,13 +184,33 @@ and contribute to Fisher's C. Validated on live drmTMB (CI run 27006262081
 green; asserted in `tests/testthat/test-phylo.R`). No drmTMB change required
 (see `DRMTMB_ISSUES.md`).
 
-## OQ-14 — First-class bivariate covariance edges (rho12 / corpairs) + d-sep awareness
+## OQ-14 — First-class bivariate covariance edges (rho12 / corpairs) + d-sep awareness  [PARTIAL 2026-06-06, see D-14]
 
 First-class support for bivariate models and their covariance edges, deferred to
 post-0.1 (see D-12, `07-bivariate-covariance-edges.md`). drmSEM 0.1 already
 extracts `x -> rho12` as a directed-path component from a bivariate drmTMB fit
-given to `drm_psem()`, but the covariance-edge machinery does not exist. Open
-items:
+given to `drm_psem()`, but the covariance-edge machinery does not exist.
+
+**PARTIAL (pure-R grammar layer shipped, `R/covariances.R`, kernel-validated in
+`test-covariances.R`):** `covary(y1, y2, level=)` declares a residual (`rho12`)
+or higher-level (`corpair`) covariance edge; `drm_sem()`/`drm_psem()` take a
+`covariances =` argument and store the validated edges in a `$covariances` slot
+(never in `$edges`); `covariances(sem)` reports residual vs higher-level edges
+separately, kept out of directed-only `paths()`; and `basis_set()`/`dsep()` drop
+the `y1 _||_ y2` independence claim for any declared covariance pair (Shipley's
+bidirected-edge rule). Remaining open items (all need a **live bivariate drmTMB
+fit**, so they stay in the Codex lane):
+
+- `drm_pair()` bivariate node type (fits two responses jointly; `covary()` is the
+  declaration primitive it will emit).
+- `rho12(fit)` / `corpairs(fit)` accessors that read the *fitted* residual /
+  random-effect correlations back from a live bivariate fit.
+- Double-headed / dashed covariance arcs in `plot(sem, show = "all")` (needs
+  rendering to validate).
+- Deep level-compatibility validation (both nodes actually share the declared
+  grouping + a compatible covariance structure) — needs RE-block introspection.
+
+Original open items below:
 
 - A `drm_pair()` bivariate node type returning two response sub-nodes (e.g.
   `activity`, `boldness`) plus the extra covariance structure

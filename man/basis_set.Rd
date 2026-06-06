@@ -24,4 +24,9 @@ is endogenous and X is causally no later than Y. Each claim asserts that X has
 \strong{no effect on any modelled distributional component of Y}, conditional on
 Y's existing parents. This any-component reading is drmSEM's definition of a
 missing arrow (see \code{docs/design/03-dsep.md}).
+
+A covariance edge declared with \code{\link[=covary]{covary()}} (a residual \code{rho12} or higher-level
+\code{corpair} arc) is an allowance that the two responses stay associated, so the
+\code{y1 _||_ y2} claim is dropped from the basis set (Shipley's bidirected-edge
+rule; OQ-14).
 }

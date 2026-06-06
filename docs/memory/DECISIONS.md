@@ -222,3 +222,42 @@ mapping; **no simulation kernel changed**.
 Validation: pure-R unit tests for the normalizers in `test-effect-api.R`; new-vs-
 old parity and early-abort behaviour are CI-gated in the same file. Vignettes and
 the 02-effect-calculus design doc were migrated to the new vocabulary.
+
+## D-14 — Covariance-edge grammar ships as a pure-R layer (OQ-14), engine parts deferred
+
+OQ-14 (first-class bivariate covariance edges) is split: the **graph grammar and
+d-separation semantics** are pure-R and ship now (`R/covariances.R`); everything
+that needs a **live bivariate drmTMB fit** stays on the roadmap.
+
+**Shipped.** `covary(y1, y2, level=)` declares a residual (`rho12`) or
+higher-level (`corpair`) edge; `drm_sem()`/`drm_psem()` take `covariances=` and
+store validated edges in a `$covariances` slot; `covariances(sem)` reports them
+(residual vs higher-level via a `class` column) separately from directed-only
+`paths()`; `basis_set()`/`dsep()` drop the `y1 _||_ y2` claim for declared pairs.
+
+**Choices.**
+- *Separate slot, never `$edges`.* Covariance edges are allowances, not paths, so
+  they live in `$covariances` and cannot leak into `paths()` or the effect
+  algebra. A directed `x -> rho12` path is unaffected — it stays a normal
+  component-labelled edge in `$edges` (the class-1 vs class-2/3 split of D-12).
+- *Declaration over introspection.* `covary()` records the declared
+  `level`/`structure` and validates only that both responses resolve to distinct
+  nodes. The deep level-compatibility rule (both nodes actually share the
+  grouping + a compatible covariance structure) needs to read the fitted RE
+  blocks, so it is deferred with the other engine-dependent pieces.
+- *Back-compatible.* `drm_covariance_pairs()` treats a missing `$covariances`
+  slot as "no edges", so objects built before this slot (and the hand-rolled
+  test objects) are unaffected; `basis_set()` is unchanged when no edge is
+  declared.
+- *Unordered keying.* Covariance pairs are matched on the unordered
+  `pmin/pmax` key, so `covary("a","b")` and `covary("b","a")` are the same edge
+  and drop the same claim regardless of topological order.
+
+Deferred to the Codex lane (need a live bivariate fit): `drm_pair()` joint
+fitting, `rho12(fit)`/`corpairs(fit)` read-back accessors, double-headed-arc
+plotting, and deep RE-block level-compatibility validation.
+
+Validation: `test-covariances.R` (pure-R) — covary() construction + validation,
+drm_build_covariances() node resolution / labelling / de-dup, covariances()
+accessor, and basis_set() dropping the y1 _||_ y2 claim for residual and
+higher-level edges. See V-25.
