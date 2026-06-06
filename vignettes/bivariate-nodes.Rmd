@@ -1,0 +1,232 @@
+---
+title: "Bivariate nodes: two responses, one correlation (drm_pair)"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Bivariate nodes: two responses, one correlation (drm_pair)}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+# drmSEM never fits its own likelihoods. The bivariate JOINT fit that would
+# estimate rho12 inside one drmTMB model is the 0.4 engine deliverable, and the
+# dev lane has no engine. So every chunk that would need a live drmTMB fit is
+# shown for illustration only (`eval = has_engine`, FALSE here). The pure-R
+# declaration grammar — drm_pair(), rho12(), corpairs(), drm_expand_pair() — runs
+# normally, and those chunks are marked `eval = TRUE` explicitly.
+has_engine <- FALSE
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = has_engine)
+library(drmSEM)
+```
+
+If you fit GLMMs, you already know how to ask "does `x` change the *mean* of
+`activity`?" This vignette is about a different, sharper question that a
+mean-only model cannot phrase: **do two responses stay coupled after we
+condition on their predictors, and is that coupling causal or merely
+correlational?** `drmSEM` makes you say which, with the bivariate-node grammar
+`drm_pair()`.
+
+It is the companion to the
+[covariance-edges vignette](covariance-edges-and-composites.html), which
+introduces the `covary()` / `covariances()` primitive. Here we work the *node*
+constructor — `drm_pair()` — through a concrete animal-personality example, and
+we are scrupulous about one thing throughout: **the correlation estimates are
+`NA` by construction.** Declaring a bivariate node is not fitting one. The
+design of record is `docs/design/07-bivariate-covariance-edges.md`.
+
+## A directed path is not a covariance edge
+
+Two behavioural traits — **activity** (how much an animal moves) and
+**boldness** (how readily it explores a novel object) — are measured repeatedly
+on the same individuals (grouping `id`), under some environmental predictor `x`
+(say, temperature). There are three genuinely different things you might mean by
+"activity and boldness go together", and conflating them is exactly the mistake
+this grammar exists to prevent.
+
+1. **A directed path `activity -> boldness`.** You believe moving more *causes*
+   an animal to act bolder. This is an ordinary piecewise path: `boldness` is one
+   node, `activity` is a predictor in it, and `paths()` / `dsep()` / the effect
+   functions already handle it. **No bivariate node is needed.** Rule of thumb: if
+   you can name a direction, it is a directed path.
+
+2. **A residual correlation `rho12` (within-observation).** You make *no*
+   directional claim. You only mean: on a single occasion, when this individual's
+   activity is above its own predicted mean, is its boldness *also* above its
+   predicted mean? This is the within-observation coupling `eps_activity <->
+   eps_boldness` that remains after each trait's mean and scale are accounted for.
+   It is a double-headed arc, not an arrow.
+
+3. **A higher-level correlation `corpair` (between-individual).** Again no
+   direction — but now at the level of the *individual*, not the occasion: do
+   individuals that *average* high on activity also *average* high on boldness?
+   This is the random-effect coupling `u_id,activity <-> u_id,boldness` among the
+   `(1 | id)` intercepts the two responses share.
+
+Classes 2 and 3 are not interchangeable, and an animal-personality study is the
+classic case where they diverge: bold individuals can be more active *on average*
+(a positive `corpair`) while, occasion by occasion, the residual `rho12` is near
+zero — or the reverse. `drmSEM` reports them **separately** and never collapses
+one into the other.
+
+> The same separation drives the *behaviour* of the package: a directed
+> `x -> rho12` path is a legitimate edge into the correlation component and flows
+> through `paths()` / effects; the `rho12` and `corpair` *covariance* arcs carry
+> no direction and no mediated effect, but they do drop the
+> `activity _||_ boldness` independence claim from the d-separation basis set.
+
+## Declaring a bivariate node with `drm_pair()`
+
+`drm_pair()` is the bivariate counterpart of `drm_node()`: two response formulas,
+two families, an optional model for the residual correlation itself, and an
+auto-detected higher-level edge wherever the two formulas share a grouping
+factor. It is **pure R** and runs without any engine, so the chunks in this
+section evaluate normally.
+
+```{r pair-decl, eval = TRUE}
+pair <- drm_pair(
+  activity ~ x + (1 | id),
+  boldness ~ x + (1 | id),
+  rho12 = ~ x                 # a directed path INTO the correlation component
+)
+```
+
+Note what `rho12 = ~ x` means. It is **not** `activity -> boldness`, and it is
+**not** a mean effect on either trait. It says: the *residual correlation*
+between activity and boldness is itself allowed to change with `x` — perhaps the
+two traits couple more tightly at high temperature. That is a directed path into
+the `rho12` component, on its `tanh` link scale. Leave `rho12` as the default
+`NULL` for a constant residual correlation.
+
+Printing the pair shows the whole declaration at a glance, and — prominently —
+the honest status line:
+
+```{r pair-print, eval = TRUE}
+print(pair)
+```
+
+The two responses each share a `(1 | id)` grouping, so `drm_pair()`
+**auto-detects** a higher-level `corpair` edge at the `id` level. You can force a
+specific level with `level = "id"`, or suppress the higher-level edge entirely
+(residual `rho12` only) with `level = NA`.
+
+## Reading the declared edges: `rho12()` and `corpairs()`
+
+Two accessors report the declared structure, each kept strictly separate from
+`paths()`. `rho12()` returns the residual (within-observation) edge:
+
+```{r rho12, eval = TRUE}
+rho12(pair)
+```
+
+`corpairs()` returns the higher-level (between-individual) edge(s):
+
+```{r corpairs, eval = TRUE}
+corpairs(pair)
+```
+
+Look at the `estimate` column in both: it is **`NA`**. This is the core honesty
+of the grammar, and it is deliberate, not a placeholder waiting to be silently
+filled.
+
+> **`drm_pair()` never fabricates a correlation.** drmSEM is piecewise and does
+> not fit its own likelihoods. Estimating `rho12` (and any `corpair`) means
+> fitting *both responses jointly* inside **one** bivariate `drmTMB` model and
+> reading the fitted correlation back — that joint fit is the **0.4 engine
+> deliverable**. Until a live bivariate fit is supplied, the declared structure
+> is complete but every estimate is `NA` by construction. The accessors carry a
+> grey note saying exactly this. Anyone who shows you a number here from the
+> grammar layer alone is showing you something `drmSEM` did not compute.
+
+This is the same boundary as in the covariance-edges vignette, made
+node-shaped: the *grammar and graph semantics* ship today; the *fitted estimate*
+is the engine step.
+
+## Expanding a pair onto the shipped grammar: `drm_expand_pair()`
+
+How does a bivariate declaration connect to the rest of `drmSEM`?
+`drm_expand_pair()` bridges it onto the pieces that already ship: two ordinary
+`drm_node()` sub-nodes (one per response) plus the `covary()` covariance edges
+(the residual `rho12` and any higher-level `corpair`).
+
+Building the `drm_node()` objects wraps each formula with `drmTMB::bf()`, so this
+one helper needs `drmTMB` available even though it does not *fit*. We gate it on
+`requireNamespace()` and skip cleanly when the engine is absent:
+
+```{r expand, eval = requireNamespace("drmTMB", quietly = TRUE)}
+expanded <- drm_expand_pair(pair)
+names(expanded$nodes)     # "activity" "boldness" — two ordinary sub-nodes
+expanded$covariances      # the residual rho12 edge + the id-level corpair edge
+```
+
+This is the **documented hook point for the 0.4 engine lane**: when the joint
+bivariate fit lands, it swaps the two independent node fits for one joint fit,
+while the covariance edges and the `rho12()` / `corpairs()` accessors stay
+exactly the same — they simply start returning a non-`NA` estimate read back from
+the fit.
+
+## Putting the pair in a SEM, and seeing the arcs
+
+In a full model the expanded pair sits alongside ordinary nodes. Suppose
+downstream **fitness** depends on both behavioural traits. Assembling and *fitting*
+that SEM needs the engine, so the chunk below is illustrative only:
+
+```{r sem, eval = has_engine}
+sem <- drm_sem(
+  activity = drm_node(drmTMB::bf(activity ~ x + (1 | id)),
+                      family = stats::gaussian()),
+  boldness = drm_node(drmTMB::bf(boldness ~ x + (1 | id)),
+                      family = stats::gaussian()),
+  fitness  = drm_node(drmTMB::bf(fitness ~ activity + boldness),
+                      family = stats::gaussian()),
+  data = dat,
+  covariances = covary("activity", "boldness")        # residual rho12 edge
+)
+
+paths(sem)         # directed-only: x -> activity, x -> boldness, activity -> fitness, ...
+covariances(sem)   # the covariance edges, reported SEPARATELY from paths()
+rho12(sem)         # the declared residual edge (estimate still NA without a joint fit)
+```
+
+`plot(sem, show = "all")` draws the three edge classes so they are visually
+distinct, mirroring `docs/design/07-bivariate-covariance-edges.md`:
+
+```{r plot, eval = has_engine, fig.alt = "DAG of activity, boldness and fitness with directed arrows and a double-headed residual covariance arc between activity and boldness."}
+plot(sem, show = "all")
+```
+
+Conceptually:
+
+- **Solid coloured arrows** are directed paths, styled by the distributional
+  component they target (`mu` black, `sigma` green, ..., and a directed
+  `x -> rho12` path as a long dash).
+- A **solid grey double-headed arc** is a residual `rho12` covariance edge —
+  `eps_activity <-> eps_boldness`, no direction.
+- A **dashed grey double-headed arc** is a higher-level `corpair` edge —
+  `u_id,activity <-> u_id,boldness`, again no direction.
+
+`show = "paths"` suppresses the covariance arcs and draws the directed structural
+edges only, when you want the bare causal skeleton.
+
+## Recap
+
+- A **directed path** `activity -> boldness` makes a causal claim and is an
+  ordinary node + predictor — no bivariate node needed.
+- A **bivariate node** (`drm_pair()`) declares a *correlation* between two
+  responses with **no direction**: a residual `rho12` (within-observation,
+  `eps <-> eps`) and, where the responses share a grouping, a higher-level
+  `corpair` (between-unit, `u <-> u`). The two answer different biological
+  questions and are reported separately by `rho12()` and `corpairs()`.
+- `rho12 = ~ x` is a *directed path into the correlation component*, distinct from
+  both a mean effect and a `y1 -> y2` arrow.
+- **The estimates are `NA` by construction.** The grammar declares the structure;
+  the fitted correlation must be read back from one joint bivariate `drmTMB` fit
+  (the 0.4 engine step). `drm_pair()` never fabricates a number.
+- `drm_expand_pair()` bridges the declaration onto the shipped `covary()` grammar
+  and is the hook point where the joint fit will land.
+
+For the covariance-edge primitive (`covary()` / `covariances()`) and how a
+declared edge changes d-separation, see
+[Covariance edges, composites, and path attribution](covariance-edges-and-composites.html).
+For the full design — the three edge classes, residual vs higher-level, the
+level-compatibility rule, and the honest engine boundary — see
+`docs/design/07-bivariate-covariance-edges.md`.

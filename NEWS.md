@@ -76,6 +76,14 @@
   edge classes (directed path, residual covariance, higher-level covariance) are
   visually distinct. A new `show = c("all", "paths")` argument toggles the arcs
   off (`"paths"` draws the directed structural edges only).
+* New vignette **"Bivariate nodes: two responses, one correlation (`drm_pair`)"**
+  walks an animal-personality example (activity & boldness) through `drm_pair()`,
+  `print()`, `rho12()`, `corpairs()`, and `drm_expand_pair()`, motivating the
+  difference between a directed `activity -> boldness` path and the residual
+  `rho12` / higher-level `corpair` covariance arcs. It is emphatic that the
+  correlation **estimates are `NA` by construction** — declaring a bivariate node
+  is not fitting one, and the joint bivariate `drmTMB` fit is the 0.4 engine step.
+  See `docs/design/07-bivariate-covariance-edges.md`.
 
 ## Path-specific effects (OQ-5)
 
