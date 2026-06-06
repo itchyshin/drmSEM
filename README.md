@@ -47,7 +47,9 @@ must be a **DAG**.
 
 **Component-labelled paths.** A causal path does not have to point at the mean.
 It can target any modelled distributional component of a node:
-`mu`, `sigma`, `nu`, `zi`, `hu`, `sd(group)`, or `rho12`. For example,
+`mu`, `sigma`, `nu`, `zi`, `hu`, `sd(group)`, or `rho12` (the residual
+correlation between the two responses of a bivariate node, i.e.
+`eps_y1 <-> eps_y2` — not a directed `y1 -> y2` path). For example,
 temperature can act on abundance through several distinct channels:
 
 - `temp -> mu(abundance)` — temperature shifts the *expected* abundance.

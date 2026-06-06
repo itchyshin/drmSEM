@@ -34,8 +34,12 @@ distribution a path is allowed to target*. A `drmSEM` edge is the tuple
 `(from, to, component, link, term)`, where `component` is a modelled
 distributional parameter of `to`: `mu` (mean), `sigma` (scale / dispersion),
 `nu` (shape), `zi` (zero-inflation), `hu` (hurdle), `sd(group)` (random-effect
-scale), or `rho12` (residual correlation). A path to `sigma` is never reported
-as a mean effect.
+scale), or `rho12` (the residual correlation between the two responses of a
+bivariate node, `eps_y1 <-> eps_y2`, not a directed `y1 -> y2` path). A path to
+`sigma` is never reported as a mean effect; a path `rho12 ~ x` says `x` changes
+that residual coupling. Targeting `rho12` requires a bivariate `drmTMB` fit
+supplied via `drm_psem()`; first-class bivariate covariance edges are a roadmap
+item (see `docs/design/07-bivariate-covariance-edges.md`).
 
 This article positions `drmSEM` against four tools it is often compared with:
 `lavaan`, `piecewiseSEM`, `glmmTMB`, and `dsem`. The goal is to help you pick
@@ -50,11 +54,17 @@ these tasks one of the others is the correct choice.
 | **piecewiseSEM** | Piecewise SEM with d-separation over separately fitted local models | No (observed-variable) | Yes (wraps `lm`/`glm`/`glmer`/`glmmTMB` etc.) | No — works on the **mean** structure only | `plot.psem()` draws the path diagram; it does **not** plot an effect decomposition |
 | **glmmTMB** | A fitting engine for (distributional) GLMMs — not an SEM | No | Yes (rich families, dispersion, zero-inflation) | Yes, *within a single model* (`disp`/`zi` formulas), but there is no graph, d-separation, or path propagation | N/A — not an SEM; no path effects |
 | **dsem** | Dynamic, time-series / state-space SEM | Yes (latent states) | Limited; Gaussian state-space focus | No — temporal paths on the mean / state | Plots the DAG (`plot.dsem()`); **total effects returned as a matrix**, not plotted as a decomposition |
-| **drmSEM** | Observed-variable, hierarchical, **distributional** piecewise SEM on `drmTMB` | **No** (out of scope for 0.x) | Yes (one `drmTMB` fit per node) | **Yes — first-class, component-labelled path targets** | Component-labelled DAG via `plot()`; simulation-based direct / indirect / total with a distribution-mediated channel |
+| **drmSEM** | Observed-variable, hierarchical, **distributional** piecewise SEM on `drmTMB` | **No** (out of scope for 0.x) | Yes (one `drmTMB` fit per node) | **Yes — first-class, component-labelled path targets** (incl. `x -> rho12` on a bivariate node) | Component-labelled DAG via `plot()`; simulation-based direct / indirect / total with a distribution-mediated channel |
 
 The columns are filled in conservatively: each "Yes" reflects a documented,
 shipped capability, and the "No" entries mark genuine scope boundaries rather
-than missing polish.
+than missing polish. The `rho12` "Yes" covers a path *targeting* the residual
+correlation of a bivariate node (a `x -> rho12` component path, requiring a
+bivariate `drmTMB` fit via `drm_psem()`); first-class bivariate covariance
+*edges* — a `drm_pair()` node, residual and random-effect correlation modules
+(`covariances` / `corpairs`) drawn as double-headed arcs, and covariance-aware
+d-separation — are a roadmap item, not yet shipped (see
+`docs/design/07-bivariate-covariance-edges.md`).
 
 ## When to use which
 
@@ -213,9 +223,14 @@ Being honest about scope is part of choosing the right tool. Per the charter and
   scope for 0.x and a possible future direction; for measurement models today,
   use `lavaan`.)
 - **No joint multivariate likelihood.** The model is **piecewise** — one
-  `drmTMB` fit per node, not a single joint fit. (Joint multivariate SEM, where
-  `rho12` becomes a structural target rather than a per-node residual
-  correlation, is out of scope for 0.x and a possible future direction.)
+  `drmTMB` fit per node, not a single joint fit. A path *can* already target a
+  bivariate node's residual correlation (`x -> rho12`, where `rho12` is the
+  residual coupling `eps_y1 <-> eps_y2`), but the residual coupling itself is not
+  yet a first-class double-headed covariance *edge*. First-class bivariate
+  covariance edges — a `drm_pair()` node, residual and random-effect correlation
+  modules (`covariances` / `corpairs`), and covariance-aware d-separation — are a
+  roadmap item (see `docs/design/07-bivariate-covariance-edges.md`); a single
+  joint multivariate likelihood remains out of scope for 0.x.
 - **DAG-only.** Cyclic / feedback graphs are an **error**. (Specific feedback
   motifs are planned for **0.5**.)
 - **No new likelihoods and no arbitrary backends.** `drmSEM` never fits its own

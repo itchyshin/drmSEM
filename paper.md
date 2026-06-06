@@ -23,8 +23,9 @@ bibliography: paper.bib
 modelling (SEM)**. A structural path in `drmSEM` need not target the *mean* of a
 response: it can target any modelled component of that response's distribution —
 its scale (`sigma`), shape (`nu`), zero-inflation probability (`zi`), hurdle
-probability (`hu`), random-effect scale (`sd(group)`), or residual correlation
-(`rho12`). This lets ecologists and evolutionary biologists state and test
+probability (`hu`), random-effect scale (`sd(group)`), or the residual
+correlation between the two responses of a bivariate node (`rho12`). This lets
+ecologists and evolutionary biologists state and test
 hypotheses such as "warmer sites make body size *more variable*" or "habitat
 raises the *probability of absence*, not the mean count" as first-class causal
 claims rather than as nuisance terms.
@@ -154,9 +155,14 @@ indirect_effects(sem, from = "temp", to = "survival")  # incl. distribution-medi
 
 `drmSEM` is honest about its boundaries. The current release is
 **observed-variable, piecewise, and DAG-only**: one `drmTMB` fit per endogenous
-node, no cycles, and no latent variables. Latent-variable and full joint
-(single-likelihood) multivariate SEM are explicitly on the roadmap, not in the
-current scope, and `drmSEM` never introduces new likelihoods of its own.
+node, no cycles, and no latent variables. A path can already target a bivariate
+node's residual correlation (`rho12`, the residual coupling `eps_y1 <-> eps_y2`,
+not a directed `y1 -> y2` path), but bivariate covariance *edges* — the residual
+`rho12` and higher-level `corpairs` random-effect correlations treated as
+joint-response / covariance modules with double-headed arcs and d-separation
+awareness — are on the roadmap, alongside latent-variable and full joint
+(single-likelihood) multivariate SEM. None of these are in the current scope, and
+`drmSEM` never introduces new likelihoods of its own.
 
 # Acknowledgements
 

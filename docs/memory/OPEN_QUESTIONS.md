@@ -169,3 +169,35 @@ preserved. Phylo d-sep claims now return `status="ok"` with a real LRT p-value
 and contribute to Fisher's C. Validated on live drmTMB (CI run 27006262081
 green; asserted in `tests/testthat/test-phylo.R`). No drmTMB change required
 (see `DRMTMB_ISSUES.md`).
+
+## OQ-14 — First-class bivariate covariance edges (rho12 / corpairs) + d-sep awareness
+
+First-class support for bivariate models and their covariance edges, deferred to
+post-0.1 (see D-12, `07-bivariate-covariance-edges.md`). drmSEM 0.1 already
+extracts `x -> rho12` as a directed-path component from a bivariate drmTMB fit
+given to `drm_psem()`, but the covariance-edge machinery does not exist. Open
+items:
+
+- A `drm_pair()` bivariate node type returning two response sub-nodes (e.g.
+  `activity`, `boldness`) plus the extra covariance structure
+  (`rho12(activity, boldness)`, `corpair(id: activity, boldness)`).
+- A `covariances(sem)` accessor that separates **residual** (`rho12`,
+  `eps_y1 <-> eps_y2`) and **higher-level** (`corpair`, `u_*,y1 <-> u_*,y2`)
+  correlations from directed `paths()` (which stays directed-only); plus
+  `rho12(fit)` / `corpairs(fit)` accessors that **query the fitted object** and
+  expose only correlations actually present (no assumed empty blocks).
+- Double-headed-arc plotting in `plot(sem, show="all")`: solid arrows (directed),
+  double-headed arcs (residual `rho12`), dashed arcs (higher-level `corpair`).
+- The **level-compatibility rule**: estimate/report a higher-level correlation
+  only among random effects sharing the same level + grouping index + compatible
+  covariance structure (OK: `id-y1<->id-y2`, `species-phylo-y1<->species-phylo-y2`,
+  `site-mu<->site-sigma`; NOT generally OK: `site<->species`, `phylo<->spatial`,
+  unrelated cross-model blocks).
+- Making `basis_set()` / `dsep()` **covariance-aware**: skip the
+  `y1 _||_ y2 | predictors` independence claim whenever a residual or RE
+  covariance edge between `y1` and `y2` is declared (the model explicitly allowed
+  them to remain associated). Directed edges (incl. `x -> rho12`) still enter the
+  path algebra; covariance edges are allowances the d-sep machinery must respect.
+
+Needs a **live bivariate drmTMB fit** to validate (cannot be tested in the dev
+container).

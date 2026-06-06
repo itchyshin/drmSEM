@@ -105,7 +105,7 @@ is the distributional parameter of the target node that the predictor acts on:
 | zero-infl. | `zi`        | changes the probability of a structural zero     |
 | hurdle     | `hu`        | changes the probability of crossing the hurdle   |
 | RE scale   | `sd(group)` | changes among-group heterogeneity                |
-| residual r | `rho12`     | changes the bivariate residual correlation       |
+| residual r | `rho12`     | changes the residual correlation between the two responses of a bivariate node |
 
 `paths()` returns one row per fitted fixed-effect coefficient across all nodes,
 each tagged with its component and link. In the canonical model the `temp` path
@@ -113,6 +113,19 @@ into `size` appears twice — once on `mu`, once on `sigma` — and they are not
 same claim. The cardinal rule, enforced in `paths()`, `plot()`, the d-separation
 test, and the effect decomposition, is that **a path to a non-`mu` component is
 never reported as a mean effect.**
+
+The `rho12` component is the **residual correlation** between the two responses
+of a bivariate node (`eps_y1 <-> eps_y2`): a path `rho12 ~ x` says `x` changes
+that residual coupling, *not* the mean and *not* a directed `y1 -> y2` arrow.
+Targeting `rho12` today requires a bivariate `drmTMB` fit (e.g.
+`family = c(gaussian(), gaussian())`, components `mu1`/`mu2`/`sigma1`/`sigma2`/`rho12`)
+supplied via `drm_psem()`, after which the `rho12` path is extracted and labelled
+like any other component path. A first-class bivariate node constructor
+(`drm_pair()`), the residual coupling represented as a double-headed covariance
+edge, random-effect correlations via `corpairs()` / `covariances()`,
+double-headed-arc plotting, and d-separation that knows two covarying responses
+should not get a `y1 _||_ y2` claim are roadmap items (see
+`docs/design/07-bivariate-covariance-edges.md`).
 
 ```{r paths}
 paths(sem)   # component-labelled path table
@@ -261,7 +274,8 @@ Phase 3) ship today; phylogenetic paths *into* distributional components and
 
 | Capability | Status |
 | --- | --- |
-| Component-labelled paths (`mu`, `sigma`, `nu`, `zi`, `hu`, `sd(group)`, `rho12`) | now |
+| Component-labelled paths (`mu`, `sigma`, `nu`, `zi`, `hu`, `sd(group)`, `rho12`) | now (a `x -> rho12` path requires a bivariate `drmTMB` fit via `drm_psem()`) |
+| Bivariate covariance edges: first-class bivariate node (`drm_pair`), residual + random-effect correlation modules (`covariances` / `corpairs`), double-headed arcs, covariance-aware d-separation | roadmap |
 | Any-component d-separation + Fisher's C | now (experimental calibration) |
 | Simulation-based direct / mean-mediated / distribution-mediated / total effects | now |
 | Natural direct / indirect / mediated-interaction effects (`indirect_effects(effect = "natural")`) | now (cross-world split, validated on the linear-Gaussian case) |
