@@ -87,11 +87,14 @@ decomposition (D-17, V-32): `inclusion(Mj) = T({Mj}) - direct` and
 to sum. Pure active-set toggling, no new kernel; kernel-verified in
 `test-path-effects.R` (additive P-1, nonlinear-non-additive P-2, sequential P-3).
 Honest scope: model-based attribution, not nonparametric path-specific
-identification (recanting-witness criterion). **Still open:** per-*component*
-(`mu`/`sigma`/`zi`) attribution (needs a small `freeze` plumbing arg in
-`drm_propagate`), the cross-world natural variant with a recanting-witness guard,
-`NA` handling for unconfirmed-sampler families, and a live-fit integration test
-before promotion. Original note below.
+identification (recanting-witness criterion). `path_effects(by = "component")`
+also ships the per-mediator **mean vs distributional channel** split (exact
+partition of inclusion, no kernel change; by-component test). **Still open:** the
+finer split of the distributional channel into individual non-mean components
+(`sigma` vs `zi`, needs a small `freeze` plumbing arg in `drm_propagate`), the
+cross-world natural variant with a recanting-witness guard, `NA` handling for
+unconfirmed-sampler families, and a live-fit integration test before promotion.
+Original note below.
 
 `indirect_effects(..., through = )` routes through a *set* of mediator nodes. We
 do not currently decompose by individual *path* (e.g. separating

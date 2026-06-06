@@ -9,6 +9,7 @@ path_effects(
   from,
   to,
   through = NULL,
+  by = c("mediator", "component"),
   at = NULL,
   B = 200L,
   uncertainty = NULL,
@@ -30,6 +31,15 @@ path_effects(
 
 \item{through}{Optional subset of mediator node names to attribute over
 (defaults to all mediators between \code{from} and \code{to}).}
+
+\item{by}{\code{"mediator"} (default) reports the per-mediator \code{inclusion} /
+\code{exclusion} split with an \code{interaction_remainder}. \code{"component"} instead
+splits each mediator's indirect effect into a \code{mean_channel} (the mediator
+passes only its mean) and a \code{distributional_channel} (the extra effect from
+passing realized draws through its \code{sigma} / \code{zi} / shape). These two sum
+\strong{exactly} to that mediator's inclusion effect, so no remainder row is
+needed. The finer split into individual non-mean components (\code{sigma} vs \code{zi})
+is the OQ-5 follow-up.}
 
 \item{at}{Optional length-2 contrast values for \code{from}.}
 
@@ -57,9 +67,10 @@ yet implemented, OQ-9).}
 }
 \value{
 A \code{drm_effect} data frame with columns \code{from}, \code{to}, \code{through},
-\code{mediator}, \code{estimand} (\code{"inclusion"} / \code{"exclusion"} /
-\code{"total_indirect"} / \code{"interaction_remainder"}), \code{estimate}, \code{conf.low},
-\code{conf.high}.
+\code{mediator}, \code{estimand}, \code{estimate}, \code{conf.low}, \code{conf.high}. For
+\code{by = "mediator"} the \code{estimand} values are \code{total_indirect}, \code{inclusion},
+\code{exclusion}, \code{interaction_remainder}; for \code{by = "component"} they are
+\code{total_indirect}, \code{mean_channel}, \code{distributional_channel}.
 }
 \description{
 Splits the indirect effect of \code{from} on \code{to} into a contribution for each

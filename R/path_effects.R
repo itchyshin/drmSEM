@@ -44,10 +44,16 @@ drm_path_contrasts <- function(engines, scenarios, to, meds,
   exclusion <- stats::setNames(
     lapply(meds, function(mj) tot - contrast(setdiff(meds, mj), mediation, n_sim)), meds
   )
+  # mean-channel contribution of each mediator (mediator passes only its mean);
+  # inclusion - mean_inclusion is then the distribution-mediated channel of Mj.
+  mean_inclusion <- stats::setNames(
+    lapply(meds, function(mj) contrast(mj, "mean", 1L) - cde), meds
+  )
   total_indirect <- tot - cde
   remainder <- total_indirect - Reduce(`+`, inclusion)
   list(total_indirect = total_indirect, inclusion = inclusion,
-       exclusion = exclusion, remainder = remainder)
+       exclusion = exclusion, mean_inclusion = mean_inclusion,
+       remainder = remainder)
 }
 
 #' Path-specific (per-mediator) decomposition of an indirect effect
@@ -74,17 +80,28 @@ drm_path_contrasts <- function(engines, scenarios, to, meds,
 #' @inheritParams indirect_effects
 #' @param through Optional subset of mediator node names to attribute over
 #'   (defaults to all mediators between `from` and `to`).
+#' @param by `"mediator"` (default) reports the per-mediator `inclusion` /
+#'   `exclusion` split with an `interaction_remainder`. `"component"` instead
+#'   splits each mediator's indirect effect into a `mean_channel` (the mediator
+#'   passes only its mean) and a `distributional_channel` (the extra effect from
+#'   passing realized draws through its `sigma` / `zi` / shape). These two sum
+#'   **exactly** to that mediator's inclusion effect, so no remainder row is
+#'   needed. The finer split into individual non-mean components (`sigma` vs `zi`)
+#'   is the OQ-5 follow-up.
 #' @return A `drm_effect` data frame with columns `from`, `to`, `through`,
-#'   `mediator`, `estimand` (`"inclusion"` / `"exclusion"` /
-#'   `"total_indirect"` / `"interaction_remainder"`), `estimate`, `conf.low`,
-#'   `conf.high`.
+#'   `mediator`, `estimand`, `estimate`, `conf.low`, `conf.high`. For
+#'   `by = "mediator"` the `estimand` values are `total_indirect`, `inclusion`,
+#'   `exclusion`, `interaction_remainder`; for `by = "component"` they are
+#'   `total_indirect`, `mean_channel`, `distributional_channel`.
 #' @seealso [indirect_effects()], [total_effects()].
 #' @export
 path_effects <- function(object, from, to, through = NULL,
+                         by = c("mediator", "component"),
                          at = NULL, B = 200L,
                          uncertainty = NULL, nsim = NULL, population = NULL,
                          level = 0.95, seed = NULL,
                          draw = NULL, n_sim = NULL, ...) {
+  by <- match.arg(by)
   drm_validate_effect_args(object, from, to)
   ctl <- drm_effect_controls(uncertainty, nsim, population, draw, n_sim,
                              default_draw = TRUE, default_nsim = 50L)
@@ -100,25 +117,27 @@ path_effects <- function(object, from, to, through = NULL,
   pc <- drm_path_contrasts(engines, scen, to, meds, mediation = "distribution",
                            B = B, n_sim = ctl$n_sim, draw = ctl$draw, seed = seed)
 
-  rows <- list(
-    cbind(data.frame(mediator = NA_character_, estimand = "total_indirect",
-                     stringsAsFactors = FALSE), drm_summ(pc$total_indirect, level))
-  )
-  for (mj in meds) {
+  add_row <- function(rows, med, estimand, v) {
     rows[[length(rows) + 1L]] <- cbind(
-      data.frame(mediator = mj, estimand = "inclusion", stringsAsFactors = FALSE),
-      drm_summ(pc$inclusion[[mj]], level)
+      data.frame(mediator = med, estimand = estimand, stringsAsFactors = FALSE),
+      drm_summ(v, level)
     )
-    rows[[length(rows) + 1L]] <- cbind(
-      data.frame(mediator = mj, estimand = "exclusion", stringsAsFactors = FALSE),
-      drm_summ(pc$exclusion[[mj]], level)
-    )
+    rows
   }
-  rows[[length(rows) + 1L]] <- cbind(
-    data.frame(mediator = NA_character_, estimand = "interaction_remainder",
-               stringsAsFactors = FALSE),
-    drm_summ(pc$remainder, level)
-  )
+  rows <- add_row(list(), NA_character_, "total_indirect", pc$total_indirect)
+  if (identical(by, "mediator")) {
+    for (mj in meds) {
+      rows <- add_row(rows, mj, "inclusion", pc$inclusion[[mj]])
+      rows <- add_row(rows, mj, "exclusion", pc$exclusion[[mj]])
+    }
+    rows <- add_row(rows, NA_character_, "interaction_remainder", pc$remainder)
+  } else {
+    for (mj in meds) {
+      rows <- add_row(rows, mj, "mean_channel", pc$mean_inclusion[[mj]])
+      rows <- add_row(rows, mj, "distributional_channel",
+                      pc$inclusion[[mj]] - pc$mean_inclusion[[mj]])
+    }
+  }
   out <- cbind(
     data.frame(from = from, to = to, through = paste(meds, collapse = ", "),
                stringsAsFactors = FALSE),

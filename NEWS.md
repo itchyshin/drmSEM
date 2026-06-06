@@ -10,6 +10,9 @@
   the remainder is reported, never forced to zero. Model-based attribution, not a
   nonparametric path-specific identification claim. Per-component (mu/sigma/zi)
   and natural variants are the OQ-5 follow-up.
+* `path_effects(by = "component")` splits each mediator's effect into a
+  `mean_channel` and a `distributional_channel` (the part flowing through its
+  `sigma`/`zi`/shape); the two partition the mediator's inclusion effect exactly.
 
 ## Composite latent constructs (0.3, first increment)
 
