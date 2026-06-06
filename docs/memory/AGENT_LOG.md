@@ -470,3 +470,15 @@ path_effects.R + handoff; Grace: effects.R/paths.R/dsep.R/standardize.R/plotting
 diagnostics.R/drm_sem.R) so the concurrent edits never touched the same file.
 NOT done (submission-time / engine): drop `Remotes:`, `--as-cran` lane (would red
 on the Remotes NOTE until drmTMB is on CRAN) — recorded in CODEX_HANDOFF P3.
+
+## 2026-06-06 — 0.2.0 release cut
+
+Cut drmSEM 0.2.0: DESCRIPTION 0.1.0.9000 -> 0.2.0; NEWS dev heading promoted to
+`# drmSEM 0.2.0` with a release lead; cran-comments + roadmap updated. 0.2.0 ships
+OQ-12 unified effect API, OQ-14 covariance-edge grammar, OQ-5 per-mediator +
+per-component path attribution, composites (0.3 first increment), analytic
+cross-checks (V-26..V-34), finalized standardization conventions. The Fisher's C
+calibration STUDY stays experimental/scaffolded (compute-heavy live-drmTMB run,
+issue #13) -- 0.2.0 is honest about that single item. After merge: tag GitHub
+Release v0.2.0 (deploys release-mode pkgdown site to root + R-CMD-check on the
+tag), then bump to 0.2.0.9000 dev.
