@@ -34,6 +34,16 @@ drm_order_index <- function(object) {
 #' @param ... Unused.
 #' @return A data frame with columns `claim`, `x`, `y`, `given` (comma-separated
 #'   conditioning set = Y's parents).
+#' @examples
+#' \dontrun{
+#' sem <- drm_sem(
+#'   size = drm_node(drmTMB::bf(size ~ temp + habitat, sigma ~ temp),
+#'                   family = stats::gaussian()),
+#'   abundance = drm_node(drmTMB::bf(abundance ~ size + temp, zi ~ habitat),
+#'                        family = drmTMB::nbinom2()),
+#'   data = dat)
+#' basis_set(sem)
+#' }
 #' @export
 basis_set <- function(object, ...) {
   UseMethod("basis_set")
@@ -106,6 +116,16 @@ drm_add_column <- function(v, object) {
 #' @param ... Unused.
 #' @return A data frame of claims with `df`, `LR`, and `p.value`, carrying a
 #'   `fisher_c` attribute (see [fisher_c()]).
+#' @examples
+#' \dontrun{
+#' sem <- drm_sem(
+#'   size = drm_node(drmTMB::bf(size ~ temp + habitat, sigma ~ temp),
+#'                   family = stats::gaussian()),
+#'   abundance = drm_node(drmTMB::bf(abundance ~ size + temp, zi ~ habitat),
+#'                        family = drmTMB::nbinom2()),
+#'   data = dat)
+#' dsep(sem)
+#' }
 #' @export
 dsep <- function(object, ...) {
   UseMethod("dsep")
@@ -193,6 +213,16 @@ drm_fisher_c_from_p <- function(p) {
 #' @param object A `drm_sem` object or the result of [dsep()].
 #' @param ... Unused.
 #' @return A one-row data frame with `fisher_c`, `df`, `n_claims`, `p.value`.
+#' @examples
+#' \dontrun{
+#' sem <- drm_sem(
+#'   size = drm_node(drmTMB::bf(size ~ temp + habitat, sigma ~ temp),
+#'                   family = stats::gaussian()),
+#'   abundance = drm_node(drmTMB::bf(abundance ~ size + temp, zi ~ habitat),
+#'                        family = drmTMB::nbinom2()),
+#'   data = dat)
+#' fisher_c(sem)
+#' }
 #' @export
 fisher_c <- function(object, ...) {
   UseMethod("fisher_c")

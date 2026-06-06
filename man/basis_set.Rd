@@ -30,3 +30,14 @@ A covariance edge declared with \code{\link[=covary]{covary()}} (a residual \cod
 \code{y1 _||_ y2} claim is dropped from the basis set (Shipley's bidirected-edge
 rule; OQ-14).
 }
+\examples{
+\dontrun{
+sem <- drm_sem(
+  size = drm_node(drmTMB::bf(size ~ temp + habitat, sigma ~ temp),
+                  family = stats::gaussian()),
+  abundance = drm_node(drmTMB::bf(abundance ~ size + temp, zi ~ habitat),
+                       family = drmTMB::nbinom2()),
+  data = dat)
+basis_set(sem)
+}
+}

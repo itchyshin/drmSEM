@@ -78,3 +78,16 @@ functional of \code{to} for a one-SD (numeric) or first-to-second-level (factor)
 change in \code{from}. The fitted direct coefficients are attached as a
 \code{coefficients} attribute.
 }
+\examples{
+\dontrun{
+sem <- drm_sem(
+  size = drm_node(drmTMB::bf(size ~ temp + habitat, sigma ~ temp),
+                  family = stats::gaussian()),
+  abundance = drm_node(drmTMB::bf(abundance ~ size + temp, zi ~ habitat),
+                       family = drmTMB::nbinom2()),
+  data = dat)
+# Controlled direct effect of temp on abundance, with parametric uncertainty.
+direct_effects(sem, from = "temp", to = "abundance",
+               uncertainty = "parametric", nsim = 50)
+}
+}

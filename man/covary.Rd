@@ -34,6 +34,12 @@ argument. A declared covariance edge makes \code{\link[=basis_set]{basis_set()}}
 \code{y1 _||_ y2 | predictors} independence claim, because the model has explicitly
 allowed \code{y1} and \code{y2} to stay coupled.
 }
+\examples{
+# A residual (rho12) covariance edge between two responses:
+covary("activity", "boldness")
+# A higher-level random-effect (corpair) edge sharing the `id` grouping:
+covary("activity", "boldness", level = "id")
+}
 \seealso{
 \code{\link[=covariances]{covariances()}}, \code{\link[=drm_sem]{drm_sem()}}.
 }

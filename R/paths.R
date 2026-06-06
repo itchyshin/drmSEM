@@ -27,6 +27,16 @@ drm_coef_variable <- function(coef_name, preds) {
 #'
 #' @return A data frame with columns `from`, `to`, `component`, `link`, `term`,
 #'   `estimate`, `std.error`, `statistic`, `p.value`, `endogenous`.
+#' @examples
+#' \dontrun{
+#' sem <- drm_sem(
+#'   size = drm_node(drmTMB::bf(size ~ temp + habitat, sigma ~ temp),
+#'                   family = stats::gaussian()),
+#'   abundance = drm_node(drmTMB::bf(abundance ~ size + temp, zi ~ habitat),
+#'                        family = drmTMB::nbinom2()),
+#'   data = dat)
+#' paths(sem)
+#' }
 #' @export
 paths <- function(object, ...) {
   UseMethod("paths")

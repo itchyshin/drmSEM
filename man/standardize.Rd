@@ -67,6 +67,17 @@ term is a tracked refinement (OQ-4) that needs a live-fit cross-check before it
 is changed.
 }
 
+\examples{
+\dontrun{
+sem <- drm_sem(
+  size = drm_node(drmTMB::bf(size ~ temp + habitat, sigma ~ temp),
+                  family = stats::gaussian()),
+  abundance = drm_node(drmTMB::bf(abundance ~ size + temp, zi ~ habitat),
+                       family = drmTMB::nbinom2()),
+  data = dat)
+standardize(sem, method = "latent")
+}
+}
 \references{
 Grace JB, Bollen KA (2005). Interpreting the results from multiple regression
 and structural equation models. \emph{Bull. Ecol. Soc. Am.} 86(4):283-295.

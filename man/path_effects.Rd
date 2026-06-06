@@ -93,6 +93,14 @@ never rescaled to force them to sum. This is a model-based decomposition, not a
 claim of nonparametric path-specific identification; see
 \code{docs/design/02-effect-calculus.md}.
 }
+\examples{
+\dontrun{
+# per-mediator attribution of temp's indirect effect on survival
+path_effects(sem, from = "temp", to = "survival")
+# split each mediator's effect into mean vs distributional channels
+path_effects(sem, from = "temp", to = "survival", by = "component")
+}
+}
 \seealso{
 \code{\link[=indirect_effects]{indirect_effects()}}, \code{\link[=total_effects]{total_effects()}}.
 }

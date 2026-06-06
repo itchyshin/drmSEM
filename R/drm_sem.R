@@ -87,6 +87,18 @@ new_drm_sem <- function(fits, data, call, fit_env = parent.frame(),
 #'
 #' @return A `drm_sem` object.
 #' @seealso [drm_sem()] for the declarative interface that fits nodes for you.
+#' @examples
+#' \dontrun{
+#' ctrl <- drmTMB::drm_control(se = TRUE)
+#' size_fit <- drmTMB::drmTMB(
+#'   drmTMB::bf(size ~ temp + habitat, sigma ~ temp),
+#'   family = stats::gaussian(), data = dat, control = ctrl)
+#' abundance_fit <- drmTMB::drmTMB(
+#'   drmTMB::bf(abundance ~ size + temp, zi ~ habitat),
+#'   family = drmTMB::nbinom2(), data = dat, control = ctrl)
+#' sem <- drm_psem(size = size_fit, abundance = abundance_fit, data = dat)
+#' paths(sem)
+#' }
 #' @export
 drm_psem <- function(..., data = NULL, covariances = NULL, composites = NULL) {
   fits <- list(...)

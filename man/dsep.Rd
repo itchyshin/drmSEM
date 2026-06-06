@@ -29,3 +29,14 @@ parents, i.e. a missing arrow.
 Requires nodes fitted so that refits converge (the declarative \code{\link[=drm_sem]{drm_sem()}}
 requests standard errors automatically).
 }
+\examples{
+\dontrun{
+sem <- drm_sem(
+  size = drm_node(drmTMB::bf(size ~ temp + habitat, sigma ~ temp),
+                  family = stats::gaussian()),
+  abundance = drm_node(drmTMB::bf(abundance ~ size + temp, zi ~ habitat),
+                       family = drmTMB::nbinom2()),
+  data = dat)
+dsep(sem)
+}
+}

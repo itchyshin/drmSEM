@@ -47,6 +47,12 @@ NULL
 #'   and, for `"pca"`, to derive the loadings).
 #' @return A `drm_composite` declaration object.
 #' @seealso [loadings()], [drm_sem()].
+#' @examples
+#' dat <- data.frame(len = rnorm(50), mass = rnorm(50), wing = rnorm(50))
+#' # equal-weighted index of three indicators:
+#' drm_composite("body_size", c("len", "mass", "wing"), data = dat)
+#' # first principal-component index instead:
+#' drm_composite("body_size", c("len", "mass", "wing"), method = "pca", data = dat)
 #' @export
 drm_composite <- function(name, indicators, weights = NULL,
                           method = c("fixed", "pca"), data) {
@@ -166,6 +172,14 @@ drm_apply_composites <- function(data, composites) {
 #' @return A `drm_loadings` data frame with columns `composite`, `indicator`,
 #'   `loading`, `method`.
 #' @seealso [drm_composite()], [paths()].
+#' @examples
+#' \dontrun{
+#' sem <- drm_sem(
+#'   fitness = drm_node(drmTMB::bf(fitness ~ body_size), family = stats::gaussian()),
+#'   data = dat,
+#'   composites = drm_composite("body_size", c("len", "mass"), data = dat))
+#' loadings(sem)
+#' }
 #' @export
 loadings <- function(object, ...) {
   UseMethod("loadings")

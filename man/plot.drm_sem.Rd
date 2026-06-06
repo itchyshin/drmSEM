@@ -19,3 +19,14 @@ Nodes are variables; arrows are coloured and styled by the distributional
 component they target (mu solid black, sigma dashed green, zi dotted orange,
 random-effect scale grey dotted, rho12 long-dash). Uses \code{igraph} for layout.
 }
+\examples{
+\dontrun{
+sem <- drm_sem(
+  size = drm_node(drmTMB::bf(size ~ temp + habitat, sigma ~ temp),
+                  family = stats::gaussian()),
+  abundance = drm_node(drmTMB::bf(abundance ~ size + temp, zi ~ habitat),
+                       family = drmTMB::nbinom2()),
+  data = dat)
+plot(sem)
+}
+}

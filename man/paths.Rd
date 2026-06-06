@@ -24,3 +24,14 @@ nodes, labelled by the distributional component it targets (\code{mu}, \code{sig
 \code{nu}, \code{zi}, \code{hu}, \code{rho12}, \verb{sd_*}). This makes explicit that a path to
 \code{sigma} is a path to residual scale, not to the mean.
 }
+\examples{
+\dontrun{
+sem <- drm_sem(
+  size = drm_node(drmTMB::bf(size ~ temp + habitat, sigma ~ temp),
+                  family = stats::gaussian()),
+  abundance = drm_node(drmTMB::bf(abundance ~ size + temp, zi ~ habitat),
+                       family = drmTMB::nbinom2()),
+  data = dat)
+paths(sem)
+}
+}

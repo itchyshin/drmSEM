@@ -24,6 +24,15 @@ Returns the indicator-to-construct loadings for every composite declared with
 composite's measurement structure is not a causal path). Empty if the SEM has
 no composites.
 }
+\examples{
+\dontrun{
+sem <- drm_sem(
+  fitness = drm_node(drmTMB::bf(fitness ~ body_size), family = stats::gaussian()),
+  data = dat,
+  composites = drm_composite("body_size", c("len", "mass"), data = dat))
+loadings(sem)
+}
+}
 \seealso{
 \code{\link[=drm_composite]{drm_composite()}}, \code{\link[=paths]{paths()}}.
 }

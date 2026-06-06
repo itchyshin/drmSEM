@@ -25,6 +25,16 @@ drm_supported_sampler_families <- function() {
 #' @param object A `drm_sem` object.
 #' @param ... Unused.
 #' @return A data frame of per-node diagnostics (class `drm_diagnostics`).
+#' @examples
+#' \dontrun{
+#' sem <- drm_sem(
+#'   size = drm_node(drmTMB::bf(size ~ temp + habitat, sigma ~ temp),
+#'                   family = stats::gaussian()),
+#'   abundance = drm_node(drmTMB::bf(abundance ~ size + temp, zi ~ habitat),
+#'                        family = drmTMB::nbinom2()),
+#'   data = dat)
+#' check_sem(sem)
+#' }
 #' @export
 check_sem <- function(object, ...) {
   UseMethod("check_sem")
