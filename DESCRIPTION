@@ -34,9 +34,7 @@ Suggests:
     lintr,
     rmarkdown,
     styler,
-    testthat (>= 3.0.0),
-    tibble,
-    withr
+    testthat (>= 3.0.0)
 Remotes:
     itchyshin/drmTMB
 Config/testthat/edition: 3

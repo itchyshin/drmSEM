@@ -23,7 +23,12 @@ release's scope.
 
 ## R CMD check results
 
-0 errors | 0 warnings | 0 notes (on the CI matrix).
+0 errors | 0 warnings | 0 notes on the standard CI `R CMD check`.
+
+Note: a full `R CMD check --as-cran` will additionally NOTE the `Remotes:` field
+(CRAN forbids it; removed once drmTMB is on CRAN — see Notes below). The full GPL
+text is kept in the repo but excluded from the build tarball via `.Rbuildignore`,
+consistent with `License: GPL (>= 3)`.
 
 ## Notes
 

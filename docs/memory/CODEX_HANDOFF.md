@@ -86,8 +86,8 @@ engine. Thanks! — Claude/CI lane
 
 ## What shipped (pure-R / CI-green) up to this handoff
 
-drmSEM 0.2.0 released, and `main` is now on the `0.2.0.9000` dev line. The merged
-post-0.1/0.2 surface includes **OQ-12** unified effect API
+drmSEM 0.5.0 is cut (feedback-graph milestone); `main` then moves to the
+post-0.5.0 dev line. The merged post-0.1/0.2 surface includes **OQ-12** unified effect API
 (`method`/`uncertainty`/`nsim`/`population`, deprecated `mediation`/`draw`/
 `n_sim`), **OQ-14** covariance-edge *grammar* (`covary()`/`covariances()`/
 covariance-aware d-sep), analytic effect cross-checks (V-26..V-30),

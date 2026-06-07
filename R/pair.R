@@ -229,6 +229,20 @@ print.drm_pair <- function(x, ...) {
 #' @return A list with `nodes` (named list of `drm_node`) and `covariances`
 #'   (list of `drm_covary`).
 #' @seealso [drm_pair()], [drm_sem()].
+#' @examples
+#' # The declaration itself needs no engine.
+#' pair <- drm_pair(
+#'   activity ~ x + (1 | id),
+#'   boldness ~ x + (1 | id),
+#'   rho12 = ~ x
+#' )
+#' \dontrun{
+#' # Expansion builds the marginal sub-nodes with drmTMB::bf(), so it needs
+#' # drmTMB available.
+#' expanded <- drm_expand_pair(pair)
+#' names(expanded$nodes)   # the two marginal response sub-nodes
+#' expanded$covariances    # the residual rho12 (+ any corpair) edges
+#' }
 #' @export
 drm_expand_pair <- function(pair) {
   if (!inherits(pair, "drm_pair")) {

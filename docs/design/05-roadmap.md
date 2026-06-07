@@ -51,7 +51,7 @@ live-fit analytic-effect tier flip, and OQ-14 joint fit.
   toward lavaan-style measurement while staying likelihood-based per node. Out of
   scope until the observed-variable core is validated.
 
-## 0.4 — Joint multivariate SEM (joint-FIT milestone)
+## 0.4 — Joint multivariate SEM (joint-FIT milestone) — PARTIAL (grammar + declaration shipped 0.2.x; joint fit engine-dependent, deferred)
 
 - Optionally fit correlated endogenous responses as one joint drmTMB model
   (`rho12` becomes a first-class structural target rather than a per-node
