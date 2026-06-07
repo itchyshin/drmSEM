@@ -1005,3 +1005,23 @@ file scopes, integrated safe three here (PR-A); OQ-1 fix isolated (PR-B).
   into a decisive single-fixed-row sweep (candidate mappings vs simulate() var,
   response+link sigma) that pins the fix in one Codex run. No R/ or test change;
   the improved probe is folded into PR-A. Updated CODEX_HANDOFF item 7 accordingly.
+
+## 2026-06-07 — OQ-1: CI-as-engine harvest attempt + probe hardening (handed to Codex)
+
+Responding to "nothing to fix?": confirmed there IS a real open bug (sampler
+variance) and tried to fix it myself by running the single-row probe AS A CI
+DIAGNOSTIC (temp test on a throwaway branch state) to harvest the sigma->dispersion
+mapping from the live engine. The harvest surfaced THREE real bugs that D's probe
+shares and that would have blocked Codex too:
+  1. drmTMB exports no `simulate` -> use stats::simulate(fit) (S3; drm_sim_vector
+     already does this).
+  2. drmTMB exports no `Gamma` -> use stats::Gamma(link="log").
+  3. predict_parameters() doesn't reliably name its column mu/sigma -> naive
+     pp[["mu"]] returns NA; request each dpar separately + named-or-last-numeric.
+Rather than keep racing the slow CI-harvest (Codex has the engine and is faster),
+I hardened inst/validation/sampler-dispersion-probe.R with all three fixes so
+Codex's run works first try, dropped the temp diagnostic, and restored #32 to the
+clean docs-only state (merged). CODEX_HANDOFF item 7 updated with the gotchas.
+The actual drm_sample_family fix stays in Codex's lane (engine, fast). Lesson:
+verify "ground truth" API calls (simulate/family constructors) exist BEFORE
+building a probe on them.
