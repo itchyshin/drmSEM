@@ -49,9 +49,13 @@ drm_sample_family <- function(family, params, n) {
     gamma = stats::rgamma(n, shape = 1 / pmax(sigma^2, 1e-8),
                           rate = 1 / pmax(sigma^2, 1e-8) / pmax(mu, 1e-8)),
     poisson = stats::rpois(n, lambda = pmax(mu, 0)),
-    # drmTMB's `sigma` is an SD-like scale: the nbinom2 size (theta) is 1/sigma^2
-    # (so var = mu + mu^2 * sigma^2), and the beta precision is 1/sigma^2.
-    # Confirmed against drmTMB fits in test-oq1-samplers.R (OQ-1).
+    # drmTMB's `sigma` is treated as an SD-like scale: the nbinom2 size (theta) is
+    # 1/sigma^2 (so var = mu + mu^2 * sigma^2), and the beta precision is 1/sigma^2.
+    # The MEAN matches drmTMB on intercept-only fits (test-oq1-samplers.R), but the
+    # VARIANCE does NOT match drmTMB::simulate() under a varying `sigma ~ x` fit
+    # (V-57..V-60 found nbinom2/beta variances inflated). OQ-1 is REOPENED: the
+    # sigma<->dispersion scale here is UNCONFIRMED for varying-sigma fits. See
+    # docs/memory/OPEN_QUESTIONS.md OQ-1 and inst/validation/sampler-dispersion-probe.R.
     nbinom2 = stats::rnbinom(n, mu = pmax(mu, 0),
                              size = pmax(1 / pmax(sigma, 1e-8)^2, 1e-8)),
     truncated_nbinom2 = pmax(1, stats::rnbinom(n, mu = pmax(mu, 0),
@@ -62,7 +66,8 @@ drm_sample_family <- function(family, params, n) {
     },
     # zero_one_beta (ordered / zero-one-inflated beta). The continuous part is
     # the same beta as `beta` above (phi = 1/sigma^2; shapes mu*phi,(1-mu)*phi),
-    # which is confirmed against drmTMB in test-oq1-samplers.R. The inflation
+    # whose variance scale is OQ-1-UNCONFIRMED (see the nbinom2/beta note above).
+    # The inflation
     # part follows the standard ZOIB parameterization: `zoi` is P(observation is
     # a boundary 0/1), and `coi` is P(value == 1 | boundary). When zoi/coi are
     # not supplied (a mediator that only carries mu/sigma), this degenerates to

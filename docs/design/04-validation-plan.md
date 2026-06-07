@@ -66,6 +66,16 @@ graph-interchange layer; and the decomposition-pairing V-36..V-41 in
 
 ## Tier 2 — drmTMB-integration tests (WRITTEN, runtime PENDING)
 
+> **[Update 2026-06-07] Largely superseded.** Tiers 2-3 below predate the
+> V-26..V-73 campaign and describe shipped, CI-running recovery as "planned /
+> pending." The authoritative, current coverage map is
+> `11-validation-matrix.md` (kernel + live-fit recovery, V-1..V-73), the wave-2
+> spec is `12-coverage-calibration.md`, and per-claim status lives in
+> `../memory/VALIDATION_LEDGER.md`. In particular the family-sampler
+> parameterization (listed as an "open item" below) was exercised and **found a
+> real variance discrepancy** — OQ-1 is reopened (V-57..V-60). Read those three
+> documents for live state; the prose below is retained as historical plan.
+
 `tests/testthat/test-integration.R` builds the canonical
 `size -> abundance -> survival` SEM from a known DGP (`helper-dgp.R`,
 `simulate_drmsem_dgp()`) and checks:

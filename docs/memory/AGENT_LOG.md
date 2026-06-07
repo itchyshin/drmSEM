@@ -956,3 +956,27 @@ CI tests (the multi-replicate runs need the engine; nothing flaky added to CI):
 Updated CODEX_HANDOFF (item 7 + new item 12) and 11-validation-matrix to point at
 both. This keeps the comprehensive-testing campaign moving while the heavy runs +
 the engine-side sampler fix stay in the live lane.
+
+## 2026-06-07 — Drift audit fix: propagate the OQ-1 reopening into code + locked docs
+
+Rose audited the post-#28/#29 state. V-numbers (V-45..V-73) clean, no duplicates,
+ledger/matrix consistent, probe APIs correct. One real CONTRADICTION + stale spots
+fixed:
+- R/simulate_effects.R drm_sample_family comments still said the nbinom2/beta
+  dispersion was "Confirmed against drmTMB fits ... (OQ-1)" — directly contradicting
+  the reopened OQ-1 (V-57..V-60 variance mismatch). Rewrote to: MEAN confirmed
+  (intercept fits), VARIANCE NOT matching drmTMB::simulate() under sigma~x, OQ-1
+  REOPENED, scale unconfirmed; pointed at the probe. Same for the zero_one_beta
+  beta-core comment.
+- DECISIONS.md D-7 (and by reference D-9 Gamma): appended an OQ-1-REOPENED update
+  block (constant-sigma mapping stands; per-row varying-sigma scale unconfirmed).
+- VALIDATION_LEDGER V-19 snapshot row: was a flat "pending"; now "mean confirmed;
+  variance REOPENED 2026-06-07" with the figures + pointer (the highest-traffic
+  spot the reopening was invisible).
+- docs/design/04-validation-plan.md: added a dated "largely superseded" banner to
+  Tier 2/3 (they described shipped V-26..V-73 recovery as planned/pending and
+  listed the sampler confirmation as open without the finding); points readers to
+  11/12-validation docs + the ledger.
+PROCESS LESSON (Rose): when reopening an OQ, grep the codebase for the RESOLUTION's
+language ("confirmed against drmTMB", "Resolves OQ-N"), not just the OQ tag — in-code
+comments and DECISIONS.md assert resolution in prose the tag search misses.
