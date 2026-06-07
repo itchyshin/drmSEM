@@ -12,6 +12,29 @@
 #
 # Usage:  Rscript inst/validation/sampler-dispersion-probe.R
 # Needs:  a working drmTMB install (compiler/TMB). See CLOUD.md.
+#
+# WHY THE OLD PROBE WAS NOT DECISIVE
+# ----------------------------------
+# The first version backed out drmTMB's dispersion from the AGGREGATE variance of
+# a sigma ~ x fit. Under a heteroscedastic (varying-sigma) fit, drmTMB::simulate()
+# draws each row at its OWN (mu_i, sigma_i); the pooled sample is a MIXTURE, whose
+# variance is  E_i[Var(Y|i)] + Var_i[E(Y|i)]  -- it carries the between-row spread
+# of the MEAN as well as the within-row dispersion. So a single dispersion backed
+# out of the pooled variance is contaminated and the implied-sigma ratios are not
+# clean constants (CI aggregate gave ratios 1.86/2.53/5.79, uninterpretable).
+#
+# THIS PROBE IS DECISIVE BY CONSTRUCTION
+# --------------------------------------
+# It isolates ONE row (a single fitted (mu, sigma)) and draws a large iid sample
+# at exactly those constant parameters from BOTH sides. With mu and sigma held
+# constant there is NO mixture term, so:
+#   * drmTMB::simulate() var == the within-row dispersion var at (mu, sigma);
+#   * for each candidate sigma->dispersion mapping we can compute drm_sample_family
+#     (or its closed-form var) at the SAME (mu, sigma) and read off the unique
+#     mapping whose variance equals drmTMB's.
+# It prints, per family: the fitted (mu, sigma), the true generating dispersion,
+# drmTMB's per-row mean/var, and a SWEEP of candidate mappings with their var and
+# relative error vs drmTMB -- the winning row IS the corrected mapping.
 # ---------------------------------------------------------------------------
 
 suppressWarnings(suppressMessages({
@@ -23,10 +46,31 @@ set.seed(1)
 n <- 4000
 x <- stats::rnorm(n)
 
-# Fit a heteroscedastic (sigma ~ x) node for one family, then at the fitted,
-# per-row response-scale params compare drm_sample_family() vs drmTMB::simulate()
-# and report the dispersion drmTMB actually used vs the one drmSEM assumed.
-probe <- function(family_name, family, response) {
+# A single representative row at which to evaluate constant (mu, sigma). We use a
+# value near the centre of x so the fit is well determined there.
+x_probe <- 0
+
+# Large iid draw count at the fixed (mu, sigma).
+NDRAW <- 400000L
+
+fmt <- function(v) formatC(v, digits = 5, format = "g")
+
+# Report relative error of a candidate var vs the drmTMB target var.
+relerr <- function(cand, target) abs(cand - target) / (abs(target) + 1e-12)
+
+# Pretty-print one candidate mapping line and flag the best.
+sweep_report <- function(label_var_fns, target_var) {
+  errs <- vapply(label_var_fns, function(e) relerr(e$var, target_var), numeric(1))
+  best <- which.min(errs)
+  for (i in seq_along(label_var_fns)) {
+    e <- label_var_fns[[i]]
+    flag <- if (i == best) "  <== BEST MATCH" else ""
+    cat(sprintf("    %-34s var=%-12s relerr=%-9s%s\n",
+                e$label, fmt(e$var), fmt(errs[i]), flag))
+  }
+}
+
+probe <- function(family_name, family, response, true_disp_desc) {
   dat <- data.frame(x = x, y = response)
   fit <- tryCatch(
     drmTMB::drmTMB(drmTMB::bf(y ~ x, sigma ~ x), family = family, data = dat),
@@ -34,71 +78,146 @@ probe <- function(family_name, family, response) {
   )
   if (is.null(fit)) return(invisible(NULL))
 
-  # response-scale fitted params per row (the same drm_sample_family() consumes)
-  pp <- drmTMB::predict_parameters(fit, newdata = dat, dpar = c("mu", "sigma"),
-                                   type = "response")
+  # ---- Constant per-row (mu, sigma) at x = x_probe (NO mixture contamination) --
+  nd1 <- data.frame(x = x_probe)
+  pp <- tryCatch(
+    drmTMB::predict_parameters(fit, newdata = nd1, dpar = c("mu", "sigma"),
+                               type = "response"),
+    error = function(e) NULL
+  )
+  if (is.null(pp)) { message("predict_parameters failed for ", family_name); return(invisible(NULL)) }
   pp <- as.data.frame(pp)
-  mu <- as.numeric(pp[["mu"]]); sigma <- as.numeric(pp[["sigma"]])
+  mu <- as.numeric(pp[["mu"]])[1]
+  sigma <- as.numeric(pp[["sigma"]])[1]
 
-  params <- list(mu = mu, sigma = sigma)
-  rep <- 60L
-  big_mu <- rep(mu, rep); big_sigma <- rep(sigma, rep)
-  drm_draws <- drmSEM:::drm_sample_family(family_name,
-                                          list(mu = big_mu, sigma = big_sigma),
-                                          length(big_mu))
-  sim <- tryCatch(as.numeric(unlist(drmTMB::simulate(fit, nsim = rep))),
+  # Also show sigma on the LINK scale, to expose a possible link-scale read bug.
+  pp_link <- tryCatch(
+    as.data.frame(drmTMB::predict_parameters(fit, newdata = nd1,
+                                             dpar = c("mu", "sigma"), type = "link")),
+    error = function(e) NULL
+  )
+  sigma_link <- if (!is.null(pp_link) && "sigma" %in% names(pp_link)) {
+    as.numeric(pp_link[["sigma"]])[1]
+  } else NA_real_
+
+  # ---- drmTMB ground truth at this constant row -------------------------------
+  # Build a newdata with NDRAW identical rows at x_probe and simulate() once.
+  big1 <- data.frame(x = rep(x_probe, NDRAW))
+  f1 <- fit; f1$data <- big1
+  sim <- tryCatch(as.numeric(as.matrix(drmTMB::simulate(f1, nsim = 1L, seed = 7))),
                   error = function(e) NULL)
-
-  cat(sprintf("\n=== %s ===\n", family_name))
-  cat(sprintf("  fitted sigma: mean=%.4g  range=[%.4g, %.4g]\n",
-              mean(sigma), min(sigma), max(sigma)))
-  cat(sprintf("  drmSEM    sampler: mean=%.5g  var=%.5g\n",
-              mean(drm_draws), stats::var(drm_draws)))
-  if (!is.null(sim)) {
-    cat(sprintf("  drmTMB::simulate : mean=%.5g  var=%.5g\n",
-                mean(sim), stats::var(sim)))
-    cat(sprintf("  var ratio drmSEM/drmTMB = %.3f\n",
-                stats::var(drm_draws) / stats::var(sim)))
-  }
-
-  # Back out the dispersion drmTMB actually used, per family, from its variance,
-  # and compare to drmSEM's assumed mapping. Read off the corrected sigma-scale.
-  m <- mean(mu)
-  if (!is.null(sim)) {
-    v_tmb <- stats::var(sim)
-    if (family_name == "nbinom2") {
-      # NB2: var = mu + mu^2 / theta  =>  theta_tmb = mu^2 / (var - mu)
-      theta_tmb <- m^2 / (v_tmb - m)
-      cat(sprintf("  [nbinom2] drmTMB theta ~= %.4g ; drmSEM used size=1/sigma^2=%.4g ; sigma_implied=1/sqrt(theta)=%.4g vs fitted sigma=%.4g\n",
-                  theta_tmb, 1 / mean(sigma)^2, 1 / sqrt(theta_tmb), mean(sigma)))
-    } else if (family_name == "beta") {
-      # Beta: var = mu(1-mu)/(1+phi)  =>  phi_tmb = mu(1-mu)/var - 1
-      phi_tmb <- m * (1 - m) / v_tmb - 1
-      cat(sprintf("  [beta] drmTMB phi ~= %.4g ; drmSEM used phi=1/sigma^2=%.4g ; sigma_implied=1/sqrt(phi)=%.4g vs fitted sigma=%.4g\n",
-                  phi_tmb, 1 / mean(sigma)^2, 1 / sqrt(phi_tmb), mean(sigma)))
-    } else if (family_name == "Gamma") {
-      # Gamma: var = mu^2 / shape  =>  shape_tmb = mu^2 / var
-      shape_tmb <- m^2 / v_tmb
-      cat(sprintf("  [Gamma] drmTMB shape ~= %.4g ; drmSEM used shape=1/sigma^2=%.4g ; sigma_implied=1/sqrt(shape)=%.4g vs fitted sigma=%.4g\n",
-                  shape_tmb, 1 / mean(sigma)^2, 1 / sqrt(shape_tmb), mean(sigma)))
-    } else if (family_name == "lognormal") {
-      # lognormal: E[Y]=exp(meanlog+s^2/2). drmSEM uses meanlog=log(mu); if mu is
-      # the RESPONSE MEAN, meanlog should be log(mu)-s^2/2. Report the implied s.
-      cat(sprintf("  [lognormal] drmSEM meanlog=log(mu) gives mean=%.5g; drmTMB mean=%.5g. If mu is the response mean, meanlog should be log(mu)-sigma^2/2.\n",
-                  mean(drm_draws), mean(sim)))
+  if (is.null(sim)) {
+    # fall back: many nsim at the ORIGINAL data, then keep rows nearest x_probe.
+    sim_full <- tryCatch(drmTMB::simulate(fit, nsim = 200L, seed = 7),
+                         error = function(e) NULL)
+    sim <- if (is.null(sim_full)) NULL else {
+      keep <- which(abs(x - x_probe) < 0.02)
+      as.numeric(as.matrix(sim_full)[keep, , drop = FALSE])
     }
   }
-  invisible(NULL)
+  sim <- sim[is.finite(sim)]
+
+  cat(sprintf("\n=== %s ===\n", family_name))
+  cat(sprintf("  fitted at x=%.3g : mu(response)=%s  sigma(response)=%s  sigma(link)=%s\n",
+              x_probe, fmt(mu), fmt(sigma), fmt(sigma_link)))
+  cat(sprintf("  true generating dispersion: %s\n", true_disp_desc))
+  if (length(sim) == 0L) { cat("  drmTMB::simulate() unavailable at this row.\n"); return(invisible(NULL)) }
+  m_tmb <- mean(sim); v_tmb <- stats::var(sim)
+  cat(sprintf("  drmTMB::simulate() @ row : mean=%s  var=%s  (n=%d)\n",
+              fmt(m_tmb), fmt(v_tmb), length(sim)))
+
+  # ---- drm_sample_family() at this constant row (current mapping) -------------
+  set.seed(11)
+  drm_now <- drmSEM:::drm_sample_family(
+    family_name, list(mu = rep(mu, NDRAW), sigma = rep(sigma, NDRAW)), NDRAW)
+  cat(sprintf("  drm_sample_family() CURRENT: mean=%s  var=%s  (var ratio drmSEM/drmTMB=%.3f)\n",
+              fmt(mean(drm_now)), fmt(stats::var(drm_now)),
+              stats::var(drm_now) / v_tmb))
+
+  # ---- Candidate sigma->dispersion mapping SWEEP (closed-form var) ------------
+  # For each candidate dispersion parameter value d, the family variance is known
+  # in closed form, so we can compare to drmTMB's var WITHOUT Monte-Carlo noise.
+  cand <- function(label, v) list(label = label, var = v)
+  cat("  candidate mappings (closed-form var at the SAME mu,sigma):\n")
+  if (family_name == "nbinom2") {
+    # NB2: var = mu + mu^2 / size  (size == theta)
+    cands <- list(
+      cand("size = 1/sigma^2 (CURRENT)", mu + mu^2 / (1 / sigma^2)),
+      cand("size = 1/sigma",             mu + mu^2 / (1 / sigma)),
+      cand("size = sigma",               mu + mu^2 / sigma),
+      cand("size = sigma^2",             mu + mu^2 / sigma^2),
+      cand("size = exp(sigma) (link?)",  mu + mu^2 / exp(sigma))
+    )
+    cat(sprintf("    drmTMB implied theta = mu^2/(var-mu) = %s\n", fmt(mu^2 / (v_tmb - mu))))
+  } else if (family_name == "Gamma") {
+    # Gamma: var = mu^2 / shape
+    cands <- list(
+      cand("shape = 1/sigma^2 (CURRENT)", mu^2 / (1 / sigma^2)),
+      cand("shape = 1/sigma",             mu^2 / (1 / sigma)),
+      cand("shape = sigma",               mu^2 / sigma),
+      cand("shape = sigma^2",             mu^2 / sigma^2),
+      cand("var = sigma^2 (sigma=SD)",    sigma^2)
+    )
+    cat(sprintf("    drmTMB implied shape = mu^2/var = %s ; CV^2 = var/mu^2 = %s\n",
+                fmt(mu^2 / v_tmb), fmt(v_tmb / mu^2)))
+  } else if (family_name == "beta") {
+    # Beta: var = mu(1-mu)/(1+phi)
+    pv <- function(phi) mu * (1 - mu) / (1 + phi)
+    cands <- list(
+      cand("phi = 1/sigma^2 (CURRENT)", pv(1 / sigma^2)),
+      cand("phi = 1/sigma",             pv(1 / sigma)),
+      cand("phi = sigma",               pv(sigma)),
+      cand("phi = sigma^2",             pv(sigma^2)),
+      cand("phi = exp(sigma) (link?)",  pv(exp(sigma)))
+    )
+    cat(sprintf("    drmTMB implied phi = mu(1-mu)/var - 1 = %s\n",
+                fmt(mu * (1 - mu) / v_tmb - 1)))
+  } else if (family_name == "lognormal") {
+    # lognormal: with meanlog=ml, sdlog=sl:  mean=exp(ml+sl^2/2), var=(exp(sl^2)-1)*exp(2ml+sl^2)
+    lnmean <- function(ml, sl) exp(ml + sl^2 / 2)
+    lnvar  <- function(ml, sl) (exp(sl^2) - 1) * exp(2 * ml + sl^2)
+    cat(sprintf("    drmTMB mean=%s var=%s. Candidate (meanlog,sdlog) means:\n", fmt(m_tmb), fmt(v_tmb)))
+    cat(sprintf("      meanlog=log(mu),         sdlog=sigma  -> mean=%s var=%s (CURRENT)\n",
+                fmt(lnmean(log(mu), sigma)), fmt(lnvar(log(mu), sigma))))
+    cat(sprintf("      meanlog=log(mu)-sig^2/2, sdlog=sigma  -> mean=%s var=%s\n",
+                fmt(lnmean(log(mu) - sigma^2 / 2, sigma)), fmt(lnvar(log(mu) - sigma^2 / 2, sigma))))
+    cat(sprintf("      meanlog=log(mu),         sdlog=sqrt(log(1+sig^2/mu^2)) -> mean=%s\n",
+                fmt(lnmean(log(mu), sqrt(log(1 + sigma^2 / mu^2))))))
+    cat("    (If drmTMB mu is E[Y], the meanlog=log(mu)-sigma^2/2 row should match its mean.\n")
+    cat("     If drmTMB mu is the median exp(meanlog), the CURRENT row should match. Read off which.)\n")
+    cands <- NULL
+  } else {
+    cands <- NULL
+  }
+  if (!is.null(cands)) sweep_report(cands, v_tmb)
+
+  invisible(list(family = family_name, mu = mu, sigma = sigma,
+                 sigma_link = sigma_link, mean_tmb = m_tmb, var_tmb = v_tmb))
 }
 
 # nbinom2 / Gamma / lognormal: positive responses; beta: (0,1).
-probe("nbinom2",  drmTMB::nbinom2(),  rnbinom(n, mu = exp(1 + 0.5 * x), size = 3))
+probe("nbinom2",  drmTMB::nbinom2(),  rnbinom(n, mu = exp(1 + 0.5 * x), size = 3),
+      "size/theta = 3 (so var = mu + mu^2/3)")
 probe("Gamma",    drmTMB::Gamma(link = "log"),
-      rgamma(n, shape = 2, rate = 2 / exp(1 + 0.5 * x)))
+      rgamma(n, shape = 2, rate = 2 / exp(1 + 0.5 * x)),
+      "shape = 2 (so var = mu^2/2, CV^2 = 0.5)")
 probe("lognormal", drmTMB::lognormal(),
-      rlnorm(n, meanlog = 1 + 0.5 * x, sdlog = 0.5))
+      rlnorm(n, meanlog = 1 + 0.5 * x, sdlog = 0.5),
+      "sdlog = 0.5 (meanlog = 1 + 0.5x)")
 probe("beta",     drmTMB::beta(),
-      plogis(rnorm(n, 0.2 * x, 0.8)))
+      plogis(rnorm(n, 0.2 * x, 0.8)),
+      "(no fixed phi; whatever drmTMB fits)")
 
-cat("\nRead off the corrected sigma<->dispersion mapping above, fix",
-    "drm_sample_family() / the sigma extractor, then flip V-57..V-60 to asserts.\n")
+cat("\n--------------------------------------------------------------------\n")
+cat("HOW TO READ OFF THE FIX:\n")
+cat("  * Each family's sweep prints candidate sigma->dispersion mappings with\n")
+cat("    their closed-form variance and relative error vs drmTMB::simulate().\n")
+cat("    The row marked '<== BEST MATCH' (relerr ~ 0) IS the corrected mapping.\n")
+cat("  * Compare fitted sigma(response) vs sigma(link) and the true generating\n")
+cat("    dispersion: if sigma(response) already EQUALS the dispersion parameter\n")
+cat("    (e.g. nbinom2 size, Gamma shape) then the sampler should use it DIRECTLY,\n")
+cat("    not 1/sigma^2. If sigma(link) matches but sigma(response) does not, the\n")
+cat("    bug is the scale read in R/extractors.R / drm_predict_parameters.\n")
+cat("  * lognormal: pick the (meanlog,sdlog) row whose mean matches drmTMB.\n")
+cat("  Apply the winning mapping to drm_sample_family(), then flip V-57..V-60\n")
+cat("  in test-recovery-samplers.R from skip-on-mismatch to expect_lt asserts.\n")
