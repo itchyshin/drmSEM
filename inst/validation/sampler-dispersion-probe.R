@@ -79,42 +79,34 @@ probe <- function(family_name, family, response, true_disp_desc) {
   if (is.null(fit)) return(invisible(NULL))
 
   # ---- Constant per-row (mu, sigma) at x = x_probe (NO mixture contamination) --
+  # Request each dpar SEPARATELY and take the named-or-last-numeric column:
+  # predict_parameters() does not reliably name its column `mu`/`sigma`, so the
+  # naive pp[["mu"]] returns NULL -> NA (confirmed in CI). Robust extractor:
+  pp_get <- function(dp, type) {
+    out <- tryCatch(as.data.frame(drmTMB::predict_parameters(
+      fit, newdata = nd1, dpar = dp, type = type)), error = function(e) NULL)
+    if (is.null(out)) return(NA_real_)
+    if (dp %in% names(out) && is.numeric(out[[dp]])) return(as.numeric(out[[dp]])[1])
+    num <- Filter(is.numeric, as.list(out))
+    if (length(num)) as.numeric(num[[length(num)]])[1] else NA_real_
+  }
   nd1 <- data.frame(x = x_probe)
-  pp <- tryCatch(
-    drmTMB::predict_parameters(fit, newdata = nd1, dpar = c("mu", "sigma"),
-                               type = "response"),
-    error = function(e) NULL
-  )
-  if (is.null(pp)) { message("predict_parameters failed for ", family_name); return(invisible(NULL)) }
-  pp <- as.data.frame(pp)
-  mu <- as.numeric(pp[["mu"]])[1]
-  sigma <- as.numeric(pp[["sigma"]])[1]
-
-  # Also show sigma on the LINK scale, to expose a possible link-scale read bug.
-  pp_link <- tryCatch(
-    as.data.frame(drmTMB::predict_parameters(fit, newdata = nd1,
-                                             dpar = c("mu", "sigma"), type = "link")),
-    error = function(e) NULL
-  )
-  sigma_link <- if (!is.null(pp_link) && "sigma" %in% names(pp_link)) {
-    as.numeric(pp_link[["sigma"]])[1]
-  } else NA_real_
+  mu <- pp_get("mu", "response")
+  sigma <- pp_get("sigma", "response")
+  sigma_link <- pp_get("sigma", "link")  # to expose a possible link-scale read bug
 
   # ---- drmTMB ground truth at this constant row -------------------------------
-  # Build a newdata with NDRAW identical rows at x_probe and simulate() once.
-  big1 <- data.frame(x = rep(x_probe, NDRAW))
-  f1 <- fit; f1$data <- big1
-  sim <- tryCatch(as.numeric(as.matrix(drmTMB::simulate(f1, nsim = 1L, seed = 7))),
-                  error = function(e) NULL)
-  if (is.null(sim)) {
-    # fall back: many nsim at the ORIGINAL data, then keep rows nearest x_probe.
-    sim_full <- tryCatch(drmTMB::simulate(fit, nsim = 200L, seed = 7),
-                         error = function(e) NULL)
-    sim <- if (is.null(sim_full)) NULL else {
-      keep <- which(abs(x - x_probe) < 0.02)
-      as.numeric(as.matrix(sim_full)[keep, , drop = FALSE])
-    }
+  # drmTMB's simulate is an S3 method dispatched via stats::simulate (the package
+  # does NOT export `drmTMB::simulate` -- the matching test helper drm_sim_vector
+  # calls stats::simulate). Simulate many nsim at the ORIGINAL data and keep the
+  # rows nearest x_probe (params ~constant there, negligible mixture).
+  sim_full <- tryCatch(stats::simulate(fit, nsim = 300L, seed = 7),
+                       error = function(e) NULL)
+  sim <- if (is.null(sim_full)) NULL else {
+    keep <- which(abs(x - x_probe) < 0.03)
+    suppressWarnings(as.numeric(as.matrix(sim_full)[keep, , drop = FALSE]))
   }
+  if (!is.null(sim)) sim <- sim[is.finite(sim)]
   sim <- sim[is.finite(sim)]
 
   cat(sprintf("\n=== %s ===\n", family_name))
@@ -198,7 +190,7 @@ probe <- function(family_name, family, response, true_disp_desc) {
 # nbinom2 / Gamma / lognormal: positive responses; beta: (0,1).
 probe("nbinom2",  drmTMB::nbinom2(),  rnbinom(n, mu = exp(1 + 0.5 * x), size = 3),
       "size/theta = 3 (so var = mu + mu^2/3)")
-probe("Gamma",    drmTMB::Gamma(link = "log"),
+probe("Gamma",    stats::Gamma(link = "log"),  # drmTMB has no Gamma(); use stats::Gamma
       rgamma(n, shape = 2, rate = 2 / exp(1 + 0.5 * x)),
       "shape = 2 (so var = mu^2/2, CV^2 = 0.5)")
 probe("lognormal", drmTMB::lognormal(),

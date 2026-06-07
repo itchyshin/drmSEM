@@ -148,7 +148,12 @@ the ledger names a live-fit gate.
    1.86/2.53/5.79 are not the true per-row mapping) — use the single-row probe,
    not those aggregates, to read off the fix. The lognormal signal is cleanest:
    drmTMB's response `mu` appears to be E[Y], so `meanlog=log(mu)` is likely wrong.
-   `generate.R` is authored (item 12); generate the cached `.rds` to populate it.
+   The probe was **debugged against the live CI engine 2026-06-07** and three
+   gotchas were fixed so it runs first-try: drmTMB exports **no** `simulate`/`Gamma`
+   (use `stats::simulate(fit)` — the S3 method — and `stats::Gamma(link="log")`),
+   and `predict_parameters()` does **not** reliably name its column `mu`/`sigma`
+   (request each dpar separately and take the named-or-last-numeric column, as the
+   probe now does). `generate.R` is authored (item 12); generate the cached `.rds`.
 12. **Validation wave 2 — coverage & calibration** (`docs/design/12-coverage-calibration.md`).
     `inst/validation/generate.R` is authored (C-1 effect-CI coverage vs closed-form
     truth; C-3 model-selection recovery) with a `validation.Rmd` report that renders
