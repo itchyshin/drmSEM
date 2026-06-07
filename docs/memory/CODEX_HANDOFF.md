@@ -35,14 +35,22 @@ the ledger names a live-fit gate.
    C1-C5 checks in `cal$acceptance` passed, so **V-17 -> validated** for the
    OQ-6 grid only. Keep future Fisher's C / d-sep claims scoped to that grid
    unless new calibration scenarios are added.
-2. **Flip the remaining kernel tiers to *validated*.** Integration tests on a live fit that
-   promote **V-7** (distribution-mediated mechanism) and the d-sep claims from
-   "kernel-validated" -> "validated" — run the `test-analytic-effects.R` identities
-   through a real `drm_sem()` fit, not just hand-built engines.
-3. **OQ-4 — standardization `sigma_E` term.** `R/standardize.R`'s `latent` divisor
-   omits the distribution-specific theoretical variance (`pi^2/3` logit, etc.) for
-   non-identity-link **`mu`** paths -> mild over-standardization. Add it, cross-check
-   on a live GLM fit, update `test-standardize.R`. Spec: `docs/design/08-standardization.md`.
+2. **Flip the remaining kernel tiers to *validated*.** **V-7 (distribution-mediated
+   mechanism) is DONE:** `V-41` (`test-recovery.R`, drmTMB-gated, CI-green) runs the
+   channel through a real `drm_sem()` fit (non-zero, additive identity closes,
+   reproducible), and `V-37` pins the closed-form magnitude engine-free through the
+   production path. Remaining here: promote the **d-sep claims** from
+   "kernel-validated" -> "validated" on a live fit (run the `test-analytic-effects.R` /
+   d-sep identities through a real fit), and — optional — a tight *live-fit* magnitude
+   check of `distribution_mediated` vs the closed form computed from the fitted params
+   (V-41 asserts direction + additivity + reproducibility, not the live magnitude).
+3. **OQ-4 — standardization `sigma_E` term. DONE for constant-variance links** (#26,
+   `V-44`): `R/standardize.R` now adds `sigma_E^2` to the `latent` divisor of a `mu`
+   path on logit (`pi^2/3`) / probit (`1`) / cloglog (`pi^2/6`) links
+   (`drm_link_latent_var()` / `drm_latent_divisor()`), closed-form validated with the
+   fakefit harness. Remaining: the **log-link** families' mean-dependent
+   (observation-level) latent variance, and — optional — a live-GLM-fit confirmation of
+   the full pipeline. Spec: `docs/design/08-standardization.md`.
 
 ## P1 — feature completion needing a live fit
 

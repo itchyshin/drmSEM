@@ -126,6 +126,21 @@ outcome) is visible rather than collapsed into a mean effect.
   build composite (formative / PCA) constructs with `drm_composite()` /
   `loadings()`. See `vignette("covariance-edges-and-composites")` and
   `vignette("latent-variables")`.
+- **Bivariate nodes.** `drm_pair()` declares a joint two-response node with a
+  residual `rho12` (and higher-level `corpair`) correlation; `rho12()` /
+  `corpairs()` report the declared edges and `plot(show = "all")` draws them as
+  double-headed / dashed arcs. The correlation *estimates* await the joint
+  bivariate fit (an engine step), so they are reported as `NA`, never fabricated.
+  See `vignette("bivariate-nodes")`.
+- **Feedback / cyclic models.** Declare a reciprocal motif with `drm_cycle()` /
+  `feedback =` (undeclared cycles stay an error); `total_effects()` then reports
+  the system's **equilibrium** effect by fixed-point propagation (`NA` if it
+  diverges). Node-wise fitting of a cycle is inconsistent under simultaneity —
+  drmSEM warns and never fakes consistency. See `vignette("feedback-cycles")`.
+- **Interoperability.** `as_lavaan()` / `from_lavaan()` exchange the graph with
+  lavaan model syntax (non-mean distributional paths are dropped *with notice*,
+  never misrepresented), and `as_dot()` exports a Graphviz diagram. Graph
+  interchange only — drmSEM never fits its own likelihoods.
 - **Path attribution.** `path_effects()` splits an indirect effect by mediator
   (inclusion / exclusion) and by distributional component (mean / sigma / zi),
   with a cross-world natural variant and recanting-witness flag.

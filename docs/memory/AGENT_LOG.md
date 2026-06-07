@@ -855,3 +855,38 @@ vignette + docs only, every claim kept within what ships.
 chunk-gating pattern is copied verbatim from the known-good `bivariate-nodes.Rmd`
 / `comparison.Rmd`, and every API claim was checked against `R/feedback.R`,
 `R/effects.R`, `R/drm_sem.R`, and the design doc.
+
+## 2026-06-07 — Small docs hygiene (OPEN_QUESTIONS + README feature coverage)
+
+Picked up small stale-status items after the recent feature landings:
+- OPEN_QUESTIONS.md: OQ-4 — added an "Update 2026-06-07" note that refinement (1),
+  the sigma_E theoretical link-variance term for constant-variance links
+  (logit/probit/cloglog), now ships and is closed-form validated (V-44); log-link
+  mean-dependent term + Gelman 2-SD + live-fit confirmation stay open. OQ-14 —
+  refreshed PARTIAL: the drm_pair() declaration grammar, rho12()/corpairs()
+  accessors (estimate NA by construction), drm_expand_pair(), and double-headed/
+  dashed arc plotting all ship now; only the live joint FIT + fitted read-back +
+  deep level-compat remain the Codex lane.
+- README "More": added bullets for Bivariate nodes (drm_pair, NA-by-construction
+  honesty), Feedback/cyclic models (drm_cycle + equilibrium total_effects, the
+  simultaneity-inconsistency warning), and Interoperability (as_lavaan/from_lavaan/
+  as_dot, drop-with-notice), each pointing at its vignette.
+Docs-only; no code/test/NAMESPACE change.
+
+## 2026-06-07 — Handoff/ledger reconciliation (V-7/V-41, OQ-4) per Codex note
+
+Codex flagged that the "left for Codex" framing went partly stale and raised the
+V-41/V-7 reconciliation. Acted:
+- VALIDATION_LEDGER V-7 (distribution-mediated mechanism): was "kernel-validated;
+  drmTMB-integration pending". V-41 (test-recovery.R, drmTMB-gated, CI-green since
+  #22) runs the channel through a REAL drm_sem() fit (non-zero, additive identity
+  closes, reproducible) and V-37 pins the closed-form magnitude engine-free through
+  the production drm_decomp_legs() path. Promoted V-7 to "validated (live fit:
+  mechanism + decomposition)", explicitly noting the one remaining nuance: V-41
+  asserts direction + additivity + reproducibility, NOT a tight live-fit magnitude
+  vs the closed form (an optional follow-up; magnitude is locked engine-free by V-37).
+- CODEX_HANDOFF P0 item 2: marked V-7 DONE via V-41/V-37; remaining = d-sep live-fit
+  promotion + the optional live-magnitude check. Item 3 (OQ-4 sigma_E): marked DONE
+  for constant-variance links (#26/V-44); remaining = log-link mean-dependent term +
+  optional live-GLM-fit confirmation.
+Docs-only. Folded into the #27 docs-hygiene PR.
