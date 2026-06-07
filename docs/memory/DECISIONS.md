@@ -95,6 +95,13 @@ The earlier `size = 1/sigma` / beta `phi = sigma` were wrong and biased
 distribution-mediated effects through count/proportion mediators. Asserted by
 `test-oq1-samplers.R` (sampler moments vs data moments). Resolves OQ-1.
 
+> **[Update 2026-06-07] OQ-1 REOPENED for varying-sigma fits.** The constant-sigma
+> intercept-only mapping above stands, but V-57..V-60 (`test-recovery-samplers.R`)
+> found that under a `sigma ~ x` fit the sampler **variance** does not match
+> `drmTMB::simulate()` (nbinom2 +61%, beta +220%, Gamma +150%; lognormal mean
+> shifted) — the per-row `sigma <-> dispersion` scale is unconfirmed. See OQ-1 and
+> `inst/validation/sampler-dispersion-probe.R`. (Same caveat applies to D-9 Gamma.)
+
 ## [2026-06-04] D-8 — Plotting: igraph DAG + ggplot2 effect forest plot
 
 **Decision.** Two plot surfaces, both with optional dependencies gated at call
