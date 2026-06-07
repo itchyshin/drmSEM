@@ -1117,3 +1117,14 @@ Lesson (Rose): visual QA of a generated figure must **diff the legend entries
 against `edges$component`**, not just check label clipping — the phantom legend
 shipped past an earlier "visually inspected" note because only clipping was
 checked.
+
+## 2026-06-07 — Codex live render follow-up for hero DAG
+
+After #35 landed, Codex rebased the 0.5.0 branch and ran
+`Rscript tools/render-readme-hero.R` in the live R/drmTMB environment. The first
+render confirmed the legend fix (`mu`, `sigma`, `zi`) and separated the
+`temp -> size` `mu`/`sigma` arcs, but the orange `zi` path still crossed a black
+path. Added a fixed row-named `layout =` matrix to `tools/render-readme-hero.R`
+and re-rendered `man/figures/drmsem-hero-dag.png`. Visual check passed: three-row
+path legend, distinct `temp -> size` arcs, and no crossing/overlap among the
+visible paths.

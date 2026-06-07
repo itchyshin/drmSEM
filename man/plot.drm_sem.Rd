@@ -12,7 +12,7 @@
 \item{show}{\code{"all"} (default) draws directed paths \strong{and} covariance arcs;
 \code{"paths"} draws the directed structural edges only.}
 
-\item{...}{Passed to the underlying \code{igraph} plot. A \code{layout =} matrix is
+\item{...}{Passed to the underlying \code{igraph} plot. A \verb{layout =} matrix is
 honoured (if it carries rownames it is reordered to the internal vertex
 order), so a fixed, crossing-free layout can be supplied.}
 }
@@ -24,9 +24,9 @@ Nodes are variables; \strong{directed} arrows are coloured and styled by the
 distributional component they target (mu solid black, sigma dashed green, zi
 dotted orange, random-effect scale grey dotted, a directed \code{x -> rho12} path
 long-dash). \strong{Covariance edges} declared with \code{\link[=covary]{covary()}} / \code{\link[=drm_pair]{drm_pair()}} are
-drawn as \strong{double-headed arcs} -- solid grey for a residual correlation
+drawn as \strong{double-headed arcs} — solid grey for a residual correlation
 (\code{rho12}), dashed grey for a higher-level random-effect correlation
-(\code{corpair}) -- so the three edge classes (directed path, residual covariance,
+(\code{corpair}) — so the three edge classes (directed path, residual covariance,
 higher-level covariance) are visually distinct
 (\code{docs/design/07-bivariate-covariance-edges.md}). Uses \code{igraph} for layout.
 }

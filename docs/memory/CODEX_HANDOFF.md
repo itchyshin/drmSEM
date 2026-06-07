@@ -84,22 +84,19 @@ kernel + live-fit, V-1..V-73) and `12-coverage-calibration.md` (wave-2 spec).
 The pure-R surface is green and the honest caveats are all recorded — over to the
 engine. Thanks! — Claude/CI lane
 
-## ⚠ Re-render the hero DAG (live lane) — code fixed, PNG stale
+## DONE 2026-06-07 — Re-render the hero DAG (live lane)
 
-`plot.drm_sem()` and `tools/render-readme-hero.R` were fixed (faithful legend
-listing only drawn components; fanned parallel edges; node-fill legend; `hu`
-linetype; legibility bumps; optional `layout=`). The Claude lane **cannot
-regenerate the committed image** (`man/figures/drmsem-hero-dag.png`) — no R in
-container — so the PNG is **stale vs the fixed code** until re-rendered:
+`plot.drm_sem()` and `tools/render-readme-hero.R` were fixed in the Claude lane
+(faithful legend listing only drawn components; fanned parallel edges; node-fill
+legend; `hu` linetype; legibility bumps; optional `layout=`), but the committed
+PNG needed a live R render. Codex ran `Rscript tools/render-readme-hero.R`, found
+one residual crossing in the first render, added a fixed named `layout =` matrix
+to the generator, and re-rendered `man/figures/drmsem-hero-dag.png`.
 
-1. `Rscript tools/render-readme-hero.R` and visually confirm the rendered figure
-   shows a **3-row legend (mu / sigma / zi)** and **no overlapping/crossing
-   edges** (the `temp→size` mu+sigma pair should now be two distinct arcs).
-2. If a residual crossing remains, pass a fixed `layout =` matrix (rownames =
-   node names) to `plot()` in the generator and re-render until clean.
-3. Commit the regenerated PNG. The same image is embedded in `README.md` and
-   `paper.md`; both captions already describe only mu/sigma/zi, so no prose
-   change is needed once the legend matches.
+Visual check passed: the path legend has exactly three rows (`mu`, `sigma`,
+`zi`), the `temp -> size` `mu` and `sigma` paths are separate arcs, and the
+orange `zi` path no longer crosses or overlaps the black paths. The same image is
+embedded in `README.md` and `paper.md`; no prose change was needed.
 
 ## What shipped (pure-R / CI-green) up to this handoff
 

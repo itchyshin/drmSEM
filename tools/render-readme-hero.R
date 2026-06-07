@@ -2,9 +2,15 @@
 # Run from the package root with: Rscript tools/render-readme-hero.R
 
 required <- c("devtools", "drmTMB", "igraph", "ragg")
-missing <- required[!vapply(required, requireNamespace, logical(1), quietly = TRUE)]
+missing <- required[
+  !vapply(required, requireNamespace, logical(1), quietly = TRUE)
+]
 if (length(missing)) {
-  stop("Missing required packages: ", paste(missing, collapse = ", "), call. = FALSE)
+  stop(
+    "Missing required packages: ",
+    paste(missing, collapse = ", "),
+    call. = FALSE
+  )
 }
 
 devtools::load_all(".", quiet = TRUE)
@@ -62,13 +68,17 @@ ragg::agg_png(
   background = "white"
 )
 graphics::par(mar = c(0.5, 0.5, 2.4, 0.5), family = "sans")
-# Re-seed for a reproducible Sugiyama layout (the data simulation above consumed
-# the line-12 seed). For a guaranteed crossing-free hero you can pass a fixed
-# `layout =` matrix (rownames = node names) to plot() once tuned visually.
-set.seed(7)
+hero_layout <- rbind(
+  size = c(0.8, 1.0),
+  abundance = c(-1.2, -0.2),
+  survival = c(1.6, -1.2),
+  temp = c(-1.2, 1.0),
+  habitat = c(0.8, -0.2)
+)
 plot(
   sem,
   main = "Distributional piecewise SEM",
+  layout = hero_layout,
   cex.main = 1.3,
   vertex.label.cex = 0.72,
   edge.width = 1.8,

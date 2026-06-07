@@ -22,23 +22,23 @@ to \code{relmat()} must be a tip label.}
 \item{model}{Evolutionary model: one of \code{"BM"}, \code{"lambda"}, \code{"OU"},
 \code{"kappa"}.}
 
-\item{lambda}{Pagel's lambda in \code{[0, 1]} (used when \code{model = "lambda"}).}
+\item{lambda}{Pagel's lambda in \verb{[0, 1]} (used when \code{model = "lambda"}).}
 
-\item{alpha}{OU decay rate, \code{>= 0} (used when \code{model = "OU"}).}
+\item{alpha}{OU decay rate, \verb{>= 0} (used when \code{model = "OU"}).}
 
-\item{kappa}{Pagel's kappa, \code{>= 0} (used when \code{model = "kappa"}).}
+\item{kappa}{Pagel's kappa, \verb{>= 0} (used when \code{model = "kappa"}).}
 
 \item{standardize}{Logical; convert the result to a correlation matrix
 (unit diagonal). Defaults to \code{TRUE}.}
 }
 \value{
 A square, symmetric matrix with the tree's tip labels as dimnames,
-suitable as the \code{K =} argument of \code{relmat()}.
+suitable as the \verb{K =} argument of \code{relmat()}.
 }
 \description{
 \code{drm_phylo_cov()} turns a phylogenetic tree plus an evolutionary model into
 the precomputed relationship matrix that a drmTMB node consumes through the
-structured-effect marker \code{relmat(1 | species, K = <matrix>)}. drmSEM already
+structured-effect marker \verb{relmat(1 | species, K = <matrix>)}. drmSEM already
 recognises \code{relmat()} as a marker (it is stripped from the causal edge set),
 so the returned matrix enters each node's
 likelihood as a phylogenetic random effect while \code{paths()}, \code{dsep()},
@@ -66,7 +66,7 @@ accumulates linearly with time; covariance is shared ancestry).
 \item \strong{lambda} -- Pagel's lambda multiplies the off-diagonal covariances by
 \code{lambda} while preserving the diagonal: \code{lambda = 1} recovers BM and
 \code{lambda = 0} collapses to a star phylogeny (diagonal matrix, no shared
-signal). Requires \code{0 <= lambda <= 1}.
+signal). Requires \verb{0 <= lambda <= 1}.
 \item \strong{OU} -- an Ornstein-Uhlenbeck process under the Martins & Hansen (1997)
 exponential-decay correlation. Phylogenetic \emph{correlation} between two tips
 decays with their patristic distance \code{d} as \code{exp(-alpha * d)}. This always
@@ -83,7 +83,7 @@ Requires \code{kappa >= 0}.
 \section{Standardisation}{
 
 With \code{standardize = TRUE} (the default) the final covariance is converted to
-a correlation matrix via \code{D^{-1/2} C D^{-1/2}} (unit diagonal). A
+a correlation matrix via \verb{D^\{-1/2\} C D^\{-1/2\}} (unit diagonal). A
 correlation-style relatedness matrix is the natural input to \code{relmat()},
 which expects a relationship rather than a raw covariance. For the OU model
 the result is already a correlation matrix, so \code{standardize} is a no-op there.

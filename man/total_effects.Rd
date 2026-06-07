@@ -88,6 +88,18 @@ from their families, so effects flowing through a mediator's scale,
 zero-inflation, or shape (distribution-mediated paths) are included; with
 \code{method = "gcomp"} only the mediator means propagate.
 }
+\details{
+\strong{Feedback SEMs.} When the model declares a feedback motif (see \code{\link[=drm_cycle]{drm_cycle()}}),
+the total effect is the system's \strong{equilibrium} response, computed by
+iterating the mean-propagation map to its fixed point rather than by a single
+topological sweep. Only \code{target = "mean"} is supported (the equilibrium is on
+the deterministic mean map), the \code{mediation} column reads \code{"equilibrium"}, and
+if the feedback diverges (no stable equilibrium, spectral radius \verb{>= 1}) the
+estimate is reported as \code{NA} with a warning — never a fabricated number. The
+mean/distribution decomposition through a cycle is out of scope, so
+\code{\link[=indirect_effects]{indirect_effects()}} / \code{\link[=path_effects]{path_effects()}} refuse a feedback SEM. See
+\code{docs/design/10-cyclic-feedback.md}.
+}
 \examples{
 \dontrun{
 sem <- drm_sem(

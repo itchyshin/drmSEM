@@ -39,15 +39,15 @@ splits each mediator's indirect effect into a \code{mean_channel} (the mediator
 passes only its mean) and one channel per non-mean component
 (\code{sigma_channel}, \code{zi_channel}, ... -- the drop when that component is frozen
 at its reference value), plus a \code{component_remainder} for the part that does
-not separate cleanly (the channels are not an exact partition under a nonlinear
-outcome).}
+not separate cleanly (the channels are not an exact partition under a
+nonlinear outcome).}
 
 \item{effect}{\code{"controlled"} (default) gives the model-based per-mediator /
-per-component decomposition above. \code{"natural"} instead reports each mediator's
-cross-world \strong{natural indirect effect} (the \code{nie} leg when only that
-mediator is set to its counterfactual world), with an \code{identified} column that
-is \code{FALSE} when a \strong{recanting witness} (another mediator that is a
-descendant of \code{from} and an ancestor of this one) makes the natural
+per-component decomposition above. \code{"natural"} instead reports each
+mediator's cross-world \strong{natural indirect effect} (the \code{nie} leg when only
+that mediator is set to its counterfactual world), with an \code{identified}
+column that is \code{FALSE} when a \strong{recanting witness} (another mediator that is
+a descendant of \code{from} and an ancestor of this one) makes the natural
 path-specific effect non-identified. \code{by} is ignored when \code{effect = "natural"}.}
 
 \item{at}{Optional length-2 contrast values for \code{from}.}
@@ -60,7 +60,8 @@ path-specific effect non-identified. \code{by} is ignored when \code{effect = "n
 estimate, no interval), or \code{"bootstrap"} (refit per replicate; not yet
 implemented, OQ-10).}
 
-\item{nsim}{Inner distributional realizations per uncertainty draw.}
+\item{nsim}{Inner distributional realizations per uncertainty draw (used for
+non-mean \code{target}s).}
 
 \item{population}{\code{"conditional"} (random effects held at zero, the default)
 or \code{"marginal"} (integrate over the fitted random-effect distribution; not
@@ -70,7 +71,9 @@ yet implemented, OQ-9).}
 
 \item{seed}{Optional RNG seed.}
 
-\item{draw, n_sim}{Deprecated aliases for \code{uncertainty} and \code{nsim}.}
+\item{draw, n_sim}{Deprecated aliases for \code{uncertainty} (\code{draw = TRUE}/\code{FALSE}
+maps to \code{"parametric"}/\code{"none"}) and \code{nsim}; supplying either emits a
+deprecation warning.}
 
 \item{...}{Unused.}
 }
@@ -79,29 +82,31 @@ A \code{drm_effect} data frame with columns \code{from}, \code{to}, \code{throug
 \code{mediator}, \code{estimand}, \code{estimate}, \code{conf.low}, \code{conf.high}. For
 \code{by = "mediator"} the \code{estimand} values are \code{total_indirect}, \code{inclusion},
 \code{exclusion}, \code{interaction_remainder}; for \code{by = "component"} they are
-\code{total_indirect}, \code{mean_channel}, \code{<component>_channel} (one per non-mean
-component), and \code{component_remainder}. The frame also carries an \code{identified}
-column (\code{NA} for controlled rows; logical for natural rows).
+\code{total_indirect}, \code{mean_channel}, \verb{<component>_channel} (one per non-mean
+component), and \code{component_remainder}. The frame also carries an
+\code{identified} column (\code{NA} for controlled rows; logical for natural rows).
 }
 \description{
 Splits the indirect effect of \code{from} on \code{to} into a contribution for each
 mediator, by toggling which mediators are allowed to respond. Two model-based
 per-mediator quantities are reported:
-\itemize{
-\item \strong{inclusion} -- the effect carried by \code{X -> Mj -> Y} when only \code{Mj}
-responds (all other mediators held at their observed values): \code{T({Mj}) - direct}.
-\item \strong{exclusion} -- \code{Mj}'s marginal contribution when every \emph{other}
-mediator is already active: \code{T(all) - T(all \\ Mj)}.
-}
 }
 \details{
+\itemize{
+\item \strong{inclusion} -- the effect carried by \code{X -> Mj -> Y} when only \code{Mj}
+responds (all other mediators held at their observed values):
+\code{T({Mj}) - direct}.
+\item \strong{exclusion} -- \code{Mj}'s marginal contribution when every \emph{other} mediator is
+already active: \verb{T(all) - T(all \\ Mj)}.
+}
+
 These coincide only when the mediators act additively (parallel mediators, no
-downstream nonlinearity, no exposure-mediator or mediator-mediator interaction).
-The output therefore \strong{always} includes a \code{total_indirect} row and an
-explicit \code{interaction_remainder = total_indirect - sum(inclusion)}, which is
-~0 in the additive case and non-zero otherwise -- the per-mediator effects are
-never rescaled to force them to sum. This is a model-based decomposition, not a
-claim of nonparametric path-specific identification; see
+downstream nonlinearity, no exposure-mediator or mediator-mediator
+interaction). The output therefore \strong{always} includes a \code{total_indirect} row
+and an explicit \code{interaction_remainder = total_indirect - sum(inclusion)},
+which is ~0 in the additive case and non-zero otherwise -- the per-mediator
+effects are never rescaled to force them to sum. This is a model-based
+decomposition, not a claim of nonparametric path-specific identification; see
 \code{docs/design/02-effect-calculus.md}.
 }
 \examples{

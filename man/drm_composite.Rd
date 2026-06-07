@@ -33,9 +33,10 @@ and, for \code{"pca"}, to derive the loadings).}
 (mean 0, sd 1). Default \code{FALSE}.}
 }
 \value{
-A \code{drm_composite} declaration object. It records the indicator \code{loadings} and
-the construct's reliability (Cronbach's alpha, an internal-consistency measure
-for \emph{reflective} indicator sets), shown by \code{print()} / \code{summary()}.
+A \code{drm_composite} declaration object. It records the indicator
+\code{loadings} and the construct's reliability (Cronbach's alpha, an
+internal-consistency measure for \emph{reflective} indicator sets), shown by
+\code{print()} / \code{summary()}.
 }
 \description{
 A composite construct is a deterministic index built from two or more observed

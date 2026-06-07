@@ -22,7 +22,7 @@ A \code{drm_corpairs} data frame: \code{level}, \code{y1}, \code{y2}, \code{esti
 }
 \description{
 Reports the \strong{higher-level} random-effect correlation edge(s) — the
-between-unit coupling \code{u_level,y1 <-> u_level,y2} among random effects sharing a
+between-unit coupling \verb{u_level,y1 <-> u_level,y2} among random effects sharing a
 grouping \code{level} (class 3 in \code{docs/design/07-bivariate-covariance-edges.md}).
 For a \code{\link[=drm_pair]{drm_pair()}} these are the declared \code{corpair} edges (auto-detected from
 shared grouping factors); for a \code{\link[=drm_sem]{drm_sem()}} they are the declared higher-level
