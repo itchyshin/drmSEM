@@ -34,12 +34,13 @@ val <- if (nzchar(results_path) && file.exists(results_path)) {
 }
 ```
 
-This page asks two practical validation questions: do simulated effect intervals
-cover known effects at the advertised rate, and does model comparison recover the
-true DAG from a small candidate set? All results below are **precomputed on live
-drmTMB; this document performs no model fitting.** The study object is
-regenerated only in the drmTMB lane and ships as a cached `.rds` inside the
-package.
+This page is the precomputed report for two practical validation questions: do
+simulated effect intervals cover known effects at the advertised rate, and does
+model comparison recover the true DAG from a small candidate set? The report will
+show cached live-drmTMB results once `inst/validation/generate.R` has produced
+`inst/validation/validation-results.rds`. Until that cache exists, this article
+renders the study design only and makes no validation claim. This document never
+fits models while it is rendered.
 
 ```{r guard, eval = TRUE, echo = FALSE, results = "asis"}
 # Graceful degrade: render an explanatory note (not an error) and stop early if
@@ -62,13 +63,16 @@ if (is.null(val)) {
 
 ## What is being tested
 
-The validation matrix (`docs/design/11-validation-matrix.md`) established
+These are simulation studies where the true effects or true graph are known
+before fitting; the question is whether drmSEM's intervals and model-selection
+tools recover that known truth. The validation matrix
+(`docs/design/11-validation-matrix.md`) established
 **point recovery**: the machinery returns the right *number* on a known-answer
-DGP. This page (`docs/design/12-coverage-calibration.md`) establishes the
-**operating characteristics** -- does the *uncertainty* have the advertised
-behaviour, and do the *inferential* procedures calibrate? These are
-many-replicate studies, so the full grid runs in the live lane and is cached,
-like the d-separation calibration page.
+data-generating process. This page (`docs/design/12-coverage-calibration.md`) is
+designed to establish the **operating characteristics** -- does the
+*uncertainty* have the advertised behaviour, and do the *inferential* procedures
+calibrate? These are many-replicate studies, so the full grid runs in the live
+lane and is cached, like the d-separation calibration page.
 
 Two studies are tabulated here:
 

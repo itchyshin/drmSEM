@@ -1074,3 +1074,26 @@ beta_binomial trials. Next engine item is wave-2 coverage cache generation.
   `OQ-6` in reader-facing status text; stale "integration pending" comments were
   replaced in the main, effect, and phylogenetic articles; the phylogenetic
   article's unsupported "only SEM tool" superlative was softened.
+
+## 2026-06-07 — Pat reader pass follow-up for PR #35
+
+- Pat found two real article blockers after PR #35 opened: `validation.Rmd`
+  implied a validation cache shipped even though `inst/validation/validation-results.rds`
+  is absent, and `phylogenetic-sem.Rmd` had stray literal closing tags at EOF.
+- Pat also flagged article-path friction (overview did not point to calibration /
+  validation) and over-strong "for free" wording for phylogenetic correction.
+- Pat follow-up patch: validation article now states it is a scaffold until the
+  cache exists; overview links calibration and validation; phylogenetic article
+  removes the stray tags and avoids "for free".
+
+## 2026-06-07 — Rose systems pass follow-up for PR #35
+
+- Rose found one stale status claim after the article audit: the
+  covariance/composites article still described the natural per-mediator
+  `path_effects()` variant as future roadmap work.
+- Rose also found terminology drift where effect articles called conditional
+  (`RE = 0`) response-scale contrasts "population-average" effects.
+- Rose follow-up patch: covariance/composites now states the natural
+  per-mediator variant ships with an `identified` flag while live-fit integration
+  and intervals remain open; effect articles now use conditional (`RE = 0`)
+  wording consistently.

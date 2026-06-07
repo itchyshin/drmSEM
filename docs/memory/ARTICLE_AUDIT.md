@@ -23,3 +23,21 @@ shown example is illustrative rather than executable.
 | `calibration.Rmd` | patched | Retitled and rewritten around the reader question, bottom-line results, study design, and scoped claim; internal `OQ-6` / `V-17` labels removed from public prose. |
 | `validation.Rmd` | patched | Retitled and rewritten to describe effect-interval coverage and model-selection recovery without exposing internal `C-*` labels in headings. |
 
+## 2026-06-07 Pat Follow-Up
+
+Pat's reader pass found two blockers after PR #35 was opened: `validation.Rmd`
+read as if the wave-2 cache already shipped, and `phylogenetic-sem.Rmd` ended
+with literal `</content>` / `</invoke>` tags. Both were patched. The overview map
+now links the calibration and validation articles, the validation article states
+that it is a scaffold until `inst/validation/validation-results.rds` exists, and
+the phylogenetic article no longer says corrected tests come "for free".
+
+## 2026-06-07 Rose Follow-Up
+
+Rose's systems-audit pass found one real stale-status statement and one wording
+drift. The covariance/composites article no longer says the natural
+per-mediator variant is only roadmap work; it now states that
+`path_effects(effect = "natural")` ships with an `identified` flag while live-fit
+integration and interval reporting remain open. The effect articles now describe
+the reported response-scale contrasts as conditional (`RE = 0`), not
+population-average.

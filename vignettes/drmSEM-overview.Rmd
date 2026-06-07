@@ -33,6 +33,8 @@ worked in full.
 - *Effect decomposition* (`effect-decomposition.Rmd`) — the simulation calculus in depth.
 - *Phylogenetic SEM* (`phylogenetic-sem.Rmd`) — shared ancestry inside a distributional SEM.
 - *Comparison with other tools* (`comparison.Rmd`) — where `drmSEM` sits in the landscape.
+- *Calibrating the d-separation test* (`calibration.Rmd`) — cached evidence for the any-component d-separation grid.
+- *Effect-interval coverage and model-selection recovery* (`validation.Rmd`) — the precomputed report scaffold for the next simulation grid.
 
 ## The one idea
 
@@ -144,8 +146,8 @@ mean feeding a `logit`-link mean downstream) and flow through non-mean
 components, where a product of coefficients has no defined response-scale
 meaning. So `drmSEM` *simulates* the intervention instead: it sets the predictor
 to two contrasting values, pushes the change through every downstream node in
-topological order (random effects held at zero), and reads off the
-population-average change in the response-scale target. This is counterfactual,
+topological order (random effects held at zero), and reads off the conditional
+(`RE = 0`) response-scale change in the target. This is counterfactual,
 `do()`-style propagation in the tradition of Pearl and of Imai, Keele and
 Yamamoto. By default the `direct` quantity is a **controlled direct effect**
 (mediators held at their observed values), and the total/indirect split is
