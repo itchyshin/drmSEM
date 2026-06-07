@@ -50,6 +50,17 @@
   recovers the linear reduced form `(I − B)⁻¹ Γ` (V-42) and that the equilibrium
   total effect equals the reduced-form total effect of the exposure (V-43).
   Design: `docs/design/10-cyclic-feedback.md`.
+* New vignette **"Feedback cycles: reciprocal causation and the equilibrium
+  effect (`drm_cycle`)"** works a reciprocal `activity ⇄ stress` pair: why a
+  cycle breaks the DAG machinery (simultaneity bias in fitting; an equilibrium,
+  not a path product, for effects), the opt-in `drm_cycle()` / `feedback =`
+  grammar and `cycles()`, the equilibrium estimand (`(I − B)⁻¹ Γ` = the walk sum,
+  generalized to the fixed point; stability needs `ρ(B) < 1`), and the
+  `total_effects()` equilibrium output (`mediation = "equilibrium"`, `target =
+  "mean"` only, `NA` on divergence) with `indirect_effects()` / `path_effects()`
+  refusing a feedback SEM. It is prominently honest that node-wise ML of a
+  declared cycle is **inconsistent** and drmSEM does not fake consistency.
+  Engine-dependent chunks are illustrative-only (`eval = has_engine`, FALSE).
 
 ## Effect decomposition: paired Monte-Carlo and honest framing
 
