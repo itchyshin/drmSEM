@@ -1,5 +1,30 @@
 # drmSEM 0.2.0.9000 (development version)
 
+## Interop (graph interchange)
+
+* **Graph interchange, not a fitting bridge.** A new pure-R interop layer
+  (`R/interop.R`) translates a drmSEM component-labelled graph *to and from* the
+  neighbouring ecosystems' text formats. drmSEM still never fits its own
+  likelihoods, and lavaan/brms *fitting* interop stays out of the 0.x scope.
+* `as_lavaan(sem)` (and `as_lavaan(dag)`) emits a **lavaan model-syntax string**:
+  one `y ~ x1 + x2` regression per endogenous node (the mean structure) and one
+  `y1 ~~ y2` line per declared covariance edge (`covariances()`).
+* **Honesty:** lavaan syntax cannot express a distributional-component path (an
+  arrow into `sigma`, `zi`, `nu`, `hu`, `sd(group)`, `rho12`). `as_lavaan()`
+  therefore **collapses to the mean structure** and reports every dropped non-`mu`
+  path — both as a `dropped` attribute and via a one-time `cli` message. A non-mean
+  path is **never** silently misrepresented as a lavaan mean regression.
+* `from_lavaan(syntax)` parses lavaan syntax back into a drmSEM graph skeleton:
+  `~` regressions become per-response node formulas in a `drm_dag()`, and `~~`
+  lines become `covary()` declarations. Reflective measurement (`=~`) lines are
+  **ignored with a warning** (reflective measurement needs a joint likelihood,
+  out of 0.x scope). Pure string parsing — nothing is evaluated or fitted, so
+  `from_lavaan(as_lavaan(sem))` round-trips the directed mean structure and the
+  covariance edges.
+* `as_dot(sem)` (and `as_dot(dag)`) exports the component-labelled DAG as a
+  **Graphviz DOT** string: one labelled edge per typed edge, with non-mean paths
+  dashed/greyed. Unlike lavaan, DOT keeps **every** component path.
+
 ## Feedback / cyclic motifs (0.5.0, grammar + equilibrium engine)
 
 * `drm_cycle("y1", "y2")` declares a **feedback motif**; `drm_sem()` / `drm_psem()`
@@ -11,15 +36,20 @@
   simultaneity, so `drm_sem()` **warns**: consistent estimation (IV/2SLS or a
   joint likelihood) is an engine capability, not something drmSEM fakes.
 * **d-separation** drops independence claims among a motif's nodes (DAG
-  d-separation does not hold across a cycle; full sigma-separation is deferred),
-  and the standard **effect functions refuse** a feedback SEM rather than return a
-  non-equilibrium single-sweep number.
-* **Equilibrium propagator (internal).** `propagate_fixedpoint()` iterates the
-  mean propagation map to its fixed point with a spectral-radius / max-iter
-  stability guard, reporting **non-convergence** honestly; a closed-form test
-  confirms it recovers the linear reduced form `(I − B)⁻¹ Γ` (V-42). Wiring it
-  into the effect API is the 0.5.x increment. Design:
-  `docs/design/10-cyclic-feedback.md`.
+  d-separation does not hold across a cycle; full sigma-separation is deferred).
+* **Equilibrium total effects (0.5.x).** `total_effects()` now reports the
+  **equilibrium** response of a feedback SEM, iterating the mean-propagation map
+  to its fixed point (the `mediation` column reads `"equilibrium"`); if the
+  feedback diverges (no stable equilibrium, spectral radius `>= 1`) the estimate
+  is `NA` with a warning — never a fabricated number. `direct_effects()` (the
+  controlled direct effect, which does not traverse the cycle) also works. The
+  mean/distribution **decomposition** through a cycle is out of scope, so
+  `indirect_effects()` / `path_effects()` refuse a feedback SEM and point to
+  `total_effects()`. The internal `propagate_fixedpoint()` carries a
+  spectral-radius / max-iter stability guard; closed-form tests confirm it
+  recovers the linear reduced form `(I − B)⁻¹ Γ` (V-42) and that the equilibrium
+  total effect equals the reduced-form total effect of the exposure (V-43).
+  Design: `docs/design/10-cyclic-feedback.md`.
 
 ## Effect decomposition: paired Monte-Carlo and honest framing
 
@@ -71,6 +101,14 @@
   edge classes (directed path, residual covariance, higher-level covariance) are
   visually distinct. A new `show = c("all", "paths")` argument toggles the arcs
   off (`"paths"` draws the directed structural edges only).
+* New vignette **"Bivariate nodes: two responses, one correlation (`drm_pair`)"**
+  walks an animal-personality example (activity & boldness) through `drm_pair()`,
+  `print()`, `rho12()`, `corpairs()`, and `drm_expand_pair()`, motivating the
+  difference between a directed `activity -> boldness` path and the residual
+  `rho12` / higher-level `corpair` covariance arcs. It is emphatic that the
+  correlation **estimates are `NA` by construction** — declaring a bivariate node
+  is not fitting one, and the joint bivariate `drmTMB` fit is the 0.4 engine step.
+  See `docs/design/07-bivariate-covariance-edges.md`.
 
 ## Path-specific effects (OQ-5)
 

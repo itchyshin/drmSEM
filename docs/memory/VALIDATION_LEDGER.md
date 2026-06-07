@@ -422,3 +422,15 @@ component structures need their own calibration evidence.
 (Note: V-31..V-35 above are the OQ-5 / composite claims; the decomposition tests
 were renumbered from a draft V-31..V-36 to V-36..V-41 to avoid that collision,
 and the feedback recovery is V-42.)
+
+## 2026-06-06 — V-43: equilibrium total effect for a feedback SEM (0.5.x)
+
+- **V-43 — `drm_equilibrium_contrast()` / `total_effects()` equilibrium.** For a
+  declared feedback motif, `total_effects()` routes through the fixed-point
+  propagator and reports the system's equilibrium response. The kernel test
+  confirms the equilibrium contrast of an exogenous `x` equals the reduced-form
+  total-effect column `((I − B)^{-1} Γ)[, x]` for a linear 2-cycle, and that a
+  diverging system (`ρ(B) ≥ 1`) is flagged non-convergent (effect `NA`, never a
+  number). `test-feedback.R` (kernel) + the drmTMB-gated end-to-end check that
+  `total_effects()` returns `mediation = "equilibrium"` with a finite estimate on
+  a stable reciprocal fit. **validated (kernel + integration).**

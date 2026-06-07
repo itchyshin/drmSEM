@@ -154,6 +154,35 @@ test_that("propagate_fixedpoint reports non-convergence when rho(B) >= 1", {
   expect_false(res$converged)
 })
 
+test_that("V-43: drm_equilibrium_contrast recovers the reduced-form total effect of x", {
+  a1 <- 0.5; a2 <- 0.3; b12 <- 0.4; b21 <- 0.2
+  eng <- list(
+    y1 = lin_engine("y1", function(s) a1 * s$x + b12 * s$y2),
+    y2 = lin_engine("y2", function(s) a2 * s$x + b21 * s$y1)
+  )
+  # contrast x: 0 -> 1, so the equilibrium contrast equals T[, 1] (one unit of x)
+  scen <- list(lo = data.frame(x = rep(0, 5)), hi = data.frame(x = rep(1, 5)),
+               column = "x")
+  B <- matrix(c(0, b21, b12, 0), nrow = 2)
+  Gamma <- matrix(c(a1, a2), ncol = 1)
+  Tm <- as.numeric(solve(diag(2) - B) %*% Gamma)   # total-effect column for x
+
+  eq1 <- drmSEM:::drm_equilibrium_contrast(eng, scen, "y1", B = 1L, draw = FALSE)
+  expect_true(eq1$converged)
+  expect_equal(mean(eq1$vals), Tm[[1L]], tolerance = 1e-8)
+
+  eq2 <- drmSEM:::drm_equilibrium_contrast(eng, scen, "y2", B = 1L, draw = FALSE)
+  expect_equal(mean(eq2$vals), Tm[[2L]], tolerance = 1e-8)
+
+  # a diverging system is flagged non-convergent (effect undefined, not a number)
+  engd <- list(
+    y1 = lin_engine("y1", function(s) a1 * s$x + 1.2 * s$y2),
+    y2 = lin_engine("y2", function(s) a2 * s$x + 1.0 * s$y1)
+  )
+  expect_false(drmSEM:::drm_equilibrium_contrast(engd, scen, "y1",
+                                                 B = 1L, draw = FALSE)$converged)
+})
+
 # ---- cycles() accessor ------------------------------------------------------
 
 test_that("cycles() reports the declared motifs of a drm_sem", {
@@ -190,8 +219,12 @@ test_that("drm_sem(feedback=) builds a cyclic SEM, lists it, warns, and guards e
     "simultaneity"
   )
   expect_identical(nrow(cycles(sem)), 2L)
-  # effects refuse a feedback SEM rather than return a single-sweep number
-  expect_error(total_effects(sem, from = "x", to = "y2"), "feedback motif")
+  # total_effects routes through the equilibrium propagator for a feedback SEM
+  te <- total_effects(sem, from = "x", to = "y2", uncertainty = "none")
+  expect_identical(te$mediation, "equilibrium")
+  expect_true(is.finite(te$estimate))            # this system is stable
+  # the mean/distribution DECOMPOSITION through a cycle is refused
+  expect_error(indirect_effects(sem, from = "x", to = "y2"), "feedback motif")
   # an UNdeclared reciprocal pair is still a hard error
   expect_error(
     drm_sem(

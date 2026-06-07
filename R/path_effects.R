@@ -188,6 +188,7 @@ path_effects <- function(object, from, to, through = NULL,
   by <- match.arg(by)
   effect <- match.arg(effect)
   drm_validate_effect_args(object, from, to)
+  drm_block_feedback_decomp(object, "path_effects")
   ctl <- drm_effect_controls(uncertainty, nsim, population, draw, n_sim,
                              default_draw = TRUE, default_nsim = 50L)
   drm_require_drmTMB()

@@ -300,7 +300,8 @@ Phase 3) ship today; phylogenetic paths *into* distributional components and
 | Phylogenetic paths *into* distributional components | roadmap (Phase 4) |
 | Reflective latent measurement models (latent estimated jointly with the structural model) | out of scope for 0.x (needs a joint likelihood; composite constructs ship — see above) |
 | Full joint (single-likelihood) multivariate SEM | out of scope for 0.x |
-| Declared feedback motifs: `drm_cycle()` / `feedback=` grammar, relaxed toposort, d-sep suppression, internal equilibrium propagator | now (0.5.0; equilibrium effects via the public effect API are the 0.5.x increment) |
+| Declared feedback motifs: `drm_cycle()` / `feedback=` grammar, relaxed toposort, d-sep suppression, equilibrium propagator | now (0.5.0) |
+| Equilibrium total effect of a feedback SEM (`total_effects()`, fixed-point, `NA` on divergence) | now (0.5.x; the mean/distribution decomposition through a cycle stays out of scope) |
 | Undeclared cyclic / feedback graphs | an error (declare the motif with `drm_cycle()` to allow it) |
 | New likelihoods | out of scope (drmSEM never fits its own) |
 

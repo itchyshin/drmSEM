@@ -82,6 +82,17 @@ reference:
       - compare
       - best
       - average
+  - title: Interop (graph interchange)
+    desc: >
+      Translate a drmSEM graph to/from neighbouring ecosystems' text formats
+      (lavaan model syntax, Graphviz DOT). Graph interchange only — drmSEM never
+      fits its own likelihoods, and non-mean (distributional-component) paths are
+      dropped-with-notice when emitting lavaan syntax, never misrepresented as a
+      mean regression.
+    contents:
+      - as_lavaan
+      - from_lavaan
+      - as_dot
   - title: Phylogenetic SEM
     desc: Build evolutionary covariance matrices for phylogenetic nodes.
     contents:
@@ -100,6 +111,7 @@ articles:
     contents:
       - effect-decomposition
       - covariance-edges-and-composites
+      - bivariate-nodes
       - latent-variables
       - comparison
       - phylogenetic-sem

@@ -712,3 +712,92 @@ it found:
   decomposition report").
 Audit confirmed CLEAN: version strings (0.2.0.9000), the #22 honesty pass propagation,
 the adapter boundary, .codex/.claude mirror, locked decisions in code.
+
+## 2026-06-06 — 0.5.x equilibrium effects wired into total_effects()
+
+Turned the feedback engine from "grammar + internal propagator" into a usable
+effect. total_effects() now routes a declared-feedback SEM through
+drm_equilibrium_contrast() -> propagate_fixedpoint(): per uncertainty replicate,
+one shared beta draw is propagated to the system's fixed point under hi/lo
+scenarios and the equilibrium-mean contrast of `to` is returned. mediation column
+reads "equilibrium"; target="mean" only (the equilibrium is the deterministic
+mean map); non-convergence (rho(B)>=1) -> NA + warning, never a fabricated number.
+direct_effects() (CDE, no cycle traversal) works as-is. The mean/distribution
+DECOMPOSITION through a cycle is undefined, so indirect_effects()/path_effects()
+refuse a feedback SEM (drm_block_feedback_decomp) and point to total_effects().
+Replaced the old blanket drm_validate_effect_args feedback abort with these
+targeted guards. Tests: V-43 kernel (equilibrium contrast == reduced-form total
+effect column for x; divergence flagged) + updated the drmTMB-gated end-to-end
+(total_effects returns mediation="equilibrium" finite; indirect_effects errors).
+Updated NEWS, 10-cyclic-feedback (current-state), 05-roadmap, overview/comparison
+vignette rows, ledger V-43.
+
+## 2026-06-06 — New vignette: bivariate nodes (drm_pair worked example)
+
+Added an audience-facing vignette `vignettes/bivariate-nodes.Rmd` for the
+bivariate-node grammar (0.4 grammar layer; pure-R, no engine). Target reader:
+ecology/evolution PhD students who know GLMMs but not causal-SEM jargon.
+
+- Motivates the three-way distinction with an animal-personality example
+  (activity & boldness, repeated on `id`): directed path `activity -> boldness`
+  vs residual within-observation `rho12` (eps<->eps) vs higher-level
+  between-individual `corpair` (u_id<->u_id), stressing that the latter two are
+  NOT interchangeable.
+- Walks drm_pair(activity ~ x + (1|id), boldness ~ x + (1|id), rho12 = ~ x):
+  print(pair), rho12(pair), corpairs(pair), drm_expand_pair(pair). Pure-R chunks
+  eval=TRUE; the drm_expand_pair chunk gated on requireNamespace("drmTMB") since
+  it wraps formulas with drmTMB::bf() (does not fit); the drm_sem/plot chunks are
+  eval=has_engine (FALSE) per the existing-vignette convention.
+- SCRUPULOUSLY honest, made prominent (a block-quote, not buried): the estimate
+  column is NA by construction; drmSEM never fabricates a correlation; estimating
+  rho12 needs one joint bivariate drmTMB fit = the 0.4 engine deliverable.
+- Covariance-arc plotting (plot(sem, show="all") double-headed rho12 / dashed
+  corpair) described conceptually; cross-refs the covariance-edges vignette and
+  docs/design/07-bivariate-covariance-edges.md.
+
+Registered under _pkgdown.yml articles > Concepts (after
+covariance-edges-and-composites). NEWS bullet added under the existing
+"Bivariate nodes (0.4, grammar layer)" section. Did NOT touch R/, NAMESPACE,
+man/, DESCRIPTION, or tests. No feedback/cyclic content (separate vignette).
+## 2026-06-06 — Interop: graph-interchange layer (lavaan / DOT)
+
+Shipped the pure-R graph-interchange (interop) layer in `R/interop.R`. This is
+graph interchange, NOT a fitting bridge — drmSEM still never fits its own
+likelihoods, and brms/lavaan FITTING interop stays out of 0.x scope.
+
+**What shipped (3 exports + helpers, no new Imports).**
+- `as_lavaan(object, ...)` — S3 generic + `drm_sem` and `drm_dag` methods. Emits
+  a lavaan model-syntax string from the variable-level directed mean edges (one
+  `y ~ x1 + x2` per node) and the declared covariance edges (one `y1 ~~ y2` per
+  `covariances()` row). Returns a length-1 `drm_lavaan` string (print cat()s it).
+  **Honesty rule enforced:** lavaan syntax cannot express a distributional-
+  component path (sigma/zi/nu/hu/sd/rho12), so those are collapsed to the mean
+  structure and reported via a `dropped` attribute + a one-time cli message. A
+  non-mu path is NEVER silently emitted as a lavaan `~` mean regression.
+- `from_lavaan(syntax)` — pure string parser: `~` lines → per-response formulas
+  assembled into a `drm_dag()`; `~~` lines → `covary()` declarations; returns a
+  `drm_skeleton` list (`$dag`, `$covary`). Reflective `=~` lines are ignored with
+  a warning (reflective measurement needs a joint likelihood → out of 0.x scope).
+  Strips lavaan numeric/label prefixes (`0.5*b` → `b`), intercepts, and variance
+  (`x ~~ x`) lines. Round-trip `from_lavaan(as_lavaan(sem))` recovers the directed
+  mean structure + covariance edges.
+- `as_dot(object, ...)` — S3 generic + `drm_sem` and `drm_dag` methods. Graphviz
+  DOT export of the component-labelled DAG: one labelled edge per typed edge,
+  non-mean paths dashed/greyed. Unlike lavaan, DOT keeps EVERY component path.
+
+The `drm_dag` methods reconstruct a typed edge table from the captured node
+formulas alone (`drm_dag_edges()` / `drm_dag_component_rhs()`, reusing
+`drm_fixed_predictors()`), so the whole layer runs without an engine.
+
+**Deliverables.** `R/interop.R` (full roxygen, runnable engine-free examples);
+`tests/testthat/test-interop.R` (emit / parse / round-trip / the dropped-component
+honesty path / the `=~` warning — all pure-R); NAMESPACE exports + S3methods;
+hand-written `man/{as_lavaan,from_lavaan,as_dot}.Rd` mirroring the generated style
+(CI roxygenises anyway; the lane has no R installed). NEWS `## Interop (graph
+interchange)` subsection; `_pkgdown.yml` Interop reference section; 05-roadmap
+"Interop and distribution" marked SHIPPED for the graph layer.
+
+**No DESCRIPTION / dependency changes** (base R + cli only, as required).
+
+**Validation state.** Tests are written but not run here (no R in this lane, same
+constraint noted in prior entries); logic is hand-verified. CI runs the suite.
