@@ -123,6 +123,22 @@ drm_block_feedback_decomp <- function(object, fn) {
 }
 
 
+# Analytic functional contrast with a clear abort when the family/target has no
+# closed form (OQ-11). Keeps the error message in one place for direct/total.
+drm_analytic_or_abort <- function(engines, scen, to, active, mediation, target,
+                                  threshold, prob, B, draw, seed) {
+  vals <- drm_functional_contrast_analytic(engines, scen, to, active, mediation,
+                                           target, threshold, prob, B, draw, seed)
+  if (is.null(vals)) {
+    fam <- engines[[to]]$family
+    cli::cli_abort(c(
+      "No closed-form {.val {target}} functional for the {.val {fam}} family.",
+      "i" = "Analytic functionals are offered for gaussian and poisson; use {.code functional = \"simulate\"} otherwise."
+    ))
+  }
+  vals
+}
+
 #' Response-scale direct (controlled) effect of a predictor on a node
 #'
 #' The controlled direct effect holds all mediators at their observed values and
@@ -144,6 +160,12 @@ drm_block_feedback_decomp <- function(object, fn) {
 #'   leaving the mean nearly unchanged.
 #' @param threshold Cutoff for `target = "p_gt"`.
 #' @param prob Probability for `target = "quantile"` (default `0.5`, the median).
+#' @param functional How a non-mean `target` is evaluated: `"simulate"` (default;
+#'   draw the outcome from its family and summarize) or `"analytic"` (a
+#'   closed-form functional of the predicted parameters — no Monte-Carlo noise).
+#'   Analytic forms are offered for the gaussian and poisson families (others
+#'   abort with a pointer to `"simulate"`), and require mean mediation
+#'   (`method = "gcomp"`) so the outcome parameters are deterministic.
 #' @param at Optional length-2 contrast values for `from`.
 #' @param B Number of uncertainty replicates (coefficient draws) used when
 #'   `uncertainty = "parametric"`.
@@ -179,11 +201,14 @@ drm_block_feedback_decomp <- function(object, fn) {
 #' @export
 direct_effects <- function(object, from, to, component = NULL,
                            target = c("mean", "p_gt", "p_zero", "var", "quantile"),
-                           threshold = 0, prob = 0.5, at = NULL, B = 200L,
+                           threshold = 0, prob = 0.5,
+                           functional = c("simulate", "analytic"),
+                           at = NULL, B = 200L,
                            uncertainty = NULL, nsim = NULL, population = NULL,
                            level = 0.95, seed = NULL,
                            draw = NULL, n_sim = NULL, ...) {
   target <- match.arg(target)
+  functional <- match.arg(functional)
   drm_validate_effect_args(object, from, to)
   ctl <- drm_effect_controls(uncertainty, nsim, population, draw, n_sim,
                              default_draw = TRUE, default_nsim = 50L)
@@ -194,6 +219,11 @@ direct_effects <- function(object, from, to, component = NULL,
     drm_effect_contrast(engines, scen, to, active = character(0),
                         mediation = "mean", B = B, n_sim = 1L,
                         draw = ctl$draw, seed = seed)
+  } else if (identical(functional, "analytic")) {
+    drm_analytic_or_abort(engines, scen, to, active = character(0),
+                          mediation = "mean", target = target,
+                          threshold = threshold, prob = prob, B = B,
+                          draw = ctl$draw, seed = seed)
   } else {
     drm_functional_contrast(engines, scen, to, active = character(0),
                             mediation = "distribution", target = target,
@@ -261,11 +291,14 @@ direct_effects <- function(object, from, to, component = NULL,
 #' @export
 total_effects <- function(object, from, to, method = NULL,
                           target = c("mean", "p_gt", "p_zero", "var", "quantile"),
-                          threshold = 0, prob = 0.5, at = NULL, B = 200L,
+                          threshold = 0, prob = 0.5,
+                          functional = c("simulate", "analytic"),
+                          at = NULL, B = 200L,
                           uncertainty = NULL, nsim = NULL, population = NULL,
                           level = 0.95, seed = NULL,
                           mediation = NULL, draw = NULL, n_sim = NULL, ...) {
   target <- match.arg(target)
+  functional <- match.arg(functional)
   mediation_resolved <- drm_resolve_mediation(method, mediation)
   drm_validate_effect_args(object, from, to)
   ctl <- drm_effect_controls(uncertainty, nsim, population, draw, n_sim,
@@ -307,10 +340,23 @@ total_effects <- function(object, from, to, method = NULL,
   }
 
   active <- setdiff(object$endogenous, c(from, to))
+  # Analytic functionals need deterministic outcome params, i.e. mean mediation.
+  if (identical(functional, "analytic") && !identical(target, "mean") &&
+      !identical(mediation_resolved, "mean")) {
+    cli::cli_abort(c(
+      "{.code functional = \"analytic\"} requires mean mediation.",
+      "i" = "Use {.code method = \"gcomp\"} with the analytic functional, or {.code functional = \"simulate\"} with {.code method = \"simulate\"}."
+    ))
+  }
   vals <- if (identical(target, "mean")) {
     drm_effect_contrast(engines, scen, to, active = active,
                         mediation = mediation_resolved, B = B, n_sim = ctl$n_sim,
                         draw = ctl$draw, seed = seed)
+  } else if (identical(functional, "analytic")) {
+    drm_analytic_or_abort(engines, scen, to, active = active,
+                          mediation = mediation_resolved, target = target,
+                          threshold = threshold, prob = prob, B = B,
+                          draw = ctl$draw, seed = seed)
   } else {
     drm_functional_contrast(engines, scen, to, active = active,
                             mediation = mediation_resolved, target = target,

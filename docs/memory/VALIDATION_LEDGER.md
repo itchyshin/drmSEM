@@ -246,6 +246,13 @@ samplers re-injected). Newly available + kernel-validated locally
   `indirect = mean_mediated + distribution_mediated`. Guards the fix that the
   legs honour `mediation` (mean vs distribution) for a non-mean target instead of
   always simulating the mediator. **Kernel.**
+- **V-76 / OQ-11 — Analytic outcome functionals** (`test-effect-kernels.R`):
+  `drm_analytic_functional()` returns the closed-form `var`/`p_gt`/`p_zero`/
+  `quantile` for gaussian (`sigma^2`, `pnorm`, `0`, `qnorm`) and poisson (`mu`,
+  `ppois`, `dpois(0)`, `qpois`), and `NULL` for the dispersion families (OQ-1).
+  `drm_functional_contrast_analytic()` recovers the Poisson `p_zero` contrast
+  `exp(-mu_hi) - exp(-mu_lo)` to machine precision (the simulated kernel hits it
+  only to ~0.03), confirming the no-Monte-Carlo-noise property. **Kernel.**
 
 Regression check: `test-dsep-kernels` (incl. the new p==0 Fisher's-C floor),
 `test-effect-kernels` (incl. the natural + functional kernels), and

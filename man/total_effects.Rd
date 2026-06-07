@@ -12,6 +12,7 @@ total_effects(
   target = c("mean", "p_gt", "p_zero", "var", "quantile"),
   threshold = 0,
   prob = 0.5,
+  functional = c("simulate", "analytic"),
   at = NULL,
   B = 200L,
   uncertainty = NULL,
@@ -46,6 +47,13 @@ equilibrium response) is defined.}
 \item{threshold}{Cutoff for \code{target = "p_gt"}.}
 
 \item{prob}{Probability for \code{target = "quantile"} (default \code{0.5}, the median).}
+
+\item{functional}{How a non-mean \code{target} is evaluated: \code{"simulate"} (default;
+draw the outcome from its family and summarize) or \code{"analytic"} (a
+closed-form functional of the predicted parameters — no Monte-Carlo noise).
+Analytic forms are offered for the gaussian and poisson families (others
+abort with a pointer to \code{"simulate"}), and require mean mediation
+(\code{method = "gcomp"}) so the outcome parameters are deterministic.}
 
 \item{at}{Optional length-2 contrast values for \code{from}.}
 

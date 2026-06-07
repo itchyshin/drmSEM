@@ -179,3 +179,52 @@ test_that("functional decomposition legs are non-degenerate for a non-mean targe
                unname((tot_mean - cde) + (tot_dist - tot_mean)),
                tolerance = 1e-10)
 })
+
+# Analytic (non-simulated) outcome functionals (OQ-11): closed forms per row.
+test_that("V-76: analytic outcome functionals match closed forms", {
+  g <- data.frame(mu = c(1, 4), sigma = c(2, 3))
+  expect_equal(drmSEM:::drm_analytic_functional("gaussian", g, "mean"), c(1, 4))
+  expect_equal(drmSEM:::drm_analytic_functional("gaussian", g, "var"), c(4, 9))
+  expect_equal(drmSEM:::drm_analytic_functional("gaussian", g, "quantile", prob = 0.975),
+               stats::qnorm(0.975, c(1, 4), c(2, 3)))
+  expect_equal(drmSEM:::drm_analytic_functional("gaussian", g, "p_gt", threshold = 0),
+               stats::pnorm(0, c(1, 4), c(2, 3), lower.tail = FALSE))
+  expect_equal(drmSEM:::drm_analytic_functional("gaussian", g, "p_zero"), c(0, 0))
+
+  p <- data.frame(mu = c(0.5, 2))
+  expect_equal(drmSEM:::drm_analytic_functional("poisson", p, "p_zero"), exp(-c(0.5, 2)))
+  expect_equal(drmSEM:::drm_analytic_functional("poisson", p, "var"), c(0.5, 2))
+  expect_equal(drmSEM:::drm_analytic_functional("poisson", p, "quantile", prob = 0.9),
+               stats::qpois(0.9, c(0.5, 2)))
+  # families with the unconfirmed sigma<->dispersion scale return NULL (fall back)
+  expect_null(drmSEM:::drm_analytic_functional("nbinom2", g, "p_zero"))
+  expect_null(drmSEM:::drm_analytic_functional("gaussian", g, "nonsense"))
+})
+
+# The analytic contrast is EXACT (no Monte-Carlo noise): the same Poisson p_zero
+# effect that the simulated kernel recovers only to ~0.03 is hit to machine
+# precision here.
+test_that("V-76: analytic functional contrast is exact (no MC noise)", {
+  mu_lo <- 2; mu_hi <- 0.5
+  engines <- list(
+    Y = list(name = "Y", identifier = "Y", family = "poisson", components = "mu",
+             coef = list(), vcov = NULL,
+             predict = function(scenario, beta = NULL)
+               data.frame(mu = mu_lo + (mu_hi - mu_lo) * scenario$x))
+  )
+  n <- 8
+  lo <- data.frame(x = 0, Y = 0)[rep(1, n), ]
+  hi <- data.frame(x = 1, Y = 0)[rep(1, n), ]
+  scen <- list(lo = lo, hi = hi, column = "x")
+  v <- drmSEM:::drm_functional_contrast_analytic(
+    engines, scen, "Y", active = character(0), mediation = "mean",
+    target = "p_zero", threshold = 0, prob = 0.5, B = 1, draw = FALSE
+  )
+  expect_equal(unname(v), exp(-mu_hi) - exp(-mu_lo))   # exact
+  # unsupported family returns NULL so the caller can abort/fall back
+  engines$Y$family <- "beta"
+  expect_null(drmSEM:::drm_functional_contrast_analytic(
+    engines, scen, "Y", active = character(0), mediation = "mean",
+    target = "p_zero", threshold = 0, prob = 0.5, B = 1, draw = FALSE
+  ))
+})

@@ -336,3 +336,80 @@ drm_functional_contrast <- function(engines, scenarios, to, active, mediation,
   }
   vals
 }
+
+# Closed-form (analytic) outcome functional per row, for the families where the
+# functional is unambiguous given the predicted parameters -- no Monte-Carlo
+# simulation, so no sampling noise (OQ-11). Returns a per-row numeric vector, or
+# NULL when no closed form is offered for this (family, target). Deliberately
+# limited to gaussian and poisson: families whose response-scale `sigma` maps to a
+# dispersion (nbinom2/Gamma/beta) share the unconfirmed sigma<->dispersion scale
+# (OQ-1), so their closed forms are withheld until that is settled -- callers fall
+# back to simulation there.
+drm_analytic_functional <- function(family, params, target = "mean",
+                                    threshold = 0, prob = 0.5) {
+  mu <- params$mu
+  sigma <- if (!is.null(params$sigma)) params$sigma else rep(1, length(mu))
+  if (identical(family, "gaussian")) {
+    switch(
+      target,
+      mean = mu,
+      var = sigma^2,
+      p_gt = stats::pnorm(threshold, mean = mu, sd = sigma, lower.tail = FALSE),
+      p_zero = rep(0, length(mu)),            # continuous: Pr(Y = 0) = 0
+      quantile = stats::qnorm(prob, mean = mu, sd = sigma),
+      NULL
+    )
+  } else if (identical(family, "poisson")) {
+    switch(
+      target,
+      mean = mu,
+      var = mu,
+      p_gt = stats::ppois(threshold, lambda = mu, lower.tail = FALSE),
+      p_zero = stats::dpois(0, lambda = mu),
+      quantile = stats::qpois(prob, lambda = mu),
+      NULL
+    )
+  } else {
+    NULL
+  }
+}
+
+# Population analytic functional of `to` under a scenario: propagate (mediators at
+# their MEAN -- analytic functionals require deterministic outcome params), read
+# the outcome node's predicted params, apply the closed form, average over rows.
+# Returns NULL if no closed form exists for the (family, target).
+drm_functional_target_analytic <- function(engines, scenario, to, active,
+                                           mediation, beta_list, target,
+                                           threshold = 0, prob = 0.5) {
+  work <- drm_propagate(engines, scenario, active, mediation, beta_list)$work
+  eng_to <- engines[[to]]
+  params <- eng_to$predict(work, beta = beta_list[[to]])
+  fv <- drm_analytic_functional(eng_to$family, params, target, threshold, prob)
+  if (is.null(fv)) return(NULL)
+  mean(fv, na.rm = TRUE)
+}
+
+# Analytic analogue of drm_functional_contrast: exact (noise-free) contrast of an
+# outcome functional across the low/high scenarios. Requires mean mediation (the
+# outcome params must be deterministic). Returns NULL when the family/target has
+# no closed form, so the caller can abort or fall back.
+drm_functional_contrast_analytic <- function(engines, scenarios, to, active,
+                                             mediation, target, threshold, prob,
+                                             B, draw, seed = NULL) {
+  if (!is.null(seed)) set.seed(seed)
+  reps <- if (isTRUE(draw)) B else 1L
+  vals <- numeric(reps)
+  for (b in seq_len(reps)) {
+    beta_list <- lapply(engines, drm_draw_beta, draw = draw)
+    names(beta_list) <- names(engines)
+    fhi <- drm_functional_target_analytic(engines, scenarios$hi, to, active,
+                                          mediation, beta_list, target,
+                                          threshold, prob)
+    flo <- drm_functional_target_analytic(engines, scenarios$lo, to, active,
+                                          mediation, beta_list, target,
+                                          threshold, prob)
+    if (is.null(fhi) || is.null(flo)) return(NULL)
+    vals[[b]] <- fhi - flo
+  }
+  vals
+}

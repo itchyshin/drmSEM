@@ -44,6 +44,12 @@ the live-drmTMB lane (see `docs/memory/CODEX_HANDOFF.md`).
 * The `"quantile"` target reports the `prob`-quantile of the simulated outcome
   (kernel-validated: a path into `sigma` shifts the upper quantile but not the
   median).
+* `direct_effects()` / `total_effects()` gain `functional = c("simulate",
+  "analytic")`. `"analytic"` evaluates the functional in **closed form** from the
+  predicted parameters (no Monte-Carlo noise) for the **gaussian** and
+  **poisson** families — exact `var`/`p_gt`/`p_zero`/`quantile`. Other families
+  abort with a pointer back to `"simulate"` (their `sigma`↔dispersion scale is the
+  OQ-1 open item); analytic needs mean mediation (`method = "gcomp"`).
 * **Fix:** the functional engine now honours the mediator-propagation mode
   (`"mean"` vs `"distribution"`) instead of always simulating the mediator, so the
   controlled decomposition is non-degenerate for a non-mean `target`. `effect =

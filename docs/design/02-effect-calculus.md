@@ -276,10 +276,19 @@ Recovery-tested in `test-effect-kernels.R` (`p_zero` recovers the Poisson change
 `b + qnorm(p)*s1`; the functional legs are non-degenerate and close) and on live
 fits in `test-recovery-samplers.R` (V-62..V-64). `effect = "natural"` is mean-only
 (the cross-world functional contrast is open, OQ-8) and a feedback SEM is mean-only
-(the equilibrium response). What remains open: the natural/cross-world functional
-variant, analytic (non-simulated) functionals, multiple functionals per call,
-bootstrap intervals for functional effects (OQ-10), and settling the default
-reporting scale.
+(the equilibrium response).
+
+`direct_effects()` / `total_effects()` also take `functional = c("simulate",
+"analytic")`. `"analytic"` evaluates the functional **in closed form** from the
+predicted parameters (no Monte-Carlo noise) — `var`/`p_gt`/`p_zero`/`quantile`
+for the **gaussian** and **poisson** families, which have no `sigma`↔dispersion
+ambiguity; it requires mean mediation (deterministic outcome params) and aborts
+for other families (their dispersion scale is the OQ-1 open item). Verified exact
+in `test-effect-kernels.R` (V-76 — the Poisson `p_zero` contrast the simulated
+kernel hits to ~0.03 is recovered to machine precision). What remains open:
+closed forms for the dispersion families once OQ-1 lands, the natural/cross-world
+functional variant, multiple functionals per call, bootstrap intervals for
+functional effects (OQ-10), and settling the default reporting scale.
 
 ## API harmonization (OQ-12 — implemented)
 

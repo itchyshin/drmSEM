@@ -234,10 +234,17 @@ making the decomposition non-degenerate. Kernel-verified in
 functional legs are non-degenerate and close) and `test-recovery-samplers.R`
 (V-62..V-64 live-fit `p_zero`/`var`/`p_gt`). `effect = "natural"` stays mean-only
 (cross-world functional contrast is open, see OQ-8); a feedback SEM stays
-mean-only (equilibrium response). **Still open:** the natural/cross-world
-functional variant, **analytic (non-simulated)** functionals, additional
-functionals (e.g. multiple quantiles in one call), and a live-fit functional
-recovery beyond V-62..V-64. Original note below.
+mean-only (equilibrium response).
+
+**Update 2026-06-07 (b).** **Analytic (non-simulated) functionals** now ship:
+`direct_effects()` / `total_effects()` take `functional = c("simulate",
+"analytic")`; `"analytic"` returns a closed-form functional of the predicted
+params (no MC noise) for **gaussian** and **poisson** (`var`/`p_gt`/`p_zero`/
+`quantile`), requires mean mediation, and aborts for other families (their
+`sigma`↔dispersion scale is OQ-1). Kernel-verified exact in `test-effect-kernels.R`
+(V-76). **Still open:** closed forms for the dispersion families once OQ-1 is
+settled, the natural/cross-world functional variant, multiple quantiles in one
+call, and a live-fit functional recovery beyond V-62..V-64. Original note below.
 
 **Implemented (2026-06-05):** `total_effects(..., target = c("mean","p_gt","p_zero","var"),
 threshold=)` simulates the outcome and reports the effect on that functional of
