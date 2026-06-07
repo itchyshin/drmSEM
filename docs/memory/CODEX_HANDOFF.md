@@ -99,7 +99,18 @@ the ledger names a live-fit gate.
    closure / Gaussian-mediator cases are unaffected; no shipped claim asserted
    such a magnitude, but it should be re-checked). Also still open:
    `zero_one_beta` (zoi/coi), `tweedie` (mean-fallback), `student` nu,
-   beta_binomial trials.
+   beta_binomial trials. **Diagnostic ready:**
+   `Rscript inst/validation/sampler-dispersion-probe.R` fits a heteroscedastic
+   model per family and prints drmSEM vs `drmTMB::simulate()` moments **and the
+   implied dispersion / corrected sigma-scale** — run it to read off the fix.
+12. **Validation wave 2 — coverage & calibration** (`docs/design/12-coverage-calibration.md`).
+    Author `inst/validation/generate.R` + a cached `.rds` + a `validation.Rmd`
+    report (mirroring the OQ-6 calibration pattern) for: C-1 effect-CI **coverage**
+    (the biggest unmeasured property — known-effect linear-Gaussian DGP), C-2 d-sep
+    Type-I/power beyond the OQ-6 grid, C-3 model-selection recovery rate, C-4 the
+    sampler-dispersion close-out (C-4 == item 7). Full replicate counts run in the
+    live lane; the spec, DGPs, estimands, and acceptance criteria are in the design
+    doc.
 8. **OQ-7** — root-cause the `sdreport` NaN on the canonical n=300 DGP (recondition
    or confirm a drmTMB robustness gap; file upstream). `docs/memory/DRMTMB_ISSUES.md`.
 8b. **Effect-interval honesty (from the 2026-06-06 decomposition audit).** Two
