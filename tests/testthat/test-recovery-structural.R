@@ -40,15 +40,23 @@ pick_std <- function(s, term) s$std.estimate[match(term, s$term)]
 # ---------------------------------------------------------------------------
 
 test_that("V-65: latent standardization of a live logit GLM uses sqrt(Var(eta)+pi^2/3)", {
+  # stats::binomial()/drmTMB::binomial() is NOT a drmTMB family. A drmTMB::beta()
+  # node on a (0,1) response carries the SAME logit-link mu (drm_link_for_family
+  # maps beta -> "logit"), so the latent divisor adds the logistic sigma_E term
+  # pi^2/3 exactly as it would for a Bernoulli logit GLM -- the OQ-4 pipeline
+  # under test here is the logit-link mu path, which beta() provides.
   set.seed(60)
   n <- 2000
   x <- stats::rnorm(n)
   eta_true <- -0.3 + 1.1 * x
-  y <- stats::rbinom(n, 1, stats::plogis(eta_true))
+  mu_p <- stats::plogis(eta_true)
+  phi <- 12
+  y <- stats::rbeta(n, shape1 = mu_p * phi, shape2 = (1 - mu_p) * phi)
+  y <- pmin(pmax(y, 1e-4), 1 - 1e-4)
   dat <- data.frame(x = x, y = y)
 
   sem <- drm_sem(
-    y = drm_node(drmTMB::bf(y ~ x), family = stats::binomial()),
+    y = drm_node(drmTMB::bf(y ~ x), family = drmTMB::beta()),
     data = dat
   )
 
