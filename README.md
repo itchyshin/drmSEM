@@ -81,9 +81,18 @@ targets.
 
 ## Quick start
 
-The canonical example: `size -> abundance -> survival`, with paths into
-non-mean components (`sigma` of size, `zi` of abundance). This block is
-illustrative and not executed here.
+**The question.** Suppose body `size`, local `abundance`, and `survival` form a
+chain, and you want to know: *does temperature reach survival only by shifting
+the average size and abundance, or also by changing how* variable *size is and
+how often abundance collapses to zero?* A mean-only SEM cannot even ask the
+second half of that question. `drmSEM` can, because a path can target a
+non-mean component.
+
+The canonical example below encodes that chain: `size -> abundance -> survival`,
+with `temp` acting on the `sigma` (scale) of size and `habitat` on the `zi`
+(zero-inflation) of abundance. This block is illustrative and not executed here;
+the [`drmSEM` intro vignette](https://itchyshin.github.io/drmSEM/articles/drmSEM.html)
+runs the same chain end to end with simulated data.
 
 ```r
 library(drmSEM)
@@ -111,10 +120,24 @@ total_effects(sem,    from = "temp", to = "survival", method = "simulate")
 plot(sem)         # DAG with component-labelled edges
 ```
 
-`indirect_effects()` reports `total_path`, `direct`, `indirect`,
-`mean_mediated`, and `distribution_mediated` rows, so a distribution-mediated
-pathway (e.g. one acting through a mediator's `sigma` or `zi` given a curved
-outcome) is visible rather than collapsed into a mean effect.
+**Reading the output.** `indirect_effects()` returns one row per `quantity`,
+each an effect on the response (here, probability) scale:
+
+- `total_path` — the full effect of `temp` on `survival` through the chain;
+- `direct` — the controlled direct effect (mediators held fixed);
+- `indirect` — `total_path - direct`;
+- `mean_mediated` — the part carried by mediator *means*;
+- `distribution_mediated` — the *extra* part that appears only when mediators
+  pass realized draws, i.e. signal flowing through their `sigma`, `zi`, or `nu`
+  (`indirect ≈ mean_mediated + distribution_mediated`).
+
+The `distribution_mediated` row is the answer to the second half of our
+question: if it is clearly non-zero, temperature reaches survival partly by
+changing the *spread* of size and the *zeros* of abundance, not only their
+means. A mean-only SEM would report that channel as zero or fold it silently
+into the mean; `drmSEM` keeps it visible and correctly labelled. (Effects are
+computed by Monte-Carlo g-computation, so honest numbers require the fitted
+engine — see the vignette for a worked run.)
 
 ## More
 
