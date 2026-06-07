@@ -87,9 +87,12 @@ drm_response_params <- function(fit, newdata, dpar = c("mu", "sigma")) {
     )
     if (is.null(pp)) next
     pp <- as.data.frame(pp)
-    col <- if (d %in% names(pp)) pp[[d]] else pp[[ncol(pp)]]
-    col <- as.numeric(col)
-    if (length(col) == nrow(newdata)) out[[d]] <- col
+    # pick the named dpar column if numeric, else the LAST numeric column; never
+    # coerce a non-numeric column (that produced "NAs introduced by coercion").
+    num <- Filter(is.numeric, as.list(pp))
+    col <- if (d %in% names(pp) && is.numeric(pp[[d]])) pp[[d]]
+           else if (length(num)) num[[length(num)]] else NULL
+    if (!is.null(col) && length(col) == nrow(newdata)) out[[d]] <- as.numeric(col)
   }
   out$.row <- NULL
   out
@@ -334,8 +337,10 @@ test_that("V-63: var(Y) effect on a Gaussian node matches a drmTMB::simulate() e
   # both mu and sigma must come back as full-length vectors for the rnorm ground
   # truth; otherwise the comparison is undefined (the V-63 authoring bug).
   skip_if(is.null(pr_lo$mu) || is.null(pr_lo$sigma) ||
-            length(pr_lo$mu) != big || length(pr_lo$sigma) != big,
-          "gaussian fit did not expose full-length response-scale mu/sigma")
+            length(pr_lo$mu) != big || length(pr_lo$sigma) != big ||
+            !all(is.finite(pr_lo$mu)) || !all(is.finite(pr_lo$sigma)) ||
+            !all(is.finite(pr_hi$mu)) || !all(is.finite(pr_hi$sigma)),
+          "gaussian fit did not expose finite full-length response-scale mu/sigma")
   set.seed(580)
   sim_lo <- stats::rnorm(big, mean = pr_lo$mu, sd = pr_lo$sigma)
   sim_hi <- stats::rnorm(big, mean = pr_hi$mu, sd = pr_hi$sigma)

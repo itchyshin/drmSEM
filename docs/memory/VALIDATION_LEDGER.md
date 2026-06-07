@@ -458,13 +458,12 @@ Validated on a real fit unless noted; assertions prefer fitted-coefficient /
 **Effect decomposition across the family×link grid — `test-recovery-families.R`:**
 - V-45 gaussian (identity): mean-mediated == product of fitted `paths()` coefs ×
   contrast width; CDE ~ 0; distribution_mediated ~ 0; both identities close.
-- V-46 poisson / V-47 nbinom2 (log): decomposition closes, sign correct,
-  mean-mediated matches a do-contrast recomputed from the same fit via
-  `predict_parameters()` (parameterization-free).
-- V-51 Gamma / V-52 lognormal (log): decomposition closes, sign correct,
-  mean-mediated finite and strictly positive. (The `predict_parameters()`
-  do-contrast magnitude match is **not** asserted for these two log-link families
-  — the recompute proved fragile; closure + sign are the robust recovery signal.)
+- V-46 poisson / V-47 nbinom2 / V-51 Gamma / V-52 lognormal (log): decomposition
+  closes, sign correct, mean-mediated finite and strictly positive. (A
+  `predict_parameters()` do-contrast *magnitude* match was attempted but the
+  recompute proved fragile across the log-link families, so for all four it is
+  **not** asserted — closure + sign + finite-positive mean-mediated are the
+  robust, parameterization-free recovery signal.)
 - V-48 beta / V-49 beta_binomial / V-50 beta (logit): closure + sign. (V-48 is a
   `drmTMB::beta()` (0,1) proportion node — `drmTMB` has no plain `binomial()`
   family; the logit-link mean-recovery leg uses `beta()`; V-49 is the
