@@ -1,0 +1,229 @@
+---
+title: "Coverage and recovery (validation wave 2)"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Coverage and recovery (validation wave 2)}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+# This is a PRECOMPUTED vignette. Every result shown below is read from a
+# cached study object built in the live-drmTMB lane (see the "How this was
+# generated" section). The global eval = FALSE guarantees that R CMD check,
+# pkgdown, and any reader rebuilding the vignette NEVER fit a model here.
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment  = "#>",
+  eval     = FALSE
+)
+
+source_results_path <- file.path("inst", "validation",
+                                 "validation-results.rds")
+installed_results_path <- system.file("validation", "validation-results.rds",
+                                      package = "drmSEM")
+results_path <- if (file.exists(source_results_path)) {
+  source_results_path
+} else {
+  installed_results_path
+}
+val <- if (nzchar(results_path) && file.exists(results_path)) {
+  readRDS(results_path)
+} else {
+  NULL
+}
+```
+
+All results below are **precomputed on live drmTMB; this document performs no
+model fitting.** The study object is regenerated only in the drmTMB lane and
+ships as a cached `.rds` inside the package.
+
+```{r guard, eval = TRUE, echo = FALSE, results = "asis"}
+# Graceful degrade: render an explanatory note (not an error) and stop early if
+# the cache has not been built yet, so the doc still renders in the
+# no-engine lane.
+if (is.null(val)) {
+  cat(
+    "> **The wave-2 validation study has not yet been run in the live-drmTMB lane.**\n",
+    ">\n",
+    "> This page is a precomputed scaffold. Once",
+    "`inst/validation/generate.R`",
+    "is run with the drmTMB engine, the cached results will appear here:",
+    "the effect-CI coverage table and the model-selection recovery table.",
+    "The study design is shown below for transparency.\n",
+    sep = " "
+  )
+  knitr::knit_exit()
+}
+```
+
+## What this page certifies
+
+Wave 1 (`docs/design/11-validation-matrix.md`) established **point recovery**:
+the machinery returns the right *number* on a known-answer DGP. Wave 2 (this
+page, `docs/design/12-coverage-calibration.md`) establishes the **operating
+characteristics** -- does the *uncertainty* have the advertised behaviour, and
+do the *inferential* procedures calibrate? These are many-replicate studies, so
+the full grid runs in the live lane and is cached, exactly like the OQ-6
+Fisher's C calibration page.
+
+Two studies are tabulated here:
+
+- **C-1 -- effect-interval coverage.** Does `uncertainty = "parametric"` produce
+  intervals that cover the true effect at the nominal rate?
+- **C-3 -- model-selection recovery.** Does [`best()`] select the true DAG, and
+  how much Akaike weight lands on the truth?
+
+Two further wave-2 studies live elsewhere and are **not** reimplemented here:
+**C-2** (d-separation Type-I / power) is the calibration study on its own page;
+**C-4** (sampler dispersion vs `drmTMB::simulate()`) is the standalone probe
+`inst/validation/sampler-dispersion-probe.R`.
+
+## The study design (shown, never run)
+
+```{r design-grid, echo = TRUE, eval = FALSE}
+SEED <- 20260607
+GRID <- list(
+  R      = 300,                 # replicate datasets per cell
+  n_grid = c(300, 1000),        # sample sizes
+  B      = 400,                 # parametric-bootstrap draws per fit
+  level  = 0.95                 # nominal CI level
+)
+```
+
+### C-1 -- effect-CI coverage
+
+A linear identity-link Gaussian chain `x -> m -> y` with a direct `x -> y` edge,
+whose **true total / direct / indirect effects are known in closed form** --
+products of the data-generating coefficients times the contrast width `sd(x)`:
+
+```{r design-c1, echo = TRUE, eval = FALSE}
+# data-generating coefficients
+b_xm <- 0.6; b_my <- 0.5; b_xy <- 0.3
+m <- rnorm(n, b_xm * x, 1)
+y <- rnorm(n, b_xy * x + b_my * m, 1)
+
+# known truth (response units of y, per sd(x))
+indirect <- b_xm * b_my * sd(x)
+direct   <- b_xy        * sd(x)
+total    <- (b_xy + b_xm * b_my) * sd(x)
+
+sem <- drm_sem(
+  m = drm_node(drmTMB::bf(m ~ x),     family = gaussian()),
+  y = drm_node(drmTMB::bf(y ~ x + m), family = gaussian()),
+  data = dat
+)
+tot <- total_effects(sem, "x", "y", method = "simulate",
+                     uncertainty = "parametric", B = 400)
+dec <- indirect_effects(sem, "x", "y", uncertainty = "parametric", B = 400)
+# record whether conf.low/conf.high bracket the known truth, per quantity
+```
+
+### C-3 -- model-selection recovery
+
+A true DAG (`x -> m -> y`, with the direct `x -> y` edge omitted) versus a
+candidate set that includes the truth, an over-fitted rival, and a
+missing-edge rival. Over replicates we record how often [`best()`] returns the
+truth and the mean Akaike weight on it.
+
+```{r design-c3, echo = TRUE, eval = FALSE}
+models <- drm_model_set(
+  truth        = drm_dag(m ~ x, y ~ m),       # data-generating DAG
+  overfit      = drm_dag(m ~ x, y ~ x + m),   # spurious x -> y edge
+  missing_edge = drm_dag(m ~ x, y ~ x)        # true m -> y arrow left out
+)
+cmp <- compare(models, data = dat,
+               family = list(m = gaussian(), y = gaussian()))
+selected <- cmp$model[which.min(cmp$CICc)]   # best() picks the lowest CICc
+```
+
+This study code is shown **for transparency only** and is never evaluated when
+the vignette is built.
+
+## Acceptance criteria
+
+The cached study object stores these checks in `val$acceptance`:
+
+1. Every `(n, quantity)` empirical coverage lies inside nominal +/- 2*SE.
+2. Every `n` has truth selection rate >= 0.80 and missing-edge selection rate
+   <= 0.05.
+3. The truth selection rate is nondecreasing in `n` (within 0.05 Monte-Carlo
+   jitter).
+
+```{r acceptance-table, echo = FALSE, eval = !is.null(val)}
+knitr::kable(
+  val$acceptance$criteria,
+  col.names = c("Criterion", "Rule", "Pass"),
+  caption = "Wave-2 acceptance checks."
+)
+```
+
+## C-1: effect-interval coverage
+
+Empirical coverage of the nominal `r if (!is.null(val)) val$provenance$level`
+parametric interval per quantity and sample size, with the Monte-Carlo
+acceptance band (nominal +/- 2*SE) and mean interval width as a secondary
+efficiency diagnostic.
+
+```{r coverage-table, echo = FALSE, eval = !is.null(val)}
+cov_tab <- val$coverage[order(val$coverage$quantity, val$coverage$n),
+                        c("quantity", "n", "coverage", "mc_lower", "mc_upper",
+                          "mean_width", "n_rep", "acceptance")]
+knitr::kable(
+  cov_tab,
+  digits  = 3,
+  col.names = c("quantity", "n", "coverage", "MC lower", "MC upper",
+                "mean width", "reps", "pass"),
+  caption = sprintf(
+    "Empirical coverage of the nominal %.2f parametric interval, with the +/- 2*SE Monte-Carlo band.",
+    val$provenance$level
+  )
+)
+```
+
+## C-3: model-selection recovery
+
+Selection rate of the true DAG and mean Akaike weight on the truth per sample
+size, with the rate at which the under-fitted (missing-edge) rival is wrongly
+selected.
+
+```{r selection-table, echo = FALSE, eval = !is.null(val)}
+sel_tab <- val$model_selection[order(val$model_selection$n),
+                               c("n", "selection_rate", "mean_truth_weight",
+                                 "missing_edge_rate", "n_rep", "acceptance")]
+knitr::kable(
+  sel_tab,
+  digits  = 3,
+  col.names = c("n", "selection rate", "mean truth weight",
+                "missing-edge rate", "reps", "pass"),
+  caption = "Truth selection rate and mean Akaike weight on the truth."
+)
+```
+
+## How this was generated
+
+The cache backing this page is built by **`inst/validation/generate.R`**, run
+in the live-drmTMB lane:
+
+```sh
+Rscript inst/validation/generate.R
+```
+
+That script guards on `requireNamespace("drmTMB")`, sweeps the grids above,
+collects only data (coverage flags, widths, selection labels, Akaike weights --
+never fitted objects), and writes a compact summary list to
+`inst/validation/validation-results.rds`. The cache carries a `provenance` stamp
+recording the **drmTMB version, date, R version, git SHA, replicate count, seed,
+and n-grid** so every table on this page is traceable to the exact engine that
+produced it.
+
+```{r provenance, echo = FALSE, eval = !is.null(val)}
+p <- val$provenance
+cat(sprintf(
+  "Cache provenance:\n  generated:      %s\n  drmTMB version: %s\n  drmTMB SHA:     %s\n  drmSEM version: %s\n  R version:      %s\n  git SHA:        %s\n  replicates:     %s\n  seed:           %s\n  n grid:         %s\n",
+  p$generated_at, p$drmTMB_version,
+  if (is.null(p$drmTMB_remote_sha)) NA_character_ else p$drmTMB_remote_sha,
+  p$drmSEM_version, p$R_version, p$git_sha, p$R, p$seed,
+  paste(p$n_grid, collapse = ", ")
+))
+```
