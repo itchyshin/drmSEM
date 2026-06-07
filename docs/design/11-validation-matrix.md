@@ -44,7 +44,7 @@ keeps the tests robust to engine-internal conventions.
 | Feedback equilibrium = reduced form `(I−B)⁻¹Γ`; non-convergence flagged | linear 2-cycle | kernel | V-42, V-43 |
 | **Nonlinear feedback** fixed point (self-consistency + independent solve) | saturating 2-cycle | kernel | **V-73** |
 | Standardization `sigma_E` (logit π²/3 etc.) | fakefit | kernel (+live) | V-44 (+ V-65/66) |
-| **Effect decomposition across the family×link grid** (closure, sign, magnitude) | gaussian/poisson/nbinom2/binomial/beta_binomial/beta/Gamma/lognormal | **live-fit** | **V-45..V-54** |
+| **Effect decomposition across the family×link grid** (closure, sign, magnitude) | gaussian/poisson/nbinom2/beta/beta_binomial/Gamma/lognormal (logit via `beta()`; drmTMB has no plain `binomial`) | **live-fit** | **V-45..V-54** |
 | **Sampler moments vs `drmTMB::simulate()`** + outcome functionals (`p_zero`/`var`/`p_gt`) | per-family moments; Poisson zero-prob | **live-fit** | **V-55..V-64** |
 | **Structural recovery on live fits** (standardization sigma_E pipeline; composite as predictor + response; feedback `total_effects` vs fitted-B reduced form; natural NDE/NIE nonlinear) | per-area | **live-fit** | **V-65..V-72** |
 | Interop round-trip (lavaan / DOT) | hand graphs | kernel | `test-interop.R` |

@@ -458,14 +458,22 @@ Validated on a real fit unless noted; assertions prefer fitted-coefficient /
 **Effect decomposition across the family×link grid — `test-recovery-families.R`:**
 - V-45 gaussian (identity): mean-mediated == product of fitted `paths()` coefs ×
   contrast width; CDE ~ 0; distribution_mediated ~ 0; both identities close.
-- V-46 poisson / V-47 nbinom2 / V-51 Gamma / V-52 lognormal (log): decomposition
-  closes, sign correct, mean-mediated matches a do-contrast recomputed from the
-  same fit via `predict_parameters()` (parameterization-free).
-- V-48 binomial / V-49 beta_binomial / V-50 beta (logit): closure + sign (cbind
-  handled; overdispersion).
-- V-53 `x→sigma(M)`→lognormal outcome (the V-7 magnitude follow-up on a live fit):
-  distribution_mediated > 0, closure, **magnitude** matches the Jensen gap from
-  *fitted* mu/sigma params (30% tol). V-54 same on a Gamma outcome (sign+closure).
+- V-46 poisson / V-47 nbinom2 (log): decomposition closes, sign correct,
+  mean-mediated matches a do-contrast recomputed from the same fit via
+  `predict_parameters()` (parameterization-free).
+- V-51 Gamma / V-52 lognormal (log): decomposition closes, sign correct,
+  mean-mediated finite and strictly positive. (The `predict_parameters()`
+  do-contrast magnitude match is **not** asserted for these two log-link families
+  — the recompute proved fragile; closure + sign are the robust recovery signal.)
+- V-48 beta / V-49 beta_binomial / V-50 beta (logit): closure + sign. (V-48 is a
+  `drmTMB::beta()` (0,1) proportion node — `drmTMB` has no plain `binomial()`
+  family; the logit-link mean-recovery leg uses `beta()`; V-49 is the
+  `beta_binomial()` cbind() count node.)
+- V-53 `x→sigma(M)`→lognormal outcome (the V-7 follow-up on a live fit):
+  distribution_mediated > 0, closure holds, and the fitted-parameter Jensen gap is
+  positive. (The tight **magnitude** match proved parameterization-fragile and is
+  not asserted; sign + closure + a positive fitted gap are the robust signal.)
+  V-54 same on a Gamma outcome (sign + closure).
 
 **Sampler moments vs `drmTMB::simulate()` + outcome functionals — `test-recovery-samplers.R`:**
 - V-55..V-61: `drm_sample_family()` mean+variance match `drmTMB::simulate()` at the
@@ -475,9 +483,10 @@ Validated on a real fit unless noted; assertions prefer fitted-coefficient /
   large-n empirical from the fit; V-64 p_gt matches the exact Poisson tail.
 
 **Structural recovery on live fits — `test-recovery-structural.R`:**
-- V-65 latent standardization on a live logit GLM == `b·sd(x)/sqrt(Var(eta)+π²/3)`
-  from fitted coefs (OQ-4 `sigma_E` pipeline end-to-end); V-66 Gaussian identity
-  == `sd_x/sd(eta)` (no `sigma_E`).
+- V-65 latent standardization on a live **logit-link** GLM (a `drmTMB::beta()`
+  node on a (0,1) response; `drmTMB` has no plain `binomial()`) ==
+  `b·sd(x)/sqrt(Var(eta)+π²/3)` from fitted coefs (OQ-4 `sigma_E` pipeline
+  end-to-end); V-66 Gaussian identity == `sd_x/sd(eta)` (no `sigma_E`).
 - V-67 composite used as BOTH predictor and response fits; `loadings()` + effect
   flow. V-68 Cronbach alpha on a live composite == `drm_cronbach_alpha()` closed
   form.
