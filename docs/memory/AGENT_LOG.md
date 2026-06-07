@@ -938,3 +938,21 @@ and Gaussian-mediator cases unaffected; no shipped claim asserted such a
 magnitude). Ledger V-55..V-64 reworded: gaussian/poisson + functionals validated;
 nbinom2/beta/Gamma/lognormal moment-match is the OQ-1 discrepancy. CI iteration:
 FAIL 19 (round 1, test bugs) -> 5 (round 2, extraction/relax) -> skips (round 3).
+
+## 2026-06-07 — Validation wave 2 spec + sampler-dispersion probe (Codex-run)
+
+Authored the wave-2 (coverage/calibration) layer as SPEC + DIAGNOSTIC, not heavy
+CI tests (the multi-replicate runs need the engine; nothing flaky added to CI):
+- docs/design/12-coverage-calibration.md: the spec for C-1 effect-CI coverage (the
+  biggest unmeasured property — known-effect linear-Gaussian DGP), C-2 d-sep
+  Type-I/power beyond the OQ-6 grid, C-3 model-selection recovery rate, C-4 the
+  sampler-dispersion close-out. DGPs, estimands, true values, metrics, acceptance,
+  and the cached-.rds output schema, so Codex can author generate.R + the report
+  without re-deriving anything.
+- inst/validation/sampler-dispersion-probe.R: a runnable diagnostic for the OQ-1
+  variance finding — fits a heteroscedastic model per family and prints drmSEM vs
+  drmTMB::simulate() moments AND the implied dispersion / corrected sigma-scale,
+  so the sigma<->dispersion fix can be read off. (inst/ script; not run in CI.)
+Updated CODEX_HANDOFF (item 7 + new item 12) and 11-validation-matrix to point at
+both. This keeps the comprehensive-testing campaign moving while the heavy runs +
+the engine-side sampler fix stay in the live lane.

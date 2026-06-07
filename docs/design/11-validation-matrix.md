@@ -85,5 +85,8 @@ Not in this wave; the harness mirrors the OQ-6 calibration pattern
   DAG, and at what rate?
 
 These need many replicates, so the full grid runs in the live (Codex) lane and is
-cached; CI runs a bounded smoke. Tracked alongside the live-engine items in
+cached; CI runs a bounded smoke. **The wave-2 spec — DGPs, estimands, true values,
+metrics, acceptance criteria, and output schema — is `12-coverage-calibration.md`**
+(C-1 coverage, C-2 d-sep Type-I/power, C-3 model-selection recovery, C-4 the
+sampler-dispersion close-out). Tracked alongside the live-engine items in
 `../memory/CODEX_HANDOFF.md`.
