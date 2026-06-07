@@ -3,34 +3,34 @@
 Tracked unknowns and unresolved design choices. Resolve into `DECISIONS.md` or a
 `VALIDATION_LEDGER.md` entry when answered. Format: `OQ-n — title`.
 
-## OQ-1 — Exact drmTMB family-sampler parameterizations  [REOPENED 2026-06-07 — variance mismatch vs simulate(); see below]
+## OQ-1 — Exact drmTMB family-sampler parameterizations  [RESOLVED 2026-06-07 for V-57..V-60; family extensions remain below]
 
-**Update 2026-06-07 — partially REOPENED.** The new recovery tests V-57..V-60
-(`test-recovery-samplers.R`) compared `drm_sample_family()` to `drmTMB::simulate()`
-at the **fitted, per-row** params of a `sigma ~ x` (heteroscedastic) fit, and
-found a real discrepancy the 2026-06-04 resolution missed: the **means match to
-~4 s.f.** but the **variances are systematically inflated** — nbinom2 +61%, beta
-+220%, Gamma +150% — and the **lognormal mean is shifted** (1.35 vs 2.64). The
-2026-06-04 verification used intercept-only / constant-sigma probes (and likely a
-self-consistent hand formula), so it did not exercise the per-row sigma read or a
-direct `simulate()` variance comparison. So the `sigma ↔ dispersion` mapping
-(`size=1/sigma^2`, `phi=1/sigma^2`, lognormal `meanlog=log(mu)`) is NOT confirmed
-for varying-sigma fits — the adapter may read sigma on the wrong scale (e.g. link
-vs response) when `sigma ~ x`. V-57..V-60 record the mismatch as a skip with the
-numbers. **Needs the live lane** (introspect drmTMB's exact per-family dispersion
-at fitted params; fix `drm_sample_family()` / the sigma extractor; flip the skips
-to asserts). Potential impact: distribution-mediated effect *magnitudes* through a
-non-Gaussian mediator. The mean-only claims (and gaussian/poisson) stand. The
-original 2026-06-04 resolution follows.
+**Closeout (2026-06-07).** The live single-row probe and promoted
+`test-recovery-samplers.R` assertions close the reported sampler-variance bug for
+the common families:
 
-**Resolution (2026-06-04).** drmTMB's response-scale `sigma` is an SD-like scale; count and
-proportion dispersions go as `1/sigma^2`. From intercept-only fits (probe log,
-CI run 26982805627): nbinom2 `sigma=0.715` with true `size=2` gives `size =
-1/sigma^2 = 1.96`; beta `sigma=0.374` with data precision ~7 gives `phi =
-1/sigma^2 = 7.15`. Fixed `drm_sample_family()` (`size = 1/sigma^2`; beta `phi =
-1/sigma^2`). lognormal (`meanlog = log(mu)` via the log mu-link) and Gamma
-(`shape = 1/sigma^2`) were already correct. Verified numerically (nbinom2 var
-21.5 vs 21.6; beta var 0.0296 vs 0.0301) and asserted in `test-oq1-samplers.R`.
+- nbinom2, beta, and Gamma still use drmTMB's SD-like `sigma` with native
+  dispersion `1/sigma^2` (`size`, `phi`, and `shape`, respectively).
+- The aggregate V-57..V-59 failures were caused by drmSEM's prediction engine
+  omitting fitted default dpars such as `sigma` when the user did not declare an
+  explicit `sigma ~ ...` formula, forcing `drm_sample_family()` to fall back to
+  `sigma = 1`.
+- lognormal was genuinely mis-parameterized: current drmTMB exposes `mu` as
+  `meanlog` with identity link and `sigma` as `sdlog`. drmSEM now samples with
+  `rlnorm(meanlog = mu, sdlog = sigma)` and propagates the expected response
+  `exp(mu + sigma^2 / 2)` under mean mediation.
+
+V-57..V-60 now assert mean and variance against `drmTMB::simulate()` rather than
+skipping on mismatch. `inst/validation/sampler-dispersion-probe.R` remains as a
+drift diagnostic.
+
+**Resolution (2026-06-04, refined above).** drmTMB's response-scale `sigma` is an
+SD-like scale; count and proportion dispersions go as `1/sigma^2`. From
+intercept-only fits (probe log, CI run 26982805627): nbinom2 `sigma=0.715` with
+true `size=2` gives `size = 1/sigma^2 = 1.96`; beta `sigma=0.374` with data
+precision ~7 gives `phi = 1/sigma^2 = 7.15`. Fixed `drm_sample_family()` (`size =
+1/sigma^2`; beta `phi = 1/sigma^2`). Gamma `shape = 1/sigma^2` remains correct.
+The lognormal part was corrected on 2026-06-07 as described above.
 beta_binomial sampling is still unimplemented (mediator falls back to its mean);
 tracked separately. Original notes below.
 
@@ -38,17 +38,14 @@ tracked separately. Original notes below.
 drmTMB uses, or distribution-mediated effects will be biased. Unconfirmed against
 a live fit:
 
-- **nbinom2**: is the dispersion the `size` (theta) of `rnbinom(mu, size)`, and
-  does drmTMB expose it on the same scale? (`nbinom2` mean-variance: `var = mu +
-  mu^2/size`.)
+- **nbinom2**: resolved for V-57 (`size = 1/sigma^2`; `var = mu + mu^2/size`).
 - **beta_binomial**: where do the number of **trials** come from for prediction
   (from the `cbind(alive, dead)` row totals?), and how are the two shape/overdispersion
   parameters parameterized?
-- **lognormal**: is `sigma` the `sdlog` (log-scale SD) and `mu` the meanlog, or
-  is `mu` already on the response scale?
+- **lognormal**: resolved for V-60 (`mu = meanlog`, `sigma = sdlog`).
 
-Blocks V-19. Resolve by inspecting `predict_parameters()` output and the family
-definitions on a real drmTMB fit.
+Remaining family-extension work is zero_one_beta boundary inflation, tweedie,
+student `nu`, and beta_binomial trials/overdispersion.
 
 ## OQ-2 — Does model.matrix() contrast coding match drmTMB's internal coding?
 

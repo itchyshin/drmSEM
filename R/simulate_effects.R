@@ -43,7 +43,7 @@ drm_sample_family <- function(family, params, n) {
     family,
     gaussian = stats::rnorm(n, mean = mu, sd = sigma),
     student = mu + sigma * stats::rt(n, df = pmax(params$nu %||% 5, 2.1)),
-    lognormal = stats::rlnorm(n, meanlog = log(pmax(mu, 1e-8)), sdlog = sigma),
+    lognormal = stats::rlnorm(n, meanlog = mu, sdlog = sigma),
     Gamma = stats::rgamma(n, shape = 1 / pmax(sigma^2, 1e-8),
                           rate = 1 / pmax(sigma^2, 1e-8) / pmax(mu, 1e-8)),
     gamma = stats::rgamma(n, shape = 1 / pmax(sigma^2, 1e-8),
@@ -51,11 +51,7 @@ drm_sample_family <- function(family, params, n) {
     poisson = stats::rpois(n, lambda = pmax(mu, 0)),
     # drmTMB's `sigma` is treated as an SD-like scale: the nbinom2 size (theta) is
     # 1/sigma^2 (so var = mu + mu^2 * sigma^2), and the beta precision is 1/sigma^2.
-    # The MEAN matches drmTMB on intercept-only fits (test-oq1-samplers.R), but the
-    # VARIANCE does NOT match drmTMB::simulate() under a varying `sigma ~ x` fit
-    # (V-57..V-60 found nbinom2/beta variances inflated). OQ-1 is REOPENED: the
-    # sigma<->dispersion scale here is UNCONFIRMED for varying-sigma fits. See
-    # docs/memory/OPEN_QUESTIONS.md OQ-1 and inst/validation/sampler-dispersion-probe.R.
+    # V-57..V-60 assert these moments against drmTMB::simulate().
     nbinom2 = stats::rnbinom(n, mu = pmax(mu, 0),
                              size = pmax(1 / pmax(sigma, 1e-8)^2, 1e-8)),
     truncated_nbinom2 = pmax(1, stats::rnbinom(n, mu = pmax(mu, 0),
@@ -65,10 +61,8 @@ drm_sample_family <- function(family, params, n) {
       stats::rbeta(n, shape1 = mu * phi, shape2 = (1 - mu) * phi)
     },
     # zero_one_beta (ordered / zero-one-inflated beta). The continuous part is
-    # the same beta as `beta` above (phi = 1/sigma^2; shapes mu*phi,(1-mu)*phi),
-    # whose variance scale is OQ-1-UNCONFIRMED (see the nbinom2/beta note above).
-    # The inflation
-    # part follows the standard ZOIB parameterization: `zoi` is P(observation is
+    # the same beta as `beta` above (phi = 1/sigma^2; shapes mu*phi,(1-mu)*phi).
+    # The inflation part follows the standard ZOIB parameterization: `zoi` is P(observation is
     # a boundary 0/1), and `coi` is P(value == 1 | boundary). When zoi/coi are
     # not supplied (a mediator that only carries mu/sigma), this degenerates to
     # the plain beta draw. The zoi/coi-on-logit mapping is NOT yet confirmed
@@ -112,6 +106,22 @@ drm_sample_family <- function(family, params, n) {
 
 `%||%` <- function(a, b) if (is.null(a)) b else a
 
+# Expected response value for a node's fitted family at response-scale dpars.
+# Most drmTMB families expose `mu` as the response mean. lognormal is the
+# important exception in current drmTMB: `mu` is meanlog and `sigma` is sdlog.
+drm_family_expected_mean <- function(family, params) {
+  mu <- params$mu
+  sigma <- if (!is.null(params$sigma)) params$sigma else rep(0, length(mu))
+  zi <- if (!is.null(params$zi)) params$zi else rep(0, length(mu))
+  out <- switch(
+    family,
+    lognormal = exp(mu + 0.5 * sigma^2),
+    mu
+  )
+  if (any(zi > 0)) out <- (1 - zi) * out
+  out
+}
+
 drm_warn_once_env <- new.env(parent = emptyenv())
 drm_warn_once <- function(key, msg) {
   if (is.null(drm_warn_once_env[[key]])) {
@@ -130,7 +140,7 @@ drm_engines_from_sem <- function(object) {
     rec <- object$records[[nm]]
     fit <- rec$fit
     family <- rec$family
-    comps <- rec$components
+    comps <- drm_fit_prediction_components(fit)
     coef_list <- stats::setNames(lapply(comps, function(cc) drm_fit_coef(fit, cc)), comps)
     links <- stats::setNames(vapply(comps, function(cc) drm_nominal_link(family, cc), character(1)), comps)
     V <- drm_fit_vcov(fit)
@@ -201,12 +211,13 @@ drm_propagate <- function(engines, scenario, active, mediation = "mean",
   node_mean <- list()
   for (eng in engines) {
     preds <- eng$predict(work, beta = beta_list[[eng$name]])
-    node_mean[[eng$name]] <- preds$mu
+    expected <- drm_family_expected_mean(eng$family, preds)
+    node_mean[[eng$name]] <- expected
     if (eng$name %in% active) {
       val <- if (identical(mediation, "distribution")) {
         drm_sample_family(eng$family, preds, n = nrow(work))
       } else {
-        preds$mu
+        expected
       }
       work[[eng$identifier]] <- val
     }

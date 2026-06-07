@@ -68,30 +68,22 @@ drm_sim_vector <- function(fit, nsim, seed = 101) {
 # (mu, sigma, ...) the effect engine would feed drm_sample_family().
 #
 # `predict_parameters(dpar = NULL)` can return the parameters in a shape whose
-# columns are not named exactly "mu"/"sigma" (or where partial `$` matching
-# fails), which silently produces a NULL/empty `$mu` -> rnorm(mean = NULL)
-# errors and NA moments. We therefore request the dpars we need EXPLICITLY and
-# extract each by its name with a positional fallback, so the returned data
-# frame always carries a non-empty length-nrow(newdata) `mu` (and `sigma` when
-# the family models it). This is the contract drm_sample_family() relies on.
+# columns are not named exactly "mu"/"sigma". The adapter extracts the explicit
+# estimate column and ignores numeric newdata columns, so the returned data frame
+# always carries a non-empty length-nrow(newdata) `mu` (and `sigma` when the
+# family models it). This is the contract drm_sample_family() relies on.
 drm_response_params <- function(fit, newdata, dpar = c("mu", "sigma")) {
-  comps <- drmSEM:::drm_fit_components(fit)
+  comps <- drmSEM:::drm_fit_prediction_components(fit)
   want <- intersect(dpar, comps)
   if (!("mu" %in% want)) want <- c("mu", want)
   out <- data.frame(.row = seq_len(nrow(newdata)))
   for (d in want) {
-    pp <- tryCatch(
-      drmSEM:::drm_predict_parameters(fit, newdata = newdata, dpar = d,
-                                      type = "response"),
+    col <- tryCatch(
+      drmSEM:::drm_predict_parameter_values(
+        fit, newdata = newdata, dpar = d, type = "response"
+      ),
       error = function(e) NULL
     )
-    if (is.null(pp)) next
-    pp <- as.data.frame(pp)
-    # pick the named dpar column if numeric, else the LAST numeric column; never
-    # coerce a non-numeric column (that produced "NAs introduced by coercion").
-    num <- Filter(is.numeric, as.list(pp))
-    col <- if (d %in% names(pp) && is.numeric(pp[[d]])) pp[[d]]
-           else if (length(num)) num[[length(num)]] else NULL
     if (!is.null(col) && length(col) == nrow(newdata)) out[[d]] <- as.numeric(col)
   }
   out$.row <- NULL
@@ -147,21 +139,6 @@ expect_sampler_matches_drmTMB <- function(family_name, fit, rep = 200L,
   )
   mean_off <- abs(m_drm - m_tmb) / (abs(m_tmb) + 1e-6)
   var_off  <- abs(v_drm - v_tmb) / (abs(v_tmb) + 1e-6)
-  # OQ-1 FINDING (escalated to the live lane): drm_sample_family()'s dispersion
-  # mapping (nbinom2 size=1/sigma^2, beta phi=1/sigma^2) and the lognormal
-  # meanlog=log(mu) do NOT reproduce drmTMB::simulate()'s moments. The MEANS match
-  # to ~4 s.f. (mu is correct) but the VARIANCES are systematically inflated for
-  # nbinom2/beta/Gamma, and the lognormal MEAN is shifted -- i.e. the sigma the
-  # adapter feeds the sampler is on the wrong scale vs drmTMB's internal
-  # dispersion. This is engine-side (the exact drmTMB sigma<->dispersion
-  # convention needs introspection), so we RECORD the discrepancy as a skip with
-  # the numbers rather than fake-pass it or block the campaign. See
-  # docs/memory/OPEN_QUESTIONS.md OQ-1 and docs/memory/CODEX_HANDOFF.md.
-  if (mean_off >= mean_rtol || var_off >= var_rtol) {
-    skip(paste0("OQ-1 sampler vs drmTMB::simulate() moment mismatch -- ", info,
-                " (drm_sample_family dispersion/scale unconfirmed for this family; ",
-                "live-lane parameterization fix)"))
-  }
   expect_lt(mean_off, mean_rtol, label = info)
   expect_lt(var_off,  var_rtol,  label = info)
 }

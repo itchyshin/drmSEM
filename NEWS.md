@@ -1,5 +1,9 @@
 # drmSEM 0.2.0.9000 (development version)
 
+## Sampler and propagation fixes
+
+* `drm_sample_family()` and effect propagation now match current `drmTMB` parameterization for the common sampler families in live recovery tests. Default fitted dpars such as `sigma` are carried into prediction engines even when no explicit `sigma ~ ...` formula is declared, and lognormal nodes now use `mu = meanlog`, `sigma = sdlog`, with mean mediation propagating `exp(mu + sigma^2 / 2)` (OQ-1, V-57..V-60).
+
 ## Validation wave 2 harness + newcomer docs
 
 * `inst/validation/generate.R` + a `validation` article now provide the wave-2

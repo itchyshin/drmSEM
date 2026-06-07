@@ -2,13 +2,12 @@
 # ---------------------------------------------------------------------------
 # OQ-1 sampler-dispersion probe (run on a LIVE drmTMB engine; not run in CI).
 #
-# Wave-1 recovery tests (V-57..V-60, test-recovery-samplers.R) found that
-# drmSEM::drm_sample_family() reproduces drmTMB::simulate()'s MEAN but not its
-# VARIANCE for nbinom2/beta/Gamma (variance inflated +61/+220/+150%), and shifts
-# the lognormal MEAN. This script isolates the cause so the correct
-# sigma <-> dispersion mapping can be read off and drm_sample_family() (or the
-# R/extractors.R sigma read) fixed. After the fix, flip the V-57..V-60 skips to
-# asserts and update OPEN_QUESTIONS OQ-1 / CODEX_HANDOFF item 7.
+# Wave-1 recovery tests (V-57..V-60, test-recovery-samplers.R) originally found
+# moment mismatches. The closeout showed two causes: default fitted dpars
+# (especially `sigma`) were not carried into the prediction engine when no
+# explicit `sigma ~ ...` formula was declared, and lognormal `mu` is drmTMB's
+# `meanlog` (identity link), not a response mean to log again. This probe remains
+# as a live-engine diagnostic for future drmTMB parameterization drift.
 #
 # Usage:  Rscript inst/validation/sampler-dispersion-probe.R
 # Needs:  a working drmTMB install (compiler/TMB). See CLOUD.md.
@@ -79,16 +78,15 @@ probe <- function(family_name, family, response, true_disp_desc) {
   if (is.null(fit)) return(invisible(NULL))
 
   # ---- Constant per-row (mu, sigma) at x = x_probe (NO mixture contamination) --
-  # Request each dpar SEPARATELY and take the named-or-last-numeric column:
-  # predict_parameters() does not reliably name its column `mu`/`sigma`, so the
-  # naive pp[["mu"]] returns NULL -> NA (confirmed in CI). Robust extractor:
+  # Request each dpar SEPARATELY and extract the adapter-normalized estimate:
+  # predict_parameters() does not reliably name its column `mu`/`sigma`, and
+  # current builds append numeric newdata columns after `estimate`.
   pp_get <- function(dp, type) {
-    out <- tryCatch(as.data.frame(drmTMB::predict_parameters(
-      fit, newdata = nd1, dpar = dp, type = type)), error = function(e) NULL)
-    if (is.null(out)) return(NA_real_)
-    if (dp %in% names(out) && is.numeric(out[[dp]])) return(as.numeric(out[[dp]])[1])
-    num <- Filter(is.numeric, as.list(out))
-    if (length(num)) as.numeric(num[[length(num)]])[1] else NA_real_
+    out <- tryCatch(
+      drmSEM:::drm_predict_parameter_values(fit, newdata = nd1, dpar = dp, type = type),
+      error = function(e) NULL
+    )
+    if (is.null(out) || !length(out)) NA_real_ else as.numeric(out)[1]
   }
   nd1 <- data.frame(x = x_probe)
   mu <- pp_get("mu", "response")
@@ -169,14 +167,15 @@ probe <- function(family_name, family, response, true_disp_desc) {
     lnmean <- function(ml, sl) exp(ml + sl^2 / 2)
     lnvar  <- function(ml, sl) (exp(sl^2) - 1) * exp(2 * ml + sl^2)
     cat(sprintf("    drmTMB mean=%s var=%s. Candidate (meanlog,sdlog) means:\n", fmt(m_tmb), fmt(v_tmb)))
-    cat(sprintf("      meanlog=log(mu),         sdlog=sigma  -> mean=%s var=%s (CURRENT)\n",
+    cat(sprintf("      meanlog=mu,              sdlog=sigma  -> mean=%s var=%s (CURRENT)\n",
+                fmt(lnmean(mu, sigma)), fmt(lnvar(mu, sigma))))
+    cat(sprintf("      meanlog=log(mu),         sdlog=sigma  -> mean=%s var=%s\n",
                 fmt(lnmean(log(mu), sigma)), fmt(lnvar(log(mu), sigma))))
     cat(sprintf("      meanlog=log(mu)-sig^2/2, sdlog=sigma  -> mean=%s var=%s\n",
                 fmt(lnmean(log(mu) - sigma^2 / 2, sigma)), fmt(lnvar(log(mu) - sigma^2 / 2, sigma))))
     cat(sprintf("      meanlog=log(mu),         sdlog=sqrt(log(1+sig^2/mu^2)) -> mean=%s\n",
                 fmt(lnmean(log(mu), sqrt(log(1 + sigma^2 / mu^2))))))
-    cat("    (If drmTMB mu is E[Y], the meanlog=log(mu)-sigma^2/2 row should match its mean.\n")
-    cat("     If drmTMB mu is the median exp(meanlog), the CURRENT row should match. Read off which.)\n")
+    cat("    (Current drmTMB exposes lognormal mu as meanlog, so meanlog=mu should match.)\n")
     cands <- NULL
   } else {
     cands <- NULL
@@ -201,15 +200,13 @@ probe("beta",     drmTMB::beta(),
       "(no fixed phi; whatever drmTMB fits)")
 
 cat("\n--------------------------------------------------------------------\n")
-cat("HOW TO READ OFF THE FIX:\n")
+cat("HOW TO READ THIS DIAGNOSTIC:\n")
 cat("  * Each family's sweep prints candidate sigma->dispersion mappings with\n")
 cat("    their closed-form variance and relative error vs drmTMB::simulate().\n")
 cat("    The row marked '<== BEST MATCH' (relerr ~ 0) IS the corrected mapping.\n")
 cat("  * Compare fitted sigma(response) vs sigma(link) and the true generating\n")
-cat("    dispersion: if sigma(response) already EQUALS the dispersion parameter\n")
-cat("    (e.g. nbinom2 size, Gamma shape) then the sampler should use it DIRECTLY,\n")
-cat("    not 1/sigma^2. If sigma(link) matches but sigma(response) does not, the\n")
-cat("    bug is the scale read in R/extractors.R / drm_predict_parameters.\n")
-cat("  * lognormal: pick the (meanlog,sdlog) row whose mean matches drmTMB.\n")
-cat("  Apply the winning mapping to drm_sample_family(), then flip V-57..V-60\n")
-cat("  in test-recovery-samplers.R from skip-on-mismatch to expect_lt asserts.\n")
+cat("    dispersion: for nbinom2, beta, and Gamma the current 1/sigma^2 mapping\n")
+cat("    should remain the best match.\n")
+cat("  * lognormal: current drmTMB exposes mu as meanlog and sigma as sdlog.\n")
+cat("  V-57..V-60 should remain real expect_lt assertions; failures here mean\n")
+cat("  drmTMB's parameterization or predict_parameters() shape has drifted.\n")

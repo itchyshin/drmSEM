@@ -13,8 +13,8 @@
 #     parameterization-free ground truth is available -- compare the engine's
 #     mean-propagated total to a do-contrast recomputed from the SAME fitted
 #     model via drmTMB::predict_parameters() (NOT an analytic formula).
-#   * lognormal distribution_mediated magnitude is checked against the Jensen
-#     gap implied by the FITTED mu/sigma coefficients (generous tol, commented).
+#   * lognormal distribution_mediated sign is checked against the Jensen gap
+#     implied by the FITTED meanlog/sigma coefficients.
 #
 # Headline assertions are labelled V-45 .. (continue from V-44). See the report
 # returned to the integrator for the V-number -> claim map.
@@ -39,25 +39,15 @@ mean_do_contrast <- function(fit_m, fit_y, data, from_col, med_col, at) {
   lo <- data; hi <- data
   lo[[from_col]] <- at[[1]]
   hi[[from_col]] <- at[[2]]
-  mu_m_lo <- drmTMB::predict_parameters(fit_m, newdata = lo, dpar = "mu",
-                                        type = "response")
-  mu_m_hi <- drmTMB::predict_parameters(fit_m, newdata = hi, dpar = "mu",
-                                        type = "response")
-  mu_m_lo <- as.numeric(mu_m_lo[["mu"]] %||% mu_m_lo[[1]])
-  mu_m_hi <- as.numeric(mu_m_hi[["mu"]] %||% mu_m_hi[[1]])
+  mu_m_lo <- pp_col(fit_m, lo, "mu")
+  mu_m_hi <- pp_col(fit_m, hi, "mu")
   ylo <- lo; yhi <- hi
   ylo[[med_col]] <- mu_m_lo
   yhi[[med_col]] <- mu_m_hi
-  mu_y_lo <- drmTMB::predict_parameters(fit_y, newdata = ylo, dpar = "mu",
-                                        type = "response")
-  mu_y_hi <- drmTMB::predict_parameters(fit_y, newdata = yhi, dpar = "mu",
-                                        type = "response")
-  mu_y_lo <- as.numeric(mu_y_lo[["mu"]] %||% mu_y_lo[[1]])
-  mu_y_hi <- as.numeric(mu_y_hi[["mu"]] %||% mu_y_hi[[1]])
+  mu_y_lo <- mu_y_of(fit_y, ylo, mu_m_lo)
+  mu_y_hi <- mu_y_of(fit_y, yhi, mu_m_hi)
   mean(mu_y_hi - mu_y_lo, na.rm = TRUE)
 }
-
-`%||%` <- function(a, b) if (is.null(a)) b else a
 
 # Scenario contrast points exactly as drm_build_scenarios() builds them.
 scen_at <- function(x) {
@@ -66,21 +56,12 @@ scen_at <- function(x) {
 }
 
 # Extract a single response-scale dpar column from predict_parameters() as a
-# numeric vector, named-first with a positional fallback. predict_parameters()
-# can return a column not named exactly `dpar` (or partial-`$`-match can miss),
-# which yields a length-0 vector and a `[[<-.data.frame replacement has 0 rows`
-# error downstream (the V-53 authoring bug). This guarantees a length-nrow vector.
+# numeric vector through the drmTMB adapter. This avoids accidentally selecting
+# numeric newdata columns when current drmTMB returns a metadata-rich table.
 pp_col <- function(fit, newdata, dpar) {
-  pp <- as.data.frame(
-    drmTMB::predict_parameters(fit, newdata = newdata, dpar = dpar,
-                               type = "response")
+  drmSEM:::drm_predict_parameter_values(
+    fit, newdata = newdata, dpar = dpar, type = "response"
   )
-  # pick the named dpar column if numeric, else the LAST numeric column; never
-  # coerce a non-numeric column (that produced "NAs introduced by coercion").
-  num <- Filter(is.numeric, as.list(pp))
-  col <- if (dpar %in% names(pp) && is.numeric(pp[[dpar]])) pp[[dpar]]
-         else if (length(num)) num[[length(num)]] else rep(NA_real_, nrow(pp))
-  as.numeric(col)
 }
 
 # Outcome response-scale mean at a scenario with the mediator column overwritten
@@ -88,7 +69,14 @@ pp_col <- function(fit, newdata, dpar) {
 mu_y_of <- function(fit_y, scenario, med_value, med_col = "m") {
   sc <- scenario
   sc[[med_col]] <- med_value
-  pp_col(fit_y, sc, "mu")
+  params <- list(mu = pp_col(fit_y, sc, "mu"))
+  if ("sigma" %in% drmSEM:::drm_fit_prediction_components(fit_y)) {
+    params$sigma <- pp_col(fit_y, sc, "sigma")
+  }
+  drmSEM:::drm_family_expected_mean(
+    drmSEM:::drm_family_name(drmSEM:::drm_fit_family(fit_y)),
+    params
+  )
 }
 
 
@@ -336,12 +324,12 @@ test_that("V-51: Gamma (log) chain -- closure, sign, and total matches a drmTMB 
 })
 
 
-test_that("V-52: lognormal (log) chain -- closure, sign, and mean-mediated recovery", {
+test_that("V-52: lognormal (identity meanlog) chain -- closure, sign, and mean-mediated recovery", {
   set.seed(52)
   n <- 1500
   x <- stats::rnorm(n)
   m <- stats::rnorm(n, 0.4 * x, 1)
-  # drmTMB lognormal: mu is the RESPONSE-scale mean (log link), sdlog ~ sigma.
+  # drmTMB lognormal: mu is meanlog (identity link), sigma is sdlog.
   y <- stats::rlnorm(n, meanlog = 0.2 + 0.3 * m, sdlog = 0.3)
   dat <- data.frame(x, m, y)
 
@@ -360,12 +348,9 @@ test_that("V-52: lognormal (log) chain -- closure, sign, and mean-mediated recov
   expect_equal(tot, dir + ind, tolerance = 1e-6)      # closure
   expect_equal(ind, mm + dm, tolerance = 1e-6)        # closure
 
-  # The mediator M is homoscedastic Gaussian and the lognormal outcome mean is
+  # The mediator M is homoscedastic Gaussian and the lognormal response mean is
   # monotone increasing in M, so the mean-mediated leg is finite and strictly
-  # positive. We assert the parameterization-free sign+finiteness rather than a
-  # do-contrast magnitude, since the predict_parameters() do-contrast
-  # recomputation is not robust for this log-link family (see report; relaxed
-  # from `expect_equal(mm, gt)`).
+  # positive.
   expect_true(is.finite(mm))
   expect_gt(mm, 0)
 })
@@ -374,9 +359,10 @@ test_that("V-52: lognormal (log) chain -- closure, sign, and mean-mediated recov
 test_that("V-53: x -> sigma(M) feeding a NONLINEAR lognormal outcome -- distribution_mediated > 0, magnitude vs FITTED sigma, closure", {
   # The V-7 magnitude follow-up on a live fit. DGP: mediator M has a constant
   # mean but a log-sd that RISES with x (x -> sigma(M)). The lognormal outcome's
-  # response mean is convex in M (mu_y = exp(b0 + b1*M)), so the Jensen gap
-  # E[exp(b1*M)] grows with Var(M): a real distribution-mediated channel that
-  # vanishes if the mediator scale were held fixed.
+  # meanlog is linear in M, so the response mean is convex in M:
+  # E[Y | M] = exp(b0 + b1*M + 0.5*sdlog^2). The Jensen gap grows with Var(M):
+  # a real distribution-mediated channel that vanishes if the mediator scale were
+  # held fixed.
   set.seed(53)
   n <- 2000
   x <- stats::rnorm(n)
@@ -402,19 +388,15 @@ test_that("V-53: x -> sigma(M) feeding a NONLINEAR lognormal outcome -- distribu
   expect_equal(tot, dir + ind, tolerance = 1e-6)      # closure
   expect_equal(ind, mm + dm, tolerance = 1e-6)        # closure
 
-  # Magnitude check computed from the FITTED mu/sigma coefficients (NOT DGP
-  # truth), generous tol. For a lognormal outcome with response mean
-  # mu_y(M) = exp(by0 + by1*M) and a Gaussian mediator M ~ N(mu_M(x), sd_M(x)),
+  # Magnitude check computed from the FITTED meanlog/sigma coefficients (NOT DGP
+  # truth), generous tol. For a lognormal outcome with meanlog
+  # eta_y(M) = by0 + by1*M and a Gaussian mediator M ~ N(mu_M(x), sd_M(x)),
   # the mean over the realized-M distribution is
-  #   E[mu_y] = exp(by0 + by1*mu_M + 0.5*by1^2*sd_M^2)   (log-normal MGF),
-  # whereas the mean-mediated leg plugs in mu_M directly:
-  #   mu_y(mu_M) = exp(by0 + by1*mu_M).
+  #   E[E(Y|M)] = exp(by0 + by1*mu_M + 0.5*sdlog^2 + 0.5*by1^2*sd_M^2),
+  # whereas the mean-mediated leg plugs in mu_M directly.
   # The distribution-mediated leg is the population-average hi-lo contrast of the
-  # multiplicative Jensen gap exp(0.5*by1^2*sd_M^2). All inputs are read from the
-  # FITTED model via drmTMB::predict_parameters(), so the check is robust to
-  # drmTMB's internal parameterization (it only assumes sigma is the lognormal
-  # sdlog and the mediator's predicted sigma is its Gaussian SD -- the SD-like
-  # convention confirmed in test-oq1-samplers.R). Tol is deliberately generous.
+  # multiplicative Jensen gap exp(0.5*by1^2*sd_M^2). All inputs are read through
+  # the drmTMB adapter. Tol is deliberately generous.
   fit_m <- sem$records$m$fit
   fit_y <- sem$records$y$fit
   at <- scen_at(dat$x)

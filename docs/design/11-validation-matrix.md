@@ -36,7 +36,7 @@ keeps the tests robust to engine-internal conventions.
 | Mean-mediated = fitted-coef product (identity Gaussian) | linear chain | live-fit | V-15 |
 | d-separation specificity (detects an omitted true arrow) | omitted arrow | live-fit | V-13 / integration |
 | Calibration: Fisher's C Type-I / power (OQ-6 grid) | mean / distributional / cross-link grid | calibration | V-17 (OQ-6 grid only) |
-| Sampler parameterizations (sigma=1/√disp; nbinom2/beta) | drmTMB introspection | live-fit | V-19 / OQ-1 |
+| Sampler parameterizations (default dpars; nbinom2/beta/Gamma; lognormal meanlog) | drmTMB introspection + simulate comparison | live-fit | V-19 / OQ-1 |
 | Analytic effect identities (a·b·w; sigma-path invisibility; lognormal gap; natural vs controlled; functionals) | closed forms | kernel | V-26..V-30 |
 | Composite constructs + reliability + standardize | hand data | kernel (+live) | V-31 (+ structural grid) |
 | Path attribution (per-mediator, per-component, natural/recanting) | hand engines | kernel | V-32..V-35 |
@@ -63,9 +63,10 @@ recovery (not just finiteness) across the surface:
   indirect closure; `distribution_mediated` sign/magnitude (the V-7 magnitude
   follow-up, from fitted params).
 - `test-recovery-samplers.R` (V-55..V-64) — `drm_sample_family()` mean/variance
-  vs `drmTMB::simulate()` per family (closing the OQ-1 tweedie/zoi/student gaps),
-  and outcome-functional recovery (`p_zero` = Poisson zero-prob change, `var`,
-  `p_gt`).
+  vs `drmTMB::simulate()` for gaussian, poisson, nbinom2, beta, Gamma, and
+  lognormal, plus outcome-functional recovery (`p_zero` = Poisson zero-prob
+  change, `var`, `p_gt`). Tweedie, zero_one_beta boundary inflation, student
+  `nu`, and beta_binomial trials remain separate sampler-extension work.
 - `test-recovery-structural.R` (V-65..V-72) — standardization `sigma_E` on a live
   GLM fit; composite as predictor **and** response; feedback `total_effects`
   equilibrium vs the reduced form from the **fitted** B; natural NDE/NIE on an

@@ -52,16 +52,16 @@ outside the calibrated OQ-6 grid?
   high and increasing with n; the missing-edge rival is reliably penalised (its
   d-sep claim is violated).
 
-### C-4 — Sampler dispersion vs `drmTMB::simulate()` (close the OQ-1 finding)
-Wave 1 found that `drm_sample_family()`'s **variance** does not match
-`drmTMB::simulate()` for nbinom2/beta/Gamma (means match; variances inflated
-+61/+220/+150%) and the **lognormal mean** is shifted (OQ-1, reopened). The probe
-`inst/validation/sampler-dispersion-probe.R` (this PR) isolates the cause: for
-each family it fits a heteroscedastic (`sigma ~ x`) model and, at the fitted
-per-row params, prints (a) the drmSEM vs drmTMB::simulate moments and (b) the
-**implied dispersion** that would make them agree — so the correct
-`sigma ↔ dispersion` mapping can be read off and `drm_sample_family()` / the sigma
-extractor fixed. After the fix, flip V-57..V-60 from skip to assert.
+### C-4 — Sampler dispersion vs `drmTMB::simulate()` (OQ-1 closeout)
+Wave 1 initially suggested that `drm_sample_family()`'s **variance** did not
+match `drmTMB::simulate()` for nbinom2/beta/Gamma and that the **lognormal mean**
+was shifted. The live closeout resolved this into two concrete bugs: drmSEM's
+prediction engine omitted default fitted dpars such as `sigma` when the user did
+not declare an explicit `sigma ~ ...` formula, and lognormal `mu` is drmTMB's
+`meanlog` (identity link), not a response mean to log again. After those fixes,
+V-57..V-60 are real assertions against `drmTMB::simulate()`. The probe
+`inst/validation/sampler-dispersion-probe.R` remains as a future drift diagnostic
+for nbinom2, beta, Gamma, and lognormal parameterizations.
 
 ## Output schema (cached `.rds`)
 

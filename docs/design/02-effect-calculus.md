@@ -38,8 +38,10 @@ population-average changes, not effects at a single covariate point.
 
 1. Builds its fixed-effect design matrix per component on the current working
    data (`drm_fixed_design()`), forms the linear predictor `eta = X %*% beta`,
-   and applies the inverse link (`drm_inv_link()`) to get response-scale
-   parameters (`mu`, and any of `sigma`, `zi`, `nu`, ...).
+   and applies the inverse link (`drm_inv_link()`) to get drmTMB-scale
+   parameters (`mu`, and any of `sigma`, `zi`, `nu`, ...). For most families
+   `mu` is the response mean; lognormal is the important exception, where `mu`
+   is `meanlog` and the expected response is `exp(mu + sigma^2 / 2)`.
 2. **Random effects are held at zero** — population-level / typical-group
    prediction. This is the **conditional (typical-group)** convention, NOT the
    marginal mean (see "Conditional vs marginal effects" below); it is stated
@@ -53,7 +55,9 @@ population-average changes, not effects at a single covariate point.
 What an active mediator passes downstream is the crux:
 
 - **Mean-mediated** (`mediation = "mean"`): the mediator passes its expected
-  `mu`. Only the mediator's mean carries the signal.
+  response value. For most families that is `mu`; for lognormal it is
+  `exp(mu + sigma^2 / 2)`. Only the mediator's expected response carries the
+  signal.
 - **Distribution-mediated** (`mediation = "distribution"`): the mediator passes
   a **realized draw** from its family (`drm_sample_family()`), using all of its
   response-scale parameters — `sigma`, `zi`, `nu`, trials, etc. Inner draws are

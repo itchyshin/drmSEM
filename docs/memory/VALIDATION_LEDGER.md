@@ -39,7 +39,7 @@ table is a snapshot, not the full list).
 | V-16 | d-sep passes a true non-edge (low false-positive rate) | pending | planned recovery check |
 | V-17 | Fisher's C calibration (Type-I / power) under the any-component augmentation | validated for OQ-6 grid | `inst/calibration/generate.R` produced `inst/calibration/calibration-results.rds` on live `drmTMB` 0.1.3.9000 (`17b1321`); all five `cal$acceptance` checks pass; `vignettes/calibration.Rmd` renders from the cache |
 | V-18 | `model.matrix()` contrast coding matches drmTMB's internal fixed-effect coding | pending | needs live drmTMB fit (OQ-2); isolated in `drm_fixed_design` |
-| V-19 | Exact family-sampler parameterizations match drmTMB (nbinom2 `size`, beta_binomial trials, lognormal scale) | mean confirmed; **variance REOPENED 2026-06-07** | mean confirmed (D-7, intercept fits); but **V-57..V-60 found the sampler VARIANCE does not match `drmTMB::simulate()` under `sigma ~ x`** (nbinom2 +61%, beta +220%, Gamma +150%; lognormal mean shifted) — OQ-1 reopened, see the V-45..V-73 section + `OPEN_QUESTIONS.md` |
+| V-19 | Exact family-sampler parameterizations match drmTMB for common families (nbinom2 `size`, beta precision, Gamma shape, lognormal meanlog/sdlog) | validated for V-57..V-60; family extensions remain | `test-recovery-samplers.R` now asserts V-57..V-60 against `drmTMB::simulate()`; closeout found nbinom2/beta/Gamma keep `1/sigma^2`, default fitted dpars must be carried into prediction engines, and lognormal uses `mu = meanlog`, `sigma = sdlog` |
 | V-20 | drmTMB adapter shapes (`bf()$entries`, `coef`/`fixef`/`vcov` `dpar:term`, `logLik`, `is_converged`, `predict_parameters`) | pending | written against drmTMB 0.1.3.9000 source; runtime confirmation pending |
 | V-21 | `standardize()` scaling math: `sd_x` = `estimate * sd(predictor)` (factor SD=1, sign preserved); `latent` additionally divides by the SD of the target component's fitted linear predictor `eta = X %*% b`; link-scale labels (`identity` mu, `log` sigma) | validated (kernel) | `test-standardize.R`: 13 value-level assertions PASS on a fake `drm_sem` (no engine); single-predictor mean/sigma paths standardize to +1 |
 
@@ -458,7 +458,8 @@ Validated on a real fit unless noted; assertions prefer fitted-coefficient /
 **Effect decomposition across the family×link grid — `test-recovery-families.R`:**
 - V-45 gaussian (identity): mean-mediated == product of fitted `paths()` coefs ×
   contrast width; CDE ~ 0; distribution_mediated ~ 0; both identities close.
-- V-46 poisson / V-47 nbinom2 / V-51 Gamma / V-52 lognormal (log): decomposition
+- V-46 poisson / V-47 nbinom2 / V-51 Gamma / V-52 lognormal (identity meanlog):
+  decomposition
   closes, sign correct, mean-mediated finite and strictly positive. (A
   `predict_parameters()` do-contrast *magnitude* match was attempted but the
   recompute proved fragile across the log-link families, so for all four it is
@@ -477,19 +478,14 @@ Validated on a real fit unless noted; assertions prefer fitted-coefficient /
 **Sampler moments vs `drmTMB::simulate()` + outcome functionals — `test-recovery-samplers.R`:**
 - V-55 gaussian / V-56 poisson: `drm_sample_family()` mean **and** variance match
   `drmTMB::simulate()` — **validated**.
-- V-57 nbinom2 / V-58 beta / V-59 Gamma / V-60 lognormal: **OQ-1 DISCREPANCY
-  FOUND.** The sampler MEANS match `drmTMB::simulate()` to ~4 s.f. (mu is correct),
-  but the VARIANCES are systematically inflated (nbinom2 +61%, beta +220%, Gamma
-  +150%) and the lognormal MEAN is shifted (1.35 vs 2.64) — i.e.
-  `drm_sample_family()`'s dispersion mapping (`size=1/sigma^2`, `phi=1/sigma^2`,
-  lognormal `meanlog=log(mu)`) feeds a sigma on the wrong scale vs drmTMB's
-  internal dispersion. The test **skips with the numbers** (not faked-green); the
-  earlier "confirmed in `test-oq1-samplers.R`" check did not compare variance vs
-  `simulate()`. **Engine-side fix required** (the exact drmTMB sigma↔dispersion
-  convention needs introspection) — escalated in `CODEX_HANDOFF.md` /
-  `OPEN_QUESTIONS.md` OQ-1. **Impact:** distribution-mediated effect *magnitudes*
-  through a non-Gaussian **mediator** (e.g. the canonical nbinom2 `abundance`) may
-  be biased until fixed; sign/closure and Gaussian-mediator cases are unaffected.
+- V-57 nbinom2 / V-58 beta / V-59 Gamma / V-60 lognormal: **validated** against
+  `drmTMB::simulate()` after the 2026-06-07 closeout. nbinom2, beta, and Gamma
+  keep the D-7 `1/sigma^2` mapping; the earlier variance failures came from the
+  prediction engine omitting fitted default dpars such as `sigma` when no explicit
+  `sigma ~ ...` formula was declared. lognormal now uses drmTMB's current
+  parameterization (`mu = meanlog`, identity link; `sigma = sdlog`) and propagates
+  `exp(mu + sigma^2 / 2)` under mean mediation. The tests are real assertions, not
+  skip-on-mismatch records.
 - V-61 binomial: skipped (`drmTMB` has no plain `binomial()` family).
 - V-62 p_zero (Poisson) recovers `exp(-mu_hi) - exp(-mu_lo)`; V-63 `var` matches a
   large-n empirical from the fit; V-64 p_gt matches the exact Poisson tail —

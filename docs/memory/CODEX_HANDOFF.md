@@ -11,7 +11,26 @@ Coordinate on a separate branch; the launchable team is mirrored in
 `docs/memory/` (`AGENT_LOG.md`, `VALIDATION_LEDGER.md`, `DECISIONS.md`,
 `OPEN_QUESTIONS.md`) as you go.
 
+## Message to Codex — 2026-06-07 (OQ-1 closeout landed)
+
+OQ-1 / V-57..V-60 is now closed for the common sampler families. The decisive
+single-row probe showed nbinom2, beta, and Gamma keep the existing `1/sigma^2`
+mapping; the aggregate variance failures were caused by drmSEM not carrying
+fitted default dpars such as `sigma` into prediction engines when no explicit
+`sigma ~ ...` formula was declared. Lognormal needed the real parameterization:
+current drmTMB exposes `mu` as `meanlog` (identity link) and `sigma` as `sdlog`.
+`test-recovery-samplers.R` now asserts V-57..V-60 against `drmTMB::simulate()`
+and passes locally on a live engine.
+
+The next ready-to-run engine item is now **wave-2 coverage**:
+`Rscript inst/validation/generate.R` at full replicate counts -> commit
+`inst/validation/validation-results.rds` -> render the validation vignette ->
+promote C-1..C-4 in `VALIDATION_LEDGER.md`.
+
 ## ✉ Message to Codex — 2026-06-07 (from the Claude/CI lane)
+
+Historical note: item 1 below is superseded by the OQ-1 closeout note above.
+Item 2, the wave-2 coverage run, remains current.
 
 Hi Gauss/Curie/Fisher — a validation-focused session just merged **#28–#31**.
 The headline: the new recovery grid **found a real bug**, and I've set you up to
@@ -119,41 +138,20 @@ the ledger names a live-fit gate.
 
 ## P2 — robustness / parameterization
 
-7. **OQ-1 / V-19 — SAMPLER VARIANCE MISMATCH (found 2026-06-07, P1, possibly P0).**
-   The new V-57..V-60 recovery tests compared `drm_sample_family()` to
-   `drmTMB::simulate()` at the fitted params and found a real discrepancy: the
-   **means match to ~4 s.f.** but the **variances are systematically inflated** —
-   nbinom2 var 19.5 vs 12.1 (+61%), beta 0.133 vs 0.041 (+220%), Gamma 15.5 vs
-   6.15 (+150%) — and **lognormal mean is shifted** (1.35 vs 2.64). So
-   `drm_sample_family()`'s dispersion mapping (`size=1/sigma^2`, `phi=1/sigma^2`,
-   lognormal `meanlog=log(mu)`) feeds a sigma on the wrong scale vs drmTMB's
-   internal dispersion; the prior `test-oq1-samplers.R` "confirmation" never
-   compared variance vs `simulate()`. **Action:** introspect drmTMB's exact
-   sigma↔dispersion convention per family (an L3-style probe), fix
-   `R/simulate_effects.R drm_sample_family()` and/or the `R/extractors.R` sigma
-   read, then flip the V-57..V-60 skips to asserts. **Impact:** distribution-
-   mediated effect *magnitudes* through a non-Gaussian **mediator** (e.g. the
-   canonical nbinom2 `abundance`) are likely biased until this is fixed (sign /
-   closure / Gaussian-mediator cases are unaffected; no shipped claim asserted
-   such a magnitude, but it should be re-checked). Also still open:
-   `zero_one_beta` (zoi/coi), `tweedie` (mean-fallback), `student` nu,
-   beta_binomial trials. **Diagnostic ready (decisive):**
-   `Rscript inst/validation/sampler-dispersion-probe.R` isolates a SINGLE fitted
-   row (constant mu, sigma — no mixture term) and sweeps candidate mappings
-   (`1/sigma^2`, `1/sigma`, `sigma`, `sigma^2`, `exp(sigma)`) against
-   `drmTMB::simulate()`'s variance, printing the winning mapping per family plus
-   sigma on response AND link scale. NOTE: the +61/+220/+150% figures above are
-   from a *heteroscedastic* fit and are **mixture-contaminated** (the pooled
-   variance carries the between-row mean spread, so the implied-dispersion ratios
-   1.86/2.53/5.79 are not the true per-row mapping) — use the single-row probe,
-   not those aggregates, to read off the fix. The lognormal signal is cleanest:
-   drmTMB's response `mu` appears to be E[Y], so `meanlog=log(mu)` is likely wrong.
-   The probe was **debugged against the live CI engine 2026-06-07** and three
-   gotchas were fixed so it runs first-try: drmTMB exports **no** `simulate`/`Gamma`
-   (use `stats::simulate(fit)` — the S3 method — and `stats::Gamma(link="log")`),
-   and `predict_parameters()` does **not** reliably name its column `mu`/`sigma`
-   (request each dpar separately and take the named-or-last-numeric column, as the
-   probe now does). `generate.R` is authored (item 12); generate the cached `.rds`.
+7. **DONE 2026-06-07 — OQ-1 / V-19 common-family sampler closeout.**
+   The decisive single-row probe showed nbinom2, beta, and Gamma still use the
+   D-7 `1/sigma^2` mapping; the aggregate +61/+220/+150% failures were caused by
+   drmSEM omitting fitted default dpars (especially `sigma`) from prediction
+   engines when no explicit `sigma ~ ...` formula was declared. The lognormal
+   mismatch was real but different: current drmTMB exposes lognormal `mu` as
+   `meanlog` (identity link), with `sigma` as `sdlog`. `R/simulate_effects.R` now
+   carries fitted default dpars into effect propagation, samples lognormal with
+   `rlnorm(meanlog = mu, sdlog = sigma)`, and propagates the lognormal expected
+   response `exp(mu + sigma^2 / 2)` under mean mediation. V-57..V-60 in
+   `test-recovery-samplers.R` are real `expect_lt` assertions against
+   `drmTMB::simulate()` and pass locally on a live engine. Remaining sampler
+   extensions are separate: `zero_one_beta` boundary inflation, `tweedie`
+   mean-fallback, `student` nu, and beta_binomial trials.
 12. **Validation wave 2 — coverage & calibration** (`docs/design/12-coverage-calibration.md`).
     `inst/validation/generate.R` is authored (C-1 effect-CI coverage vs closed-form
     truth; C-3 model-selection recovery) with a `validation.Rmd` report that renders
