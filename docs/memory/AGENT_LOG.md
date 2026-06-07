@@ -817,3 +817,41 @@ asserts std = b*sd(x)/sqrt(Var(eta)+pi^2/3). The log-link families' mean-depende
 (observation-level) latent variance stays deferred; an optional live-GLM-fit
 confirmation remains a Codex nice-to-have. Updated standardize.R roxygen,
 08-standardization.md, NEWS, ledger V-44.
+---
+
+## 2026-06-07 — Vignette: feedback cycles (drm_cycle) worked example
+
+**What shipped.** A new audience-facing vignette
+`vignettes/feedback-cycles.Rmd` for the 0.5.0/0.5.x feedback feature, aimed at
+ecology/evolution PhD students who know GLMMs but not causal-SEM jargon. Worked
+through a reciprocal `activity ⇄ stress` pair (predator⇄prey noted as an
+alternative). Covers: why a cycle breaks the DAG machinery (the two separable
+problems — simultaneity bias in node-wise fitting, and an equilibrium rather than
+a path product for effects); the opt-in `drm_cycle()` / `feedback =` grammar with
+`cycles()` and the undeclared-cycle hard error; a prominent block-quote that
+node-wise ML of a declared cycle is INCONSISTENT and drmSEM warns rather than
+faking consistency (IV/2SLS or a joint likelihood is an engine deliverable, not
+shipped); the equilibrium estimand `(I − B)⁻¹ Γ` = walk sum → fixed point, with
+the `ρ(B) < 1` stability condition; `total_effects()` equilibrium output
+(`mediation = "equilibrium"`, `target = "mean"` only, `NA`-on-divergence) and the
+`indirect_effects()` / `path_effects()` refusal; d-separation scoped to the
+acyclic part (sigma-separation deferred). Cross-references
+`docs/design/10-cyclic-feedback.md`.
+
+**Eval-gating.** Matches the existing vignettes exactly: `has_engine <- FALSE`
+in setup with `eval = has_engine` as the chunk default; the pure-R chunks
+(`drm_cycle()`, printing) are explicitly `eval = TRUE`; every chunk needing a
+live drmTMB fit (`drm_sem()`, `total_effects()` on a fitted SEM) is illustrative
+only. Nothing claims the consistent feedback fit works.
+
+**Also.** Registered the article in `_pkgdown.yml` (articles > Concepts, after
+`bivariate-nodes`); added a NEWS bullet under the existing
+`## Feedback / cyclic motifs` section.
+
+**Not touched.** No changes to `R/`, NAMESPACE, `man/`, DESCRIPTION, or tests —
+vignette + docs only, every claim kept within what ships.
+
+**Validation state.** No R in this lane (same constraint as prior entries); the
+chunk-gating pattern is copied verbatim from the known-good `bivariate-nodes.Rmd`
+/ `comparison.Rmd`, and every API claim was checked against `R/feedback.R`,
+`R/effects.R`, `R/drm_sem.R`, and the design doc.

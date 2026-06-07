@@ -112,6 +112,7 @@ articles:
       - effect-decomposition
       - covariance-edges-and-composites
       - bivariate-nodes
+      - feedback-cycles
       - latent-variables
       - comparison
       - phylogenetic-sem
