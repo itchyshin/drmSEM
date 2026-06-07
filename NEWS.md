@@ -1,5 +1,18 @@
 # drmSEM 0.2.0.9000 (development version)
 
+## Validation wave 2 harness + newcomer docs
+
+* `inst/validation/generate.R` + a `validation` article now provide the wave-2
+  coverage/calibration harness (effect-CI **coverage** against a known-effect
+  linear-Gaussian DGP, and **model-selection recovery** rate), mirroring the OQ-6
+  calibration pattern (cached `.rds` + a vignette that renders with or without the
+  cache). Full replicate runs happen in the live lane; see
+  `docs/design/12-coverage-calibration.md`.
+* The README quick-start and the intro vignette now open with a concrete
+  biological question and show **illustrative** (clearly-marked, engine-free)
+  `paths()` and `indirect_effects()` output so a newcomer can see the
+  component-labelled and `distribution_mediated` rows and learn how to read them.
+
 ## Simulation-based recovery grid (validation wave 1)
 
 * A campaign of **numerical-recovery tests on real `drmTMB` fits** now exercises

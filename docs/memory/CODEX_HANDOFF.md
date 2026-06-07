@@ -99,13 +99,24 @@ the ledger names a live-fit gate.
    closure / Gaussian-mediator cases are unaffected; no shipped claim asserted
    such a magnitude, but it should be re-checked). Also still open:
    `zero_one_beta` (zoi/coi), `tweedie` (mean-fallback), `student` nu,
-   beta_binomial trials. **Diagnostic ready:**
-   `Rscript inst/validation/sampler-dispersion-probe.R` fits a heteroscedastic
-   model per family and prints drmSEM vs `drmTMB::simulate()` moments **and the
-   implied dispersion / corrected sigma-scale** — run it to read off the fix.
+   beta_binomial trials. **Diagnostic ready (decisive):**
+   `Rscript inst/validation/sampler-dispersion-probe.R` isolates a SINGLE fitted
+   row (constant mu, sigma — no mixture term) and sweeps candidate mappings
+   (`1/sigma^2`, `1/sigma`, `sigma`, `sigma^2`, `exp(sigma)`) against
+   `drmTMB::simulate()`'s variance, printing the winning mapping per family plus
+   sigma on response AND link scale. NOTE: the +61/+220/+150% figures above are
+   from a *heteroscedastic* fit and are **mixture-contaminated** (the pooled
+   variance carries the between-row mean spread, so the implied-dispersion ratios
+   1.86/2.53/5.79 are not the true per-row mapping) — use the single-row probe,
+   not those aggregates, to read off the fix. The lognormal signal is cleanest:
+   drmTMB's response `mu` appears to be E[Y], so `meanlog=log(mu)` is likely wrong.
+   `generate.R` is authored (item 12); generate the cached `.rds` to populate it.
 12. **Validation wave 2 — coverage & calibration** (`docs/design/12-coverage-calibration.md`).
-    Author `inst/validation/generate.R` + a cached `.rds` + a `validation.Rmd`
-    report (mirroring the OQ-6 calibration pattern) for: C-1 effect-CI **coverage**
+    `inst/validation/generate.R` is authored (C-1 effect-CI coverage vs closed-form
+    truth; C-3 model-selection recovery) with a `validation.Rmd` report that renders
+    with or without the cache. **Action:** run it at full replicate counts, commit
+    the cached `inst/validation/validation-results.rds` (like the calibration
+    cache), render the report, and promote C-1..C-4 in the ledger.
     (the biggest unmeasured property — known-effect linear-Gaussian DGP), C-2 d-sep
     Type-I/power beyond the OQ-6 grid, C-3 model-selection recovery rate, C-4 the
     sampler-dispersion close-out (C-4 == item 7). Full replicate counts run in the

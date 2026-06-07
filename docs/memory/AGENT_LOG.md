@@ -980,3 +980,28 @@ fixed:
 PROCESS LESSON (Rose): when reopening an OQ, grep the codebase for the RESOLUTION's
 language ("confirmed against drmTMB", "Resolves OQ-N"), not just the OQ tag — in-code
 comments and DECISIONS.md assert resolution in prose the tag search misses.
+
+## 2026-06-07 — Parallel team: wave-2 harness + newcomer docs + cleanup (C none) + OQ-1 (separate)
+
+User: "do all in parallel, teams of agents." Launched 4 worktree agents, disjoint
+file scopes, integrated safe three here (PR-A); OQ-1 fix isolated (PR-B).
+- A (wave-2 harness): inst/validation/generate.R (C-1 effect-CI coverage vs
+  closed-form truth; C-3 model-selection recovery) + vignettes/validation.Rmd
+  (mirrors calibration.Rmd; renders with/without the cache) + _pkgdown article.
+  No DESCRIPTION change (knitr/rmarkdown already present). .rds left for Codex to
+  generate+commit (matches calibration-results.rds convention).
+- B (new-user docs): README.md + vignettes/drmSEM.Rmd — biological-question
+  framing + illustrative engine-free paths()/indirect_effects() tables (base R,
+  marked illustrative, mirrors effect-decomposition.Rmd) + standardize() clarity.
+  API-verified against R/ + NAMESPACE.
+- C (quality cleanup of R/feedback.R, R/effects.R, recovery tests): found the code
+  already clean; made NO changes (no empty commit). Recommended-not-applied: a
+  redundant names<- no-op (effects.R:44,378 / feedback.R:320), a closure-assertion
+  test helper, shared replicate-loop scaffolding — all left as future refactors.
+- D (OQ-1 sampler fix): correctly did NOT apply a blind fix. Key finding: the
+  aggregate inflation %s are MIXTURE-contaminated (a sigma~x fit pools rows with
+  different means, so a single dispersion backed out of the pooled variance is
+  uninterpretable -- this was a flaw in my original probe too). Rewrote the probe
+  into a decisive single-fixed-row sweep (candidate mappings vs simulate() var,
+  response+link sigma) that pins the fix in one Codex run. No R/ or test change;
+  the improved probe is folded into PR-A. Updated CODEX_HANDOFF item 7 accordingly.

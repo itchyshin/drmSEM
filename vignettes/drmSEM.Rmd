@@ -72,6 +72,15 @@ the 0.4 engine step (see `docs/design/07-bivariate-covariance-edges.md`).
 
 ## A worked system: `size -> abundance -> survival`
 
+**The biological question.** Body `size`, local `abundance`, and `survival`
+form a causal chain, and temperature (`temp`) is the exogenous driver. We want
+to answer one question end to end: *does warming reach survival only by shifting
+the* average *size and abundance, or also by changing how* variable *size is and
+how often abundance collapses to a structural zero?* The second half of that
+question is about non-mean components (`sigma`, `zi`), which a mean-only SEM
+cannot represent. By the end of this vignette we will read the answer directly
+off the `distribution_mediated` row of `indirect_effects()`.
+
 We use a three-node ecological chain. Conceptually:
 
 - **`size`** of organisms depends on temperature and habitat. We also let
@@ -157,6 +166,35 @@ same claim.
 ```{r paths}
 paths(sem)
 ```
+
+Each row is one fitted fixed-effect coefficient, with columns `from`, `to`,
+`component`, `link`, `term`, `estimate`, `std.error`, `statistic`, `p.value`,
+and `endogenous`. The `component` column is what makes the table distributional:
+the same predictor can appear against `mu`, `sigma`, `zi`, and so on, and each
+is a different scientific claim. The structure looks like this (column shape is
+real; the numbers are illustrative, not estimated, since the engine is not run
+here):
+
+```{r paths-illustrative, eval = TRUE, echo = FALSE}
+data.frame(
+  from      = c("temp", "habitat", "temp",      "size", "temp", "habitat",
+               "abundance", "size"),
+  to        = c("size", "size",    "size",      "abundance", "abundance",
+               "abundance", "survival", "survival"),
+  component = c("mu",   "mu",      "sigma",     "mu",  "mu",   "zi",
+               "mu",  "mu"),
+  link      = c("identity", "identity", "log",  "log", "log",  "logit",
+               "logit", "logit"),
+  term      = c("temp", "habitatB", "temp",     "size", "temp", "habitatB",
+               "abundance", "size"),
+  stringsAsFactors = FALSE
+)
+```
+
+Note how `temp -> size` appears twice -- once on `mu` (does warming shift mean
+size?) and once on `sigma` (does warming change how *variable* size is?) -- and
+`habitat -> abundance` lands on `zi`, the probability of a structural zero, not
+on the mean count. These are the rows a mean-only SEM cannot express.
 
 `check_sem()` reports, per node, the family, the modelled components,
 convergence, whether a fixed-effect covariance is available (needed for
@@ -250,20 +288,49 @@ the package. `indirect_effects()` reports five quantities:
 indirect_effects(sem, from = "temp", to = "survival")
 ```
 
-A non-trivial `distribution_mediated` row is the signature of this framework:
-temperature reaches survival partly because it changes the *spread* of size and
-(via habitat structure) the *zeros* of abundance, not only their means. A
-mean-only SEM would report that channel as zero or silently fold it into the
-mean. `drmSEM` keeps it visible and correctly labelled.
+The result is one row per `quantity`, each an effect on the response
+(probability-of-survival) scale, with an estimate and a confidence interval.
+The shape -- and how to read it -- looks like this (illustrative numbers, not
+estimated here):
+
+```{r indirect-illustrative, eval = TRUE, echo = FALSE}
+data.frame(
+  from = "temp", to = "survival",
+  quantity = c("total_path", "direct", "indirect",
+               "mean_mediated", "distribution_mediated"),
+  estimate  = c(0.090, 0.020, 0.070, 0.048, 0.022),
+  conf.low  = c(0.052, 0.004, 0.038, 0.022, 0.006),
+  conf.high = c(0.128, 0.036, 0.102, 0.074, 0.038),
+  stringsAsFactors = FALSE
+)
+```
+
+Read it top-down. `total_path` is the whole effect of warming on survival;
+`direct` is the slice that does *not* go through the mediators; `indirect` is
+the rest (`total_path - direct`). The `indirect` slice then splits into
+`mean_mediated` (carried by the *means* of size and abundance) and
+`distribution_mediated` -- and `indirect ≈ mean_mediated + distribution_mediated`.
+
+That last row is the answer to the question we posed at the start. A non-trivial
+`distribution_mediated` row is the signature of this framework: temperature
+reaches survival partly because it changes the *spread* of size and (via habitat
+structure) the *zeros* of abundance, not only their means. A mean-only SEM would
+report that channel as zero or silently fold it into the mean. `drmSEM` keeps it
+visible and correctly labelled. (`plot()` on an effect object draws the same
+decomposition as a forest plot.)
 
 ## Standardizing
 
-When you need comparable path strengths, `standardize()` rescales effects (for
-example `method = "latent"` or a range/SD-based scaling) while preserving the
-component labels.
+When you need comparable path strengths, `standardize()` returns the `paths()`
+table with one added column, `std.estimate` (on the link scale), while
+preserving the component labels. The default `method = "sd_x"` scales each
+coefficient by the standard deviation of its predictor; `method = "latent"`
+additionally divides by the fitted standard deviation of the response, giving
+fully standardized coefficients.
 
 ```{r standardize}
-standardize(sem)
+standardize(sem)                      # adds std.estimate (sd_x scaling)
+standardize(sem, method = "latent")   # fully standardized
 ```
 
 ## Recap
