@@ -67,7 +67,7 @@ live-fit analytic-effect tier flip, and OQ-14 joint fit.
   joint *fit* and the fitted-correlation read-back (a non-`NA` estimate) remain
   here.
 
-## 0.5 — Cyclic / feedback graphs
+## 0.5 — Cyclic / feedback graphs (RELEASED, 0.5.0)
 
 - Lift the DAG-only restriction for specific feedback motifs with a defined
   estimand and propagation rule. Cycles remain an error until this lands.

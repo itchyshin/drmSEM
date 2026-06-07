@@ -1,4 +1,13 @@
-# drmSEM 0.2.0.9000 (development version)
+# drmSEM 0.5.0
+
+This release closes the **cyclic / feedback-graph milestone** (roadmap §0.5) and
+ships the dev-line surface accumulated since 0.2.0. The DAG-only restriction is
+lifted for *declared* feedback motifs, with an equilibrium estimand and a pure-R
+fixed-point propagator; undeclared cycles remain a hard error. The feature
+highlights below are grouped by area. Consistent feedback estimation (IV/2SLS or
+a joint likelihood), full sigma-separation, distributional feedback equilibria,
+and the joint bivariate *fit* remain engine-dependent and are carried forward to
+the live-drmTMB lane (see `docs/memory/CODEX_HANDOFF.md`).
 
 ## Sampler and propagation fixes
 
