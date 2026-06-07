@@ -61,20 +61,24 @@ non-constant). The `link` column of `paths()` makes the scale self-documenting.
 For response-scale and functional interpretations, use the effect engine
 (`direct_effects()`, `total_effects(target = )`), which is built for exactly that.
 
-## Known limitation (tracked refinement, OQ-4)
+## GLM mean paths: the `sigma_E` term (OQ-4, resolved for constant-variance links)
 
-For non-identity-link **`mu`** paths, the `latent` divisor uses `sd(eta)` alone
-and omits the **distribution-specific theoretical error variance** that the
-latent-theoretic approach adds: `sd_y* = sqrt(var(eta) + sigma_E)` with
-`sigma_E = pi^2/3` (logit), `1` (probit), and the analogous link-scale variance
-for count families (Grace et al. 2019; piecewiseSEM's `latent.linear`). Omitting
-`sigma_E` makes the denominator slightly too small, so GLM mean paths are mildly
-**over-standardized**. Adding the term is a clear improvement but changes the
-`latent` values for non-identity-link mean paths (and the assertions in
-`test-standardize.R`), so it is deferred until it can be cross-checked against a
-live fit rather than changed blind. For `sigma`/`zi`/`sd(*)` components the plain
-`sd(eta)` form is correct (no canonical latent-outcome variance exists), and that
-is what is documented.
+For a **`mu`** path on a link whose latent-scale error variance is a **constant**,
+the `latent` divisor is now `sd_y* = sqrt(var(eta) + sigma_E^2)`, adding the
+distribution-specific theoretical error variance of the link's threshold
+distribution: `sigma_E^2 = pi^2/3` (logit / logistic), `1` (probit / standard
+normal), `pi^2/6` (cloglog / Gumbel) (Grace et al. 2018; piecewiseSEM's
+`latent.linear`). This corrects the earlier mild **over-standardization** (the
+old `sd(eta)`-only denominator was too small). Implemented as
+`drm_latent_divisor()` / `drm_link_latent_var()` and validated in closed form
+(`test-standardize.R`, V-44: a logit mean path standardizes by
+`sqrt(var(eta) + pi^2/3)`).
+
+Still deferred: the **log-link** families (Poisson, negative binomial, Gamma,
+lognormal) have a *mean-dependent* (observation-level) latent variance rather
+than a constant, so no `sigma_E` term is added for them yet. For
+`sigma`/`zi`/`sd(*)` components — and for identity-link `mu` — the plain `sd(eta)`
+form is correct (no canonical latent-outcome variance exists), unchanged.
 
 ## References
 

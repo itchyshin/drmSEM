@@ -2,6 +2,34 @@
 #' @noRd
 NULL
 
+# Distribution-specific theoretical error variance on the latent (link) scale,
+# for the latent-variable standardization of a GLM MEAN path (Grace et al. 2018;
+# piecewiseSEM's `latent.linear`). For a link g, the latent response is
+# y* = eta + e with Var(e) fixed by the link's underlying threshold distribution:
+# logit -> logistic (pi^2/3), probit -> standard normal (1), cloglog -> Gumbel
+# (pi^2/6). identity and log return 0 here: identity has no latent inflation, and
+# the log-link families' theoretical variance is mean-dependent (observation
+# level), not a constant -- that term is deferred (a tracked refinement).
+drm_link_latent_var <- function(link) {
+  switch(link,
+    logit = pi^2 / 3,
+    probit = 1,
+    cloglog = pi^2 / 6,
+    0
+  )
+}
+
+# Latent-scale standardization divisor for one component's fitted linear
+# predictor `eta`. For a MEAN path (`component` starts with "mu") on a
+# non-identity link this is sqrt(Var(eta) + theoretical link variance); for every
+# other component (and identity-link mu) it is sd(eta) = sqrt(Var(eta)), the
+# per-component latent SD on that component's own link scale.
+drm_latent_divisor <- function(eta, component, link) {
+  ve <- stats::var(eta, na.rm = TRUE)
+  lv <- if (startsWith(component, "mu")) drm_link_latent_var(link) else 0
+  sqrt(ve + lv)
+}
+
 #' Standardized component-labelled path coefficients
 #'
 #' Rescales fitted path coefficients so they are comparable across predictors.
@@ -37,13 +65,17 @@ NULL
 #'   non-`mu` component. This per-component latent standardization is drmSEM's
 #'   distributional generalization of Grace & Bollen.
 #'
-#' @section Known limitation:
-#' For non-identity-link **`mu`** paths the `latent` divisor currently uses
-#' `sd(eta)` alone and omits the distribution-specific theoretical error variance
-#' (e.g. `pi^2/3` for a logit link, after Grace et al. 2019 / piecewiseSEM's
-#' `latent.linear`), so GLM mean paths are mildly over-standardized. Adding that
-#' term is a tracked refinement (OQ-4) that needs a live-fit cross-check before it
-#' is changed.
+#' @section GLM mean paths (OQ-4 `sigma_E`):
+#' For a **`mu`** path on a link with a *constant* theoretical error variance, the
+#' `latent` divisor is `sqrt(Var(eta) + sigma_E^2)`, adding the link's
+#' distribution-specific latent-scale error variance (logit `pi^2/3`, probit `1`,
+#' cloglog `pi^2/6`; after Grace et al. 2018 / piecewiseSEM's `latent.linear`).
+#' This corrects the earlier mild over-standardization of GLM mean paths. The
+#' **log-link** families (Poisson, negative binomial, Gamma, lognormal) carry a
+#' *mean-dependent* (observation-level) latent variance rather than a constant, so
+#' no `sigma_E` term is added there yet — that case is still deferred. Identity
+#' links and non-`mu` components are unchanged (the divisor is `sd(eta)` on the
+#' component's own link scale).
 #'
 #' @param object A `drm_sem` object.
 #' @param method `"sd_x"` or `"latent"`.
@@ -90,7 +122,8 @@ standardize.drm_sem <- function(object, method = c("sd_x", "latent"), ...) {
         b <- drm_fit_coef(rec$fit, cc)
         if (ncol(X) && length(b)) {
           eta <- as.numeric(X %*% b[colnames(X)])
-          lp_sd[[paste(nm, cc, sep = "::")]] <- stats::sd(eta, na.rm = TRUE)
+          link <- drm_nominal_link(rec$family, cc)
+          lp_sd[[paste(nm, cc, sep = "::")]] <- drm_latent_divisor(eta, cc, link)
         }
       }
     }

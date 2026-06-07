@@ -1,5 +1,15 @@
 # drmSEM 0.2.0.9000 (development version)
 
+## Standardization: GLM mean-path `sigma_E` (OQ-4)
+
+* The `latent` standardization of a **`mu`** path on a constant-variance link now
+  divides by `sqrt(Var(eta) + sigma_E^2)`, adding the link's theoretical
+  latent-scale error variance — logit `pi^2/3`, probit `1`, cloglog `pi^2/6`
+  (Grace et al. 2018; piecewiseSEM's `latent.linear`). This corrects the earlier
+  mild over-standardization of GLM mean paths. Identity-link `mu` and non-`mu`
+  components (`sigma`/`zi`/`sd(*)`) are unchanged; the log-link families'
+  mean-dependent variance term remains deferred. Validated in closed form (V-44).
+
 ## Interop (graph interchange)
 
 * **Graph interchange, not a fitting bridge.** A new pure-R interop layer
@@ -50,6 +60,17 @@
   recovers the linear reduced form `(I − B)⁻¹ Γ` (V-42) and that the equilibrium
   total effect equals the reduced-form total effect of the exposure (V-43).
   Design: `docs/design/10-cyclic-feedback.md`.
+* New vignette **"Feedback cycles: reciprocal causation and the equilibrium
+  effect (`drm_cycle`)"** works a reciprocal `activity ⇄ stress` pair: why a
+  cycle breaks the DAG machinery (simultaneity bias in fitting; an equilibrium,
+  not a path product, for effects), the opt-in `drm_cycle()` / `feedback =`
+  grammar and `cycles()`, the equilibrium estimand (`(I − B)⁻¹ Γ` = the walk sum,
+  generalized to the fixed point; stability needs `ρ(B) < 1`), and the
+  `total_effects()` equilibrium output (`mediation = "equilibrium"`, `target =
+  "mean"` only, `NA` on divergence) with `indirect_effects()` / `path_effects()`
+  refusing a feedback SEM. It is prominently honest that node-wise ML of a
+  declared cycle is **inconsistent** and drmSEM does not fake consistency.
+  Engine-dependent chunks are illustrative-only (`eval = has_engine`, FALSE).
 
 ## Effect decomposition: paired Monte-Carlo and honest framing
 

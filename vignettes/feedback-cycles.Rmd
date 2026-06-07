@@ -1,0 +1,319 @@
+---
+title: "Feedback cycles: reciprocal causation and the equilibrium effect (drm_cycle)"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Feedback cycles: reciprocal causation and the equilibrium effect (drm_cycle)}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+# drmSEM is piecewise and never fits its own likelihoods. Fitting a feedback
+# system *consistently* (IV/2SLS or a joint likelihood) is an ENGINE deliverable
+# and is NOT shipped, so every chunk that would need a live drmTMB fit -- the
+# drm_sem() / drm_psem() call and any total_effects() on a fitted feedback SEM --
+# is shown for illustration only (`eval = has_engine`, FALSE here). The pure-R
+# declaration grammar (drm_cycle(), cycles() on a hand-built object) runs
+# normally and those chunks are marked `eval = TRUE` explicitly. The dev lane has
+# no engine; nothing here claims the consistent feedback fit works.
+has_engine <- FALSE
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = has_engine)
+library(drmSEM)
+```
+
+If you fit GLMMs you are used to a one-directional story: a predictor moves a
+response, you read off a coefficient. Plenty of ecology and behaviour is not
+one-directional. Two traits can each cause the other — **reciprocal causation**,
+a feedback loop — and that loop breaks the machinery a DAG-based SEM relies on.
+This vignette is about the grammar `drmSEM` gives you for *declaring* such a
+loop (`drm_cycle()`), what it can honestly compute for one (the **equilibrium**
+effect), and — said plainly and up front — what it deliberately does **not** do
+(it does not pretend node-wise fitting of a cycle is unbiased). The design of
+record is `docs/design/10-cyclic-feedback.md`.
+
+## A reciprocal pair: when `y1 -> y2` *and* `y2 -> y1`
+
+Take two traits measured on the same individuals: an animal's **activity** (how
+much it moves) and its **stress** physiology (say a circulating glucocorticoid).
+The biology is genuinely two-way. Higher stress suppresses movement, so
+`stress -> activity` is negative; but moving more is itself costly and elevates
+stress, so `activity -> stress` is positive. Neither arrow is "the" cause: they
+form a loop,
+
+```
+activity  ⇄  stress         # activity -> stress  and  stress -> activity
+```
+
+and some exogenous driver `x` (temperature, food availability, a treatment) sits
+upstream, pushing on the loop. The question you actually care about — "what does
+a one-unit change in `x` do to `stress`?" — has no single arrow to read. The
+answer has to account for `x` nudging `stress`, `stress` feeding back through
+`activity`, that returning to `stress`, and so on around the loop until the
+system settles.
+
+A predator–prey abundance pair (`predator ⇄ prey`) or a plant–herbivore pair
+works the same way: pick whichever reciprocal motif is concrete for you. The
+structure is what matters: **a cycle, not a chain.**
+
+### Why a cycle breaks the DAG machinery (two separate problems)
+
+A reciprocal pair breaks two different things at once, and it is worth keeping
+them apart because `drmSEM` treats them very differently.
+
+1. **Fitting is biased under simultaneity.** `drmSEM` is piecewise: each node is
+   one `drmTMB` fit of a response on its parents. In the loop, `activity` is a
+   parent (regressor) in the `stress` equation — but `activity` is *also* a
+   descendant of `stress`, so it is correlated with the `stress` equation's
+   error. That is **simultaneity bias**, and it makes ordinary node-wise maximum
+   likelihood **inconsistent**: the per-node coefficient is not an unbiased
+   estimate of the structural effect, no matter how much data you have.
+
+2. **The effect of `x` is an equilibrium, not a path product.** In a DAG you get
+   the total effect of `x` on a downstream node by composing the arrows along the
+   path(s) — a product of direct effects, propagated in topological order. A
+   cycle has *no* topological order (that is exactly what "cycle" means), and the
+   effect is not a finite path product: it is the loop's **steady state**, the
+   value the system relaxes to once the feedback has played out.
+
+The honesty that follows from this split is the whole point of the next section.
+
+## The grammar: declaring a cycle is opt-in
+
+`drmSEM` rejects cycles by default — an undeclared cycle is a **hard error**, on
+purpose, so that for everyone *not* doing feedback an accidental loop is caught
+as the bug it usually is. To work with a feedback motif you must name it
+explicitly with `drm_cycle()`. This is pure R and runs without any engine:
+
+```{r cycle-decl, eval = TRUE}
+fb <- drm_cycle("activity", "stress")   # the reciprocal pair activity <-> stress
+fb
+```
+
+You then hand the declaration to `drm_sem()` (or `drm_psem()`) through its
+`feedback =` argument. Assembling and *fitting* the SEM needs the engine, so the
+chunk below is illustrative only — it is **not** evaluated here:
+
+```{r sem, eval = has_engine}
+sem <- drm_sem(
+  activity = drm_node(drmTMB::bf(activity ~ stress + x + (1 | id)),
+                      family = stats::gaussian()),
+  stress   = drm_node(drmTMB::bf(stress ~ activity + x + (1 | id)),
+                      family = stats::gaussian()),
+  data = dat,
+  feedback = drm_cycle("activity", "stress")   # opt in to the cycle
+)
+```
+
+`cycles()` lists the declared motifs of a fitted SEM, kept separate from the
+ordinary directed `paths()`:
+
+```{r cycles, eval = has_engine}
+cycles(sem)
+```
+
+Without the `feedback =` declaration, the same two reciprocal formulas make the
+graph cyclic and `drm_sem()` **stops** with an error that points you at the
+remedy — split the node, drop a feedback arrow, or declare the motif:
+
+```r
+# Undeclared cycle: a hard error (NOT silently fitted).
+#> Error: The structural graph contains a cycle; drmSEM requires a DAG or a
+#>   declared feedback motif.
+#>   x Nodes in or downstream of an undeclared cycle: "activity", "stress".
+#>   i Remove the feedback arrows, split the node, or declare the motif with
+#>     `feedback = drm_cycle(...)`.
+```
+
+Declaring the motif relaxes the topological-order check (the loop is condensed
+into a single layer), and it makes the d-separation basis set drop independence
+claims among the loop's nodes (see below). Every *undeclared* cycle elsewhere in
+the graph stays a hard error.
+
+## The honest part: declaring a cycle does not fit it consistently
+
+This is the single most important thing in this vignette, so it is not buried:
+
+> **Node-wise maximum likelihood of a declared cycle is *inconsistent* under
+> simultaneity, and `drmSEM` does not pretend otherwise.** When you fit a SEM
+> that declares a feedback motif, `drm_sem()` / `drm_psem()` emit a **warning**:
+> the per-node coefficients are biased because each loop node's regressor is also
+> its descendant. Consistent estimation needs either **instrumental variables /
+> 2SLS** (an exogenous predictor of `activity` that is excluded from the `stress`
+> equation, and vice versa) or a **joint likelihood** that estimates the whole
+> system at once. Neither is shipped: consistent feedback *estimation* is an
+> **engine** deliverable, not something the pure-R layer fakes. `drmSEM` will not
+> silently hand you a number and call it the structural effect.
+
+The warning looks like this:
+
+```r
+#> Warning: A declared feedback motif is fitted node-wise; ordinary ML is
+#>   inconsistent under simultaneity.
+#>   i Consistent estimation (IV/2SLS or a joint likelihood) is an engine
+#>     capability; equilibrium effects use the fixed-point propagator on the
+#>     supplied coefficients.
+```
+
+So what *does* `drmSEM` do for a cycle today? It solves problem (2), the
+propagation problem, **given** structural coefficients. The job here is: *if* you
+supply consistent coefficients (from a future IV/joint fit, or because you are
+prototyping with known values), `drmSEM` propagates them to the loop's
+**equilibrium** and reports the equilibrium effect honestly. The grammar and the
+equilibrium engine ship; the consistent *fit* does not. Keep those two apart and
+nothing here will mislead you.
+
+## The equilibrium estimand, intuitively
+
+Write the loop as a structural system for the endogenous vector `y` (here
+`activity` and `stress`):
+
+```
+y = B y + Gamma x + e
+```
+
+`B` holds the **direct** within-loop effects (`B[i, j]` is the direct effect of
+`y_j` on `y_i`, zero on the diagonal) and `Gamma` holds the direct effects of the
+exogenous driver `x`. Solving for the steady state gives the **reduced form**:
+
+```
+y = (I - B)^{-1} (Gamma x + e),      total-effect matrix  T = (I - B)^{-1} Gamma
+```
+
+The key identity is
+
+```
+(I - B)^{-1} = I + B + B^2 + B^3 + ...
+```
+
+which is exactly the **sum over all walks** from `x` to `y`, *including the ones
+that go around the loop any number of times*. That is the feedback generalization
+of the acyclic path sum: in a DAG the series terminates (no walk revisits a
+node); in a cycle it does not, and the infinite sum is the equilibrium. `T` is
+the **linear** estimand and is exact for the identity-link Gaussian case.
+
+For **nonlinear / distributional** feedback — `drmSEM`'s reason to exist — there
+is no closed-form matrix inverse. The estimand is instead the **fixed point of
+the propagation map**: set `x` to its contrast value, then iterate
+
+```
+y^{(t+1)} = g( B-propagated y^{(t)}  +  Gamma x )
+```
+
+(each loop node re-predicted from the *current* working values of its parents,
+through its inverse link `g`) until the values stop changing. The internal
+`propagate_fixedpoint()` does exactly this — it replaces the DAG's single
+topological sweep with an **iterate-to-fixed-point** loop.
+
+### Stability: the loop must converge
+
+A fixed point only exists if the feedback **damps** rather than amplifies. The
+condition is on the spectral radius of `B`:
+
+> **`rho(B) < 1`** (the largest eigenvalue modulus below one) — the feedback
+> converges and a unique stable equilibrium exists. If `rho(B) >= 1` the loop
+> **diverges**: each trip around the cycle amplifies the previous one, the series
+> `I + B + B^2 + ...` does not sum, and **no equilibrium effect is defined.**
+
+When the system diverges `drmSEM` reports that honestly — it returns `NA` with a
+warning, never a fabricated number. This is the same honesty discipline as the
+`identified = FALSE` / non-convergence flags elsewhere in the package.
+
+## Reading the equilibrium total effect
+
+For a feedback SEM, `total_effects()` routes through the fixed-point propagator
+and reports the system's **equilibrium** response — what `stress` settles to once
+the `activity ⇄ stress` loop has fully played out under a change in `x`. (This
+needs a fitted SEM, so the chunk is illustrative only.)
+
+```{r total, eval = has_engine}
+total_effects(sem, from = "x", to = "stress")
+#>   from     to    scale   mediation    target estimate conf.low conf.high
+#>      x stress response equilibrium      mean      ...      ...       ...
+```
+
+Note the `mediation` column reads `"equilibrium"` (not `"mean"` / `"distribution"`
+as in an acyclic SEM): it is signalling that the number is a steady state, not a
+single-sweep path product. Three things to keep in mind, all enforced by the
+code:
+
+- **`target = "mean"` only.** The equilibrium is defined on the deterministic
+  mean-propagation map, so distributional functionals (`p_gt`, `p_zero`, `var`)
+  are not yet defined through a cycle and asking for one is an error. The
+  *distributional* feedback equilibrium (sampling inside the loop) is deferred.
+
+- **A diverging system returns `NA`, never a number.** If the loop fails to reach
+  a stable equilibrium (`rho(B) >= 1`), `total_effects()` warns and reports `NA`:
+
+  ```r
+  #> Warning: The feedback system did not reach a stable equilibrium
+  #>   (spectral radius >= 1?).
+  #>   i No population-average equilibrium effect is defined; reporting NA.
+  #>   from     to    scale   mediation target estimate conf.low conf.high
+  #>      x stress response equilibrium   mean       NA       NA        NA
+  ```
+
+- **The decomposition is undefined.** Splitting a total effect into
+  mean-mediated vs distribution-mediated parts (or into per-path contributions)
+  needs a topological sweep to attribute the pieces — which a cycle does not
+  have. So `indirect_effects()` and `path_effects()` **refuse** a feedback SEM
+  and point you to `total_effects()`:
+
+  ```r
+  indirect_effects(sem, from = "x", to = "stress")
+  #> Error: `indirect_effects()` is not defined for a SEM with a declared
+  #>   feedback motif.
+  #>   x A mean/distribution decomposition needs a topological order, which a
+  #>     cycle lacks.
+  #>   i Use `total_effects()` for the equilibrium total effect; see
+  #>     docs/design/10-cyclic-feedback.md.
+  ```
+
+`direct_effects()` still works on a feedback SEM: the **controlled direct
+effect** holds the mediators fixed and does not traverse the loop, so it has a
+well-defined meaning even when the loop is present.
+
+## d-separation: the test is scoped to the acyclic part
+
+The goodness-of-fit machinery is affected too. A DAG's conditional-independence
+claims come from d-separation, but a cyclic graph's independence structure is
+given by **sigma-separation** (the cyclic generalization; Forré & Mooij 2017),
+which differs from d-separation precisely around the loop. Rather than assert
+claims that may be false across the cycle, `basis_set()` **drops** the
+independence claims among the declared motif's nodes — exactly parallel to how a
+covariance edge drops the `y1 _||_ y2` claim.
+
+> The practical consequence: the d-separation / Fisher's C test is **scoped to
+> the acyclic part** of the graph until full sigma-separation lands. Claims that
+> sit entirely outside the loop are still tested; claims among the loop's nodes
+> are suppressed rather than misreported. Full sigma-separation is deferred.
+
+## Recap
+
+- A **reciprocal pair** (`activity ⇄ stress`, `predator ⇄ prey`, ...) is a
+  cycle, and a cycle breaks two things: node-wise **fitting** is biased under
+  simultaneity, and the effect of an upstream driver is an **equilibrium**, not a
+  path product.
+- **Declaring is opt-in.** `drm_cycle("y1", "y2")` plus `feedback =` names the
+  motif; `cycles()` lists it. Every *undeclared* cycle stays a hard error.
+- **`drmSEM` is honest about fitting.** Node-wise ML of a declared cycle is
+  *inconsistent*; `drm_sem()` warns and does not fake consistency. Consistent
+  estimation (IV/2SLS or a joint likelihood) is an **engine** deliverable, not
+  shipped. `drmSEM`'s job for a cycle is equilibrium **propagation** given
+  supplied coefficients.
+- The **equilibrium estimand** is the reduced form `(I - B)^{-1} Gamma` (the sum
+  over all walks, loops included) in the linear case, and the **fixed point** of
+  the propagation map in general. It exists only when `rho(B) < 1`; otherwise the
+  feedback diverges and **no** equilibrium effect is defined.
+- `total_effects(sem, from = "x", to = "y2")` returns the equilibrium total
+  effect (`mediation = "equilibrium"`), **`target = "mean"` only**, with `NA` (not
+  a number) on divergence. The mean/distribution **decomposition** through a cycle
+  is undefined, so `indirect_effects()` / `path_effects()` refuse a feedback SEM
+  and point to `total_effects()`.
+- d-separation **drops** independence claims among the loop's nodes; the
+  goodness-of-fit test is scoped to the acyclic part until sigma-separation lands.
+
+For the full design — the two hard problems, the staged plan (what shipped in
+0.5.0 + 0.5.x vs what is deferred), the stability condition, and the references —
+see `docs/design/10-cyclic-feedback.md`. For the *non*-directional coupling of
+two responses (a residual correlation, not a feedback loop), see the
+[bivariate-nodes vignette](bivariate-nodes.html).
