@@ -247,7 +247,7 @@ code:
   ```r
   #> Warning: The feedback system did not reach a stable equilibrium
   #>   (spectral radius >= 1?).
-  #>   i No population-average equilibrium effect is defined; reporting NA.
+  #>   i No stable conditional equilibrium effect is defined; reporting NA.
   #>   from     to    scale   mediation target estimate conf.low conf.high
   #>      x stress response equilibrium   mean       NA       NA        NA
   ```

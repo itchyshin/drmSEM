@@ -9,11 +9,10 @@ vignette: >
 
 ```{r setup, include = FALSE}
 # drmSEM never fits its own likelihoods: every endogenous node is one drmTMB
-# fit, and drmTMB compiles TMB (C++) from source. While the drmTMB-integration
-# layer is still pending end-to-end validation (see
-# docs/memory/VALIDATION_LEDGER.md), the model-fitting chunks below are shown
-# for illustration but not evaluated. Flip `has_engine` to
-# requireNamespace("drmTMB", quietly = TRUE) once integration is validated.
+# fit, and drmTMB compiles TMB (C++) from source. To keep R CMD check and pkgdown
+# independent of a live compiled engine, model-fitting chunks are shown for
+# illustration but not evaluated. Set `has_engine` locally after installing
+# drmTMB if you want to execute the walkthrough.
 has_engine <- FALSE
 knitr::opts_chunk$set(
   collapse = TRUE,
@@ -254,8 +253,8 @@ Coefficient products are *not* a valid way to combine paths across non-Gaussian
 links or across distributional components. `drmSEM` therefore computes effects
 by **Monte-Carlo propagation** over the fitted DAG: it sets the exogenous
 predictor to two contrasting values, pushes the change through every downstream
-node, and reads the population-average change in the response-scale mean of the
-target.
+node, and reads the conditional (`RE = 0`) response-scale change in the mean of
+the target.
 
 **Direct (controlled) effect.** Hold all mediators at their observed values;
 move only `temp`. Only the arrows that go *directly* into `survival` operate.

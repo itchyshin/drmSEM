@@ -211,6 +211,7 @@ test_that("V-30b: a pure-sigma path moves Var(Y) on the closed form, with zero m
 
 test_that("drm_nominal_link labels each (family, component) correctly", {
   expect_equal(drm_nominal_link("gaussian", "mu"), "identity")
+  expect_equal(drm_nominal_link("lognormal", "mu"), "identity")
   expect_equal(drm_nominal_link("gaussian", "sigma"), "log")
   expect_equal(drm_nominal_link("poisson", "mu"), "log")
   expect_equal(drm_nominal_link("nbinom2", "mu"), "log")

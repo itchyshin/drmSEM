@@ -102,6 +102,17 @@ distribution-mediated effects through count/proportion mediators. Asserted by
 > shifted) — the per-row `sigma <-> dispersion` scale is unconfirmed. See OQ-1 and
 > `inst/validation/sampler-dispersion-probe.R`. (Same caveat applies to D-9 Gamma.)
 
+> **[Update 2026-06-07] OQ-1 CLOSEOUT for common samplers.** The single-row probe
+> showed nbinom2, beta, and Gamma still use the D-7 `1/sigma^2` mapping; the
+> aggregate V-57..V-59 failures were caused by drmSEM omitting fitted default
+> dpars (especially `sigma`) from prediction engines when no explicit
+> `sigma ~ ...` formula was declared. The lognormal failure was real but different:
+> current drmTMB exposes lognormal `mu` as `meanlog` (identity link), with
+> `sigma` as `sdlog`. `drm_sample_family()` now uses `rlnorm(meanlog = mu,
+> sdlog = sigma)`, `drm_nominal_link("lognormal", "mu")` is `identity`, and
+> propagated means use `exp(mu + sigma^2 / 2)` for lognormal. V-57..V-60 are now
+> assertions against `drmTMB::simulate()`.
+
 ## [2026-06-04] D-8 — Plotting: igraph DAG + ggplot2 effect forest plot
 
 **Decision.** Two plot surfaces, both with optional dependencies gated at call

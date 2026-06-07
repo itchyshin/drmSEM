@@ -9,11 +9,10 @@ vignette: >
 
 ```{r setup, include = FALSE}
 # drmSEM never fits its own likelihoods: every endogenous node is one drmTMB
-# fit, and drmTMB compiles TMB (C++) from source. While the drmTMB-integration
-# layer is still pending end-to-end validation (see
-# docs/memory/VALIDATION_LEDGER.md), the model-fitting and effect chunks below
-# are shown for illustration but not evaluated. Flip `has_engine` to
-# requireNamespace("drmTMB", quietly = TRUE) once integration is validated.
+# fit, and drmTMB compiles TMB (C++) from source. To keep R CMD check and pkgdown
+# independent of a live compiled engine, model-fitting and effect chunks are
+# shown for illustration but not evaluated. Set `has_engine` locally after
+# installing drmTMB if you want to execute the walkthrough.
 has_engine <- FALSE
 knitr::opts_chunk$set(
   collapse = TRUE,
@@ -114,15 +113,16 @@ breaks both conditions:
 So `drmSEM` does not multiply coefficients. It **simulates the intervention**:
 set the predictor to two contrasting values (a one-SD contrast for numerics, the
 first two levels for factors), push each contrast through the whole fitted DAG
-with random effects held at zero, and read off the population-average change in
-the response-scale mean of the target. The distribution-mediated effect is
+with random effects held at zero, and read off the conditional (`RE = 0`)
+response-scale change in the mean of the target. The distribution-mediated effect is
 *only expressible at all* under this simulation view -- it has no
 coefficient-product counterpart to compare against.
 
 ## The five-number decomposition
 
 `indirect_effects()` returns five rows, one per `quantity`. Each is a contrast of
-population-average response means between the high and low intervention.
+simulated conditional (`RE = 0`) response-scale means between the high and low
+intervention.
 
 | `quantity` | meaning |
 | --- | --- |

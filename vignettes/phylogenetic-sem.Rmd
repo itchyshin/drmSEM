@@ -9,12 +9,11 @@ vignette: >
 
 ```{r setup, include = FALSE}
 # drmSEM never fits its own likelihoods: every endogenous node is one drmTMB
-# fit, and drmTMB compiles TMB (C++) from source. The phylogenetic examples
-# below additionally need a tree (the `ape` package). To keep this vignette
-# building under R CMD check / pkgdown without either dependency installed,
-# the model-fitting chunks are shown for illustration but NOT evaluated. Flip
-# `has_engine` to test for both packages once integration is validated, e.g.
-# requireNamespace("drmTMB", quietly = TRUE) && requireNamespace("ape", quietly = TRUE).
+# fit, and drmTMB compiles TMB (C++) from source. The phylogenetic examples also
+# need a tree from `ape`. To keep R CMD check and pkgdown independent of those
+# optional dependencies, model-fitting chunks are shown for illustration but not
+# evaluated. Set `has_engine` locally after installing drmTMB and ape if you want
+# to execute the walkthrough.
 has_engine <- FALSE
 knitr::opts_chunk$set(
   collapse = TRUE,
@@ -26,14 +25,10 @@ library(drmSEM)
 
 ## What is a *phylogenetic distributional* SEM?
 
-**`drmSEM` is the only SEM tool that runs d-separation and a distributional
-effect decomposition over a phylogenetically-structured DAG** -- it does
-phylogenetic *distributional* path analysis, where shared ancestry is a
-controlled-for random effect and a causal arrow can target the *spread*,
-*zero-inflation*, or *shape* of a trait, not only its mean.
-
-That sentence is best understood by contrast with the two neighbouring tools an
-evolutionary ecologist already knows:
+`drmSEM`'s niche is **phylogenetic distributional path analysis**: shared
+ancestry is a controlled-for random effect, while each causal arrow can target
+the *spread*, *zero-inflation*, or *shape* of a trait, not only its mean. The
+contrast with two neighbouring tools is:
 
 | Package     | What it does                                                       |
 | ----------- | ----------------------------------------------------------------- |
@@ -75,8 +70,9 @@ The practical consequence is the one you want: `paths()`, `basis_set()`,
 `dsep()`, `fisher_c()`, and the effect decomposition all operate on the
 **fixed-effect DAG**, while the phylogenetic signal is soaked up by the random
 effect underneath. You get phylogenetically-corrected path coefficients and
-phylogenetically-corrected independence tests "for free", because the correction
-lives where it belongs -- in each node's fit -- rather than in the graph.
+phylogenetically-corrected independence tests without adding the tree as a causal
+edge, because the correction lives where it belongs -- in each node's fit --
+rather than in the graph.
 
 ## A worked system: `size -> abundance -> fitness`, on a tree
 
@@ -322,5 +318,3 @@ re-implementation of the comparative-methods stack.
   (fixed-grid BM/OU/lambda/kappa via `drm_phylo_cov()`) all work today; jointly
   estimated covariance, covariance-aware comparison, and Phase 4 distributional
   phylo paths remain roadmap. See `docs/design/06-phylogenetic-sem.md`.
-</content>
-</invoke>

@@ -69,10 +69,9 @@ paths(sem)         # directed-only: temp -> activity, temp -> boldness
 dsep(sem)          # the activity _||_ boldness claim is dropped
 ```
 
-> The grammar and the d-separation consequence ship today. A first-class
-> bivariate node constructor (`drm_pair()`), `rho12()` / `corpairs()` read-back
-> from a live fit, and double-headed-arc plotting need a bivariate `drmTMB` fit
-> and are on the roadmap.
+> The grammar, accessors, d-separation consequence, and arc plotting ship today.
+> What remains on the roadmap is the live bivariate engine step that reads
+> non-`NA` `rho12` / `corpair` estimates back from a joint `drmTMB` fit.
 
 ## 2. Composite constructs: `drm_composite()` and `loadings()`
 
@@ -136,6 +135,7 @@ path_effects(sem3, from = "temp", to = "survival", by = "component")
 ```
 
 This is a **model-based decomposition**, not a claim of nonparametric
-path-specific identification (which requires the recanting-witness criterion). The
-cross-world natural per-mediator variant is on the roadmap. See
-`docs/design/02-effect-calculus.md`.
+path-specific identification. `path_effects(effect = "natural")` also reports
+the natural per-mediator variant and includes an `identified` flag for the
+recanting-witness check. Live-fit integration and interval reporting remain
+roadmap items; see `docs/design/02-effect-calculus.md`.

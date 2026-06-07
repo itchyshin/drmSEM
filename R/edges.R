@@ -28,7 +28,7 @@ drm_nominal_link <- function(family_name, component) {
     family_name,
     gaussian = "identity",
     student = "identity",
-    lognormal = "log",
+    lognormal = "identity",
     Gamma = "log",
     gamma = "log",
     tweedie = "log",

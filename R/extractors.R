@@ -110,6 +110,17 @@ drm_fit_components <- function(fit) {
   unique(comps)
 }
 
+#' Distributional components needed for prediction/effect propagation
+#'
+#' Formula entries record user-modelled components for graph semantics. drmTMB
+#' still fits default intercept components such as `sigma`, and samplers need
+#' those fitted values even when no `sigma ~ ...` formula was declared.
+#' @keywords internal
+#' @noRd
+drm_fit_prediction_components <- function(fit) {
+  unique(c(drm_fit_components(fit), names(fit$coefficients)))
+}
+
 #' Fixed-effect predictors targeting one component of a node
 #'
 #' @return Character vector of predictor variable names for the formula whose
@@ -213,6 +224,45 @@ drm_predict_parameters <- function(fit, newdata, dpar = NULL,
     type = type,
     include_newdata = include_newdata
   )
+}
+
+#' Extract one predicted distributional parameter as a numeric vector
+#'
+#' `drmTMB::predict_parameters()` has changed shape across versions. In current
+#' builds the parameter value lives in an `estimate` column and the original
+#' numeric predictors can appear after it. Prefer named/estimate columns and
+#' avoid treating numeric `newdata` columns as predictions.
+#' @keywords internal
+#' @noRd
+drm_predict_parameter_values <- function(fit, newdata, dpar,
+                                         type = c("response", "link")) {
+  type <- match.arg(type)
+  pp <- as.data.frame(drm_predict_parameters(
+    fit, newdata = newdata, dpar = dpar, type = type,
+    include_newdata = FALSE
+  ))
+  drm_prediction_estimate_column(pp, dpar, nrow(newdata), names(newdata))
+}
+
+drm_prediction_estimate_column <- function(pp, dpar, n, newdata_names = character(0)) {
+  if (dpar %in% names(pp) && is.numeric(pp[[dpar]]) && length(pp[[dpar]]) == n) {
+    return(as.numeric(pp[[dpar]]))
+  }
+  if ("estimate" %in% names(pp) && is.numeric(pp$estimate) &&
+      length(pp$estimate) == n) {
+    return(as.numeric(pp$estimate))
+  }
+  numeric_cols <- names(pp)[vapply(pp, is.numeric, logical(1))]
+  metadata_cols <- c("row", "conf.low", "conf.high", "std.error", "statistic",
+                     "p.value", newdata_names)
+  candidates <- setdiff(numeric_cols, metadata_cols)
+  if (length(candidates)) {
+    col <- pp[[candidates[[length(candidates)]]]]
+    if (length(col) == n) {
+      return(as.numeric(col))
+    }
+  }
+  rep(NA_real_, n)
 }
 
 #' Refit a node, adding `add_var` as a fixed-effect predictor to every modelled

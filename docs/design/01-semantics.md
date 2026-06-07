@@ -33,8 +33,8 @@ The fundamental object is the typed edge:
 - `link` is a *nominal* link for that `(family, component)` (`drm_nominal_link`),
   used for display and standardization only — it never alters a drmTMB
   computation. Defaults: `sigma`/`nu`/`sd*` → `log`; `zi`/`hu` → `logit`;
-  `rho12` → `tanh`; `mu` → the family's link (e.g. `log` for `nbinom2`,
-  `logit` for `beta_binomial`, `identity` for `gaussian`).
+  `rho12` -> `tanh`; `mu` -> the family's link (e.g. `log` for `nbinom2`,
+  `logit` for `beta_binomial`, `identity` for `gaussian` and `lognormal`).
 - `term` is the predictor token as it appears in the sub-formula.
 - `endogenous` flags whether `from` resolved to another node.
 
