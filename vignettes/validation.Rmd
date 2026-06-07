@@ -1,8 +1,8 @@
 ---
-title: "Coverage and recovery (validation wave 2)"
+title: "Effect-interval coverage and model-selection recovery"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Coverage and recovery (validation wave 2)}
+  %\VignetteIndexEntry{Effect-interval coverage and model-selection recovery}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -34,9 +34,12 @@ val <- if (nzchar(results_path) && file.exists(results_path)) {
 }
 ```
 
-All results below are **precomputed on live drmTMB; this document performs no
-model fitting.** The study object is regenerated only in the drmTMB lane and
-ships as a cached `.rds` inside the package.
+This page asks two practical validation questions: do simulated effect intervals
+cover known effects at the advertised rate, and does model comparison recover the
+true DAG from a small candidate set? All results below are **precomputed on live
+drmTMB; this document performs no model fitting.** The study object is
+regenerated only in the drmTMB lane and ships as a cached `.rds` inside the
+package.
 
 ```{r guard, eval = TRUE, echo = FALSE, results = "asis"}
 # Graceful degrade: render an explanatory note (not an error) and stop early if
@@ -44,7 +47,7 @@ ships as a cached `.rds` inside the package.
 # no-engine lane.
 if (is.null(val)) {
   cat(
-    "> **The wave-2 validation study has not yet been run in the live-drmTMB lane.**\n",
+    "> **The effect-interval and model-selection validation study has not yet been run in the live-drmTMB lane.**\n",
     ">\n",
     "> This page is a precomputed scaffold. Once",
     "`inst/validation/generate.R`",
@@ -57,26 +60,26 @@ if (is.null(val)) {
 }
 ```
 
-## What this page certifies
+## What is being tested
 
-Wave 1 (`docs/design/11-validation-matrix.md`) established **point recovery**:
-the machinery returns the right *number* on a known-answer DGP. Wave 2 (this
-page, `docs/design/12-coverage-calibration.md`) establishes the **operating
-characteristics** -- does the *uncertainty* have the advertised behaviour, and
-do the *inferential* procedures calibrate? These are many-replicate studies, so
-the full grid runs in the live lane and is cached, exactly like the OQ-6
-Fisher's C calibration page.
+The validation matrix (`docs/design/11-validation-matrix.md`) established
+**point recovery**: the machinery returns the right *number* on a known-answer
+DGP. This page (`docs/design/12-coverage-calibration.md`) establishes the
+**operating characteristics** -- does the *uncertainty* have the advertised
+behaviour, and do the *inferential* procedures calibrate? These are
+many-replicate studies, so the full grid runs in the live lane and is cached,
+like the d-separation calibration page.
 
 Two studies are tabulated here:
 
-- **C-1 -- effect-interval coverage.** Does `uncertainty = "parametric"` produce
+- **Effect-interval coverage.** Does `uncertainty = "parametric"` produce
   intervals that cover the true effect at the nominal rate?
-- **C-3 -- model-selection recovery.** Does [`best()`] select the true DAG, and
-  how much Akaike weight lands on the truth?
+- **Model-selection recovery.** Does [`best()`] select the true DAG, and how much
+  Akaike weight lands on the truth?
 
-Two further wave-2 studies live elsewhere and are **not** reimplemented here:
-**C-2** (d-separation Type-I / power) is the calibration study on its own page;
-**C-4** (sampler dispersion vs `drmTMB::simulate()`) is the standalone probe
+Two related checks live elsewhere and are **not** reimplemented here:
+d-separation Type-I / power is the calibration study on its own page, and
+sampler dispersion vs `drmTMB::simulate()` is the standalone probe
 `inst/validation/sampler-dispersion-probe.R`.
 
 ## The study design (shown, never run)
@@ -91,7 +94,7 @@ GRID <- list(
 )
 ```
 
-### C-1 -- effect-CI coverage
+### Effect-interval coverage
 
 A linear identity-link Gaussian chain `x -> m -> y` with a direct `x -> y` edge,
 whose **true total / direct / indirect effects are known in closed form** --
@@ -119,7 +122,7 @@ dec <- indirect_effects(sem, "x", "y", uncertainty = "parametric", B = 400)
 # record whether conf.low/conf.high bracket the known truth, per quantity
 ```
 
-### C-3 -- model-selection recovery
+### Model-selection recovery
 
 A true DAG (`x -> m -> y`, with the direct `x -> y` edge omitted) versus a
 candidate set that includes the truth, an over-fitted rival, and a
@@ -151,14 +154,16 @@ The cached study object stores these checks in `val$acceptance`:
    jitter).
 
 ```{r acceptance-table, echo = FALSE, eval = !is.null(val)}
+criteria <- val$acceptance$criteria
+criteria$criterion <- sub("^C[0-9]+\\s+", "", criteria$criterion)
 knitr::kable(
-  val$acceptance$criteria,
+  criteria,
   col.names = c("Criterion", "Rule", "Pass"),
-  caption = "Wave-2 acceptance checks."
+  caption = "Validation acceptance checks."
 )
 ```
 
-## C-1: effect-interval coverage
+## Effect-interval coverage
 
 Empirical coverage of the nominal `r if (!is.null(val)) val$provenance$level`
 parametric interval per quantity and sample size, with the Monte-Carlo
@@ -181,7 +186,7 @@ knitr::kable(
 )
 ```
 
-## C-3: model-selection recovery
+## Model-selection recovery
 
 Selection rate of the true DAG and mean Akaike weight on the truth per sample
 size, with the rate at which the under-fitted (missing-edge) rival is wrongly

@@ -1025,3 +1025,52 @@ clean docs-only state (merged). CODEX_HANDOFF item 7 updated with the gotchas.
 The actual drm_sample_family fix stays in Codex's lane (engine, fast). Lesson:
 verify "ground truth" API calls (simulate/family constructors) exist BEFORE
 building a probe on them.
+
+## 2026-06-07 — Codex OQ-1 closeout: sampler assertions promoted
+
+Ran the live OQ-1 lane on branch `codex/oq1-sampler-fix`. The decisive
+single-row probe showed the prior aggregate variance figures were not the
+mapping: nbinom2, beta, and Gamma still match drmTMB with the D-7 `1/sigma^2`
+mapping. Two implementation bugs caused the recovery mismatch:
+
+- `predict_parameters()` returns an `estimate` column and may append numeric
+  newdata columns after it; the probe/test helpers were selecting `x` as the
+  fallback. Added `drm_predict_parameter_values()` in `R/extractors.R` so this
+  shape assumption lives in the adapter.
+- Effect propagation only used formula-declared components, so a fit with no
+  explicit `sigma ~ ...` formula dropped the fitted default `sigma` and the
+  sampler fell back to `sigma = 1`. Added `drm_fit_prediction_components()` and
+  use it in the effect engine.
+
+The real family-parameterization fix was lognormal: current drmTMB exposes
+`mu = meanlog` with identity link and `sigma = sdlog`. Updated
+`drm_sample_family("lognormal")`, `drm_nominal_link("lognormal", "mu")`, and
+mean propagation (`drm_family_expected_mean()`) so lognormal mean mediation uses
+`exp(mu + sigma^2 / 2)`.
+
+Validation evidence:
+- `Rscript inst/validation/sampler-dispersion-probe.R` after the patch:
+  nbinom2 var ratio 0.985, Gamma 0.985, beta 0.997, lognormal 1.019 versus
+  `drmTMB::simulate()`.
+- Targeted tests after reinstall:
+  `devtools::test(filter = 'oq1-samplers|recovery-samplers|recovery-families|recovery$|analytic-effects')`
+  -> `[ FAIL 0 | WARN 0 | SKIP 1 | PASS 151 ]`; the skip is the existing
+  binomial `cbind()` guard.
+
+Updated `OPEN_QUESTIONS.md`, `VALIDATION_LEDGER.md`, `DECISIONS.md`,
+`CODEX_HANDOFF.md`, and design docs. Remaining sampler extensions are separate:
+zero_one_beta boundary inflation, tweedie mean-fallback, student `nu`, and
+beta_binomial trials. Next engine item is wave-2 coverage cache generation.
+
+## 2026-06-07 — Codex: article audit and calibration rewrite
+
+- Audited every pkgdown article listed in `_pkgdown.yml`; see
+  `docs/memory/ARTICLE_AUDIT.md`.
+- Rewrote `vignettes/calibration.Rmd` around the reader-facing question,
+  bottom-line calibration results, study design, and scoped claim. Removed public
+  `OQ-6` / `V-17` bookkeeping labels from the article prose.
+- Cleaned related public-doc friction: `validation.Rmd` now names its two
+  studies directly instead of exposing `C-*` headings; overview no longer shows
+  `OQ-6` in reader-facing status text; stale "integration pending" comments were
+  replaced in the main, effect, and phylogenetic articles; the phylogenetic
+  article's unsupported "only SEM tool" superlative was softened.
