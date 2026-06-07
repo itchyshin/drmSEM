@@ -11,6 +11,7 @@
 ^pkgdown$
 ^pkgdown-site$
 ^LICENSE\.md$
+^LICENSE$
 ^\.git$
 ^\.gitignore$
 ^cran-comments\.md$

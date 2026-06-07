@@ -12,18 +12,18 @@ from_lavaan(syntax)
 \value{
 A list of class \code{drm_skeleton} with elements \code{dag} (a \code{\link[=drm_dag]{drm_dag()}} of
 the regression structure, or \code{NULL} if there were no \code{~} lines) and
-\code{covary} (a list of \code{\link[=covary]{covary()}} declarations from the \code{~~} lines, possibly
+\code{covary} (a list of \code{\link[=covary]{covary()}} declarations from the \verb{~~} lines, possibly
 empty).
 }
 \description{
 \code{from_lavaan()} reads a lavaan-style model-syntax string and returns a drmSEM
 graph skeleton: the \code{~} regression lines become per-response node formulas
-(assembled into a \code{\link[=drm_dag]{drm_dag()}}), and the \code{~~} covariance lines become
+(assembled into a \code{\link[=drm_dag]{drm_dag()}}), and the \verb{~~} covariance lines become
 \code{\link[=covary]{covary()}} declarations. This is pure string parsing — nothing is evaluated
 or fitted.
 }
 \details{
-Reflective latent measurement (\code{=~}) lines are \strong{ignored with a warning}:
+Reflective latent measurement (\verb{=~}) lines are \strong{ignored with a warning}:
 reflective measurement models need a joint likelihood and are out of the 0.x
 scope (\code{docs/design/09-latent-variables.md}). Variance / intercept-only lines
 (\code{x ~~ x}, \code{x ~ 1}) are skipped.

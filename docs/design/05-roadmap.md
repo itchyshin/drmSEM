@@ -51,7 +51,7 @@ live-fit analytic-effect tier flip, and OQ-14 joint fit.
   toward lavaan-style measurement while staying likelihood-based per node. Out of
   scope until the observed-variable core is validated.
 
-## 0.4 — Joint multivariate SEM (joint-FIT milestone)
+## 0.4 — Joint multivariate SEM (joint-FIT milestone) — PARTIAL (grammar + declaration shipped 0.2.x; joint fit engine-dependent, deferred)
 
 - Optionally fit correlated endogenous responses as one joint drmTMB model
   (`rho12` becomes a first-class structural target rather than a per-node
@@ -67,7 +67,7 @@ live-fit analytic-effect tier flip, and OQ-14 joint fit.
   joint *fit* and the fitted-correlation read-back (a non-`NA` estimate) remain
   here.
 
-## 0.5 — Cyclic / feedback graphs
+## 0.5 — Cyclic / feedback graphs (RELEASED, 0.5.0)
 
 - Lift the DAG-only restriction for specific feedback motifs with a defined
   estimand and propagation rule. Cycles remain an error until this lands.

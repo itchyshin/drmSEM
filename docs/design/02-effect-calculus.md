@@ -152,8 +152,9 @@ estimate is returned.
 - `population` — `"conditional"` (RE = 0, default) or `"marginal"` (OQ-9).
 - `at` — override the contrast values.
 - `effect` — `"controlled"` (default) or `"natural"` for `indirect_effects()`.
-- `target`, `threshold` — outcome functional (on `total_effects()` and
-  `direct_effects()`).
+- `target`, `threshold`, `prob` — outcome functional (mean / p_gt / p_zero /
+  var / quantile) on all three effect functions; `indirect_effects()` honours it
+  for `effect = "controlled"`.
 - `level`, `seed` — interval width and reproducibility.
 
 (The pre-0.2 knobs `mediation`, `draw`, and `n_sim` are deprecated aliases for
@@ -245,7 +246,8 @@ never refit unless a bootstrap is explicitly requested.
 
 Effects need not be reported on the response-scale **mean** of `to`. The same
 g-computation propagation reads any functional of the predicted outcome
-distribution, exposed through `total_effects(target = , threshold = )`:
+distribution, exposed through `target = `, `threshold = ` (and `prob = ` for
+quantiles) on **all three** effect functions:
 
 | `target` | functional | definition |
 | --- | --- | --- |
@@ -253,22 +255,40 @@ distribution, exposed through `total_effects(target = , threshold = )`:
 | `"p_gt"` | `Pr(Y > threshold)` | exceedance probability |
 | `"p_zero"` | `Pr(Y = 0)` | (structural + sampling) zero probability |
 | `"var"` | `Var(Y)` | response-scale variance |
+| `"quantile"` | `Q_prob(Y)` | the `prob`-quantile of `Y` |
 
 These are the **headline estimands of distributional SEM**: a path into a
-mediator's `zi` or `sigma` changes `Pr(Y = 0)` or `Var(Y)` downstream even when
-it leaves `E[Y]` untouched. The functional effect is the same low/high
-counterfactual contrast, read on the chosen functional of the simulated outcome
-population.
+mediator's `zi` or `sigma` changes `Pr(Y = 0)`, `Var(Y)`, or a tail quantile
+downstream even when it leaves `E[Y]` untouched. The functional effect is the
+same low/high counterfactual contrast, read on the chosen functional of the
+simulated outcome population.
 
-**Status (OQ-11 — PARTIAL).** A first set of functionals (`p_gt`, `p_zero`,
-`var`) is *implemented and recovery-tested* — the `p_zero` effect recovers the
-Poisson zero-probability change `exp(-mu_hi) - exp(-mu_lo)` in
-`test-effect-kernels.R`. `target` is now exposed on `direct_effects()` as well
-as `total_effects()` (OQ-12); what remains open: surfacing it on
-`indirect_effects()` (the decomposition-on-a-functional semantics are
-unsettled), adding more functionals (quantiles) and analytic (non-simulated)
-variants, bootstrap intervals for functional effects (OQ-10), and settling the
-default reporting scale.
+**Status (OQ-11 — PARTIAL, extended 2026-06-07).** `target` is exposed on
+`direct_effects()`, `total_effects()`, **and `indirect_effects()`**. For
+`indirect_effects(effect = "controlled")` the three legs (cde, mean-mediated
+total, distribution-mediated total) are each read on the functional, so the split
+still closes: `indirect = mean_mediated + distribution_mediated`. This required
+fixing `drm_functional_target()`, which had hardcoded `"distribution"` mediator
+propagation — for a non-mean target the mean- and distribution-mediated legs were
+identical and the split degenerated; the leg now honours the passed `mediation`.
+Recovery-tested in `test-effect-kernels.R` (`p_zero` recovers the Poisson change
+`exp(-mu_hi) - exp(-mu_lo)`; `quantile` recovers a sigma-path tail effect
+`b + qnorm(p)*s1`; the functional legs are non-degenerate and close) and on live
+fits in `test-recovery-samplers.R` (V-62..V-64). `effect = "natural"` is mean-only
+(the cross-world functional contrast is open, OQ-8) and a feedback SEM is mean-only
+(the equilibrium response).
+
+`direct_effects()` / `total_effects()` also take `functional = c("simulate",
+"analytic")`. `"analytic"` evaluates the functional **in closed form** from the
+predicted parameters (no Monte-Carlo noise) — `var`/`p_gt`/`p_zero`/`quantile`
+for the **gaussian** and **poisson** families, which have no `sigma`↔dispersion
+ambiguity; it requires mean mediation (deterministic outcome params) and aborts
+for other families (their dispersion scale is the OQ-1 open item). Verified exact
+in `test-effect-kernels.R` (V-76 — the Poisson `p_zero` contrast the simulated
+kernel hits to ~0.03 is recovered to machine precision). What remains open:
+closed forms for the dispersion families once OQ-1 lands, the natural/cross-world
+functional variant, multiple functionals per call, bootstrap intervals for
+functional effects (OQ-10), and settling the default reporting scale.
 
 ## API harmonization (OQ-12 — implemented)
 
@@ -281,7 +301,7 @@ without touching any kernel (`R/effects_api.R`):
 | `uncertainty` | `"parametric"` / `"none"` / `"bootstrap"` | `draw = TRUE` / `FALSE` / (OQ-10, aborts) |
 | `nsim` | integer | `n_sim` (inner realizations) |
 | `population` | `"conditional"` / `"marginal"` | RE = 0 / (OQ-9, aborts) |
-| `target`, `threshold` | functional | outcome functional (now on `direct_effects()` too) |
+| `target`, `threshold`, `prob` | functional | outcome functional on all three functions (incl. `indirect_effects()` controlled) |
 | `B` | integer | number of uncertainty replicates (unchanged) |
 
 `indirect_effects()` deliberately has no `method`: the controlled decomposition

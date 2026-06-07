@@ -1,8 +1,64 @@
-# drmSEM 0.2.0.9000 (development version)
+# drmSEM 0.5.0
+
+This release closes the **cyclic / feedback-graph milestone** (roadmap §0.5) and
+ships the dev-line surface accumulated since 0.2.0. The DAG-only restriction is
+lifted for *declared* feedback motifs, with an equilibrium estimand and a pure-R
+fixed-point propagator; undeclared cycles remain a hard error. The feature
+highlights below are grouped by area. Consistent feedback estimation (IV/2SLS or
+a joint likelihood), full sigma-separation, distributional feedback equilibria,
+and the joint bivariate *fit* remain engine-dependent and are carried forward to
+the live-drmTMB lane (see `docs/memory/CODEX_HANDOFF.md`).
 
 ## Sampler and propagation fixes
 
 * `drm_sample_family()` and effect propagation now match current `drmTMB` parameterization for the common sampler families in live recovery tests. Default fitted dpars such as `sigma` are carried into prediction engines even when no explicit `sigma ~ ...` formula is declared, and lognormal nodes now use `mu = meanlog`, `sigma = sdlog`, with mean mediation propagating `exp(mu + sigma^2 / 2)` (OQ-1, V-57..V-60).
+
+## DAG plot: faithful legend + readable edges
+
+* `plot.drm_sem()` now builds its legend from the components **actually drawn**
+  (sourced from the same style function as the edges, so the two can never
+  drift) instead of always listing all seven distributional components — the
+  hero/landing-page DAG previously showed `nu`/`hu`/`sd(.)`/`rho12` swatches for
+  paths that did not exist. Covariance rows are added only for the classes truly
+  present.
+* Parallel paths between one pair (e.g. a `mu` **and** a `sigma` arrow on the
+  same edge) are now **fanned onto separate arcs** instead of overlapping into a
+  single line, and a `layout =` matrix (optionally row-named) can be supplied for
+  a fixed, crossing-free diagram. A **node-fill legend** (endogenous response vs
+  exogenous predictor) is drawn, and `hu` gets a distinct linetype so it no longer
+  relies on colour alone to separate from `zi` (colour-blind safety).
+* The legend construction is now a tested pure helper (`drm_path_legend()`), so a
+  regression that re-introduces phantom legend entries fails CI.
+* **Composite measurement edges:** `plot.drm_sem(show = "all")` now draws each
+  [drm_composite()] construct's indicators pointing into the construct as
+  steel-blue arrows (indicators shown as distinctly-filled nodes), so a formative
+  measurement model reads apart from the structural paths (OQ-15).
+
+## Outcome functionals across the effect API (OQ-11)
+
+* All three effect functions now report the effect on a chosen **functional of the
+  outcome distribution**, not just the mean: `target = "mean"` / `"p_gt"` /
+  `"p_zero"` / `"var"` / **`"quantile"`** (new, with a `prob` argument). `target`
+  already rode `direct_effects()` / `total_effects()`; it now also rides
+  **`indirect_effects()`** (`effect = "controlled"`), where every leg reports the
+  contrast on the functional and the mean-/distribution-mediated split still
+  closes (`indirect = mean_mediated + distribution_mediated`). This is where
+  distribution-mediated paths earn their keep — a path into `sigma`/`zi`/`nu` can
+  move a tail probability or quantile while leaving `E[Y]` nearly unchanged.
+* The `"quantile"` target reports the `prob`-quantile of the simulated outcome
+  (kernel-validated: a path into `sigma` shifts the upper quantile but not the
+  median).
+* `direct_effects()` / `total_effects()` gain `functional = c("simulate",
+  "analytic")`. `"analytic"` evaluates the functional in **closed form** from the
+  predicted parameters (no Monte-Carlo noise) for the **gaussian** and
+  **poisson** families — exact `var`/`p_gt`/`p_zero`/`quantile`. Other families
+  abort with a pointer back to `"simulate"` (their `sigma`↔dispersion scale is the
+  OQ-1 open item); analytic needs mean mediation (`method = "gcomp"`).
+* **Fix:** the functional engine now honours the mediator-propagation mode
+  (`"mean"` vs `"distribution"`) instead of always simulating the mediator, so the
+  controlled decomposition is non-degenerate for a non-mean `target`. `effect =
+  "natural"` remains mean-only (the cross-world functional contrast is open,
+  OQ-8/OQ-11); a feedback SEM stays mean-only (the equilibrium response).
 
 ## Validation wave 2 harness + newcomer docs
 

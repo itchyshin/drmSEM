@@ -24,10 +24,11 @@ is endogenous and X is causally no later than Y. Each claim asserts that X has
 \strong{no effect on any modelled distributional component of Y}, conditional on
 Y's existing parents. This any-component reading is drmSEM's definition of a
 missing arrow (see \code{docs/design/03-dsep.md}).
-
+}
+\details{
 A covariance edge declared with \code{\link[=covary]{covary()}} (a residual \code{rho12} or higher-level
 \code{corpair} arc) is an allowance that the two responses stay associated, so the
-\code{y1 _||_ y2} claim is dropped from the basis set (Shipley's bidirected-edge
+\verb{y1 _||_ y2} claim is dropped from the basis set (Shipley's bidirected-edge
 rule; OQ-14). A declared feedback motif (\code{\link[=drm_cycle]{drm_cycle()}}, 0.5) likewise drops
 independence claims among its nodes — DAG d-separation does not hold across a
 cycle, and the goodness-of-fit test is scoped to the acyclic part until

@@ -22,6 +22,8 @@ The \code{\link[=paths]{paths()}} table with an added \code{std.estimate} column
 \description{
 Rescales fitted path coefficients so they are comparable across predictors.
 Two scalings are offered, both reported on the component's \strong{link scale}:
+}
+\details{
 \itemize{
 \item \code{"sd_x"} multiplies each coefficient by the standard deviation of its
 predictor, giving the link-scale change in the component per one-SD change
@@ -57,14 +59,18 @@ distributional generalization of Grace & Bollen.
 }
 }
 
-\section{Known limitation}{
+\section{GLM mean paths (OQ-4 \code{sigma_E})}{
 
-For non-identity-link \strong{\code{mu}} paths the \code{latent} divisor currently uses
-\code{sd(eta)} alone and omits the distribution-specific theoretical error variance
-(e.g. \code{pi^2/3} for a logit link, after Grace et al. 2019 / piecewiseSEM's
-\code{latent.linear}), so GLM mean paths are mildly over-standardized. Adding that
-term is a tracked refinement (OQ-4) that needs a live-fit cross-check before it
-is changed.
+For a \strong{\code{mu}} path on a link with a \emph{constant} theoretical error variance, the
+\code{latent} divisor is \code{sqrt(Var(eta) + sigma_E^2)}, adding the link's
+distribution-specific latent-scale error variance (logit \code{pi^2/3}, probit \code{1},
+cloglog \code{pi^2/6}; after Grace et al. 2018 / piecewiseSEM's \code{latent.linear}).
+This corrects the earlier mild over-standardization of GLM mean paths. The
+\strong{log-link} families (Poisson, negative binomial, Gamma, lognormal) carry a
+\emph{mean-dependent} (observation-level) latent variance rather than a constant, so
+no \code{sigma_E} term is added there yet — that case is still deferred. Identity
+links and non-\code{mu} components are unchanged (the divisor is \code{sd(eta)} on the
+component's own link scale).
 }
 
 \examples{

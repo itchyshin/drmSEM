@@ -5,7 +5,13 @@
 \alias{summary.drm_sem}
 \title{Assemble a distributional piecewise SEM from fitted drmTMB models}
 \usage{
-drm_psem(..., data = NULL, covariances = NULL, composites = NULL, feedback = NULL)
+drm_psem(
+  ...,
+  data = NULL,
+  covariances = NULL,
+  composites = NULL,
+  feedback = NULL
+)
 
 \method{summary}{drm_sem}(object, ...)
 }

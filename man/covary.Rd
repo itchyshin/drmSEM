@@ -23,15 +23,15 @@ A \code{drm_covary} declaration object.
 A covariance edge is a double-headed arc, \strong{not} a directed path: it states
 that two responses are \emph{allowed to remain associated} after their modelled
 predictors, without asserting a direction or a mediated effect. With \code{level = NULL} it is a \strong{residual} correlation (\code{rho12}, within-observation,
-\code{eps_y1 <-> eps_y2}); with a grouping \code{level} it is a \strong{higher-level}
-random-effect correlation (\code{corpair}, between-unit, \code{u_level,y1 <-> u_level,y2}).
+\verb{eps_y1 <-> eps_y2}); with a grouping \code{level} it is a \strong{higher-level}
+random-effect correlation (\code{corpair}, between-unit, \verb{u_level,y1 <-> u_level,y2}).
 These are biologically distinct and are reported separately by
 \code{\link[=covariances]{covariances()}}; neither enters \code{\link[=paths]{paths()}} or the effect decomposition.
 }
 \details{
 Pass declarations to \code{\link[=drm_sem]{drm_sem()}} / \code{\link[=drm_psem]{drm_psem()}} via their \code{covariances}
 argument. A declared covariance edge makes \code{\link[=basis_set]{basis_set()}} / \code{\link[=dsep]{dsep()}} drop the
-\code{y1 _||_ y2 | predictors} independence claim, because the model has explicitly
+\verb{y1 _||_ y2 | predictors} independence claim, because the model has explicitly
 allowed \code{y1} and \code{y2} to stay coupled.
 }
 \examples{

@@ -23,6 +23,21 @@ accessors stay the same. Building the \code{\link[=drm_node]{drm_node()}} object
 formula with \code{\link[drmTMB:bf]{drmTMB::bf()}}, so this needs \code{drmTMB} available; the declaration
 itself (\code{\link[=drm_pair]{drm_pair()}}) and the accessors do not.
 }
+\examples{
+# The declaration itself needs no engine.
+pair <- drm_pair(
+  activity ~ x + (1 | id),
+  boldness ~ x + (1 | id),
+  rho12 = ~ x
+)
+\dontrun{
+# Expansion builds the marginal sub-nodes with drmTMB::bf(), so it needs
+# drmTMB available.
+expanded <- drm_expand_pair(pair)
+names(expanded$nodes)   # the two marginal response sub-nodes
+expanded$covariances    # the residual rho12 (+ any corpair) edges
+}
+}
 \seealso{
 \code{\link[=drm_pair]{drm_pair()}}, \code{\link[=drm_sem]{drm_sem()}}.
 }

@@ -19,7 +19,7 @@ A \code{drm_cycles} data frame with columns \code{motif} and \code{node}.
 }
 \description{
 Returns the feedback (cyclic) motifs declared via \code{\link[=drm_cycle]{drm_cycle()}} and passed to
-\code{\link[=drm_sem]{drm_sem()}} / \code{\link[=drm_psem]{drm_psem()}} through \code{feedback =}. Each motif is a set of nodes
+\code{\link[=drm_sem]{drm_sem()}} / \code{\link[=drm_psem]{drm_psem()}} through \verb{feedback =}. Each motif is a set of nodes
 explicitly allowed to form a cycle; every undeclared cycle remains an error.
 }
 \examples{

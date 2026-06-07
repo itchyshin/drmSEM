@@ -4,20 +4,44 @@
 \alias{plot.drm_sem}
 \title{Plot the distributional SEM as a component-labelled DAG}
 \usage{
-\method{plot}{drm_sem}(x, ...)
+\method{plot}{drm_sem}(x, show = c("all", "paths"), ...)
 }
 \arguments{
 \item{x}{A \code{drm_sem} object.}
 
-\item{...}{Passed to the underlying plot.}
+\item{show}{\code{"all"} (default) draws directed paths \strong{and} covariance arcs
+\strong{and} composite measurement edges; \code{"paths"} draws the directed structural
+edges only.}
+
+\item{...}{Passed to the underlying \code{igraph} plot. A \verb{layout =} matrix is
+honoured (if it carries rownames it is reordered to the internal vertex
+order), so a fixed, crossing-free layout can be supplied.}
 }
 \value{
 \code{x}, invisibly.
 }
 \description{
-Nodes are variables; arrows are coloured and styled by the distributional
-component they target (mu solid black, sigma dashed green, zi dotted orange,
-random-effect scale grey dotted, rho12 long-dash). Uses \code{igraph} for layout.
+Nodes are variables; \strong{directed} arrows are coloured and styled by the
+distributional component they target (mu solid black, sigma dashed green, zi
+dotted orange, random-effect scale grey dotted, a directed \code{x -> rho12} path
+long-dash). \strong{Covariance edges} declared with \code{\link[=covary]{covary()}} / \code{\link[=drm_pair]{drm_pair()}} are
+drawn as \strong{double-headed arcs} — solid grey for a residual correlation
+(\code{rho12}), dashed grey for a higher-level random-effect correlation
+(\code{corpair}) — so the three edge classes (directed path, residual covariance,
+higher-level covariance) are visually distinct
+(\code{docs/design/07-bivariate-covariance-edges.md}). \strong{Composite measurement
+edges} — each \code{\link[=drm_composite]{drm_composite()}} construct's indicators pointing into the
+construct — are drawn as steel-blue arrows, with the indicators shown as
+distinctly-filled nodes, so a formative measurement model reads apart from the
+structural paths. Uses \code{igraph} for layout.
+}
+\details{
+The legend lists \strong{only the components, covariance classes, and measurement
+edges actually present in the plotted graph} (its swatches come from the same
+style function as the edges, so they cannot drift from what is drawn). Node
+fills distinguish endogenous responses, exogenous predictors, and composite
+indicators. Parallel paths between one pair (for example a \code{mu} and a \code{sigma}
+arrow) are fanned onto separate arcs.
 }
 \examples{
 \dontrun{
@@ -27,6 +51,7 @@ sem <- drm_sem(
   abundance = drm_node(drmTMB::bf(abundance ~ size + temp, zi ~ habitat),
                        family = drmTMB::nbinom2()),
   data = dat)
-plot(sem)
+plot(sem)              # directed paths + any covariance arcs
+plot(sem, show = "paths")
 }
 }

@@ -9,8 +9,10 @@ total_effects(
   from,
   to,
   method = NULL,
-  target = c("mean", "p_gt", "p_zero", "var"),
+  target = c("mean", "p_gt", "p_zero", "var", "quantile"),
   threshold = 0,
+  prob = 0.5,
+  functional = c("simulate", "analytic"),
   at = NULL,
   B = 200L,
   uncertainty = NULL,
@@ -37,10 +39,21 @@ draws from their fitted families, capturing distribution-mediated paths).}
 
 \item{target}{Functional of the outcome distribution to report the effect on:
 \code{"mean"} (default), \code{"p_gt"} (Pr(Y > \code{threshold})), \code{"p_zero"} (Pr(Y = 0)),
-or \code{"var"} (Var(Y)). Distributional targets simulate the outcome from its
-family (OQ-11); see \code{docs/design/02-effect-calculus.md}.}
+\code{"var"} (Var(Y)), or \code{"quantile"} (the \code{prob}-quantile). Distributional
+targets simulate the outcome from its family (OQ-11); see
+\code{docs/design/02-effect-calculus.md}. For a feedback SEM only \code{"mean"} (the
+equilibrium response) is defined.}
 
 \item{threshold}{Cutoff for \code{target = "p_gt"}.}
+
+\item{prob}{Probability for \code{target = "quantile"} (default \code{0.5}, the median).}
+
+\item{functional}{How a non-mean \code{target} is evaluated: \code{"simulate"} (default;
+draw the outcome from its family and summarize) or \code{"analytic"} (a
+closed-form functional of the predicted parameters — no Monte-Carlo noise).
+Analytic forms are offered for the gaussian and poisson families (others
+abort with a pointer to \code{"simulate"}), and require mean mediation
+(\code{method = "gcomp"}) so the outcome parameters are deterministic.}
 
 \item{at}{Optional length-2 contrast values for \code{from}.}
 
@@ -82,6 +95,18 @@ functional of \code{to}. With \code{method = "simulate"}, mediators pass realize
 from their families, so effects flowing through a mediator's scale,
 zero-inflation, or shape (distribution-mediated paths) are included; with
 \code{method = "gcomp"} only the mediator means propagate.
+}
+\details{
+\strong{Feedback SEMs.} When the model declares a feedback motif (see \code{\link[=drm_cycle]{drm_cycle()}}),
+the total effect is the system's \strong{equilibrium} response, computed by
+iterating the mean-propagation map to its fixed point rather than by a single
+topological sweep. Only \code{target = "mean"} is supported (the equilibrium is on
+the deterministic mean map), the \code{mediation} column reads \code{"equilibrium"}, and
+if the feedback diverges (no stable equilibrium, spectral radius \verb{>= 1}) the
+estimate is reported as \code{NA} with a warning — never a fabricated number. The
+mean/distribution decomposition through a cycle is out of scope, so
+\code{\link[=indirect_effects]{indirect_effects()}} / \code{\link[=path_effects]{path_effects()}} refuse a feedback SEM. See
+\code{docs/design/10-cyclic-feedback.md}.
 }
 \examples{
 \dontrun{

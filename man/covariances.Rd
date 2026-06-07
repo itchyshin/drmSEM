@@ -26,7 +26,7 @@ component). Residual (\code{rho12}, within-observation) and higher-level (\code{
 between-unit random-effect) edges are reported together with a \code{class} column
 that distinguishes them; they answer different biological questions and are
 never collapsed. A declared edge also makes \code{\link[=basis_set]{basis_set()}} / \code{\link[=dsep]{dsep()}} drop the
-\code{y1 _||_ y2} independence claim.
+\verb{y1 _||_ y2} independence claim.
 }
 \examples{
 \dontrun{

@@ -1,6 +1,6 @@
 Package: drmSEM
 Title: Distributional Piecewise Structural Equation Models on 'drmTMB'
-Version: 0.2.0.9000
+Version: 0.5.0
 Authors@R:
     person("Shinichi", "Nakagawa", email = "itchyshin@gmail.com",
            role = c("aut", "cre"))
@@ -16,7 +16,6 @@ Description: A distributional piecewise structural equation modelling
 License: GPL (>= 3)
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.2
 Depends:
     R (>= 4.1.0)
 Imports:
@@ -34,12 +33,11 @@ Suggests:
     lintr,
     rmarkdown,
     styler,
-    testthat (>= 3.0.0),
-    tibble,
-    withr
+    testthat (>= 3.0.0)
 Remotes:
     itchyshin/drmTMB
 Config/testthat/edition: 3
 URL: https://github.com/itchyshin/drmSEM, https://itchyshin.github.io/drmSEM
 BugReports: https://github.com/itchyshin/drmSEM/issues
 VignetteBuilder: knitr
+Config/roxygen2/version: 8.0.0

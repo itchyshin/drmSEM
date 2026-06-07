@@ -10,6 +10,9 @@ indirect_effects(
   to,
   through = NULL,
   effect = c("controlled", "natural"),
+  target = c("mean", "p_gt", "p_zero", "var", "quantile"),
+  threshold = 0,
+  prob = 0.5,
   at = NULL,
   B = 200L,
   uncertainty = NULL,
@@ -38,6 +41,17 @@ distribution-mediated parts. \code{"natural"} reports the cross-world natural
 direct/indirect effects (Pearl/Imai), holding the mediators at their
 predicted \code{M(x0)} / \code{M(x1)} distributions; see
 \code{docs/design/02-effect-calculus.md}.}
+
+\item{target}{Functional of the outcome distribution to report the effect on:
+\code{"mean"} (default), \code{"p_gt"} (Pr(Y > \code{threshold})), \code{"p_zero"} (Pr(Y = 0)),
+\code{"var"} (Var(Y)), or \code{"quantile"} (the \code{prob}-quantile). Distributional
+targets simulate the outcome from its family (OQ-11); see
+\code{docs/design/02-effect-calculus.md}. For a feedback SEM only \code{"mean"} (the
+equilibrium response) is defined.}
+
+\item{threshold}{Cutoff for \code{target = "p_gt"}.}
+
+\item{prob}{Probability for \code{target = "quantile"} (default \code{0.5}, the median).}
 
 \item{at}{Optional length-2 contrast values for \code{from}.}
 
@@ -68,8 +82,9 @@ deprecation warning.}
 }
 \value{
 A \code{drm_effect} data frame. For \code{effect = "controlled"}, rows
-\code{total_path}, \code{direct}, \code{indirect}, \code{mean_mediated}, \code{distribution_mediated}.
-For \code{effect = "natural"}, rows \code{total_path}, \code{natural_direct},
+\code{total_path}, \code{direct}, \code{indirect}, \code{mean_mediated}, \code{distribution_mediated}
+and a \code{target} column naming the reported functional. For
+\code{effect = "natural"}, rows \code{total_path}, \code{natural_direct},
 \code{natural_indirect}, \code{mediated_interaction}.
 }
 \description{
@@ -87,6 +102,14 @@ distribution-mediated legs, and the natural decomposition always uses
 distribution mediation, so neither has a single mean/distribution choice to
 make. The shared \code{uncertainty}, \code{nsim}, and \code{population} controls apply as
 elsewhere.
+
+A non-mean \code{target} (OQ-11) is supported for \code{effect = "controlled"}: every
+leg then reports the contrast on that functional of the outcome (e.g. the
+indirect change in \code{Pr(Y = 0)} or a tail quantile routed through the
+mediators), and the mean-/distribution-mediated split still closes
+(\code{indirect = mean_mediated + distribution_mediated}). \code{effect = "natural"}
+supports only \code{target = "mean"} (the cross-world functional contrast is open,
+OQ-8/OQ-11).
 }
 \examples{
 \dontrun{

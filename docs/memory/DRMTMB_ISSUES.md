@@ -5,6 +5,37 @@ cannot be filed on `itchyshin/drmTMB` from here. Collect genuine engine problems
 here; file them on drmTMB (or widen this session's repo scope) later. Only list
 things that are actually drmTMB's to fix — not drmSEM bugs.
 
+## ✉ Message to drmTMB — 2026-06-07 (from the drmSEM 0.5.0 cut)
+
+drmSEM just cut **0.5.0** (the cyclic/feedback-graph milestone). **No new
+confirmed drmTMB bug.** Coordination items and ergonomics asks surfaced by the
+0.5 work, in priority order:
+
+1. **CRAN timeline — the release blocker for drmSEM.** drmSEM cannot be submitted
+   to CRAN until drmTMB is on CRAN (CRAN forbids `Remotes:`). drmSEM already keeps
+   drmTMB in `Suggests` behind `requireNamespace()` guards and is otherwise
+   CRAN-clean. **What is the drmTMB CRAN ETA?** That sequencing gates drmSEM's
+   own submission.
+2. **OQ-1 sampler parameterization — RESOLVED drmSEM-side, not a drmTMB bug.**
+   The per-family `sigma`↔dispersion mapping was reverse-engineered against
+   `stats::simulate(fit)` (drmSEM PR #35; var ratios ~0.99–1.02). Two
+   *ergonomics* asks that would let drmSEM stop reverse-engineering it:
+   - Document/expose the exact **response-scale `sigma`↔dispersion convention**
+     per family (nbinom2 `size`, beta `phi`, Gamma `shape`; lognormal: is the
+     response `mu` = E[Y], i.e. `meanlog = log(mu) − sigma²/2`?).
+   - `predict_parameters()` does **not** reliably name its columns `mu`/`sigma`
+     (the drmSEM probe must request each dpar and take the named-or-last-numeric
+     column). A **stable named-column contract** would remove that fragility.
+3. **OQ-9 marginal effects — needs an API.** For population-averaged effects
+   through a random-effect scale, drmSEM needs drmTMB to **expose the fitted RE
+   variance components** and a way to **draw/integrate them on the response
+   scale**.
+4. **OQ-14 joint bivariate fit — needs an engine hook.** A joint bivariate fit
+   estimating `rho12`, plus an extractor to read the fitted correlation back
+   (drmSEM hook name `drm_fit_rho12()`), would let drmSEM replace its placeholder
+   `estimate = NA` with a real value.
+5. **OQ-7 `sdreport` NaN — still a candidate, do NOT file yet** (see below).
+
 ## Status: none confirmed yet
 
 Every CI failure so far has been a drmSEM bug (sampler parameterization,

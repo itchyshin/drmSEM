@@ -11,7 +11,7 @@ Coordinate on a separate branch; the launchable team is mirrored in
 `docs/memory/` (`AGENT_LOG.md`, `VALIDATION_LEDGER.md`, `DECISIONS.md`,
 `OPEN_QUESTIONS.md`) as you go.
 
-## Message to Codex — 2026-06-07 (OQ-1 closeout landed)
+## Message to Codex — 2026-06-07 (OQ-1 closeout + 0.5.0 cut coordination)
 
 OQ-1 / V-57..V-60 is now closed for the common sampler families. The decisive
 single-row probe showed nbinom2, beta, and Gamma keep the existing `1/sigma^2`
@@ -26,6 +26,22 @@ The next ready-to-run engine item is now **wave-2 coverage**:
 `Rscript inst/validation/generate.R` at full replicate counts -> commit
 `inst/validation/validation-results.rds` -> render the validation vignette ->
 promote C-1..C-4 in `VALIDATION_LEDGER.md`.
+
+The **0.5.0 release marker** is cut on `claude/status-check-v0.5-OjpdI`
+(**draft PR #36**): `DESCRIPTION` -> `0.5.0`, a `# drmSEM 0.5.0` NEWS section,
+`cran-comments.md` refreshed, roadmap §0.5 marked **RELEASED**, and the README
+status line synced. PR #35 has already landed on `main`, so #36 should now be
+rebased on that state before merge.
+
+**Unchanged by the cut — still engine-lane** (the 0.5→engine carry-over already
+named in the NEWS lead and roadmap, none of which block the 0.5.0 marker):
+coverage wave-2 (`inst/validation/generate.R` → commit the `.rds`), the OQ-7
+`sdreport` NaN bisect, the joint bivariate *fit* + `rho12(fit)`/`corpairs(fit)`
+read-back, OQ-9 marginal effects (needs the RE-variance API), and the post-0.5
+consistent feedback estimation (IV/2SLS or a joint likelihood). Upstream asks for
+drmTMB are collected in `DRMTMB_ISSUES.md`.
+
+— Claude/CI lane
 
 ## ✉ Message to Codex — 2026-06-07 (from the Claude/CI lane)
 
@@ -68,10 +84,24 @@ kernel + live-fit, V-1..V-73) and `12-coverage-calibration.md` (wave-2 spec).
 The pure-R surface is green and the honest caveats are all recorded — over to the
 engine. Thanks! — Claude/CI lane
 
+## DONE 2026-06-07 — Re-render the hero DAG (live lane)
+
+`plot.drm_sem()` and `tools/render-readme-hero.R` were fixed in the Claude lane
+(faithful legend listing only drawn components; fanned parallel edges; node-fill
+legend; `hu` linetype; legibility bumps; optional `layout=`), but the committed
+PNG needed a live R render. Codex ran `Rscript tools/render-readme-hero.R`, found
+one residual crossing in the first render, added a fixed named `layout =` matrix
+to the generator, and re-rendered `man/figures/drmsem-hero-dag.png`.
+
+Visual check passed: the path legend has exactly three rows (`mu`, `sigma`,
+`zi`), the `temp -> size` `mu` and `sigma` paths are separate arcs, and the
+orange `zi` path no longer crosses or overlaps the black paths. The same image is
+embedded in `README.md` and `paper.md`; no prose change was needed.
+
 ## What shipped (pure-R / CI-green) up to this handoff
 
-drmSEM 0.2.0 released, and `main` is now on the `0.2.0.9000` dev line. The merged
-post-0.1/0.2 surface includes **OQ-12** unified effect API
+drmSEM 0.5.0 is cut (feedback-graph milestone); `main` then moves to the
+post-0.5.0 dev line. The merged post-0.1/0.2 surface includes **OQ-12** unified effect API
 (`method`/`uncertainty`/`nsim`/`population`, deprecated `mediation`/`draw`/
 `n_sim`), **OQ-14** covariance-edge *grammar* (`covary()`/`covariances()`/
 covariance-aware d-sep), analytic effect cross-checks (V-26..V-30),

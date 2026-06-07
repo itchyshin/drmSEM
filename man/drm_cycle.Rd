@@ -14,7 +14,7 @@ A \code{drm_cycle} declaration object.
 }
 \description{
 drmSEM rejects cycles by default. \code{drm_cycle()} explicitly names the nodes of
-a feedback motif — the canonical case being a reciprocal pair \code{y1 ⇄ y2} — so
+a feedback motif — the canonical case being a reciprocal pair \verb{y1 ⇄ y2} — so
 that those nodes are \emph{allowed} to form a cycle while every undeclared cycle
 stays a hard error. Pass declarations to \code{\link[=drm_sem]{drm_sem()}} / \code{\link[=drm_psem]{drm_psem()}} via their
 \code{feedback} argument.

@@ -217,20 +217,44 @@ Add `uncertainty = "bootstrap"` (parametric/nonparametric, refit per replicate)
 as an alternative to the current `MVN(coef, vcov)` coefficient draw for effect
 CIs.
 
-## OQ-11 — Outcome functionals beyond the mean  [PARTIAL 2026-06-05]
+## OQ-11 — Outcome functionals beyond the mean  [PARTIAL 2026-06-07 — extended to the whole effect API + quantiles]
 
-**Implemented:** `total_effects(..., target = c("mean","p_gt","p_zero","var"),
+**Update 2026-06-07.** `target` now rides the **whole effect surface**:
+`direct_effects()`, `total_effects()`, **and `indirect_effects()`** take
+`target = c("mean","p_gt","p_zero","var","quantile")` with `threshold=` (for
+`p_gt`) and **`prob=`** (for the new `quantile` functional). For
+`indirect_effects(effect = "controlled")` every leg reports the contrast on the
+functional and the mean-/distribution-mediated split still closes
+(`indirect = mean_mediated + distribution_mediated`). A real bug was fixed in the
+process: `drm_functional_target()` hardcoded `"distribution"` mediator
+propagation, so the mean- vs distribution-mediated legs were identical for a
+non-mean target (the split collapsed); it now honours the passed `mediation`,
+making the decomposition non-degenerate. Kernel-verified in
+`test-effect-kernels.R` (quantile recovers a sigma-path tail effect; the
+functional legs are non-degenerate and close) and `test-recovery-samplers.R`
+(V-62..V-64 live-fit `p_zero`/`var`/`p_gt`). `effect = "natural"` stays mean-only
+(cross-world functional contrast is open, see OQ-8); a feedback SEM stays
+mean-only (equilibrium response).
+
+**Update 2026-06-07 (b).** **Analytic (non-simulated) functionals** now ship:
+`direct_effects()` / `total_effects()` take `functional = c("simulate",
+"analytic")`; `"analytic"` returns a closed-form functional of the predicted
+params (no MC noise) for **gaussian** and **poisson** (`var`/`p_gt`/`p_zero`/
+`quantile`), requires mean mediation, and aborts for other families (their
+`sigma`↔dispersion scale is OQ-1). Kernel-verified exact in `test-effect-kernels.R`
+(V-76). **Still open:** closed forms for the dispersion families once OQ-1 is
+settled, the natural/cross-world functional variant, multiple quantiles in one
+call, and a live-fit functional recovery beyond V-62..V-64. Original note below.
+
+**Implemented (2026-06-05):** `total_effects(..., target = c("mean","p_gt","p_zero","var"),
 threshold=)` simulates the outcome and reports the effect on that functional of
 the outcome distribution (Poisson `p_zero` kernel-verified in
 `test-effect-kernels.R`). Distribution-mediated effects are most compelling on
 functionals other than the mean — `Pr(Y > t)`, `Pr(Y = 0)`, `Var(Y)`, quantiles
 — since a path that moves only `sigma`/`zi` may leave `E[Y]` nearly unchanged
 while sharply changing a tail or zero probability, and the simulation engine
-already produces realized outcome draws. OPEN: extend `target` to
-`direct_effects`/`indirect_effects`, add more functionals (quantiles) and
-analytic (non-simulated) functionals, and decide the default reporting scale and
-CI construction. This is the headline for Phase 4 (distributional phylogenetic
-SEM, see `06-phylogenetic-sem.md`).
+already produces realized outcome draws. This is the headline for Phase 4
+(distributional phylogenetic SEM, see `06-phylogenetic-sem.md`).
 
 ## OQ-12 — Effect API harmonization  [RESOLVED 2026-06-06, see D-13]
 
@@ -336,8 +360,13 @@ The 0.3 first increment ships composite (formative) constructs (`drm_composite()
   (intervene on the construct instead). Propagating from indicators needs
   `drm_build_scenarios()` to re-derive the construct column. Needs a live fit to
   validate end-to-end.
-- **Measurement arcs in `plot()`.** Draw indicator→construct loadings as
-  measurement edges, visually distinct from structural paths (needs rendering).
+- **Measurement arcs in `plot()` — SHIPPED 2026-06-07.** `plot.drm_sem(show =
+  "all")` now draws each composite's indicators pointing into the construct as
+  steel-blue measurement edges, with indicators as distinctly-filled nodes and a
+  legend row, visually distinct from structural paths and covariance arcs
+  (`R/plotting.R`; tested in `test-plotting.R` via the legend helper + a
+  null-device render). Aesthetic layout of indicator nodes is best confirmed on a
+  live render.
 - **Reflective constructs** (a latent common cause with a measurement model) need
   a joint likelihood drmTMB does not fit piecewise — deferred to 0.4 / lavaan
   interop, not 0.3 (D-16).
