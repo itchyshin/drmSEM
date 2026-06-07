@@ -50,8 +50,9 @@ which addresses distributional structure as a causal target. `lavaan`
 SEM. `piecewiseSEM` [@Lefcheck2016] estimates each structural equation locally
 and tests the model with d-separation, but its paths act only on the mean.
 `glmmTMB` [@Brooks2017] fits rich distributional generalized linear mixed models
-— means, dispersion, zero-inflation — but it is a single-response fitting engine,
-not an SEM. `dsem` [@dsem] targets dynamic, time-series structural models.
+— means, dispersion, zero-inflation — but it is a single-response distributional
+engine, not a multi-equation SEM tool. `dsem` [@dsem] targets dynamic,
+time-series structural models whose paths likewise act on the mean.
 In the phylogenetic comparative setting, `phylopath` [@vanderBijl2018] does
 confirmatory path analysis under phylogenetic covariance, and `phylosem`
 [@phylosem] fits joint phylogenetic SEM; both, however, concern relationships
@@ -83,8 +84,8 @@ added to *every* component sub-formula and comparing to the base node with a
 likelihood-ratio test (`df` equal to the number of added coefficients).
 `fisher_c()` combines the claim p-values into Fisher's C [@Shipley2009] on `2k`
 degrees of freedom. The any-component definition is a deliberate, novel research
-choice; its OQ-6 calibration grid (mean-only, distributional, and cross-link
-DGPs; `n` from 100 to 1000; 200 replicates per cell) met the pre-specified
+choice; its calibration grid (mean-only, distributional, and cross-link
+data-generating processes; `n` from 100 to 1000; 200 replicates per cell) met the pre-specified
 Type-I, augmented-component-count, Fisher-uniformity, and power criteria. Broader
 Fisher's C and d-separation settings remain claim-scoped until separately tested.
 
@@ -97,32 +98,42 @@ with random effects held at zero. A mediator passes either its expected mean
 (mean mediation) or a **realized draw** from its fitted family (distribution
 mediation). `indirect_effects()` reports `total_path`, `direct`, `indirect`,
 `mean_mediated`, and `distribution_mediated`, where the distribution-mediated
-row is the **Jensen-gap** contribution — the part of the effect that flows
-through the mediator's higher moments given a curved outcome, with no
-coefficient-product analogue. As an estimand this is the interventional /
+row is the **Jensen-gap** contribution — because `E[g(M)]` does not equal
+`g(E[M])` for a nonlinear outcome `g` (Jensen's inequality), passing only the
+mediator's mean misses a real channel, and this row is the part of the effect
+that flows through the mediator's higher moments, with no coefficient-product
+analogue. As an estimand this is the interventional /
 distributional-mediation term [@Pearl2001; @Imai2010; @VanderWeele2015;
 @Vansteelandt2017]; the contribution here is to make a mediator's `sigma`, `zi`,
-or shape a first-class causal target in a piecewise distributional GLMM SEM and
+or shape a first-class causal target in a piecewise distributional generalized
+linear mixed model (GLMM) SEM and
 to surface that term as a labelled, Monte-Carlo-quantified row. By default `direct` is a **controlled
 direct effect** (mediators held at their observed values) and the total/indirect
 split is simulation-based; these coincide with the natural direct and indirect
 effects only under linearity with no exposure-mediator interaction. For the cases
 where they diverge, `indirect_effects(effect = "natural")` additionally returns
-the cross-world **natural** decomposition — `natural_direct`, `natural_indirect`,
-and `mediated_interaction` — in the mediation-analysis tradition of @Pearl2001
-and @Imai2010, validated against the linear-Gaussian recovery case. Effects are
+the **natural** decomposition — `natural_direct`, `natural_indirect`, and
+`mediated_interaction` — which lets the mediator take the value it *would have*
+taken under the counterfactual exposure (the "cross-world" quantity of @Pearl2001
+and @Imai2010), validated against the linear-Gaussian recovery case. Effects are
 reported on the response scale of the target, and `total_effects(target = ...)`
-reports the same distribution-mediated effects on outcome **functionals** beyond
-the mean — `Pr(Y > t)`, `Pr(Y = 0)`, and the variance of `Y` — the headline
-estimands of distributional SEM, also recovery-tested (e.g. the `p_zero` effect
-recovers the Poisson zero-probability change).
+reports the same effects on outcome **functionals** beyond the mean —
+`Pr(Y > t)`, `Pr(Y = 0)`, and the variance of `Y`, headline estimands of
+distributional SEM. These functionals are recovery-tested for Gaussian and
+Poisson mediators (e.g. the `p_zero` effect recovers the Poisson
+zero-probability change); for other non-Gaussian mediators (`nbinom2`, `beta`,
+`Gamma`) the realized-draw sampler currently reproduces the mediator *mean* but
+not its *variance*, so distribution-mediated effect *magnitudes* through such a
+mediator are provisional pending an engine-side sampler fix, while their *sign*
+and the additive *closure* of the decomposition are unaffected.
 
 **Phylogenetic distributional SEM (Phase 1).** `drmTMB` exports structured-effect
 markers (`phylo()`, `animal()`, `relmat()`, `spatial()`). `drmSEM` recognizes
 these markers and excludes them from the causal edge set, so a node may carry a
 phylogenetic random effect today while `paths()`, `dsep()`, `fisher_c()`, and the
-effect engine operate on the fixed-effect DAG. This covers the `phylopath` niche
-[@vanderBijl2018] within a distributional engine. Building on this, `drmSEM` also
+effect engine operate on the fixed-effect DAG. This approaches the `phylopath`
+niche [@vanderBijl2018] within a distributional engine (`phylopath`'s joint
+estimation of paths under phylogenetic covariance remains on the roadmap below). Building on this, `drmSEM` also
 ships phylopath-style confirmatory model comparison — `drm_dag()` and
 `drm_model_set()` define a candidate set, `compare()` ranks the candidates by a
 small-sample-corrected information criterion (CICc) built on Fisher's C, and
@@ -136,7 +147,11 @@ roadmap.
 
 **Built on `drmTMB`.** Every assumption about the engine's return shapes is
 isolated in a single adapter, so `drmSEM` re-uses, rather than re-implements,
-`drmTMB`'s likelihoods, link functions, and family samplers.
+`drmTMB`'s likelihoods, link functions, and fitted distributional parameters. The
+effect calculus does supply its own family samplers — it draws realized mediator
+values from each fitted family, parameterized from that node's fitted
+distributional parameters — so that the distribution-mediated channel can be
+propagated through a downstream response.
 
 A short, illustrative usage sketch (not executed here):
 
@@ -157,6 +172,12 @@ paths(sem)        # component-labelled path table
 fisher_c(sem)     # any-component d-separation goodness-of-fit
 indirect_effects(sem, from = "temp", to = "survival")  # incl. distribution-mediated
 ```
+
+![A `drmSEM` directed acyclic graph in which paths target distributional
+components, not only the mean: `temp` acts on the *spread* of `size`
+(`sigma`) and `habitat` on the *zero-inflation* of `abundance` (`zi`), so an
+indirect effect of `temp` on `survival` can flow through a mediator's variance
+or zero probability — the distribution-mediated channel.](man/figures/drmsem-hero-dag.png)
 
 # Scope
 
