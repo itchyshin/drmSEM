@@ -759,3 +759,45 @@ Registered under _pkgdown.yml articles > Concepts (after
 covariance-edges-and-composites). NEWS bullet added under the existing
 "Bivariate nodes (0.4, grammar layer)" section. Did NOT touch R/, NAMESPACE,
 man/, DESCRIPTION, or tests. No feedback/cyclic content (separate vignette).
+## 2026-06-06 — Interop: graph-interchange layer (lavaan / DOT)
+
+Shipped the pure-R graph-interchange (interop) layer in `R/interop.R`. This is
+graph interchange, NOT a fitting bridge — drmSEM still never fits its own
+likelihoods, and brms/lavaan FITTING interop stays out of 0.x scope.
+
+**What shipped (3 exports + helpers, no new Imports).**
+- `as_lavaan(object, ...)` — S3 generic + `drm_sem` and `drm_dag` methods. Emits
+  a lavaan model-syntax string from the variable-level directed mean edges (one
+  `y ~ x1 + x2` per node) and the declared covariance edges (one `y1 ~~ y2` per
+  `covariances()` row). Returns a length-1 `drm_lavaan` string (print cat()s it).
+  **Honesty rule enforced:** lavaan syntax cannot express a distributional-
+  component path (sigma/zi/nu/hu/sd/rho12), so those are collapsed to the mean
+  structure and reported via a `dropped` attribute + a one-time cli message. A
+  non-mu path is NEVER silently emitted as a lavaan `~` mean regression.
+- `from_lavaan(syntax)` — pure string parser: `~` lines → per-response formulas
+  assembled into a `drm_dag()`; `~~` lines → `covary()` declarations; returns a
+  `drm_skeleton` list (`$dag`, `$covary`). Reflective `=~` lines are ignored with
+  a warning (reflective measurement needs a joint likelihood → out of 0.x scope).
+  Strips lavaan numeric/label prefixes (`0.5*b` → `b`), intercepts, and variance
+  (`x ~~ x`) lines. Round-trip `from_lavaan(as_lavaan(sem))` recovers the directed
+  mean structure + covariance edges.
+- `as_dot(object, ...)` — S3 generic + `drm_sem` and `drm_dag` methods. Graphviz
+  DOT export of the component-labelled DAG: one labelled edge per typed edge,
+  non-mean paths dashed/greyed. Unlike lavaan, DOT keeps EVERY component path.
+
+The `drm_dag` methods reconstruct a typed edge table from the captured node
+formulas alone (`drm_dag_edges()` / `drm_dag_component_rhs()`, reusing
+`drm_fixed_predictors()`), so the whole layer runs without an engine.
+
+**Deliverables.** `R/interop.R` (full roxygen, runnable engine-free examples);
+`tests/testthat/test-interop.R` (emit / parse / round-trip / the dropped-component
+honesty path / the `=~` warning — all pure-R); NAMESPACE exports + S3methods;
+hand-written `man/{as_lavaan,from_lavaan,as_dot}.Rd` mirroring the generated style
+(CI roxygenises anyway; the lane has no R installed). NEWS `## Interop (graph
+interchange)` subsection; `_pkgdown.yml` Interop reference section; 05-roadmap
+"Interop and distribution" marked SHIPPED for the graph layer.
+
+**No DESCRIPTION / dependency changes** (base R + cli only, as required).
+
+**Validation state.** Tests are written but not run here (no R in this lane, same
+constraint noted in prior entries); logic is hand-verified. CI runs the suite.
