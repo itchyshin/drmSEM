@@ -183,6 +183,37 @@ test_that("V-43: drm_equilibrium_contrast recovers the reduced-form total effect
                                                  B = 1L, draw = FALSE)$converged)
 })
 
+test_that("V-70: propagate_fixedpoint solves a NONLINEAR feedback fixed point", {
+  # A nonlinear reciprocal pair (saturating coupling), a contraction so a unique
+  # stable equilibrium exists. There is no closed form, so the known answer is the
+  # fixed-point PROPERTY: at convergence, re-applying the structural map must
+  # reproduce the values (self-consistency), and an independent fixed-point solve
+  # must agree.
+  a1 <- 0.6; a2 <- -0.4; b12 <- 0.5; b21 <- 0.3
+  f1 <- function(x, y2) a1 * x + b12 * tanh(y2)
+  f2 <- function(x, y1) a2 * x + b21 * tanh(y1)
+  eng <- list(
+    y1 = lin_engine("y1", function(s) f1(s$x, s$y2)),
+    y2 = lin_engine("y2", function(s) f2(s$x, s$y1))
+  )
+  xval <- 0.8
+  scen <- data.frame(x = rep(xval, 5))
+  res <- drmSEM:::propagate_fixedpoint(eng, scen, active = c("y1", "y2"),
+                                       max_iter = 1000L, tol = 1e-12)
+  expect_true(res$converged)
+  y1s <- mean(res$mean$y1); y2s <- mean(res$mean$y2)
+
+  # self-consistency: the converged values satisfy the structural equations
+  expect_equal(y1s, f1(xval, y2s), tolerance = 1e-8)
+  expect_equal(y2s, f2(xval, y1s), tolerance = 1e-8)
+
+  # independent solve (plain Gauss-Seidel reference) reaches the same fixed point
+  z1 <- 0; z2 <- 0
+  for (i in seq_len(1000L)) { z1 <- f1(xval, z2); z2 <- f2(xval, z1) }
+  expect_equal(y1s, z1, tolerance = 1e-8)
+  expect_equal(y2s, z2, tolerance = 1e-8)
+})
+
 # ---- cycles() accessor ------------------------------------------------------
 
 test_that("cycles() reports the declared motifs of a drm_sem", {
