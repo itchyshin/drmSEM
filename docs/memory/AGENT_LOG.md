@@ -920,3 +920,21 @@ parameterization. Agents have no R, so CI is first run — flagged risks (tweedi
 student samplers, V-53 lognormal-sigma scale, V-64 equilibrium tol, natural-effect
 MC thresholds) recorded for the live lane. Ledger V-45..V-73 added; NEWS bullet;
 matrix doc. Will gate merge on CI green.
+
+## 2026-06-07 — Recovery grid found a real OQ-1 sampler-variance discrepancy
+
+The wave-1 recovery grid (#28) did its job: the V-57..V-60 sampler-vs-
+drmTMB::simulate() comparison surfaced a REAL parameterization gap, not a test
+bug. drm_sample_family() MEANS match drmTMB::simulate() to ~4 s.f. but VARIANCES
+are systematically inflated (nbinom2 +61%, beta +220%, Gamma +150%) and the
+lognormal MEAN is shifted (1.35 vs 2.64) at fitted, per-row (sigma~x) params. The
+2026-06-04 OQ-1 "resolution" used intercept-only/constant-sigma probes and never
+compared variance vs simulate(), so it missed this. Resolution (honest, since the
+fix is engine-side and I have no R): V-57..V-60 SKIP with the numbers (not faked
+green, not blocking); OQ-1 REOPENED (variance part); CODEX_HANDOFF item 7 upgraded
+to P1/P0 with the exact figures and the impact note (distribution-mediated effect
+MAGNITUDES through a non-Gaussian MEDIATOR may be biased until fixed; sign/closure
+and Gaussian-mediator cases unaffected; no shipped claim asserted such a
+magnitude). Ledger V-55..V-64 reworded: gaussian/poisson + functionals validated;
+nbinom2/beta/Gamma/lognormal moment-match is the OQ-1 discrepancy. CI iteration:
+FAIL 19 (round 1, test bugs) -> 5 (round 2, extraction/relax) -> skips (round 3).

@@ -475,11 +475,25 @@ Validated on a real fit unless noted; assertions prefer fitted-coefficient /
   V-54 same on a Gamma outcome (sign + closure).
 
 **Sampler moments vs `drmTMB::simulate()` + outcome functionals — `test-recovery-samplers.R`:**
-- V-55..V-61: `drm_sample_family()` mean+variance match `drmTMB::simulate()` at the
-  fit's params for gaussian / poisson / nbinom2 (`size=1/sigma^2`) / beta
-  (`phi=1/sigma^2`) / Gamma / lognormal / binomial.
+- V-55 gaussian / V-56 poisson: `drm_sample_family()` mean **and** variance match
+  `drmTMB::simulate()` — **validated**.
+- V-57 nbinom2 / V-58 beta / V-59 Gamma / V-60 lognormal: **OQ-1 DISCREPANCY
+  FOUND.** The sampler MEANS match `drmTMB::simulate()` to ~4 s.f. (mu is correct),
+  but the VARIANCES are systematically inflated (nbinom2 +61%, beta +220%, Gamma
+  +150%) and the lognormal MEAN is shifted (1.35 vs 2.64) — i.e.
+  `drm_sample_family()`'s dispersion mapping (`size=1/sigma^2`, `phi=1/sigma^2`,
+  lognormal `meanlog=log(mu)`) feeds a sigma on the wrong scale vs drmTMB's
+  internal dispersion. The test **skips with the numbers** (not faked-green); the
+  earlier "confirmed in `test-oq1-samplers.R`" check did not compare variance vs
+  `simulate()`. **Engine-side fix required** (the exact drmTMB sigma↔dispersion
+  convention needs introspection) — escalated in `CODEX_HANDOFF.md` /
+  `OPEN_QUESTIONS.md` OQ-1. **Impact:** distribution-mediated effect *magnitudes*
+  through a non-Gaussian **mediator** (e.g. the canonical nbinom2 `abundance`) may
+  be biased until fixed; sign/closure and Gaussian-mediator cases are unaffected.
+- V-61 binomial: skipped (`drmTMB` has no plain `binomial()` family).
 - V-62 p_zero (Poisson) recovers `exp(-mu_hi) - exp(-mu_lo)`; V-63 `var` matches a
-  large-n empirical from the fit; V-64 p_gt matches the exact Poisson tail.
+  large-n empirical from the fit; V-64 p_gt matches the exact Poisson tail —
+  **validated** (these route through Poisson, whose sampler matches).
 
 **Structural recovery on live fits — `test-recovery-structural.R`:**
 - V-65 latent standardization on a live **logit-link** GLM (a `drmTMB::beta()`

@@ -3,9 +3,27 @@
 Tracked unknowns and unresolved design choices. Resolve into `DECISIONS.md` or a
 `VALIDATION_LEDGER.md` entry when answered. Format: `OQ-n — title`.
 
-## OQ-1 — Exact drmTMB family-sampler parameterizations  [RESOLVED 2026-06-04, see D-7]
+## OQ-1 — Exact drmTMB family-sampler parameterizations  [REOPENED 2026-06-07 — variance mismatch vs simulate(); see below]
 
-**Resolution.** drmTMB's response-scale `sigma` is an SD-like scale; count and
+**Update 2026-06-07 — partially REOPENED.** The new recovery tests V-57..V-60
+(`test-recovery-samplers.R`) compared `drm_sample_family()` to `drmTMB::simulate()`
+at the **fitted, per-row** params of a `sigma ~ x` (heteroscedastic) fit, and
+found a real discrepancy the 2026-06-04 resolution missed: the **means match to
+~4 s.f.** but the **variances are systematically inflated** — nbinom2 +61%, beta
++220%, Gamma +150% — and the **lognormal mean is shifted** (1.35 vs 2.64). The
+2026-06-04 verification used intercept-only / constant-sigma probes (and likely a
+self-consistent hand formula), so it did not exercise the per-row sigma read or a
+direct `simulate()` variance comparison. So the `sigma ↔ dispersion` mapping
+(`size=1/sigma^2`, `phi=1/sigma^2`, lognormal `meanlog=log(mu)`) is NOT confirmed
+for varying-sigma fits — the adapter may read sigma on the wrong scale (e.g. link
+vs response) when `sigma ~ x`. V-57..V-60 record the mismatch as a skip with the
+numbers. **Needs the live lane** (introspect drmTMB's exact per-family dispersion
+at fitted params; fix `drm_sample_family()` / the sigma extractor; flip the skips
+to asserts). Potential impact: distribution-mediated effect *magnitudes* through a
+non-Gaussian mediator. The mean-only claims (and gaussian/poisson) stand. The
+original 2026-06-04 resolution follows.
+
+**Resolution (2026-06-04).** drmTMB's response-scale `sigma` is an SD-like scale; count and
 proportion dispersions go as `1/sigma^2`. From intercept-only fits (probe log,
 CI run 26982805627): nbinom2 `sigma=0.715` with true `size=2` gives `size =
 1/sigma^2 = 1.96`; beta `sigma=0.374` with data precision ~7 gives `phi =
