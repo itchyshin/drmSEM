@@ -18,19 +18,19 @@
 #      total_effects() against a known answer (Poisson closed form, or a large-n
 #      empirical from the fitted model via drmTMB::simulate()).
 #
-# V-number -> test map (this file owns the V-50..V-59 block):
-#   V-50  gaussian  sampler mean+var matches drmTMB::simulate()
-#   V-51  poisson   sampler mean+var matches drmTMB::simulate()
-#   V-52  nbinom2   sampler mean+var matches drmTMB::simulate() (size = 1/sigma^2)
-#   V-53  beta      sampler mean+var matches drmTMB::simulate() (phi  = 1/sigma^2)
-#   V-54  Gamma     sampler mean+var matches drmTMB::simulate()
-#   V-55  lognormal sampler mean+var matches drmTMB::simulate()
-#   V-56  binomial  sampler mean+var matches drmTMB::simulate() (trials grid)
-#   V-57  p_zero    total_effects(target="p_zero") on a Poisson node recovers
+# V-number -> test map (this file owns the V-55..V-64 block):
+#   V-55  gaussian  sampler mean+var matches drmTMB::simulate()
+#   V-56  poisson   sampler mean+var matches drmTMB::simulate()
+#   V-57  nbinom2   sampler mean+var matches drmTMB::simulate() (size = 1/sigma^2)
+#   V-58  beta      sampler mean+var matches drmTMB::simulate() (phi  = 1/sigma^2)
+#   V-59  Gamma     sampler mean+var matches drmTMB::simulate()
+#   V-60  lognormal sampler mean+var matches drmTMB::simulate()
+#   V-61  binomial  sampler mean+var matches drmTMB::simulate() (trials grid)
+#   V-62  p_zero    total_effects(target="p_zero") on a Poisson node recovers
 #                   the Poisson closed form exp(-mu_hi) - exp(-mu_lo)
-#   V-58  var       total_effects(target="var") on a Gaussian node matches a
+#   V-63  var       total_effects(target="var") on a Gaussian node matches a
 #                   large-n drmTMB::simulate() empirical
-#   V-59  p_gt      total_effects(target="p_gt") on a Poisson node matches a
+#   V-64  p_gt      total_effects(target="p_gt") on a Poisson node matches a
 #                   large-n drmTMB::simulate() empirical
 #
 # UNCONFIRMED (flagged for the live lane, NOT asserted here against
@@ -123,7 +123,7 @@ expect_sampler_matches_drmTMB <- function(family_name, fit, rep = 200L,
 # (A) Sampler moments vs drmTMB::simulate()
 # ---------------------------------------------------------------------------
 
-test_that("V-50: gaussian sampler mean+var match drmTMB::simulate()", {
+test_that("V-55: gaussian sampler mean+var match drmTMB::simulate()", {
   set.seed(50)
   n <- 1500
   x <- stats::rnorm(n)
@@ -133,7 +133,7 @@ test_that("V-50: gaussian sampler mean+var match drmTMB::simulate()", {
   expect_sampler_matches_drmTMB("gaussian", fit)
 })
 
-test_that("V-51: poisson sampler mean+var match drmTMB::simulate()", {
+test_that("V-56: poisson sampler mean+var match drmTMB::simulate()", {
   set.seed(51)
   n <- 1500
   x <- stats::rnorm(n)
@@ -144,7 +144,7 @@ test_that("V-51: poisson sampler mean+var match drmTMB::simulate()", {
   expect_sampler_matches_drmTMB("poisson", fit, var_rtol = 0.10)
 })
 
-test_that("V-52: nbinom2 sampler mean+var match drmTMB::simulate() (size=1/sigma^2)", {
+test_that("V-57: nbinom2 sampler mean+var match drmTMB::simulate() (size=1/sigma^2)", {
   set.seed(52)
   n <- 1500
   x <- stats::rnorm(n)
@@ -155,7 +155,7 @@ test_that("V-52: nbinom2 sampler mean+var match drmTMB::simulate() (size=1/sigma
   expect_sampler_matches_drmTMB("nbinom2", fit, var_rtol = 0.20)
 })
 
-test_that("V-53: beta sampler mean+var match drmTMB::simulate() (phi=1/sigma^2)", {
+test_that("V-58: beta sampler mean+var match drmTMB::simulate() (phi=1/sigma^2)", {
   set.seed(53)
   n <- 1500
   x <- stats::rnorm(n)
@@ -167,7 +167,7 @@ test_that("V-53: beta sampler mean+var match drmTMB::simulate() (phi=1/sigma^2)"
   expect_sampler_matches_drmTMB("beta", fit, var_rtol = 0.20)
 })
 
-test_that("V-54: Gamma sampler mean+var match drmTMB::simulate()", {
+test_that("V-59: Gamma sampler mean+var match drmTMB::simulate()", {
   set.seed(54)
   n <- 1500
   x <- stats::rnorm(n)
@@ -179,7 +179,7 @@ test_that("V-54: Gamma sampler mean+var match drmTMB::simulate()", {
   expect_sampler_matches_drmTMB("Gamma", fit, var_rtol = 0.20)
 })
 
-test_that("V-55: lognormal sampler mean+var match drmTMB::simulate()", {
+test_that("V-60: lognormal sampler mean+var match drmTMB::simulate()", {
   set.seed(55)
   n <- 1500
   x <- stats::rnorm(n)
@@ -189,7 +189,7 @@ test_that("V-55: lognormal sampler mean+var match drmTMB::simulate()", {
   expect_sampler_matches_drmTMB("lognormal", fit, var_rtol = 0.22)
 })
 
-test_that("V-56: binomial sampler mean+var match drmTMB::simulate() (trials grid)", {
+test_that("V-61: binomial sampler mean+var match drmTMB::simulate() (trials grid)", {
   set.seed(56)
   n <- 1500
   trials <- 12L
@@ -236,7 +236,7 @@ test_that("V-56: binomial sampler mean+var match drmTMB::simulate() (trials grid
 # (B) Outcome-functional recovery on live fits
 # ---------------------------------------------------------------------------
 
-test_that("V-57: p_zero on a Poisson node recovers the Poisson closed form", {
+test_that("V-62: p_zero on a Poisson node recovers the Poisson closed form", {
   # For a Poisson(mu), Pr(Y = 0) = exp(-mu). The total_effects(target="p_zero")
   # do-contrast over from = lo->hi therefore has the closed form
   #   mean(exp(-mu_hi)) - mean(exp(-mu_lo)),
@@ -273,7 +273,7 @@ test_that("V-57: p_zero on a Poisson node recovers the Poisson closed form", {
   expect_equal(te$estimate, closed_form, tolerance = 0.01)
 })
 
-test_that("V-58: var(Y) effect on a Gaussian node matches a drmTMB::simulate() empirical", {
+test_that("V-63: var(Y) effect on a Gaussian node matches a drmTMB::simulate() empirical", {
   # Gaussian with sigma ~ x: Var(Y | x) = exp(2*(s0 + s1*x)). The do-contrast on
   # target="var" changes only x; ground truth is the large-n empirical variance
   # of the fitted model's own simulate() at the hi and lo x. This is the
@@ -297,7 +297,7 @@ test_that("V-58: var(Y) effect on a Gaussian node matches a drmTMB::simulate() e
   nd_hi <- data.frame(x = rep(hi_val, big))
 
   # Ground-truth Var(Y) at each level from the fit's response-scale (mu, sigma).
-  # For a Gaussian node drmTMB's sigma is SD-like, so Y ~ rnorm(mu, sigma); V-50
+  # For a Gaussian node drmTMB's sigma is SD-like, so Y ~ rnorm(mu, sigma); V-55
   # already confirmed THIS gaussian draw matches drmTMB::simulate() moments, so a
   # large-n rnorm(mu, sigma) here is a transitive drmTMB::simulate() ground truth.
   # The test's claim: total_effects(target="var"), which routes through
@@ -317,7 +317,7 @@ test_that("V-58: var(Y) effect on a Gaussian node matches a drmTMB::simulate() e
   expect_lt(abs(te$estimate - var_truth) / abs(var_truth), 0.20)
 })
 
-test_that("V-59: p_gt on a Poisson node matches a drmTMB::simulate() empirical", {
+test_that("V-64: p_gt on a Poisson node matches a drmTMB::simulate() empirical", {
   # Pr(Y > t) for a Poisson is 1 - ppois(t, mu); the do-contrast on target="p_gt"
   # is mean(1 - ppois(t, mu_hi)) - mean(1 - ppois(t, mu_lo)). We use that exact
   # Poisson tail (which IS what drmTMB::simulate() converges to) as ground truth.

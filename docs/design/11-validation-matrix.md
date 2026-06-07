@@ -42,15 +42,15 @@ keeps the tests robust to engine-internal conventions.
 | Path attribution (per-mediator, per-component, natural/recanting) | hand engines | kernel | V-32..V-35 |
 | **Effect decomposition pairing** (additive identity, lognormal gap + sign, linear-zero, chain, reproducibility) through the shipped `drm_decomp_legs()` | hand engines + live | kernel + **live-fit** | V-36..V-41 |
 | Feedback equilibrium = reduced form `(I−B)⁻¹Γ`; non-convergence flagged | linear 2-cycle | kernel | V-42, V-43 |
-| **Nonlinear feedback** fixed point (self-consistency + independent solve) | saturating 2-cycle | kernel | **V-70** |
-| Standardization `sigma_E` (logit π²/3 etc.) | fakefit | kernel (+live) | V-44 (+ structural grid) |
-| **Effect decomposition across the family×link grid** (closure, sign, magnitude) | gaussian/poisson/nbinom2/binomial/beta/Gamma/lognormal | **live-fit** | **V-45..V-49** |
-| **Sampler moments vs `drmTMB::simulate()`** + outcome functionals (`p_zero`/`var`/`p_gt`) | per-family moments; Poisson zero-prob | **live-fit** | **V-50..V-59** |
-| **Structural recovery on live fits** (standardization sigma_E pipeline; composite as predictor + response; feedback `total_effects` vs fitted-B reduced form; natural NDE/NIE nonlinear) | per-area | **live-fit** | **V-60..V-69** |
+| **Nonlinear feedback** fixed point (self-consistency + independent solve) | saturating 2-cycle | kernel | **V-73** |
+| Standardization `sigma_E` (logit π²/3 etc.) | fakefit | kernel (+live) | V-44 (+ V-65/66) |
+| **Effect decomposition across the family×link grid** (closure, sign, magnitude) | gaussian/poisson/nbinom2/binomial/beta_binomial/beta/Gamma/lognormal | **live-fit** | **V-45..V-54** |
+| **Sampler moments vs `drmTMB::simulate()`** + outcome functionals (`p_zero`/`var`/`p_gt`) | per-family moments; Poisson zero-prob | **live-fit** | **V-55..V-64** |
+| **Structural recovery on live fits** (standardization sigma_E pipeline; composite as predictor + response; feedback `total_effects` vs fitted-B reduced form; natural NDE/NIE nonlinear) | per-area | **live-fit** | **V-65..V-72** |
 | Interop round-trip (lavaan / DOT) | hand graphs | kernel | `test-interop.R` |
 | Phylogenetic covariance + phylo d-sep | fixed-grid trees | kernel (+live) | `test-phylo*` |
 
-(V-numbers V-45..V-70 are the **recovery-grid campaign**; exact per-test mappings
+(V-numbers V-45..V-73 are the **recovery-grid campaign**; exact per-test mappings
 are listed in `VALIDATION_LEDGER.md`.)
 
 ## The recovery-grid campaign (this wave)
@@ -58,19 +58,19 @@ are listed in `VALIDATION_LEDGER.md`.)
 New live-fit recovery files, drmTMB-gated, authored to assert *numerical*
 recovery (not just finiteness) across the surface:
 
-- `test-recovery-families.R` (V-45..V-49) — the effect decomposition across the
+- `test-recovery-families.R` (V-45..V-54) — the effect decomposition across the
   family×link grid: mean-mediated = fitted-coef product; total = direct +
   indirect closure; `distribution_mediated` sign/magnitude (the V-7 magnitude
   follow-up, from fitted params).
-- `test-recovery-samplers.R` (V-50..V-59) — `drm_sample_family()` mean/variance
+- `test-recovery-samplers.R` (V-55..V-64) — `drm_sample_family()` mean/variance
   vs `drmTMB::simulate()` per family (closing the OQ-1 tweedie/zoi/student gaps),
   and outcome-functional recovery (`p_zero` = Poisson zero-prob change, `var`,
   `p_gt`).
-- `test-recovery-structural.R` (V-60..V-69) — standardization `sigma_E` on a live
+- `test-recovery-structural.R` (V-65..V-72) — standardization `sigma_E` on a live
   GLM fit; composite as predictor **and** response; feedback `total_effects`
   equilibrium vs the reduced form from the **fitted** B; natural NDE/NIE on an
   identified nonlinear case.
-- `test-feedback.R` (V-70) — nonlinear feedback fixed point.
+- `test-feedback.R` (V-73) — nonlinear feedback fixed point.
 
 ## Wave 2 — calibration & coverage (the compute-heavy layer)
 

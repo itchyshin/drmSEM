@@ -183,7 +183,7 @@ test_that("V-43: drm_equilibrium_contrast recovers the reduced-form total effect
                                                  B = 1L, draw = FALSE)$converged)
 })
 
-test_that("V-70: propagate_fixedpoint solves a NONLINEAR feedback fixed point", {
+test_that("V-73: propagate_fixedpoint solves a NONLINEAR feedback fixed point", {
   # A nonlinear reciprocal pair (saturating coupling), a contraction so a unique
   # stable equilibrium exists. There is no closed form, so the known answer is the
   # fixed-point PROPERTY: at convergence, re-applying the structural map must

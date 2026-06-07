@@ -890,3 +890,33 @@ V-41/V-7 reconciliation. Acted:
   for constant-variance links (#26/V-44); remaining = log-link mean-dependent term +
   optional live-GLM-fit confirmation.
 Docs-only. Folded into the #27 docs-hygiene PR.
+
+## 2026-06-07 — Simulation-validation campaign wave 1 (recovery grid, parallel agents)
+
+Per the user's "comprehensively test the machinery" goal: authored a live-fit
+numerical-recovery grid + the validation matrix doc, via three parallel
+simulation-tester agents (isolated worktrees) + my own L1/L4.
+- L4: docs/design/11-validation-matrix.md — machinery x known-answer DGP x tier x
+  V-evidence map; names the wave-2 gaps (effect-CI coverage, d-sep Type-I/power,
+  model-selection recovery rate).
+- L1 (kernel): test-feedback.R V-73 — nonlinear feedback fixed point (self-
+  consistency + independent solve; no closed form).
+- L2 (live-fit, drmTMB-gated, 3 new files):
+  - test-recovery-families.R V-45..V-54: decomposition recovery across the
+    family×link grid (mean-mediated == fitted-coef product / predict do-contrast;
+    closure; distribution_mediated magnitude from fitted params = the V-7 follow-up).
+  - test-recovery-samplers.R V-55..V-64: drm_sample_family mean+var vs
+    drmTMB::simulate() per family; outcome functionals (p_zero/var/p_gt).
+  - test-recovery-structural.R V-65..V-72: sigma_E standardization on a live GLM,
+    composite-as-response, feedback total_effects vs fitted reduced form, natural
+    NDE/NIE nonlinear.
+PROCESS NOTE: the families agent overran its block (V-45..V-54, 10 tests) into the
+samplers block — caught the V-number collision at integration and renumbered
+(samplers +5 -> V-55..V-64, structural +5 -> V-65..V-72, my feedback -> V-73) so
+the ledger stays unambiguous (same class of drift Rose flagged for the #22 V-31..36
+collision). Robustness rule enforced throughout: assert against fitted coefs /
+drmTMB::simulate() ground truth, not hand closed forms with uncertain drmTMB
+parameterization. Agents have no R, so CI is first run — flagged risks (tweedie/zoi/
+student samplers, V-53 lognormal-sigma scale, V-64 equilibrium tol, natural-effect
+MC thresholds) recorded for the live lane. Ledger V-45..V-73 added; NEWS bullet;
+matrix doc. Will gate merge on CI green.

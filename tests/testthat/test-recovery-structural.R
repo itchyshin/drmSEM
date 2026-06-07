@@ -11,15 +11,15 @@
 # with an uncertain parameterization. Node-wise ML is biased under feedback, so
 # the feedback check asserts against the FITTED B/Gamma, not the DGP ones.
 #
-# V-number -> test map (this file owns the V-60..V-69 block):
-#   V-60  standardize(latent) on a LIVE logit GLM == b*sd(x)/sqrt(Var(eta)+pi^2/3)
-#   V-61  standardize(latent) on a LIVE Gaussian identity node == sd_x / sd(eta)
-#   V-62  composite used as BOTH predictor and response fits; loadings + effect ok
-#   V-63  Cronbach alpha on a live composite matches drm_cronbach_alpha closed form
-#   V-64  feedback total_effects(equilibrium) == fitted ((I-B)^-1 Gamma) entry
-#   V-65  a divergent declared system (rho(B) >= 1) reports NA, not a number
-#   V-66  natural effects: NDE+NIE+mediated_interaction sum to total_path (finite)
-#   V-67  adding an x:M interaction pushes mediated_interaction off zero
+# V-number -> test map (this file owns the V-65..V-72 block):
+#   V-65  standardize(latent) on a LIVE logit GLM == b*sd(x)/sqrt(Var(eta)+pi^2/3)
+#   V-66  standardize(latent) on a LIVE Gaussian identity node == sd_x / sd(eta)
+#   V-67  composite used as BOTH predictor and response fits; loadings + effect ok
+#   V-68  Cronbach alpha on a live composite matches drm_cronbach_alpha closed form
+#   V-69  feedback total_effects(equilibrium) == fitted ((I-B)^-1 Gamma) entry
+#   V-70  a divergent declared system (rho(B) >= 1) reports NA, not a number
+#   V-71  natural effects: NDE+NIE+mediated_interaction sum to total_path (finite)
+#   V-72  adding an x:M interaction pushes mediated_interaction off zero
 
 skip_if_not_installed("drmTMB")
 
@@ -39,7 +39,7 @@ pick_std <- function(s, term) s$std.estimate[match(term, s$term)]
 # 1. STANDARDIZATION on a LIVE fit (the OQ-4 sigma_E pipeline, end-to-end).
 # ---------------------------------------------------------------------------
 
-test_that("V-60: latent standardization of a live logit GLM uses sqrt(Var(eta)+pi^2/3)", {
+test_that("V-65: latent standardization of a live logit GLM uses sqrt(Var(eta)+pi^2/3)", {
   set.seed(60)
   n <- 2000
   x <- stats::rnorm(n)
@@ -69,7 +69,7 @@ test_that("V-60: latent standardization of a live logit GLM uses sqrt(Var(eta)+p
   expect_lt(pick_std(s, "x"), b_fitted * stats::sd(dat$x) / stats::sd(eta))
 })
 
-test_that("V-61: latent standardization of a live Gaussian identity node is sd_x / sd(eta)", {
+test_that("V-66: latent standardization of a live Gaussian identity node is sd_x / sd(eta)", {
   set.seed(61)
   n <- 2000
   x <- stats::rnorm(n)
@@ -99,7 +99,7 @@ test_that("V-61: latent standardization of a live Gaussian identity node is sd_x
 # 2. COMPOSITE end-to-end: construct used BOTH as a predictor and as a response.
 # ---------------------------------------------------------------------------
 
-test_that("V-62: a formative composite fits as both predictor and response; effects flow", {
+test_that("V-67: a formative composite fits as both predictor and response; effects flow", {
   set.seed(62)
   n <- 1500
   z <- stats::rnorm(n)                              # latent construct
@@ -142,7 +142,7 @@ test_that("V-62: a formative composite fits as both predictor and response; effe
   expect_gt(abs(mm), 0)                              # the construct really mediates
 })
 
-test_that("V-63: Cronbach alpha on a live composite matches the closed form", {
+test_that("V-68: Cronbach alpha on a live composite matches the closed form", {
   set.seed(63)
   n <- 1200
   z <- stats::rnorm(n)
@@ -183,7 +183,7 @@ fitted_B_Gamma <- function(sem, endo, exo) {
   list(B = B, Gamma = Gamma)
 }
 
-test_that("V-64: feedback equilibrium total effect matches the fitted reduced form", {
+test_that("V-69: feedback equilibrium total effect matches the fitted reduced form", {
   set.seed(64)
   n <- 2000
   x <- stats::rnorm(n); zz <- stats::rnorm(n)
@@ -227,7 +227,7 @@ test_that("V-64: feedback equilibrium total effect matches the fitted reduced fo
   expect_equal(te1$estimate, Tm["y1", "x"] * stats::sd(dat$x), tolerance = 0.05)
 })
 
-test_that("V-65: a divergent declared system reports NA, never a fabricated number", {
+test_that("V-70: a divergent declared system reports NA, never a fabricated number", {
   # rho(B) >= 1: no stable equilibrium. We cannot guarantee a *fitted* B diverges,
   # so exercise the equilibrium engine directly on hand engines with such a B
   # (mirrors the live total_effects() NA branch in R/effects.R). b12*b21 = 1.2 > 1.
@@ -254,7 +254,7 @@ test_that("V-65: a divergent declared system reports NA, never a fabricated numb
 # 4. NATURAL effects on an identified NONLINEAR case (log-link outcome).
 # ---------------------------------------------------------------------------
 
-test_that("V-66: natural effects sum to the total path on a nonlinear single-mediator DAG", {
+test_that("V-71: natural effects sum to the total path on a nonlinear single-mediator DAG", {
   set.seed(66)
   n <- 2500
   x <- stats::rnorm(n)
@@ -287,7 +287,7 @@ test_that("V-66: natural effects sum to the total path on a nonlinear single-med
   expect_gt(abs(nie), 0.02)
 })
 
-test_that("V-67: adding an x:M interaction moves mediated_interaction off zero", {
+test_that("V-72: adding an x:M interaction moves mediated_interaction off zero", {
   set.seed(67)
   n <- 2500
   x <- stats::rnorm(n)

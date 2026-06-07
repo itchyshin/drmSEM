@@ -1,5 +1,24 @@
 # drmSEM 0.2.0.9000 (development version)
 
+## Simulation-based recovery grid (validation wave 1)
+
+* A campaign of **numerical-recovery tests on real `drmTMB` fits** now exercises
+  the machinery end-to-end, not just for finiteness (V-45..V-73; see the new
+  `docs/design/11-validation-matrix.md`). The effect decomposition is recovered
+  across the **family×link grid** (gaussian, poisson, nbinom2, binomial,
+  beta_binomial, beta, Gamma, lognormal) — mean-mediated equals the fitted-coef
+  product / a `predict_parameters()` do-contrast, total = direct + indirect
+  closes, and `distribution_mediated` matches the Jensen-gap magnitude from
+  *fitted* params (the V-7 live-fit follow-up). Each family's `drm_sample_family()`
+  **mean and variance are checked against `drmTMB::simulate()`** (closing OQ-1
+  gaps), outcome functionals (`p_zero`/`var`/`p_gt`) are recovered, and the
+  standardization `sigma_E` pipeline, composite-as-response, feedback equilibrium
+  vs the fitted reduced form, and natural NDE/NIE are validated on live fits. A
+  nonlinear feedback fixed point is added at the kernel tier (V-73). Tweedie /
+  zero_one_beta inflation / student `nu` samplers stay flagged for the live lane.
+  Wave 2 (effect-CI coverage, d-sep Type-I/power, model-selection recovery rate)
+  is the calibration layer, tracked in `CODEX_HANDOFF.md`.
+
 ## Standardization: GLM mean-path `sigma_E` (OQ-4)
 
 * The `latent` standardization of a **`mu`** path on a constant-variance link now
