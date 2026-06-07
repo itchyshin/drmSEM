@@ -66,6 +66,15 @@ mean paths (Grace et al. 2019 / piecewiseSEM `latent.linear`); (2) a Gelman (200
 2-SD opt-in for continuous-vs-factor comparability as an explicit argument.
 Original questions below.
 
+**Update 2026-06-07 — refinement (1) shipped for constant-variance links.** The
+`latent` divisor of a **mu** path now adds the theoretical link variance
+`sigma_E^2` for the links where it is a constant — logit `pi^2/3`, probit `1`,
+cloglog `pi^2/6` (`drm_link_latent_var()` / `drm_latent_divisor()` in
+`R/standardize.R`), closed-form validated by **V-44** (no engine). Still open:
+the **log-link** families' *mean-dependent* (observation-level) latent variance,
+the Gelman 2-SD opt-in, and an optional live-GLM-fit confirmation of the full
+pipeline (a Codex nice-to-have; the math is already closed-form locked).
+
 `standardize()` offers `sd_x` (multiply by predictor SD) and `latent` (also
 divide by the SD of the component's fitted linear predictor, after Grace &
 Bollen). Open:
@@ -258,15 +267,21 @@ or higher-level (`corpair`) covariance edge; `drm_sem()`/`drm_psem()` take a
 (never in `$edges`); `covariances(sem)` reports residual vs higher-level edges
 separately, kept out of directed-only `paths()`; and `basis_set()`/`dsep()` drop
 the `y1 _||_ y2` independence claim for any declared covariance pair (Shipley's
-bidirected-edge rule). Remaining open items (all need a **live bivariate drmTMB
-fit**, so they stay in the Codex lane):
+bidirected-edge rule).
 
-- `drm_pair()` bivariate node type (fits two responses jointly; `covary()` is the
-  declaration primitive it will emit).
-- `rho12(fit)` / `corpairs(fit)` accessors that read the *fitted* residual /
-  random-effect correlations back from a live bivariate fit.
-- Double-headed / dashed covariance arcs in `plot(sem, show = "all")` (needs
-  rendering to validate).
+**Update 2026-06-07 — the declaration grammar, accessors, and plotting now ship
+(`R/pair.R`, `test-pair.R`; `R/plotting.R`, `test-plotting.R`):** `drm_pair()`
+declares a bivariate node (two response formulas + families, optional `rho12 ~ x`,
+auto-detected `corpair` level), `drm_expand_pair()` bridges it onto `covary()`,
+the `rho12()` / `corpairs()` accessors report the declared edges (with
+`estimate = NA` by construction), and `plot(sem, show = "all")` draws
+double-headed (residual) / dashed (higher-level) covariance arcs. Remaining open
+items now need only a **live bivariate drmTMB fit** (the Codex lane):
+
+- The joint bivariate *fit* itself (estimating `rho12` in one drmTMB model);
+  `drm_pair()` is the declaration primitive it consumes.
+- `rho12(fit)` / `corpairs(fit)` returning a *fitted* (non-`NA`) correlation read
+  back from a live bivariate fit.
 - Deep level-compatibility validation (both nodes actually share the declared
   grouping + a compatible covariance structure) — needs RE-block introspection.
 
