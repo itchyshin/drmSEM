@@ -998,5 +998,10 @@ file scopes, integrated safe three here (PR-A); OQ-1 fix isolated (PR-B).
   already clean; made NO changes (no empty commit). Recommended-not-applied: a
   redundant names<- no-op (effects.R:44,378 / feedback.R:320), a closure-assertion
   test helper, shared replicate-loop scaffolding — all left as future refactors.
-- D (OQ-1 sampler fix): separate branch claude/oq1-fix-aybDD -> its own PR so the
-  risky blind fix can't block the safe three.
+- D (OQ-1 sampler fix): correctly did NOT apply a blind fix. Key finding: the
+  aggregate inflation %s are MIXTURE-contaminated (a sigma~x fit pools rows with
+  different means, so a single dispersion backed out of the pooled variance is
+  uninterpretable -- this was a flaw in my original probe too). Rewrote the probe
+  into a decisive single-fixed-row sweep (candidate mappings vs simulate() var,
+  response+link sigma) that pins the fix in one Codex run. No R/ or test change;
+  the improved probe is folded into PR-A. Updated CODEX_HANDOFF item 7 accordingly.
