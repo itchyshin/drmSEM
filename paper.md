@@ -136,7 +136,11 @@ roadmap.
 
 **Built on `drmTMB`.** Every assumption about the engine's return shapes is
 isolated in a single adapter, so `drmSEM` re-uses, rather than re-implements,
-`drmTMB`'s likelihoods, link functions, and family samplers.
+`drmTMB`'s likelihoods, link functions, and fitted distributional parameters. The
+effect calculus does supply its own family samplers — it draws realized mediator
+values from each fitted family, parameterized from that node's fitted
+distributional parameters — so that the distribution-mediated channel can be
+propagated through a downstream response.
 
 A short, illustrative usage sketch (not executed here):
 
