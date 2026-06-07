@@ -81,9 +81,25 @@ the ledger names a live-fit gate.
 
 ## P2 — robustness / parameterization
 
-7. **OQ-1 / V-19** — confirm family-sampler parameterizations against
-   `drmTMB::simulate()`: `zero_one_beta` (zoi/coi), `tweedie` (mean-fallback),
-   beta_binomial trials. Extend `test-oq1-samplers.R`.
+7. **OQ-1 / V-19 — SAMPLER VARIANCE MISMATCH (found 2026-06-07, P1, possibly P0).**
+   The new V-57..V-60 recovery tests compared `drm_sample_family()` to
+   `drmTMB::simulate()` at the fitted params and found a real discrepancy: the
+   **means match to ~4 s.f.** but the **variances are systematically inflated** —
+   nbinom2 var 19.5 vs 12.1 (+61%), beta 0.133 vs 0.041 (+220%), Gamma 15.5 vs
+   6.15 (+150%) — and **lognormal mean is shifted** (1.35 vs 2.64). So
+   `drm_sample_family()`'s dispersion mapping (`size=1/sigma^2`, `phi=1/sigma^2`,
+   lognormal `meanlog=log(mu)`) feeds a sigma on the wrong scale vs drmTMB's
+   internal dispersion; the prior `test-oq1-samplers.R` "confirmation" never
+   compared variance vs `simulate()`. **Action:** introspect drmTMB's exact
+   sigma↔dispersion convention per family (an L3-style probe), fix
+   `R/simulate_effects.R drm_sample_family()` and/or the `R/extractors.R` sigma
+   read, then flip the V-57..V-60 skips to asserts. **Impact:** distribution-
+   mediated effect *magnitudes* through a non-Gaussian **mediator** (e.g. the
+   canonical nbinom2 `abundance`) are likely biased until this is fixed (sign /
+   closure / Gaussian-mediator cases are unaffected; no shipped claim asserted
+   such a magnitude, but it should be re-checked). Also still open:
+   `zero_one_beta` (zoi/coi), `tweedie` (mean-fallback), `student` nu,
+   beta_binomial trials.
 8. **OQ-7** — root-cause the `sdreport` NaN on the canonical n=300 DGP (recondition
    or confirm a drmTMB robustness gap; file upstream). `docs/memory/DRMTMB_ISSUES.md`.
 8b. **Effect-interval honesty (from the 2026-06-06 decomposition audit).** Two

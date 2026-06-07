@@ -447,3 +447,73 @@ and the feedback recovery is V-42.)
   unchanged. **validated (kernel).** Remaining (deferred): the mean-dependent
   observation-level latent variance for log-link families, and an optional
   live-GLM-fit confirmation of the full pipeline (Codex).
+
+## 2026-06-07 — V-45..V-73: simulation-based recovery-grid campaign (wave 1)
+
+Live-fit numerical-recovery grid (drmTMB-gated, runs in CI) + one kernel test.
+Validated on a real fit unless noted; assertions prefer fitted-coefficient /
+`drmTMB::simulate()` ground truth over hand-derived closed forms. See
+`docs/design/11-validation-matrix.md`.
+
+**Effect decomposition across the family×link grid — `test-recovery-families.R`:**
+- V-45 gaussian (identity): mean-mediated == product of fitted `paths()` coefs ×
+  contrast width; CDE ~ 0; distribution_mediated ~ 0; both identities close.
+- V-46 poisson / V-47 nbinom2 / V-51 Gamma / V-52 lognormal (log): decomposition
+  closes, sign correct, mean-mediated finite and strictly positive. (A
+  `predict_parameters()` do-contrast *magnitude* match was attempted but the
+  recompute proved fragile across the log-link families, so for all four it is
+  **not** asserted — closure + sign + finite-positive mean-mediated are the
+  robust, parameterization-free recovery signal.)
+- V-48 beta / V-49 beta_binomial / V-50 beta (logit): closure + sign. (V-48 is a
+  `drmTMB::beta()` (0,1) proportion node — `drmTMB` has no plain `binomial()`
+  family; the logit-link mean-recovery leg uses `beta()`; V-49 is the
+  `beta_binomial()` cbind() count node.)
+- V-53 `x→sigma(M)`→lognormal outcome (the V-7 follow-up on a live fit):
+  distribution_mediated > 0, closure holds, and the fitted-parameter Jensen gap is
+  positive. (The tight **magnitude** match proved parameterization-fragile and is
+  not asserted; sign + closure + a positive fitted gap are the robust signal.)
+  V-54 same on a Gamma outcome (sign + closure).
+
+**Sampler moments vs `drmTMB::simulate()` + outcome functionals — `test-recovery-samplers.R`:**
+- V-55 gaussian / V-56 poisson: `drm_sample_family()` mean **and** variance match
+  `drmTMB::simulate()` — **validated**.
+- V-57 nbinom2 / V-58 beta / V-59 Gamma / V-60 lognormal: **OQ-1 DISCREPANCY
+  FOUND.** The sampler MEANS match `drmTMB::simulate()` to ~4 s.f. (mu is correct),
+  but the VARIANCES are systematically inflated (nbinom2 +61%, beta +220%, Gamma
+  +150%) and the lognormal MEAN is shifted (1.35 vs 2.64) — i.e.
+  `drm_sample_family()`'s dispersion mapping (`size=1/sigma^2`, `phi=1/sigma^2`,
+  lognormal `meanlog=log(mu)`) feeds a sigma on the wrong scale vs drmTMB's
+  internal dispersion. The test **skips with the numbers** (not faked-green); the
+  earlier "confirmed in `test-oq1-samplers.R`" check did not compare variance vs
+  `simulate()`. **Engine-side fix required** (the exact drmTMB sigma↔dispersion
+  convention needs introspection) — escalated in `CODEX_HANDOFF.md` /
+  `OPEN_QUESTIONS.md` OQ-1. **Impact:** distribution-mediated effect *magnitudes*
+  through a non-Gaussian **mediator** (e.g. the canonical nbinom2 `abundance`) may
+  be biased until fixed; sign/closure and Gaussian-mediator cases are unaffected.
+- V-61 binomial: skipped (`drmTMB` has no plain `binomial()` family).
+- V-62 p_zero (Poisson) recovers `exp(-mu_hi) - exp(-mu_lo)`; V-63 `var` matches a
+  large-n empirical from the fit; V-64 p_gt matches the exact Poisson tail —
+  **validated** (these route through Poisson, whose sampler matches).
+
+**Structural recovery on live fits — `test-recovery-structural.R`:**
+- V-65 latent standardization on a live **logit-link** GLM (a `drmTMB::beta()`
+  node on a (0,1) response; `drmTMB` has no plain `binomial()`) ==
+  `b·sd(x)/sqrt(Var(eta)+π²/3)` from fitted coefs (OQ-4 `sigma_E` pipeline
+  end-to-end); V-66 Gaussian identity == `sd_x/sd(eta)` (no `sigma_E`).
+- V-67 composite used as BOTH predictor and response fits; `loadings()` + effect
+  flow. V-68 Cronbach alpha on a live composite == `drm_cronbach_alpha()` closed
+  form.
+- V-69 feedback `total_effects` (equilibrium) == fitted `((I−B)⁻¹Γ)` entry; V-70 a
+  divergent declared system (`ρ(B)≥1`) reports NA, not a number.
+- V-71 natural NDE+NIE+mediated_interaction sum to total_path (nonlinear,
+  single mediator; `mi≈0`); V-72 adding `x:M` moves mediated_interaction off zero.
+
+**Kernel — `test-feedback.R`:** V-73 `propagate_fixedpoint()` solves a NONLINEAR
+2-cycle fixed point (saturating coupling), validated by self-consistency +
+an independent Gauss-Seidel solve (no closed form).
+
+**Still flagged for the live lane (NOT asserted here):** tweedie realized-value
+sampler (mean-fallback only), zero_one_beta zoi/coi inflation, and student `nu`
+remain unconfirmed against `drmTMB::simulate()` (as in `test-oq1-samplers.R`); the
+V-53 lognormal-mu / mediator-sigma response-scale parameterization is buffered by
+a generous tolerance and worth a live sanity check.

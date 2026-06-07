@@ -890,3 +890,51 @@ V-41/V-7 reconciliation. Acted:
   for constant-variance links (#26/V-44); remaining = log-link mean-dependent term +
   optional live-GLM-fit confirmation.
 Docs-only. Folded into the #27 docs-hygiene PR.
+
+## 2026-06-07 — Simulation-validation campaign wave 1 (recovery grid, parallel agents)
+
+Per the user's "comprehensively test the machinery" goal: authored a live-fit
+numerical-recovery grid + the validation matrix doc, via three parallel
+simulation-tester agents (isolated worktrees) + my own L1/L4.
+- L4: docs/design/11-validation-matrix.md — machinery x known-answer DGP x tier x
+  V-evidence map; names the wave-2 gaps (effect-CI coverage, d-sep Type-I/power,
+  model-selection recovery rate).
+- L1 (kernel): test-feedback.R V-73 — nonlinear feedback fixed point (self-
+  consistency + independent solve; no closed form).
+- L2 (live-fit, drmTMB-gated, 3 new files):
+  - test-recovery-families.R V-45..V-54: decomposition recovery across the
+    family×link grid (mean-mediated == fitted-coef product / predict do-contrast;
+    closure; distribution_mediated magnitude from fitted params = the V-7 follow-up).
+  - test-recovery-samplers.R V-55..V-64: drm_sample_family mean+var vs
+    drmTMB::simulate() per family; outcome functionals (p_zero/var/p_gt).
+  - test-recovery-structural.R V-65..V-72: sigma_E standardization on a live GLM,
+    composite-as-response, feedback total_effects vs fitted reduced form, natural
+    NDE/NIE nonlinear.
+PROCESS NOTE: the families agent overran its block (V-45..V-54, 10 tests) into the
+samplers block — caught the V-number collision at integration and renumbered
+(samplers +5 -> V-55..V-64, structural +5 -> V-65..V-72, my feedback -> V-73) so
+the ledger stays unambiguous (same class of drift Rose flagged for the #22 V-31..36
+collision). Robustness rule enforced throughout: assert against fitted coefs /
+drmTMB::simulate() ground truth, not hand closed forms with uncertain drmTMB
+parameterization. Agents have no R, so CI is first run — flagged risks (tweedie/zoi/
+student samplers, V-53 lognormal-sigma scale, V-64 equilibrium tol, natural-effect
+MC thresholds) recorded for the live lane. Ledger V-45..V-73 added; NEWS bullet;
+matrix doc. Will gate merge on CI green.
+
+## 2026-06-07 — Recovery grid found a real OQ-1 sampler-variance discrepancy
+
+The wave-1 recovery grid (#28) did its job: the V-57..V-60 sampler-vs-
+drmTMB::simulate() comparison surfaced a REAL parameterization gap, not a test
+bug. drm_sample_family() MEANS match drmTMB::simulate() to ~4 s.f. but VARIANCES
+are systematically inflated (nbinom2 +61%, beta +220%, Gamma +150%) and the
+lognormal MEAN is shifted (1.35 vs 2.64) at fitted, per-row (sigma~x) params. The
+2026-06-04 OQ-1 "resolution" used intercept-only/constant-sigma probes and never
+compared variance vs simulate(), so it missed this. Resolution (honest, since the
+fix is engine-side and I have no R): V-57..V-60 SKIP with the numbers (not faked
+green, not blocking); OQ-1 REOPENED (variance part); CODEX_HANDOFF item 7 upgraded
+to P1/P0 with the exact figures and the impact note (distribution-mediated effect
+MAGNITUDES through a non-Gaussian MEDIATOR may be biased until fixed; sign/closure
+and Gaussian-mediator cases unaffected; no shipped claim asserted such a
+magnitude). Ledger V-55..V-64 reworded: gaussian/poisson + functionals validated;
+nbinom2/beta/Gamma/lognormal moment-match is the OQ-1 discrepancy. CI iteration:
+FAIL 19 (round 1, test bugs) -> 5 (round 2, extraction/relax) -> skips (round 3).
