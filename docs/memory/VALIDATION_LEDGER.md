@@ -434,3 +434,16 @@ and the feedback recovery is V-42.)
   number). `test-feedback.R` (kernel) + the drmTMB-gated end-to-end check that
   `total_effects()` returns `mediation = "equilibrium"` with a finite estimate on
   a stable reciprocal fit. **validated (kernel + integration).**
+
+## 2026-06-07 — V-44: GLM mean-path latent standardization sigma_E (OQ-4)
+
+- **V-44 — `latent` divisor adds the theoretical link variance for mu paths.**
+  `drm_link_latent_var()` returns the constant latent-scale error variance
+  (logit π²/3, probit 1, cloglog π²/6; 0 for identity/log), and
+  `drm_latent_divisor()` makes the `latent` divisor of a non-identity-link **mu**
+  path `sqrt(Var(eta) + σ_E²)`. Closed-form test (`test-standardize.R`, fakefit,
+  no engine): a logit mean path standardizes by `sqrt(Var(eta) + π²/3)`, strictly
+  below the old `sd(eta)`-only value; identity-link mu and non-mu components are
+  unchanged. **validated (kernel).** Remaining (deferred): the mean-dependent
+  observation-level latent variance for log-link families, and an optional
+  live-GLM-fit confirmation of the full pipeline (Codex).

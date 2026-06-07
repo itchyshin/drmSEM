@@ -801,3 +801,19 @@ interchange)` subsection; `_pkgdown.yml` Interop reference section; 05-roadmap
 
 **Validation state.** Tests are written but not run here (no R in this lane, same
 constraint noted in prior entries); logic is hand-verified. CI runs the suite.
+
+## 2026-06-07 — OQ-4 sigma_E: theoretical link variance in latent standardization
+
+Closed the constant-variance part of OQ-4. R/standardize.R latent divisor for a
+non-identity-link mu path is now sqrt(Var(eta) + sigma_E^2) via two new internal
+helpers: drm_link_latent_var(link) (logit pi^2/3, probit 1, cloglog pi^2/6; 0 for
+identity/log) and drm_latent_divisor(eta, component, link) (adds the term only
+when component starts with "mu"). Corrects the prior mild over-standardization of
+GLM mean paths (Grace et al. 2018 / piecewiseSEM latent.linear). Identity-link mu
+and non-mu components (sigma/zi/sd) unchanged -> the existing all-Gaussian
+test-standardize.R assertions still hold (sigma_E=0 there). Validated CLOSED-FORM
+with the fakefit harness (no engine): V-44 builds a binomial(logit) mu fakefit and
+asserts std = b*sd(x)/sqrt(Var(eta)+pi^2/3). The log-link families' mean-dependent
+(observation-level) latent variance stays deferred; an optional live-GLM-fit
+confirmation remains a Codex nice-to-have. Updated standardize.R roxygen,
+08-standardization.md, NEWS, ledger V-44.

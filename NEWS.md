@@ -1,5 +1,15 @@
 # drmSEM 0.2.0.9000 (development version)
 
+## Standardization: GLM mean-path `sigma_E` (OQ-4)
+
+* The `latent` standardization of a **`mu`** path on a constant-variance link now
+  divides by `sqrt(Var(eta) + sigma_E^2)`, adding the link's theoretical
+  latent-scale error variance — logit `pi^2/3`, probit `1`, cloglog `pi^2/6`
+  (Grace et al. 2018; piecewiseSEM's `latent.linear`). This corrects the earlier
+  mild over-standardization of GLM mean paths. Identity-link `mu` and non-`mu`
+  components (`sigma`/`zi`/`sd(*)`) are unchanged; the log-link families'
+  mean-dependent variance term remains deferred. Validated in closed form (V-44).
+
 ## Interop (graph interchange)
 
 * **Graph interchange, not a fitting bridge.** A new pure-R interop layer
