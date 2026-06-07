@@ -84,6 +84,23 @@ kernel + live-fit, V-1..V-73) and `12-coverage-calibration.md` (wave-2 spec).
 The pure-R surface is green and the honest caveats are all recorded — over to the
 engine. Thanks! — Claude/CI lane
 
+## ⚠ Re-render the hero DAG (live lane) — code fixed, PNG stale
+
+`plot.drm_sem()` and `tools/render-readme-hero.R` were fixed (faithful legend
+listing only drawn components; fanned parallel edges; node-fill legend; `hu`
+linetype; legibility bumps; optional `layout=`). The Claude lane **cannot
+regenerate the committed image** (`man/figures/drmsem-hero-dag.png`) — no R in
+container — so the PNG is **stale vs the fixed code** until re-rendered:
+
+1. `Rscript tools/render-readme-hero.R` and visually confirm the rendered figure
+   shows a **3-row legend (mu / sigma / zi)** and **no overlapping/crossing
+   edges** (the `temp→size` mu+sigma pair should now be two distinct arcs).
+2. If a residual crossing remains, pass a fixed `layout =` matrix (rownames =
+   node names) to `plot()` in the generator and re-render until clean.
+3. Commit the regenerated PNG. The same image is embedded in `README.md` and
+   `paper.md`; both captions already describe only mu/sigma/zi, so no prose
+   change is needed once the legend matches.
+
 ## What shipped (pure-R / CI-green) up to this handoff
 
 drmSEM 0.5.0 is cut (feedback-graph milestone); `main` then moves to the

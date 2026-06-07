@@ -13,6 +13,23 @@ the live-drmTMB lane (see `docs/memory/CODEX_HANDOFF.md`).
 
 * `drm_sample_family()` and effect propagation now match current `drmTMB` parameterization for the common sampler families in live recovery tests. Default fitted dpars such as `sigma` are carried into prediction engines even when no explicit `sigma ~ ...` formula is declared, and lognormal nodes now use `mu = meanlog`, `sigma = sdlog`, with mean mediation propagating `exp(mu + sigma^2 / 2)` (OQ-1, V-57..V-60).
 
+## DAG plot: faithful legend + readable edges
+
+* `plot.drm_sem()` now builds its legend from the components **actually drawn**
+  (sourced from the same style function as the edges, so the two can never
+  drift) instead of always listing all seven distributional components — the
+  hero/landing-page DAG previously showed `nu`/`hu`/`sd(.)`/`rho12` swatches for
+  paths that did not exist. Covariance rows are added only for the classes truly
+  present.
+* Parallel paths between one pair (e.g. a `mu` **and** a `sigma` arrow on the
+  same edge) are now **fanned onto separate arcs** instead of overlapping into a
+  single line, and a `layout =` matrix (optionally row-named) can be supplied for
+  a fixed, crossing-free diagram. A **node-fill legend** (endogenous response vs
+  exogenous predictor) is drawn, and `hu` gets a distinct linetype so it no longer
+  relies on colour alone to separate from `zi` (colour-blind safety).
+* The legend construction is now a tested pure helper (`drm_path_legend()`), so a
+  regression that re-introduces phantom legend entries fails CI.
+
 ## Outcome functionals across the effect API (OQ-11)
 
 * All three effect functions now report the effect on a chosen **functional of the

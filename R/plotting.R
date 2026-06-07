@@ -16,10 +16,37 @@ drm_component_style <- function(component) {
     sigma = list(col = "#1b9e77", lty = 2),
     nu = list(col = "#7570b3", lty = 4),
     zi = list(col = "#d95f02", lty = 3),
-    hu = list(col = "#e7298a", lty = 3),
+    hu = list(col = "#e7298a", lty = 6),
     rho12 = list(col = "#666666", lty = 5),
     list(col = "black", lty = 1)
   )
+}
+
+# Build the legend from the components ACTUALLY drawn (and the covariance classes
+# actually present), sourcing swatches from drm_component_style() so the legend
+# can never drift from the edges. Returns parallel lab/col/lty vectors: the
+# path-target rows first (in a fixed component order), then any covariance rows.
+drm_path_legend <- function(edges, cov = NULL, draw_cov = FALSE) {
+  comp_lab <- c(mu = "mu", sigma = "sigma", nu = "nu", zi = "zi", hu = "hu",
+                rho12 = "rho12 (path)")
+  drawn <- ifelse(startsWith(edges$component, "sd"), "sd", edges$component)
+  present <- intersect(c("mu", "sigma", "nu", "zi", "hu", "sd", "rho12"),
+                       unique(drawn))
+  lab <- vapply(present, function(k)
+    if (identical(k, "sd")) "sd(.)" else unname(comp_lab[[k]]), character(1))
+  stys <- lapply(present, function(k)
+    drm_component_style(if (identical(k, "sd")) "sd(.)" else k))
+  col <- vapply(stys, `[[`, character(1), "col")
+  lty <- vapply(stys, `[[`, numeric(1), "lty")
+  if (isTRUE(draw_cov) && !is.null(cov) && nrow(cov) > 0L) {
+    if (any(cov$class == "residual")) {
+      lab <- c(lab, "rho12 (covary)"); col <- c(col, "#666666"); lty <- c(lty, 1)
+    }
+    if (any(cov$class != "residual")) {
+      lab <- c(lab, "corpair (covary)"); col <- c(col, "#666666"); lty <- c(lty, 2)
+    }
+  }
+  list(lab = unname(lab), col = unname(col), lty = unname(lty))
 }
 
 #' Plot the distributional SEM as a component-labelled DAG
@@ -34,10 +61,18 @@ drm_component_style <- function(component) {
 #' higher-level covariance) are visually distinct
 #' (`docs/design/07-bivariate-covariance-edges.md`). Uses `igraph` for layout.
 #'
+#' The legend lists **only the components and covariance classes actually present
+#' in the plotted graph** (its swatches come from the same style function as the
+#' edges, so they cannot drift from what is drawn). Node fills distinguish
+#' endogenous responses from exogenous predictors. Parallel paths between one pair
+#' (for example a `mu` and a `sigma` arrow) are fanned onto separate arcs.
+#'
 #' @param x A `drm_sem` object.
 #' @param show `"all"` (default) draws directed paths **and** covariance arcs;
 #'   `"paths"` draws the directed structural edges only.
-#' @param ... Passed to the underlying plot.
+#' @param ... Passed to the underlying `igraph` plot. A `layout =` matrix is
+#'   honoured (if it carries rownames it is reordered to the internal vertex
+#'   order), so a fixed, crossing-free layout can be supplied.
 #' @return `x`, invisibly.
 #' @examples
 #' \dontrun{
@@ -88,24 +123,63 @@ plot.drm_sem <- function(x, show = c("all", "paths"), ...) {
   igraph::E(g)$lty <- elty
   igraph::E(g)$arrow.mode <- earrow
   vcol <- ifelse(verts %in% x$endogenous, "#cde", "#eee")
-  lay <- igraph::layout_with_sugiyama(g)$layout
-  graphics::plot(
+
+  # Layout: honour a caller-supplied `layout=` (a matrix; if it carries rownames
+  # it is reordered to the internal vertex order, so the caller need not know it),
+  # else fall back to Sugiyama.
+  dots <- list(...)
+  lay <- if (!is.null(dots$layout)) {
+    L <- as.matrix(dots$layout)
+    if (!is.null(rownames(L))) L <- L[verts, , drop = FALSE]
+    L
+  } else {
+    igraph::layout_with_sugiyama(g)$layout
+  }
+  dots$layout <- NULL
+
+  # Curvature: fan parallel directed edges (same from->to but a different target
+  # component -- e.g. a mu and a sigma path between one pair) onto opposite arcs so
+  # they never collapse into one line, and give a lone edge a direction-signed bow
+  # so long diagonals separate. Covariance arcs keep their wider preset curvature.
+  n_dir <- nrow(edges)
+  if (n_dir > 0L) {
+    fx <- lay[match(e_df$from[seq_len(n_dir)], verts), 1L]
+    tx <- lay[match(e_df$to[seq_len(n_dir)], verts), 1L]
+    key <- paste(e_df$from[seq_len(n_dir)], e_df$to[seq_len(n_dir)], sep = "\r")
+    for (k in unique(key)) {
+      idx <- which(key == k)
+      ecurv[idx] <- if (length(idx) == 1L) {
+        if (isTRUE(tx[idx] >= fx[idx])) 0.15 else -0.15
+      } else {
+        0.3 * seq(-1, 1, length.out = length(idx))
+      }
+    }
+  }
+
+  base <- list(
     g, layout = lay,
     vertex.color = vcol, vertex.frame.color = "grey40",
     vertex.label.color = "black", vertex.size = 34,
-    edge.arrow.size = 0.5, edge.arrow.mode = earrow, edge.curved = ecurv, ...
+    edge.arrow.mode = earrow, edge.curved = ecurv
   )
-  leg_lab <- c("mu", "sigma", "nu", "zi", "hu", "sd(.)", "rho12 (path)")
-  leg_col <- c("black", "#1b9e77", "#7570b3", "#d95f02", "#e7298a", "grey50", "#666666")
-  leg_lty <- c(1, 2, 4, 3, 3, 3, 5)
-  if (draw_cov) {
-    leg_lab <- c(leg_lab, "rho12 (covary)", "corpair (covary)")
-    leg_col <- c(leg_col, "#666666", "#666666")
-    leg_lty <- c(leg_lty, 1, 2)
+  if (is.null(dots$edge.arrow.size)) base$edge.arrow.size <- 0.5
+  do.call(graphics::plot, c(base, dots))
+
+  # Edge legend: lists ONLY the components/covariance classes actually drawn
+  # (previously hardcoded all seven components regardless of the graph).
+  lg <- drm_path_legend(edges, cov, draw_cov)
+  if (length(lg$lab) > 0L) {
+    graphics::legend(
+      "bottomleft", bty = "n", cex = 0.8, title = "path target",
+      legend = lg$lab, col = lg$col, lty = lg$lty
+    )
   }
+  # Node legend: modelled response vs exogenous predictor (the node fill colours,
+  # previously unexplained on the figure).
   graphics::legend(
-    "bottomleft", bty = "n", cex = 0.8,
-    legend = leg_lab, col = leg_col, lty = leg_lty
+    "topleft", bty = "n", cex = 0.8,
+    legend = c("endogenous (response)", "exogenous (predictor)"),
+    pt.bg = c("#cde", "#eee"), pch = 21, col = "grey40"
   )
   invisible(x)
 }

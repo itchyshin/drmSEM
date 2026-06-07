@@ -61,13 +61,18 @@ ragg::agg_png(
   res = 170,
   background = "white"
 )
-graphics::par(mar = c(0.5, 0.5, 2.2, 0.5), family = "sans")
+graphics::par(mar = c(0.5, 0.5, 2.4, 0.5), family = "sans")
+# Re-seed for a reproducible Sugiyama layout (the data simulation above consumed
+# the line-12 seed). For a guaranteed crossing-free hero you can pass a fixed
+# `layout =` matrix (rownames = node names) to plot() once tuned visually.
+set.seed(7)
 plot(
   sem,
   main = "Distributional piecewise SEM",
-  vertex.label.cex = 0.78,
+  cex.main = 1.3,
+  vertex.label.cex = 0.72,
   edge.width = 1.8,
-  edge.arrow.size = 0.45
+  edge.arrow.size = 0.7
 )
 grDevices::dev.off()
 

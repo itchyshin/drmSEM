@@ -114,3 +114,42 @@ test_that("plot.drm_sem works when there are no covariance edges", {
   on.exit(grDevices::dev.off(), add = TRUE)
   expect_s3_class(plot(sem), "drm_sem")
 })
+
+# The legend must list ONLY the components actually drawn (regression guard for
+# the hero-DAG bug where it hardcoded all seven). Tested on the pure helper so it
+# needs no rendering device.
+test_that("drm_path_legend lists only the components present in the edges", {
+  edges <- data.frame(
+    from = c("temp", "temp", "habitat"),
+    to = c("size", "size", "abundance"),
+    component = c("mu", "sigma", "zi"),
+    stringsAsFactors = FALSE
+  )
+  lg <- drmSEM:::drm_path_legend(edges, cov = NULL, draw_cov = FALSE)
+  expect_equal(lg$lab, c("mu", "sigma", "zi"))            # in fixed order
+  expect_false(any(c("nu", "hu", "sd(.)", "rho12 (path)") %in% lg$lab))
+  # swatches come from the style function (no drift)
+  expect_equal(lg$col, c("black", "#1b9e77", "#d95f02"))
+  expect_equal(lg$lty, c(1, 2, 3))
+})
+
+test_that("drm_path_legend normalises sd(group) components and a directed rho12", {
+  edges <- data.frame(
+    from = c("x", "g", "x"),
+    to = c("y", "y", "y"),
+    component = c("mu", "sd(group)", "rho12"),
+    stringsAsFactors = FALSE
+  )
+  lg <- drmSEM:::drm_path_legend(edges, cov = NULL, draw_cov = FALSE)
+  expect_equal(lg$lab, c("mu", "sd(.)", "rho12 (path)"))
+})
+
+test_that("drm_path_legend adds only the covariance classes actually present", {
+  edges <- data.frame(from = "x", to = "y1", component = "mu",
+                      stringsAsFactors = FALSE)
+  res_only <- data.frame(y1 = "y1", y2 = "y2", class = "residual",
+                         stringsAsFactors = FALSE)
+  lg <- drmSEM:::drm_path_legend(edges, cov = res_only, draw_cov = TRUE)
+  expect_true("rho12 (covary)" %in% lg$lab)
+  expect_false("corpair (covary)" %in% lg$lab)     # no higher-level row present
+})

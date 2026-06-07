@@ -1097,3 +1097,23 @@ beta_binomial trials. Next engine item is wave-2 coverage cache generation.
   per-mediator variant ships with an `identified` flag while live-fit integration
   and intervals remain open; effect articles now use conditional (`RE = 0`)
   wording consistently.
+
+## 2026-06-07 — Hero DAG: faithful legend + readable edges (Florence/Pat/Rose)
+
+User flagged the landing-page DAG as low quality: overlapping lines and a legend
+listing components not shown. Three reviewers converged: `plot.drm_sem()`
+hardcoded all seven distributional components in its legend (`R/plotting.R`)
+instead of deriving from `edges$component`, so the hero showed phantom
+`nu`/`hu`/`sd(.)`/`rho12` swatches; and `temp→size` is two paths (mu via
+`size~temp` + sigma via `sigma~temp`) drawn on one curve. Fixed in the Claude
+lane: legend now built from the components actually drawn via a tested pure helper
+`drm_path_legend()` (swatches sourced from `drm_component_style()` so legend and
+edges cannot drift), covary rows gated on the classes present, parallel edges
+fanned onto separate arcs, signed curvature, a node-fill legend, `hu` linetype
+distinct from `zi`, and an optional `layout=`. The PNG itself **cannot be
+regenerated in the Claude lane** (no R) — flagged for the live lane in
+CODEX_HANDOFF.
+Lesson (Rose): visual QA of a generated figure must **diff the legend entries
+against `edges$component`**, not just check label clipping — the phantom legend
+shipped past an earlier "visually inspected" note because only clipping was
+checked.
