@@ -59,25 +59,34 @@ drm_effect_contrast <- function(engines, scenarios, to, active, mediation,
 # independent coefficients per leg -- the point estimate is unbiased either way,
 # but the unpaired interval is inflated and not a valid paired contrast.) This
 # mirrors the shared-draw structure already used by the natural-effect branch.
-# Only the distribution leg consumes inner family draws (n_sim); the mean legs
-# are deterministic given beta, so they use n_sim = 1.
+# For target = "mean" the cde/tot_mean legs are deterministic given beta, so they
+# use n_sim = 1; the distribution leg consumes inner family draws (n_sim). For a
+# non-mean `target` (OQ-11) every leg must simulate the outcome to estimate its
+# functional, so all three legs draw n_sim inner realizations. The functional
+# legs reduce to the mean legs exactly when target = "mean" (drm_functional_target
+# returns the exact predicted mean there), so the mean-target results are
+# unchanged.
 drm_decomp_legs <- function(engines, scenarios, to, active, B, n_sim, draw,
-                            seed = NULL) {
+                            seed = NULL, target = "mean", threshold = 0,
+                            prob = 0.5) {
   if (!is.null(seed)) set.seed(seed)
   reps <- if (isTRUE(draw)) B else 1L
   legs <- matrix(NA_real_, reps, 3L,
                  dimnames = list(NULL, c("cde", "tot_mean", "tot_dist")))
+  ns_meanleg <- if (identical(target, "mean")) 1L else n_sim
   leg <- function(act, med, ns, beta_list) {
-    hi <- drm_expected_target(engines, scenarios$hi, to, act, med, beta_list, ns)
-    lo <- drm_expected_target(engines, scenarios$lo, to, act, med, beta_list, ns)
-    mean(hi - lo, na.rm = TRUE)
+    fhi <- drm_functional_target(engines, scenarios$hi, to, act, med, beta_list,
+                                 target, threshold, ns, prob)
+    flo <- drm_functional_target(engines, scenarios$lo, to, act, med, beta_list,
+                                 target, threshold, ns, prob)
+    fhi - flo
   }
   for (b in seq_len(reps)) {
     beta_list <- lapply(engines, drm_draw_beta, draw = draw)
     names(beta_list) <- names(engines)
-    legs[b, "cde"]      <- leg(character(0), "mean",         1L,    beta_list)
-    legs[b, "tot_mean"] <- leg(active,       "mean",         1L,    beta_list)
-    legs[b, "tot_dist"] <- leg(active,       "distribution", n_sim, beta_list)
+    legs[b, "cde"]      <- leg(character(0), "mean",         ns_meanleg, beta_list)
+    legs[b, "tot_mean"] <- leg(active,       "mean",         ns_meanleg, beta_list)
+    legs[b, "tot_dist"] <- leg(active,       "distribution", n_sim,      beta_list)
   }
   legs
 }
@@ -129,9 +138,12 @@ drm_block_feedback_decomp <- function(object, fn) {
 #' @param component Optional component filter for the attached coefficient table.
 #' @param target Functional of the outcome distribution to report the effect on:
 #'   `"mean"` (default), `"p_gt"` (Pr(Y > `threshold`)), `"p_zero"` (Pr(Y = 0)),
-#'   or `"var"` (Var(Y)). Non-mean targets simulate the outcome from its family
-#'   (OQ-11).
+#'   `"var"` (Var(Y)), or `"quantile"` (the `prob`-quantile). Non-mean targets
+#'   simulate the outcome from its family (OQ-11) — most useful when a path moves
+#'   only `sigma`/`zi`/`nu`, which can shift a tail probability or quantile while
+#'   leaving the mean nearly unchanged.
 #' @param threshold Cutoff for `target = "p_gt"`.
+#' @param prob Probability for `target = "quantile"` (default `0.5`, the median).
 #' @param at Optional length-2 contrast values for `from`.
 #' @param B Number of uncertainty replicates (coefficient draws) used when
 #'   `uncertainty = "parametric"`.
@@ -166,8 +178,8 @@ drm_block_feedback_decomp <- function(object, fn) {
 #' }
 #' @export
 direct_effects <- function(object, from, to, component = NULL,
-                           target = c("mean", "p_gt", "p_zero", "var"),
-                           threshold = 0, at = NULL, B = 200L,
+                           target = c("mean", "p_gt", "p_zero", "var", "quantile"),
+                           threshold = 0, prob = 0.5, at = NULL, B = 200L,
                            uncertainty = NULL, nsim = NULL, population = NULL,
                            level = 0.95, seed = NULL,
                            draw = NULL, n_sim = NULL, ...) {
@@ -186,7 +198,7 @@ direct_effects <- function(object, from, to, component = NULL,
     drm_functional_contrast(engines, scen, to, active = character(0),
                             mediation = "distribution", target = target,
                             threshold = threshold, B = B, n_sim = ctl$n_sim,
-                            draw = ctl$draw, seed = seed)
+                            draw = ctl$draw, seed = seed, prob = prob)
   }
   out <- cbind(data.frame(from = from, to = to, scale = "response",
                           target = target, stringsAsFactors = FALSE),
@@ -225,9 +237,12 @@ direct_effects <- function(object, from, to, component = NULL,
 #'   draws from their fitted families, capturing distribution-mediated paths).
 #' @param target Functional of the outcome distribution to report the effect on:
 #'   `"mean"` (default), `"p_gt"` (Pr(Y > `threshold`)), `"p_zero"` (Pr(Y = 0)),
-#'   or `"var"` (Var(Y)). Distributional targets simulate the outcome from its
-#'   family (OQ-11); see `docs/design/02-effect-calculus.md`.
+#'   `"var"` (Var(Y)), or `"quantile"` (the `prob`-quantile). Distributional
+#'   targets simulate the outcome from its family (OQ-11); see
+#'   `docs/design/02-effect-calculus.md`. For a feedback SEM only `"mean"` (the
+#'   equilibrium response) is defined.
 #' @param threshold Cutoff for `target = "p_gt"`.
+#' @param prob Probability for `target = "quantile"` (default `0.5`, the median).
 #' @param mediation Deprecated alias for `method` (`"mean"` maps to `"gcomp"`,
 #'   `"distribution"` to `"simulate"`); supplying it emits a deprecation warning.
 #' @return A one-row `drm_effect` data frame.
@@ -245,8 +260,8 @@ direct_effects <- function(object, from, to, component = NULL,
 #' }
 #' @export
 total_effects <- function(object, from, to, method = NULL,
-                          target = c("mean", "p_gt", "p_zero", "var"),
-                          threshold = 0, at = NULL, B = 200L,
+                          target = c("mean", "p_gt", "p_zero", "var", "quantile"),
+                          threshold = 0, prob = 0.5, at = NULL, B = 200L,
                           uncertainty = NULL, nsim = NULL, population = NULL,
                           level = 0.95, seed = NULL,
                           mediation = NULL, draw = NULL, n_sim = NULL, ...) {
@@ -300,7 +315,7 @@ total_effects <- function(object, from, to, method = NULL,
     drm_functional_contrast(engines, scen, to, active = active,
                             mediation = mediation_resolved, target = target,
                             threshold = threshold, B = B, n_sim = ctl$n_sim,
-                            draw = ctl$draw, seed = seed)
+                            draw = ctl$draw, seed = seed, prob = prob)
   }
   out <- cbind(data.frame(from = from, to = to, scale = "response",
                           mediation = mediation_resolved, target = target,
@@ -335,9 +350,18 @@ total_effects <- function(object, from, to, method = NULL,
 #' distribution mediation, so neither has a single mean/distribution choice to
 #' make. The shared `uncertainty`, `nsim`, and `population` controls apply as
 #' elsewhere.
+#'
+#' A non-mean `target` (OQ-11) is supported for `effect = "controlled"`: every
+#' leg then reports the contrast on that functional of the outcome (e.g. the
+#' indirect change in `Pr(Y = 0)` or a tail quantile routed through the
+#' mediators), and the mean-/distribution-mediated split still closes
+#' (`indirect = mean_mediated + distribution_mediated`). `effect = "natural"`
+#' supports only `target = "mean"` (the cross-world functional contrast is open,
+#' OQ-8/OQ-11).
 #' @return A `drm_effect` data frame. For `effect = "controlled"`, rows
-#'   `total_path`, `direct`, `indirect`, `mean_mediated`, `distribution_mediated`.
-#'   For `effect = "natural"`, rows `total_path`, `natural_direct`,
+#'   `total_path`, `direct`, `indirect`, `mean_mediated`, `distribution_mediated`
+#'   and a `target` column naming the reported functional. For
+#'   `effect = "natural"`, rows `total_path`, `natural_direct`,
 #'   `natural_indirect`, `mediated_interaction`.
 #' @examples
 #' \dontrun{
@@ -354,13 +378,26 @@ total_effects <- function(object, from, to, method = NULL,
 #' @export
 indirect_effects <- function(object, from, to, through = NULL,
                              effect = c("controlled", "natural"),
+                             target = c("mean", "p_gt", "p_zero", "var", "quantile"),
+                             threshold = 0, prob = 0.5,
                              at = NULL, B = 200L,
                              uncertainty = NULL, nsim = NULL, population = NULL,
                              level = 0.95, seed = NULL,
                              draw = NULL, n_sim = NULL, ...) {
   effect <- match.arg(effect)
+  target <- match.arg(target)
   drm_validate_effect_args(object, from, to)
   drm_block_feedback_decomp(object, "indirect_effects")
+  # Natural (cross-world) effects are mean-only here: the cross-world functional
+  # contrast under arbitrary links is open (OQ-8/OQ-11). Outcome functionals ride
+  # the controlled decomposition.
+  if (identical(effect, "natural") && !identical(target, "mean")) {
+    cli::cli_abort(c(
+      "Outcome functionals are only implemented for the controlled decomposition.",
+      "x" = "{.code effect = \"natural\"} supports only {.code target = \"mean\"}.",
+      "i" = "Use {.code effect = \"controlled\"} for a non-mean {.arg target}; cross-world functionals are open (OQ-8/OQ-11)."
+    ))
+  }
   ctl <- drm_effect_controls(uncertainty, nsim, population, draw, n_sim,
                              default_draw = TRUE, default_nsim = 50L)
   drm_require_drmTMB()
@@ -399,7 +436,9 @@ indirect_effects <- function(object, from, to, through = NULL,
 
   # Paired three-leg decomposition: a shared coefficient draw per replicate makes
   # mean_mediated and distribution_mediated valid common-random-numbers contrasts.
-  legs <- drm_decomp_legs(engines, scen, to, active, B, ctl$n_sim, ctl$draw, seed)
+  # With a non-mean `target` the legs report the contrast on that functional.
+  legs <- drm_decomp_legs(engines, scen, to, active, B, ctl$n_sim, ctl$draw, seed,
+                          target = target, threshold = threshold, prob = prob)
   cde <- legs[, "cde"]
   tot_mean <- legs[, "tot_mean"]
   tot_dist <- legs[, "tot_dist"]
@@ -418,6 +457,7 @@ indirect_effects <- function(object, from, to, through = NULL,
   out <- cbind(
     data.frame(from = from, to = to,
                through = paste(active, collapse = ", "),
+               target = target,
                stringsAsFactors = FALSE),
     rows
   )

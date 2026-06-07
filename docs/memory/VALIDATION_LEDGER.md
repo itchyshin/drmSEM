@@ -234,6 +234,18 @@ samplers re-injected). Newly available + kernel-validated locally
   effect recovers the Poisson zero-probability change `exp(-mu_hi) - exp(-mu_lo)`.
   **PARTIAL** — first functionals validated; more functionals / reporting-scale /
   CI construction remain open (OQ-11).
+- **V-74 / OQ-11 — Quantile functional** (`test-effect-kernels.R`): for a gaussian
+  `Y` with `mu = 10 + 2x`, `sigma = 1 + 3x`, `drm_functional_contrast(target =
+  "quantile")` recovers the closed-form `prob`-quantile contrast `2 + qnorm(p)*3`
+  — the median (`p=0.5`) moves by the mean slope only, the upper tail (`p=0.9`)
+  also by the sigma slope. Validates the new `quantile`/`prob` path. **Kernel.**
+- **V-75 / OQ-11 — Functional decomposition non-degeneracy** (`test-effect-kernels.R`):
+  for `X→M→Y` (no direct path; `M` gaussian, `Y` Poisson `mu=exp(M)`),
+  `drm_decomp_legs(target = "p_zero")` gives `cde ≈ 0`, a non-zero
+  `tot_dist − tot_mean` (the Jensen gap), and an exact close
+  `indirect = mean_mediated + distribution_mediated`. Guards the fix that the
+  legs honour `mediation` (mean vs distribution) for a non-mean target instead of
+  always simulating the mediator. **Kernel.**
 
 Regression check: `test-dsep-kernels` (incl. the new p==0 Fisher's-C floor),
 `test-effect-kernels` (incl. the natural + functional kernels), and

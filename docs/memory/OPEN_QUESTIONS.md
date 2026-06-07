@@ -217,20 +217,37 @@ Add `uncertainty = "bootstrap"` (parametric/nonparametric, refit per replicate)
 as an alternative to the current `MVN(coef, vcov)` coefficient draw for effect
 CIs.
 
-## OQ-11 — Outcome functionals beyond the mean  [PARTIAL 2026-06-05]
+## OQ-11 — Outcome functionals beyond the mean  [PARTIAL 2026-06-07 — extended to the whole effect API + quantiles]
 
-**Implemented:** `total_effects(..., target = c("mean","p_gt","p_zero","var"),
+**Update 2026-06-07.** `target` now rides the **whole effect surface**:
+`direct_effects()`, `total_effects()`, **and `indirect_effects()`** take
+`target = c("mean","p_gt","p_zero","var","quantile")` with `threshold=` (for
+`p_gt`) and **`prob=`** (for the new `quantile` functional). For
+`indirect_effects(effect = "controlled")` every leg reports the contrast on the
+functional and the mean-/distribution-mediated split still closes
+(`indirect = mean_mediated + distribution_mediated`). A real bug was fixed in the
+process: `drm_functional_target()` hardcoded `"distribution"` mediator
+propagation, so the mean- vs distribution-mediated legs were identical for a
+non-mean target (the split collapsed); it now honours the passed `mediation`,
+making the decomposition non-degenerate. Kernel-verified in
+`test-effect-kernels.R` (quantile recovers a sigma-path tail effect; the
+functional legs are non-degenerate and close) and `test-recovery-samplers.R`
+(V-62..V-64 live-fit `p_zero`/`var`/`p_gt`). `effect = "natural"` stays mean-only
+(cross-world functional contrast is open, see OQ-8); a feedback SEM stays
+mean-only (equilibrium response). **Still open:** the natural/cross-world
+functional variant, **analytic (non-simulated)** functionals, additional
+functionals (e.g. multiple quantiles in one call), and a live-fit functional
+recovery beyond V-62..V-64. Original note below.
+
+**Implemented (2026-06-05):** `total_effects(..., target = c("mean","p_gt","p_zero","var"),
 threshold=)` simulates the outcome and reports the effect on that functional of
 the outcome distribution (Poisson `p_zero` kernel-verified in
 `test-effect-kernels.R`). Distribution-mediated effects are most compelling on
 functionals other than the mean — `Pr(Y > t)`, `Pr(Y = 0)`, `Var(Y)`, quantiles
 — since a path that moves only `sigma`/`zi` may leave `E[Y]` nearly unchanged
 while sharply changing a tail or zero probability, and the simulation engine
-already produces realized outcome draws. OPEN: extend `target` to
-`direct_effects`/`indirect_effects`, add more functionals (quantiles) and
-analytic (non-simulated) functionals, and decide the default reporting scale and
-CI construction. This is the headline for Phase 4 (distributional phylogenetic
-SEM, see `06-phylogenetic-sem.md`).
+already produces realized outcome draws. This is the headline for Phase 4
+(distributional phylogenetic SEM, see `06-phylogenetic-sem.md`).
 
 ## OQ-12 — Effect API harmonization  [RESOLVED 2026-06-06, see D-13]
 

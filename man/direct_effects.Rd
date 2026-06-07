@@ -9,8 +9,9 @@ direct_effects(
   from,
   to,
   component = NULL,
-  target = c("mean", "p_gt", "p_zero", "var"),
+  target = c("mean", "p_gt", "p_zero", "var", "quantile"),
   threshold = 0,
+  prob = 0.5,
   at = NULL,
   B = 200L,
   uncertainty = NULL,
@@ -34,10 +35,14 @@ direct_effects(
 
 \item{target}{Functional of the outcome distribution to report the effect on:
 \code{"mean"} (default), \code{"p_gt"} (Pr(Y > \code{threshold})), \code{"p_zero"} (Pr(Y = 0)),
-or \code{"var"} (Var(Y)). Non-mean targets simulate the outcome from its family
-(OQ-11).}
+\code{"var"} (Var(Y)), or \code{"quantile"} (the \code{prob}-quantile). Non-mean targets
+simulate the outcome from its family (OQ-11) — most useful when a path moves
+only \code{sigma}/\code{zi}/\code{nu}, which can shift a tail probability or quantile while
+leaving the mean nearly unchanged.}
 
 \item{threshold}{Cutoff for \code{target = "p_gt"}.}
+
+\item{prob}{Probability for \code{target = "quantile"} (default \code{0.5}, the median).}
 
 \item{at}{Optional length-2 contrast values for \code{from}.}
 

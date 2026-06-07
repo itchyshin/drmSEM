@@ -9,8 +9,9 @@ total_effects(
   from,
   to,
   method = NULL,
-  target = c("mean", "p_gt", "p_zero", "var"),
+  target = c("mean", "p_gt", "p_zero", "var", "quantile"),
   threshold = 0,
+  prob = 0.5,
   at = NULL,
   B = 200L,
   uncertainty = NULL,
@@ -37,10 +38,14 @@ draws from their fitted families, capturing distribution-mediated paths).}
 
 \item{target}{Functional of the outcome distribution to report the effect on:
 \code{"mean"} (default), \code{"p_gt"} (Pr(Y > \code{threshold})), \code{"p_zero"} (Pr(Y = 0)),
-or \code{"var"} (Var(Y)). Distributional targets simulate the outcome from its
-family (OQ-11); see \code{docs/design/02-effect-calculus.md}.}
+\code{"var"} (Var(Y)), or \code{"quantile"} (the \code{prob}-quantile). Distributional
+targets simulate the outcome from its family (OQ-11); see
+\code{docs/design/02-effect-calculus.md}. For a feedback SEM only \code{"mean"} (the
+equilibrium response) is defined.}
 
 \item{threshold}{Cutoff for \code{target = "p_gt"}.}
+
+\item{prob}{Probability for \code{target = "quantile"} (default \code{0.5}, the median).}
 
 \item{at}{Optional length-2 contrast values for \code{from}.}
 

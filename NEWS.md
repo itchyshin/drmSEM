@@ -13,6 +13,26 @@ the live-drmTMB lane (see `docs/memory/CODEX_HANDOFF.md`).
 
 * `drm_sample_family()` and effect propagation now match current `drmTMB` parameterization for the common sampler families in live recovery tests. Default fitted dpars such as `sigma` are carried into prediction engines even when no explicit `sigma ~ ...` formula is declared, and lognormal nodes now use `mu = meanlog`, `sigma = sdlog`, with mean mediation propagating `exp(mu + sigma^2 / 2)` (OQ-1, V-57..V-60).
 
+## Outcome functionals across the effect API (OQ-11)
+
+* All three effect functions now report the effect on a chosen **functional of the
+  outcome distribution**, not just the mean: `target = "mean"` / `"p_gt"` /
+  `"p_zero"` / `"var"` / **`"quantile"`** (new, with a `prob` argument). `target`
+  already rode `direct_effects()` / `total_effects()`; it now also rides
+  **`indirect_effects()`** (`effect = "controlled"`), where every leg reports the
+  contrast on the functional and the mean-/distribution-mediated split still
+  closes (`indirect = mean_mediated + distribution_mediated`). This is where
+  distribution-mediated paths earn their keep — a path into `sigma`/`zi`/`nu` can
+  move a tail probability or quantile while leaving `E[Y]` nearly unchanged.
+* The `"quantile"` target reports the `prob`-quantile of the simulated outcome
+  (kernel-validated: a path into `sigma` shifts the upper quantile but not the
+  median).
+* **Fix:** the functional engine now honours the mediator-propagation mode
+  (`"mean"` vs `"distribution"`) instead of always simulating the mediator, so the
+  controlled decomposition is non-degenerate for a non-mean `target`. `effect =
+  "natural"` remains mean-only (the cross-world functional contrast is open,
+  OQ-8/OQ-11); a feedback SEM stays mean-only (the equilibrium response).
+
 ## Validation wave 2 harness + newcomer docs
 
 * `inst/validation/generate.R` + a `validation` article now provide the wave-2

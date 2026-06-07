@@ -41,6 +41,7 @@ keeps the tests robust to engine-internal conventions.
 | Composite constructs + reliability + standardize | hand data | kernel (+live) | V-31 (+ structural grid) |
 | Path attribution (per-mediator, per-component, natural/recanting) | hand engines | kernel | V-32..V-35 |
 | **Effect decomposition pairing** (additive identity, lognormal gap + sign, linear-zero, chain, reproducibility) through the shipped `drm_decomp_legs()` | hand engines + live | kernel + **live-fit** | V-36..V-41 |
+| **Outcome functionals on the effect API** (OQ-11): `quantile` recovers a sigma-path tail effect; functional decomposition legs non-degenerate + close | hand engines (gaussian/poisson) | kernel | **V-74, V-75** |
 | Feedback equilibrium = reduced form `(I−B)⁻¹Γ`; non-convergence flagged | linear 2-cycle | kernel | V-42, V-43 |
 | **Nonlinear feedback** fixed point (self-consistency + independent solve) | saturating 2-cycle | kernel | **V-73** |
 | Standardization `sigma_E` (logit π²/3 etc.) | fakefit | kernel (+live) | V-44 (+ V-65/66) |
