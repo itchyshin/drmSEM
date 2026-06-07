@@ -872,3 +872,21 @@ Picked up small stale-status items after the recent feature landings:
   simultaneity-inconsistency warning), and Interoperability (as_lavaan/from_lavaan/
   as_dot, drop-with-notice), each pointing at its vignette.
 Docs-only; no code/test/NAMESPACE change.
+
+## 2026-06-07 — Handoff/ledger reconciliation (V-7/V-41, OQ-4) per Codex note
+
+Codex flagged that the "left for Codex" framing went partly stale and raised the
+V-41/V-7 reconciliation. Acted:
+- VALIDATION_LEDGER V-7 (distribution-mediated mechanism): was "kernel-validated;
+  drmTMB-integration pending". V-41 (test-recovery.R, drmTMB-gated, CI-green since
+  #22) runs the channel through a REAL drm_sem() fit (non-zero, additive identity
+  closes, reproducible) and V-37 pins the closed-form magnitude engine-free through
+  the production drm_decomp_legs() path. Promoted V-7 to "validated (live fit:
+  mechanism + decomposition)", explicitly noting the one remaining nuance: V-41
+  asserts direction + additivity + reproducibility, NOT a tight live-fit magnitude
+  vs the closed form (an optional follow-up; magnitude is locked engine-free by V-37).
+- CODEX_HANDOFF P0 item 2: marked V-7 DONE via V-41/V-37; remaining = d-sep live-fit
+  promotion + the optional live-magnitude check. Item 3 (OQ-4 sigma_E): marked DONE
+  for constant-variance links (#26/V-44); remaining = log-link mean-dependent term +
+  optional live-GLM-fit confirmation.
+Docs-only. Folded into the #27 docs-hygiene PR.
