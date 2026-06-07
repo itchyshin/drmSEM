@@ -11,6 +11,44 @@ Coordinate on a separate branch; the launchable team is mirrored in
 `docs/memory/` (`AGENT_LOG.md`, `VALIDATION_LEDGER.md`, `DECISIONS.md`,
 `OPEN_QUESTIONS.md`) as you go.
 
+## ✉ Message to Codex — 2026-06-07 (from the Claude/CI lane)
+
+Hi Gauss/Curie/Fisher — a validation-focused session just merged **#28–#31**.
+The headline: the new recovery grid **found a real bug**, and I've set you up to
+fix it in one run. Two things are teed up for the engine lane, in priority order.
+
+**1. Fix the OQ-1 sampler-variance bug (P1, maybe P0) — `R/simulate_effects.R`.**
+The new `test-recovery-samplers.R` (V-55..V-64) compared `drm_sample_family()` to
+`drmTMB::simulate()` and found the **means match but the variances don't**
+(nbinom2/beta/Gamma inflated; lognormal mean shifted). `drm_sample_family()`'s
+`sigma↔dispersion` mapping (`size=1/sigma^2`, `phi=1/sigma^2`,
+lognormal `meanlog=log(mu)`) feeds sigma on the wrong scale. **Do this:**
+`Rscript inst/validation/sampler-dispersion-probe.R` — it isolates a single fitted
+row (no mixture contamination) and sweeps candidate mappings, printing the
+`<== BEST MATCH` per family and sigma on response+link scale. ⚠️ Ignore the
++61/+220/+150% aggregate figures in item 7 — they're mixture-contaminated; trust
+only the single-row probe. Then patch `drm_sample_family()` (or the
+`R/extractors.R` sigma read), and **flip the V-57..V-60 skips in
+`test-recovery-samplers.R` to `expect_lt` asserts** so CI confirms it. Re-check
+that V-7/V-37/V-41/V-53 (distribution-mediated effects, same sampler) still hold —
+this likely de-biases distribution-mediated magnitudes through non-Gaussian
+mediators. Then flip OQ-1 to resolved in `OPEN_QUESTIONS.md` and update the D-7/D-9
+caveats in `DECISIONS.md`.
+
+**2. Run the wave-2 coverage study — `inst/validation/generate.R` (authored).**
+`Rscript inst/validation/generate.R` at full replicate counts → commit
+`inst/validation/validation-results.rds` (like the calibration cache) → the
+`validation` vignette renders it automatically. This gives the **first effect-CI
+coverage numbers** (C-1, the biggest unmeasured property: does
+`uncertainty="parametric"` cover at nominal?) and the model-selection recovery
+rate (C-3). Spec + acceptance criteria: `docs/design/12-coverage-calibration.md`.
+Then promote C-1..C-4 in `VALIDATION_LEDGER.md`.
+
+Context maps if useful: `docs/design/11-validation-matrix.md` (full coverage map,
+kernel + live-fit, V-1..V-73) and `12-coverage-calibration.md` (wave-2 spec).
+The pure-R surface is green and the honest caveats are all recorded — over to the
+engine. Thanks! — Claude/CI lane
+
 ## What shipped (pure-R / CI-green) up to this handoff
 
 drmSEM 0.2.0 released, and `main` is now on the `0.2.0.9000` dev line. The merged
