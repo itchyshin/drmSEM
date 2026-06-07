@@ -9,8 +9,9 @@
 \arguments{
 \item{x}{A \code{drm_sem} object.}
 
-\item{show}{\code{"all"} (default) draws directed paths \strong{and} covariance arcs;
-\code{"paths"} draws the directed structural edges only.}
+\item{show}{\code{"all"} (default) draws directed paths \strong{and} covariance arcs
+\strong{and} composite measurement edges; \code{"paths"} draws the directed structural
+edges only.}
 
 \item{...}{Passed to the underlying \code{igraph} plot. A \verb{layout =} matrix is
 honoured (if it carries rownames it is reordered to the internal vertex
@@ -28,14 +29,19 @@ drawn as \strong{double-headed arcs} — solid grey for a residual correlation
 (\code{rho12}), dashed grey for a higher-level random-effect correlation
 (\code{corpair}) — so the three edge classes (directed path, residual covariance,
 higher-level covariance) are visually distinct
-(\code{docs/design/07-bivariate-covariance-edges.md}). Uses \code{igraph} for layout.
+(\code{docs/design/07-bivariate-covariance-edges.md}). \strong{Composite measurement
+edges} — each \code{\link[=drm_composite]{drm_composite()}} construct's indicators pointing into the
+construct — are drawn as steel-blue arrows, with the indicators shown as
+distinctly-filled nodes, so a formative measurement model reads apart from the
+structural paths. Uses \code{igraph} for layout.
 }
 \details{
-The legend lists \strong{only the components and covariance classes actually present
-in the plotted graph} (its swatches come from the same style function as the
-edges, so they cannot drift from what is drawn). Node fills distinguish
-endogenous responses from exogenous predictors. Parallel paths between one pair
-(for example a \code{mu} and a \code{sigma} arrow) are fanned onto separate arcs.
+The legend lists \strong{only the components, covariance classes, and measurement
+edges actually present in the plotted graph} (its swatches come from the same
+style function as the edges, so they cannot drift from what is drawn). Node
+fills distinguish endogenous responses, exogenous predictors, and composite
+indicators. Parallel paths between one pair (for example a \code{mu} and a \code{sigma}
+arrow) are fanned onto separate arcs.
 }
 \examples{
 \dontrun{

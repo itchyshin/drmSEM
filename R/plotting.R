@@ -26,7 +26,8 @@ drm_component_style <- function(component) {
 # actually present), sourcing swatches from drm_component_style() so the legend
 # can never drift from the edges. Returns parallel lab/col/lty vectors: the
 # path-target rows first (in a fixed component order), then any covariance rows.
-drm_path_legend <- function(edges, cov = NULL, draw_cov = FALSE) {
+drm_path_legend <- function(edges, cov = NULL, draw_cov = FALSE,
+                            draw_meas = FALSE) {
   comp_lab <- c(mu = "mu", sigma = "sigma", nu = "nu", zi = "zi", hu = "hu",
                 rho12 = "rho12 (path)")
   drawn <- ifelse(startsWith(edges$component, "sd"), "sd", edges$component)
@@ -46,6 +47,9 @@ drm_path_legend <- function(edges, cov = NULL, draw_cov = FALSE) {
       lab <- c(lab, "corpair (covary)"); col <- c(col, "#666666"); lty <- c(lty, 2)
     }
   }
+  if (isTRUE(draw_meas)) {
+    lab <- c(lab, "loading (indicator)"); col <- c(col, "#3182bd"); lty <- c(lty, 1)
+  }
   list(lab = unname(lab), col = unname(col), lty = unname(lty))
 }
 
@@ -59,17 +63,23 @@ drm_path_legend <- function(edges, cov = NULL, draw_cov = FALSE) {
 #' (`rho12`), dashed grey for a higher-level random-effect correlation
 #' (`corpair`) — so the three edge classes (directed path, residual covariance,
 #' higher-level covariance) are visually distinct
-#' (`docs/design/07-bivariate-covariance-edges.md`). Uses `igraph` for layout.
+#' (`docs/design/07-bivariate-covariance-edges.md`). **Composite measurement
+#' edges** — each [drm_composite()] construct's indicators pointing into the
+#' construct — are drawn as steel-blue arrows, with the indicators shown as
+#' distinctly-filled nodes, so a formative measurement model reads apart from the
+#' structural paths. Uses `igraph` for layout.
 #'
-#' The legend lists **only the components and covariance classes actually present
-#' in the plotted graph** (its swatches come from the same style function as the
-#' edges, so they cannot drift from what is drawn). Node fills distinguish
-#' endogenous responses from exogenous predictors. Parallel paths between one pair
-#' (for example a `mu` and a `sigma` arrow) are fanned onto separate arcs.
+#' The legend lists **only the components, covariance classes, and measurement
+#' edges actually present in the plotted graph** (its swatches come from the same
+#' style function as the edges, so they cannot drift from what is drawn). Node
+#' fills distinguish endogenous responses, exogenous predictors, and composite
+#' indicators. Parallel paths between one pair (for example a `mu` and a `sigma`
+#' arrow) are fanned onto separate arcs.
 #'
 #' @param x A `drm_sem` object.
-#' @param show `"all"` (default) draws directed paths **and** covariance arcs;
-#'   `"paths"` draws the directed structural edges only.
+#' @param show `"all"` (default) draws directed paths **and** covariance arcs
+#'   **and** composite measurement edges; `"paths"` draws the directed structural
+#'   edges only.
 #' @param ... Passed to the underlying `igraph` plot. A `layout =` matrix is
 #'   honoured (if it carries rownames it is reordered to the internal vertex
 #'   order), so a fixed, crossing-free layout can be supplied.
@@ -93,7 +103,9 @@ plot.drm_sem <- function(x, show = c("all", "paths"), ...) {
   show <- match.arg(show)
   edges <- x$edges
   cov <- x$covariances
+  comps <- x$composites
   draw_cov <- identical(show, "all") && !is.null(cov) && nrow(cov) > 0L
+  draw_meas <- identical(show, "all") && length(comps) > 0L
 
   # Directed structural edges, styled by the component they target.
   styles <- lapply(edges$component, drm_component_style)
@@ -115,6 +127,21 @@ plot.drm_sem <- function(x, show = c("all", "paths"), ...) {
     ecurv <- c(ecurv, ifelse(is_res, 0.35, 0.45))
   }
 
+  # Measurement edges: each composite construct's indicators point INTO the
+  # construct (formative loadings), drawn as steel-blue arrows so they read as a
+  # measurement model, distinct from structural paths and covariance arcs.
+  ind_names <- character(0)
+  if (draw_meas) {
+    meas <- do.call(rbind, lapply(comps, function(cp)
+      data.frame(from = cp$indicators, to = cp$name, stringsAsFactors = FALSE)))
+    ind_names <- unique(meas$from)
+    e_df <- rbind(e_df, meas)
+    ecol <- c(ecol, rep("#3182bd", nrow(meas)))
+    elty <- c(elty, rep(1, nrow(meas)))
+    earrow <- c(earrow, rep(2, nrow(meas)))   # indicator -> construct
+    ecurv <- c(ecurv, rep(0, nrow(meas)))
+  }
+
   verts <- unique(c(x$endogenous, x$exogenous, e_df$from, e_df$to))
   g <- igraph::graph_from_data_frame(
     d = e_df, vertices = data.frame(name = verts), directed = TRUE
@@ -122,7 +149,8 @@ plot.drm_sem <- function(x, show = c("all", "paths"), ...) {
   igraph::E(g)$color <- ecol
   igraph::E(g)$lty <- elty
   igraph::E(g)$arrow.mode <- earrow
-  vcol <- ifelse(verts %in% x$endogenous, "#cde", "#eee")
+  vcol <- ifelse(verts %in% x$endogenous, "#cde",
+                 ifelse(verts %in% ind_names, "#fff7bc", "#eee"))
 
   # Layout: honour a caller-supplied `layout=` (a matrix; if it carries rownames
   # it is reordered to the internal vertex order, so the caller need not know it),
@@ -165,21 +193,26 @@ plot.drm_sem <- function(x, show = c("all", "paths"), ...) {
   if (is.null(dots$edge.arrow.size)) base$edge.arrow.size <- 0.5
   do.call(graphics::plot, c(base, dots))
 
-  # Edge legend: lists ONLY the components/covariance classes actually drawn
-  # (previously hardcoded all seven components regardless of the graph).
-  lg <- drm_path_legend(edges, cov, draw_cov)
+  # Edge legend: lists ONLY the components/covariance classes/measurement edges
+  # actually drawn (previously hardcoded all seven components).
+  lg <- drm_path_legend(edges, cov, draw_cov, draw_meas)
   if (length(lg$lab) > 0L) {
     graphics::legend(
       "bottomleft", bty = "n", cex = 0.8, title = "path target",
       legend = lg$lab, col = lg$col, lty = lg$lty
     )
   }
-  # Node legend: modelled response vs exogenous predictor (the node fill colours,
-  # previously unexplained on the figure).
+  # Node legend: modelled response vs exogenous predictor vs (if drawn) composite
+  # indicator -- the node fill colours, previously unexplained on the figure.
+  node_lab <- c("endogenous (response)", "exogenous (predictor)")
+  node_bg <- c("#cde", "#eee")
+  if (draw_meas) {
+    node_lab <- c(node_lab, "indicator")
+    node_bg <- c(node_bg, "#fff7bc")
+  }
   graphics::legend(
     "topleft", bty = "n", cex = 0.8,
-    legend = c("endogenous (response)", "exogenous (predictor)"),
-    pt.bg = c("#cde", "#eee"), pch = 21, col = "grey40"
+    legend = node_lab, pt.bg = node_bg, pch = 21, col = "grey40"
   )
   invisible(x)
 }

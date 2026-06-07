@@ -360,8 +360,13 @@ The 0.3 first increment ships composite (formative) constructs (`drm_composite()
   (intervene on the construct instead). Propagating from indicators needs
   `drm_build_scenarios()` to re-derive the construct column. Needs a live fit to
   validate end-to-end.
-- **Measurement arcs in `plot()`.** Draw indicator→construct loadings as
-  measurement edges, visually distinct from structural paths (needs rendering).
+- **Measurement arcs in `plot()` — SHIPPED 2026-06-07.** `plot.drm_sem(show =
+  "all")` now draws each composite's indicators pointing into the construct as
+  steel-blue measurement edges, with indicators as distinctly-filled nodes and a
+  legend row, visually distinct from structural paths and covariance arcs
+  (`R/plotting.R`; tested in `test-plotting.R` via the legend helper + a
+  null-device render). Aesthetic layout of indicator nodes is best confirmed on a
+  live render.
 - **Reflective constructs** (a latent common cause with a measurement model) need
   a joint likelihood drmTMB does not fit piecewise — deferred to 0.4 / lavaan
   interop, not 0.3 (D-16).

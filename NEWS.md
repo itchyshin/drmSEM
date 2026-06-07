@@ -29,6 +29,10 @@ the live-drmTMB lane (see `docs/memory/CODEX_HANDOFF.md`).
   relies on colour alone to separate from `zi` (colour-blind safety).
 * The legend construction is now a tested pure helper (`drm_path_legend()`), so a
   regression that re-introduces phantom legend entries fails CI.
+* **Composite measurement edges:** `plot.drm_sem(show = "all")` now draws each
+  [drm_composite()] construct's indicators pointing into the construct as
+  steel-blue arrows (indicators shown as distinctly-filled nodes), so a formative
+  measurement model reads apart from the structural paths (OQ-15).
 
 ## Outcome functionals across the effect API (OQ-11)
 

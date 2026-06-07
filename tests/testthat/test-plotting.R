@@ -153,3 +153,31 @@ test_that("drm_path_legend adds only the covariance classes actually present", {
   expect_true("rho12 (covary)" %in% lg$lab)
   expect_false("corpair (covary)" %in% lg$lab)     # no higher-level row present
 })
+
+test_that("drm_path_legend adds a measurement row only when requested", {
+  edges <- data.frame(from = "body", to = "y", component = "mu",
+                      stringsAsFactors = FALSE)
+  expect_false("loading (indicator)" %in%
+                 drmSEM:::drm_path_legend(edges, draw_meas = FALSE)$lab)
+  expect_true("loading (indicator)" %in%
+                drmSEM:::drm_path_legend(edges, draw_meas = TRUE)$lab)
+})
+
+# Composite measurement edges (OQ-15): a construct's indicators point into the
+# construct, drawn only under show = "all".
+test_that("plot.drm_sem draws composite measurement edges", {
+  skip_if_not_installed("igraph")
+  sem <- structure(list(
+    endogenous = "y",
+    exogenous = "body",
+    edges = data.frame(from = "body", to = "y", component = "mu",
+                       link = "identity", term = "body", endogenous = FALSE,
+                       stringsAsFactors = FALSE),
+    covariances = drmSEM:::drm_empty_covariances(),
+    composites = list(list(name = "body", indicators = c("len", "mass")))
+  ), class = "drm_sem")
+  pdf(NULL)
+  on.exit(grDevices::dev.off(), add = TRUE)
+  expect_s3_class(plot(sem), "drm_sem")                  # draws measurement arcs
+  expect_s3_class(plot(sem, show = "paths"), "drm_sem")  # omits them, no error
+})
