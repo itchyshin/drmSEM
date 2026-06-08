@@ -16,7 +16,8 @@ loadings(object, ...)
 }
 \value{
 A \code{drm_loadings} data frame with columns \code{composite}, \code{indicator},
-\code{loading}, \code{method}.
+\code{loading}, \code{std_loading} (the indicator's correlation with the construct
+score; \code{NA} when the data is unavailable), and \code{method}.
 }
 \description{
 Returns the indicator-to-construct loadings for every composite declared with

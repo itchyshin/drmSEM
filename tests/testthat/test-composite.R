@@ -160,3 +160,54 @@ test_that("composites materialize and fit end-to-end (predictor and response)", 
     composites = drm_composite("size", c("i1", "i2", "i3"), method = "pca", data = dat))
   expect_true(any(paths(sem2)$from == "x" & paths(sem2)$to == "size"))
 })
+
+# ---- standardized loadings + reliability() summary (OQ-15) -------------------
+# Pure-R: build a drm_sem skeleton carrying $composites + $data (no drmTMB fit).
+
+test_that("loadings() reports standardized loadings and reliability() summarizes", {
+  set.seed(1)
+  n <- 200
+  z <- stats::rnorm(n)
+  dat <- data.frame(
+    i1 = z + stats::rnorm(n, sd = 0.3),
+    i2 = z + stats::rnorm(n, sd = 0.3),
+    i3 = z + stats::rnorm(n, sd = 0.3)
+  )
+  sp <- drm_composite("size", c("i1", "i2", "i3"), method = "pca", data = dat)
+  dat$size <- drmSEM:::drm_score_composite(sp, dat)
+  sem <- structure(list(composites = list(sp), data = dat), class = "drm_sem")
+
+  ld <- loadings(sem)
+  expect_true("std_loading" %in% names(ld))
+  expect_equal(
+    ld$std_loading,
+    unname(vapply(c("i1", "i2", "i3"),
+                  function(v) stats::cor(dat[[v]], dat$size), numeric(1))),
+    tolerance = 1e-10
+  )
+  expect_true(all(ld$std_loading > 0.5 & ld$std_loading <= 1))
+
+  rel <- reliability(sem)
+  expect_s3_class(rel, "drm_reliability")
+  expect_equal(rel$composite, "size")
+  expect_equal(rel$n_indicators, 3L)
+  expect_equal(rel$alpha, sp$reliability, tolerance = 1e-12)
+  expect_equal(rel$ave, mean(ld$std_loading^2), tolerance = 1e-12)
+  expect_false(is.na(rel$prop_var))                 # PCA composite
+})
+
+test_that("loadings()/reliability() are empty for a SEM with no composites", {
+  sem <- structure(list(), class = "drm_sem")
+  expect_identical(nrow(loadings(sem)), 0L)
+  expect_identical(nrow(reliability(sem)), 0L)
+  expect_true("std_loading" %in% names(loadings(sem)))   # column present when empty
+  expect_true(all(c("alpha", "ave", "prop_var") %in% names(reliability(sem))))
+})
+
+test_that("std_loading is NA when the construct data is unavailable", {
+  sp <- drm_composite("size", c("i1", "i2"),
+                      data = data.frame(i1 = rnorm(10), i2 = rnorm(10)))
+  sem <- structure(list(composites = list(sp), data = NULL), class = "drm_sem")
+  expect_true(all(is.na(loadings(sem)$std_loading)))
+  expect_true(is.na(reliability(sem)$ave))
+})

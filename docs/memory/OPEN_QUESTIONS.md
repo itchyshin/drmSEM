@@ -370,5 +370,10 @@ The 0.3 first increment ships composite (formative) constructs (`drm_composite()
 - **Reflective constructs** (a latent common cause with a measurement model) need
   a joint likelihood drmTMB does not fit piecewise — deferred to 0.4 / lavaan
   interop, not 0.3 (D-16).
-- **Standardized loadings / construct reliability** (e.g. an AVE / composite-
-  reliability summary) as an extension of `loadings()`.
+- **Standardized loadings / construct reliability — SHIPPED 2026-06-07.**
+  `loadings()` now adds a `std_loading` column (each indicator's correlation with
+  the construct score, valid for fixed and PCA composites; `NA` when data is
+  unavailable), and a new `reliability()` accessor reports per-construct `alpha`
+  (Cronbach), `ave` (mean squared standardized loading), and `prop_var`. Both
+  documented honestly as reflective-measurement diagnostics (a formative composite
+  is defined by its weights regardless). Pure-R, tested in `test-composite.R`.

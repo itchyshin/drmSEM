@@ -33,6 +33,11 @@ the live-drmTMB lane (see `docs/memory/CODEX_HANDOFF.md`).
   [drm_composite()] construct's indicators pointing into the construct as
   steel-blue arrows (indicators shown as distinctly-filled nodes), so a formative
   measurement model reads apart from the structural paths (OQ-15).
+* **Composite reliability (OQ-15):** `loadings()` gains a `std_loading` column
+  (each indicator's correlation with the construct score), and a new
+  `reliability()` accessor reports per-construct Cronbach's `alpha`, `ave`
+  (average variance extracted), and `prop_var` — documented as
+  reflective-measurement diagnostics.
 
 ## Outcome functionals across the effect API (OQ-11)
 

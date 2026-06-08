@@ -234,14 +234,16 @@ loadings <- function(object, ...) {
 loadings.drm_sem <- function(object, ...) {
   comps <- object$composites
   empty <- data.frame(composite = character(0), indicator = character(0),
-                      loading = numeric(0), method = character(0),
-                      stringsAsFactors = FALSE)
+                      loading = numeric(0), std_loading = numeric(0),
+                      method = character(0), stringsAsFactors = FALSE)
   if (is.null(comps) || length(comps) == 0L) {
     out <- empty
   } else {
+    data <- if (is.null(object$data)) NULL else as.data.frame(object$data)
     rows <- lapply(comps, function(spec) {
       data.frame(composite = spec$name, indicator = spec$indicators,
                  loading = as.numeric(spec$loadings[spec$indicators]),
+                 std_loading = drm_std_loadings(spec, data),
                  method = spec$method, stringsAsFactors = FALSE)
     })
     out <- do.call(rbind, rows)
@@ -249,6 +251,29 @@ loadings.drm_sem <- function(object, ...) {
   rownames(out) <- NULL
   class(out) <- c("drm_loadings", "data.frame")
   out
+}
+
+# Standardized loading = correlation of each indicator with the construct score,
+# computed from the materialized data. Valid for both fixed/weighted and PCA
+# composites (correlation is invariant to the score's scale). Returns NA per
+# indicator when the data or its variation is unavailable, rather than guessing.
+drm_std_loadings <- function(spec, data) {
+  na <- rep(NA_real_, length(spec$indicators))
+  if (is.null(data) || !all(spec$indicators %in% names(data))) {
+    return(na)
+  }
+  score <- tryCatch(drm_score_composite(spec, data), error = function(e) NULL)
+  if (is.null(score) || !is.finite(stats::sd(score)) || stats::sd(score) == 0) {
+    return(na)
+  }
+  vapply(spec$indicators, function(ind) {
+    xi <- data[[ind]]
+    if (!is.numeric(xi) || !is.finite(stats::sd(xi)) || stats::sd(xi) == 0) {
+      NA_real_
+    } else {
+      stats::cor(xi, score)
+    }
+  }, numeric(1), USE.NAMES = FALSE)
 }
 
 #' @export
@@ -260,6 +285,84 @@ print.drm_loadings <- function(x, ...) {
   cli::cli_text("<drmSEM composite loadings: {length(unique(x$composite))} construct{?s}>")
   df <- as.data.frame(x)
   df$loading <- round(df$loading, 4)
+  if ("std_loading" %in% names(df)) df$std_loading <- round(df$std_loading, 4)
+  print.data.frame(df, row.names = FALSE)
+  invisible(x)
+}
+
+#' Construct reliability summary for composite constructs
+#'
+#' Per-construct reliability diagnostics for the [drm_composite()] constructs in a
+#' SEM: `alpha` (Cronbach's alpha, internal consistency), `ave` (average variance
+#' extracted -- the mean squared standardized loading), and `prop_var` (the
+#' first principal-component proportion of variance, PCA composites only).
+#'
+#' These are **reflective-measurement** diagnostics: they assess whether the
+#' indicator set hangs together as a reflective scale. A formative composite is
+#' defined by its weights regardless of these values, so treat them as a
+#' convenience check on the indicator set, not a requirement the construct must
+#' meet. `ave`/`alpha` can be low (or `alpha` negative) when indicators are not
+#' positively correlated, which is reported honestly rather than clamped.
+#'
+#' @param object A `drm_sem` object.
+#' @param ... Unused.
+#' @return A `drm_reliability` data frame: `composite`, `method`,
+#'   `n_indicators`, `alpha`, `ave`, `prop_var` (one row per construct; empty when
+#'   there are no composites).
+#' @seealso [loadings()], [drm_composite()].
+#' @examples
+#' \dontrun{
+#' sem <- drm_sem(
+#'   fitness = drm_node(drmTMB::bf(fitness ~ body_size), family = stats::gaussian()),
+#'   data = dat,
+#'   composites = drm_composite("body_size", c("len", "mass"), data = dat))
+#' reliability(sem)
+#' }
+#' @export
+reliability <- function(object, ...) {
+  UseMethod("reliability")
+}
+
+#' @rdname reliability
+#' @export
+reliability.drm_sem <- function(object, ...) {
+  comps <- object$composites
+  empty <- data.frame(composite = character(0), method = character(0),
+                      n_indicators = integer(0), alpha = numeric(0),
+                      ave = numeric(0), prop_var = numeric(0),
+                      stringsAsFactors = FALSE)
+  if (is.null(comps) || length(comps) == 0L) {
+    out <- empty
+  } else {
+    ld <- loadings(object)
+    rows <- lapply(comps, function(spec) {
+      sl <- ld$std_loading[ld$composite == spec$name]
+      data.frame(
+        composite = spec$name, method = spec$method,
+        n_indicators = length(spec$indicators),
+        alpha = if (is.null(spec$reliability)) NA_real_ else spec$reliability,
+        ave = if (length(sl) > 0L && all(is.finite(sl))) mean(sl^2) else NA_real_,
+        prop_var = if (is.null(spec$prop_var)) NA_real_ else spec$prop_var,
+        stringsAsFactors = FALSE
+      )
+    })
+    out <- do.call(rbind, rows)
+  }
+  rownames(out) <- NULL
+  class(out) <- c("drm_reliability", "data.frame")
+  out
+}
+
+#' @export
+print.drm_reliability <- function(x, ...) {
+  if (nrow(x) == 0L) {
+    cli::cli_text("<drmSEM composite reliability: none>")
+    return(invisible(x))
+  }
+  cli::cli_text("<drmSEM composite reliability: {nrow(x)} construct{?s}>")
+  df <- as.data.frame(x)
+  num <- vapply(df, is.numeric, logical(1))
+  df[num] <- lapply(df[num], function(v) round(v, 4))
   print.data.frame(df, row.names = FALSE)
   invisible(x)
 }
