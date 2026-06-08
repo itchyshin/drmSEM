@@ -231,7 +231,7 @@ library(ggplot2)
 ggplot(cal$type1_by_df,
        aes(x = factor(claim_df), y = reject)) +
   geom_hline(yintercept = cal$meta$alpha, linetype = 2, colour = "grey50") +
-  geom_point(size = 2, colour = "#0f7887") +
+  geom_point(size = 2, colour = "#3a8068") +
   facet_wrap(~ family) +
   labs(
     x = "augmented-component count (claim df)",
@@ -257,7 +257,7 @@ qq <- data.frame(
 )
 ggplot(qq, aes(x = theoretical, y = observed)) +
   geom_abline(slope = 1, intercept = 0, linetype = 2, colour = "grey50") +
-  geom_point(size = 1, colour = "#0f7887", alpha = 0.7) +
+  geom_point(size = 1, colour = "#3a8068", alpha = 0.7) +
   coord_equal(xlim = c(0, 1), ylim = c(0, 1)) +
   labs(
     x = "theoretical uniform quantile",

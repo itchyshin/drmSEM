@@ -1,6 +1,6 @@
-# 00 — Charter: what DRMSEM is
+# 00 — Charter: what drmSEM is
 
-**DRMSEM** is the project/paper name; **drmSEM** is the R package. It adds a
+**drmSEM** is the project, paper, and R package name. It adds a
 *distributional piecewise structural equation modelling* layer on top of the
 `drmTMB` fitting engine (github `itchyshin/drmTMB`).
 

@@ -1,12 +1,12 @@
-# PROJECT MEMORY — drmSEM / DRMSEM
+# PROJECT MEMORY — drmSEM
 
 Durable scientific memory. Read this before working on drmSEM. It states what the
 project *is* and the invariants no agent may break. Details live in the design
 docs (`docs/design/`); this is the stable core.
 
-## What DRMSEM means
+## What drmSEM means
 
-**DRMSEM** is the project/paper name; **drmSEM** is the R package. It is a
+**drmSEM** is the project, paper, and R package name. It is a
 *distributional piecewise structural equation modelling* layer: observed-variable,
 hierarchical, distributional SEM for ecology and evolution, built on top of the
 `drmTMB` fitting engine.

@@ -51,11 +51,11 @@ only way to express the **distribution-mediated** effect at all. Documented in
 `docs/design/02-effect-calculus.md`. Code: `R/effects.R`,
 `R/simulate_effects.R`.
 
-## [2026-06-04] D-4 — Naming: drmSEM (package) / DRMSEM (project & paper)
+## [2026-06-04, updated 2026-06-08] D-4 — Naming: drmSEM
 
-**Decision.** The R package is **drmSEM**; the project and paper are **DRMSEM**.
-Companion to `drmTMB` (lower-case engine). Keep the casing consistent in code,
-docs, and citations.
+**Decision.** The project, paper, and R package are **drmSEM**. Companion to
+`drmTMB` (lower-case engine). Keep the casing consistent in code, docs, and
+citations.
 
 ## [2026-06-04] D-5 — igraph used for plotting layout only
 

@@ -2,7 +2,7 @@
 
 `drmSEM` is an R package that adds a **distributional piecewise structural
 equation modelling (SEM)** layer on top of the `drmTMB` fitting engine. The
-project and paper use the name **DRMSEM**; the R package is **drmSEM**.
+project, paper, and R package use the name **drmSEM**.
 
 This file is the authoritative operating contract. Codex and Claude Code read it
 before doing work. `CLOUD.md` (environment setup) and the checked-in files under

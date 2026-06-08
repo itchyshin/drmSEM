@@ -7,9 +7,9 @@ template:
   bootstrap: 5
   bslib:
     bootswatch: flatly
-    primary: "#0f7887"
-    headings-color: "#112638"
-    link-color: "#0f7887"
+    primary: "#3a8068"
+    headings-color: "#17362f"
+    link-color: "#2d7a62"
 
 # `release`, not `auto`: the GitHub-Actions Pages deploy replaces the whole site
 # with each build, so a dev version (e.g. 0.2.0.9000) under `auto` would nest the

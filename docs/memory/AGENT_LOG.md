@@ -1128,3 +1128,21 @@ path. Added a fixed row-named `layout =` matrix to `tools/render-readme-hero.R`
 and re-rendered `man/figures/drmsem-hero-dag.png`. Visual check passed: three-row
 path legend, distinct `temp -> size` arcs, and no crossing/overlap among the
 visible paths.
+
+## 2026-06-08 — Codex naming and pkgdown theme pass
+
+User corrected the public name: project, paper, and package should all be
+`drmSEM`; no uppercase variant. Updated the agent contract, decision record,
+project memory, and charter so future agents do not revive the old casing. Also
+changed the pkgdown theme from teal to a lighter sage green (`primary =
+"#3a8068"`, `link-color = "#2d7a62"`, headings `"#17362f"`), chosen to keep
+white navbar text readable while giving the site a calmer ecology-facing palette.
+Also updated the calibration article's two hard-coded teal plot colors to the new
+sage primary.
+
+## 2026-06-08 — Codex hex logo install
+
+Installed the supplied drmSEM hex logo as `man/figures/logo.png` and
+`man/figures/logo.svg`, following pkgdown's standard package-logo location.
+Rebuilt the pkgdown site locally so the logo, generated favicons, and sage theme
+can be checked together before deploy.
