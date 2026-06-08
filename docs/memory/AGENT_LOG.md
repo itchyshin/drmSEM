@@ -1146,3 +1146,11 @@ Installed the supplied drmSEM hex logo as `man/figures/logo.png` and
 `man/figures/logo.svg`, following pkgdown's standard package-logo location.
 Rebuilt the pkgdown site locally so the logo, generated favicons, and sage theme
 can be checked together before deploy.
+
+## 2026-06-08 — Codex pkgdown branding refinement
+
+User flagged that the visible site still read too close to drmTMB and that the
+homepage hex logo was too small. Added `pkgdown/extra.css` so pkgdown applies
+explicit drmSEM sage accents after Bootstrap/Flatly and enlarged the homepage
+logo to a drmTMB-like right-side treatment without changing the supplied hex
+artwork.
