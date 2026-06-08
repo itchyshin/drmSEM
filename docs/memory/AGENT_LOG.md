@@ -1154,3 +1154,11 @@ homepage hex logo was too small. Added `pkgdown/extra.css` so pkgdown applies
 explicit drmSEM sage accents after Bootstrap/Flatly and enlarged the homepage
 logo to a drmTMB-like right-side treatment without changing the supplied hex
 artwork.
+
+## 2026-06-08 — Codex homepage desktop layout correction
+
+User flagged that the first branding refinement overshot and made the desktop
+homepage read like a mobile/full-width layout. Removed the forced full-width
+homepage main column so pkgdown's desktop two-column shape returns (content and
+header on the left, links/sidebar on the right), then moderated the desktop
+title/logo to `3.75rem`/`260px` with tablet/mobile breakpoints kept separate.

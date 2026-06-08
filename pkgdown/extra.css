@@ -1,4 +1,4 @@
-/* drmSEM site branding: sage accents and a larger homepage hex logo. */
+/* drmSEM site branding: sage accents and a moderated homepage hex logo. */
 
 :root {
   --drmsem-heading: #17362f;
@@ -51,27 +51,21 @@ blockquote {
   border-left-color: var(--drmsem-sage-soft);
 }
 
-.template-home > .row > main.col-md-9 {
-  flex: 0 0 100%;
-  max-width: 100%;
-  width: 100%;
-}
-
 .template-home .page-header {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 360px;
-  align-items: center;
-  column-gap: 2.5rem;
-  min-height: 280px;
-  margin-top: 3rem;
-  padding-bottom: 1.25rem;
+  grid-template-columns: minmax(0, 1fr) 260px;
+  align-items: start;
+  column-gap: 1.75rem;
+  min-height: 215px;
+  margin-top: 2.25rem;
+  padding-bottom: 1rem;
 }
 
 .template-home .page-header h1 {
   grid-column: 1;
   grid-row: 1;
   margin: 0;
-  font-size: 5.75rem;
+  font-size: 3.75rem;
   font-weight: 500;
   line-height: 1;
 }
@@ -80,24 +74,24 @@ blockquote {
   grid-column: 2;
   grid-row: 1;
   float: none;
-  width: 360px;
+  width: 260px;
   max-width: 100%;
   margin: 0 0 0 auto;
 }
 
 @media (max-width: 991.98px) {
   .template-home .page-header {
-    grid-template-columns: minmax(0, 1fr) 260px;
-    min-height: 220px;
-    column-gap: 1.5rem;
+    grid-template-columns: minmax(0, 1fr) 210px;
+    min-height: 180px;
+    column-gap: 1.25rem;
   }
 
   .template-home .page-header h1 {
-    font-size: 4.5rem;
+    font-size: 3.5rem;
   }
 
   .template-home .page-header img.logo {
-    width: 260px;
+    width: 210px;
   }
 }
 
