@@ -52,7 +52,10 @@ the live-drmTMB lane (see `docs/memory/CODEX_HANDOFF.md`).
   move a tail probability or quantile while leaving `E[Y]` nearly unchanged.
 * The `"quantile"` target reports the `prob`-quantile of the simulated outcome
   (kernel-validated: a path into `sigma` shifts the upper quantile but not the
-  median).
+  median). `direct_effects()` / `total_effects()` also accept a **vector `prob`**
+  to return a whole quantile *curve* in one call — one row per probability (with a
+  `prob` column), sharing a single seed so the curve is internally coherent;
+  `plot()` then draws one interval per quantile.
 * `direct_effects()` / `total_effects()` gain `functional = c("simulate",
   "analytic")`. `"analytic"` evaluates the functional in **closed form** from the
   predicted parameters (no Monte-Carlo noise) for the **gaussian** and

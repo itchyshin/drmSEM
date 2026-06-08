@@ -258,7 +258,14 @@ plot.drm_effect <- function(x, style = c("forest", "stacked"), ...) {
   style <- match.arg(style)
   df <- as.data.frame(x)
   if (!"quantity" %in% names(df)) {
-    df$quantity <- "effect"
+    # A multi-quantile effect curve (direct_/total_effects with a vector `prob`)
+    # has no `quantity`; label each row by its probability so the forest shows one
+    # interval per quantile instead of overplotting a single "effect" row.
+    if ("prob" %in% names(df) && length(unique(df$prob)) > 1L) {
+      df$quantity <- paste0("q", formatC(df$prob, format = "g"))
+    } else {
+      df$quantity <- "effect"
+    }
   }
   if (!all(c("conf.low", "conf.high") %in% names(df))) {
     df$conf.low <- NA_real_

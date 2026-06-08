@@ -101,6 +101,54 @@ drm_summ <- function(vals, level = 0.95) {
   )
 }
 
+# `prob` validation (OQ-11). A vector of probabilities asks for a quantile *curve*
+# and is only meaningful for `target = "quantile"`; `allow_vector = FALSE` is for
+# the decomposing entry points (indirect_/path_effects) that report one row per
+# quantity and so take a single probability. Only enforces the (0, 1) range for
+# the quantile target, where `prob` is actually used.
+drm_check_prob <- function(prob, target, fn, allow_vector = TRUE) {
+  if (!identical(target, "quantile")) {
+    if (length(prob) > 1L) {
+      cli::cli_abort(c(
+        "Multiple {.arg prob} values are only meaningful for {.code target = \"quantile\"}.",
+        "i" = "Set {.code target = \"quantile\"} or pass a single {.arg prob}."
+      ))
+    }
+    return(invisible(prob))
+  }
+  if (length(prob) == 0L || !is.numeric(prob) || anyNA(prob) ||
+      any(prob <= 0 | prob >= 1)) {
+    cli::cli_abort("{.arg prob} must be number{?s} strictly between 0 and 1.")
+  }
+  if (length(prob) > 1L && !allow_vector) {
+    cli::cli_abort(c(
+      "{.fn {fn}} takes a single {.arg prob}.",
+      "i" = "Use {.fn direct_effects} or {.fn total_effects} for a multi-quantile curve."
+    ))
+  }
+  invisible(prob)
+}
+
+# Assemble the effect data frame from a `compute_vals(prob, seed)` closure. A
+# multi-value quantile request (length(prob) > 1) returns one row per probability
+# with an added `prob` column, reusing a single seed so the whole quantile curve
+# comes from one coherent set of coefficient/outcome draws; otherwise a single
+# row in the historical schema (no `prob` column). `meta` is the one-row
+# leading-columns template (from/to/scale[/mediation]/target).
+drm_assemble_effect <- function(compute_vals, prob, seed, level, meta, target) {
+  if (!(identical(target, "quantile") && length(prob) > 1L)) {
+    return(cbind(meta, drm_summ(compute_vals(prob, seed), level)))
+  }
+  use_seed <- if (is.null(seed)) sample.int(.Machine$integer.max, 1L) else seed
+  rows <- lapply(prob, function(p) {
+    cbind(meta, data.frame(prob = p, stringsAsFactors = FALSE),
+          drm_summ(compute_vals(p, use_seed), level))
+  })
+  out <- do.call(rbind, rows)
+  rownames(out) <- NULL
+  out
+}
+
 drm_validate_effect_args <- function(object, from, to) {
   if (!to %in% object$endogenous) {
     cli::cli_abort("{.arg to} = {.val {to}} must be an endogenous node.")
@@ -160,6 +208,10 @@ drm_analytic_or_abort <- function(engines, scen, to, active, mediation, target,
 #'   leaving the mean nearly unchanged.
 #' @param threshold Cutoff for `target = "p_gt"`.
 #' @param prob Probability for `target = "quantile"` (default `0.5`, the median).
+#'   A length-`>1` vector requests a whole quantile *curve*: one row per
+#'   probability (with an added `prob` column), all sharing one set of draws so the
+#'   curve is internally coherent. Vectors are accepted by `direct_effects()` and
+#'   `total_effects()` only.
 #' @param functional How a non-mean `target` is evaluated: `"simulate"` (default;
 #'   draw the outcome from its family and summarize) or `"analytic"` (a
 #'   closed-form functional of the predicted parameters — no Monte-Carlo noise).
@@ -185,7 +237,8 @@ drm_analytic_or_abort <- function(engines, scen, to, active, mediation, target,
 #'   deprecation warning.
 #' @param ... Unused.
 #' @return A one-row data frame (`from`, `to`, `scale`, `target`, `estimate`,
-#'   `conf.low`, `conf.high`) with a `coefficients` attribute.
+#'   `conf.low`, `conf.high`) with a `coefficients` attribute. A vector `prob`
+#'   (quantile curve) returns one row per probability with an added `prob` column.
 #' @examples
 #' \dontrun{
 #' sem <- drm_sem(
@@ -210,29 +263,32 @@ direct_effects <- function(object, from, to, component = NULL,
   target <- match.arg(target)
   functional <- match.arg(functional)
   drm_validate_effect_args(object, from, to)
+  drm_check_prob(prob, target, "direct_effects")
   ctl <- drm_effect_controls(uncertainty, nsim, population, draw, n_sim,
                              default_draw = TRUE, default_nsim = 50L)
   drm_require_drmTMB()
   engines <- drm_engines_from_sem(object)
   scen <- drm_build_scenarios(object, from, at)
-  vals <- if (identical(target, "mean")) {
-    drm_effect_contrast(engines, scen, to, active = character(0),
-                        mediation = "mean", B = B, n_sim = 1L,
-                        draw = ctl$draw, seed = seed)
-  } else if (identical(functional, "analytic")) {
-    drm_analytic_or_abort(engines, scen, to, active = character(0),
-                          mediation = "mean", target = target,
-                          threshold = threshold, prob = prob, B = B,
+  compute_vals <- function(prob, seed) {
+    if (identical(target, "mean")) {
+      drm_effect_contrast(engines, scen, to, active = character(0),
+                          mediation = "mean", B = B, n_sim = 1L,
                           draw = ctl$draw, seed = seed)
-  } else {
-    drm_functional_contrast(engines, scen, to, active = character(0),
-                            mediation = "distribution", target = target,
-                            threshold = threshold, B = B, n_sim = ctl$n_sim,
-                            draw = ctl$draw, seed = seed, prob = prob)
+    } else if (identical(functional, "analytic")) {
+      drm_analytic_or_abort(engines, scen, to, active = character(0),
+                            mediation = "mean", target = target,
+                            threshold = threshold, prob = prob, B = B,
+                            draw = ctl$draw, seed = seed)
+    } else {
+      drm_functional_contrast(engines, scen, to, active = character(0),
+                              mediation = "distribution", target = target,
+                              threshold = threshold, B = B, n_sim = ctl$n_sim,
+                              draw = ctl$draw, seed = seed, prob = prob)
+    }
   }
-  out <- cbind(data.frame(from = from, to = to, scale = "response",
-                          target = target, stringsAsFactors = FALSE),
-               drm_summ(vals, level))
+  meta <- data.frame(from = from, to = to, scale = "response",
+                     target = target, stringsAsFactors = FALSE)
+  out <- drm_assemble_effect(compute_vals, prob, seed, level, meta, target)
   ptab <- paths(object)
   ptab <- ptab[ptab$to == to & ptab$from == from, , drop = FALSE]
   if (!is.null(component)) ptab <- ptab[ptab$component %in% component, , drop = FALSE]
@@ -273,6 +329,8 @@ direct_effects <- function(object, from, to, component = NULL,
 #'   equilibrium response) is defined.
 #' @param threshold Cutoff for `target = "p_gt"`.
 #' @param prob Probability for `target = "quantile"` (default `0.5`, the median).
+#'   A length-`>1` vector requests a quantile curve: one row per probability with
+#'   an added `prob` column (see [direct_effects()]).
 #' @param mediation Deprecated alias for `method` (`"mean"` maps to `"gcomp"`,
 #'   `"distribution"` to `"simulate"`); supplying it emits a deprecation warning.
 #' @return A one-row `drm_effect` data frame.
@@ -301,6 +359,7 @@ total_effects <- function(object, from, to, method = NULL,
   functional <- match.arg(functional)
   mediation_resolved <- drm_resolve_mediation(method, mediation)
   drm_validate_effect_args(object, from, to)
+  drm_check_prob(prob, target, "total_effects")
   ctl <- drm_effect_controls(uncertainty, nsim, population, draw, n_sim,
                              default_draw = TRUE, default_nsim = 50L)
   drm_require_drmTMB()
@@ -348,25 +407,27 @@ total_effects <- function(object, from, to, method = NULL,
       "i" = "Use {.code method = \"gcomp\"} with the analytic functional, or {.code functional = \"simulate\"} with {.code method = \"simulate\"}."
     ))
   }
-  vals <- if (identical(target, "mean")) {
-    drm_effect_contrast(engines, scen, to, active = active,
-                        mediation = mediation_resolved, B = B, n_sim = ctl$n_sim,
-                        draw = ctl$draw, seed = seed)
-  } else if (identical(functional, "analytic")) {
-    drm_analytic_or_abort(engines, scen, to, active = active,
-                          mediation = mediation_resolved, target = target,
-                          threshold = threshold, prob = prob, B = B,
+  compute_vals <- function(prob, seed) {
+    if (identical(target, "mean")) {
+      drm_effect_contrast(engines, scen, to, active = active,
+                          mediation = mediation_resolved, B = B, n_sim = ctl$n_sim,
                           draw = ctl$draw, seed = seed)
-  } else {
-    drm_functional_contrast(engines, scen, to, active = active,
+    } else if (identical(functional, "analytic")) {
+      drm_analytic_or_abort(engines, scen, to, active = active,
                             mediation = mediation_resolved, target = target,
-                            threshold = threshold, B = B, n_sim = ctl$n_sim,
-                            draw = ctl$draw, seed = seed, prob = prob)
+                            threshold = threshold, prob = prob, B = B,
+                            draw = ctl$draw, seed = seed)
+    } else {
+      drm_functional_contrast(engines, scen, to, active = active,
+                              mediation = mediation_resolved, target = target,
+                              threshold = threshold, B = B, n_sim = ctl$n_sim,
+                              draw = ctl$draw, seed = seed, prob = prob)
+    }
   }
-  out <- cbind(data.frame(from = from, to = to, scale = "response",
-                          mediation = mediation_resolved, target = target,
-                          stringsAsFactors = FALSE),
-               drm_summ(vals, level))
+  meta <- data.frame(from = from, to = to, scale = "response",
+                     mediation = mediation_resolved, target = target,
+                     stringsAsFactors = FALSE)
+  out <- drm_assemble_effect(compute_vals, prob, seed, level, meta, target)
   class(out) <- c("drm_effect", "data.frame")
   out
 }
@@ -433,6 +494,7 @@ indirect_effects <- function(object, from, to, through = NULL,
   effect <- match.arg(effect)
   target <- match.arg(target)
   drm_validate_effect_args(object, from, to)
+  drm_check_prob(prob, target, "indirect_effects", allow_vector = FALSE)
   drm_block_feedback_decomp(object, "indirect_effects")
   # Natural (cross-world) effects are mean-only here: the cross-world functional
   # contrast under arbitrary links is open (OQ-8/OQ-11). Outcome functionals ride

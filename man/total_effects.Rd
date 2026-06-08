@@ -46,7 +46,9 @@ equilibrium response) is defined.}
 
 \item{threshold}{Cutoff for \code{target = "p_gt"}.}
 
-\item{prob}{Probability for \code{target = "quantile"} (default \code{0.5}, the median).}
+\item{prob}{Probability for \code{target = "quantile"} (default \code{0.5}, the median).
+A length-\code{>1} vector requests a quantile curve: one row per probability with
+an added \code{prob} column (see \code{\link[=direct_effects]{direct_effects()}}).}
 
 \item{functional}{How a non-mean \code{target} is evaluated: \code{"simulate"} (default;
 draw the outcome from its family and summarize) or \code{"analytic"} (a

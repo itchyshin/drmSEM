@@ -135,6 +135,64 @@ test_that("direct_effects exposes outcome functionals (target=) like total_effec
   expect_true(is.finite(de$estimate))
 })
 
+# ---- multi-quantile curves (OQ-11): a vector `prob` ------------------------
+
+test_that("a vector prob is validated and only direct_/total_effects accept one", {
+  # No engine needed: drm_check_prob runs before drm_require_drmTMB().
+  fake <- structure(list(endogenous = "y"), class = "drm_sem")
+  # a vector prob is meaningless unless the target is the quantile
+  expect_error(direct_effects(fake, "x", "y", target = "mean", prob = c(0.1, 0.9)),
+               "only meaningful")
+  expect_error(total_effects(fake, "x", "y", target = "mean", prob = c(0.1, 0.9)),
+               "only meaningful")
+  # out-of-range probabilities are rejected for the quantile target
+  expect_error(direct_effects(fake, "x", "y", target = "quantile", prob = c(0, 0.5)),
+               "between 0 and 1")
+  # the decomposing entry point reports one row per quantity, so single prob only
+  expect_error(
+    indirect_effects(fake, "x", "y", target = "quantile", prob = c(0.25, 0.75)),
+    "takes a single"
+  )
+})
+
+test_that("direct_/total_effects(target='quantile') return a coherent quantile curve", {
+  skip_if_not_installed("drmTMB")
+  set.seed(21)
+  n <- 400
+  x <- stats::rnorm(n)
+  y <- 0.3 + 0.5 * x + stats::rnorm(n, sd = exp(0.2 * x))   # x moves sigma too
+  dat <- data.frame(x, y)
+  sem <- drm_sem(
+    y = drm_node(drmTMB::bf(y ~ x, sigma ~ x), family = stats::gaussian()),
+    data = dat
+  )
+
+  probs <- c(0.1, 0.5, 0.9)
+  curve <- direct_effects(sem, "x", "y", target = "quantile", prob = probs,
+                          uncertainty = "none", nsim = 200, seed = 7)
+  expect_s3_class(curve, "drm_effect")
+  expect_identical(nrow(curve), 3L)
+  expect_true("prob" %in% names(curve))
+  expect_equal(curve$prob, probs)
+  expect_true(all(curve$target == "quantile"))
+  expect_true(all(is.finite(curve$estimate)))
+
+  # a single prob keeps the historical one-row schema (no prob column)
+  one <- direct_effects(sem, "x", "y", target = "quantile", prob = 0.5,
+                        uncertainty = "none", nsim = 200, seed = 7)
+  expect_identical(nrow(one), 1L)
+  expect_false("prob" %in% names(one))
+  # shared-seed coherence: the curve's median row equals the standalone median
+  expect_equal(curve$estimate[curve$prob == 0.5], one$estimate, tolerance = 1e-8)
+
+  # total_effects carries the same multi-row shape (with its mediation column)
+  tcurve <- total_effects(sem, "x", "y", target = "quantile", prob = probs,
+                          method = "gcomp", uncertainty = "none", nsim = 200, seed = 7)
+  expect_identical(nrow(tcurve), 3L)
+  expect_equal(tcurve$prob, probs)
+  expect_true("mediation" %in% names(tcurve))
+})
+
 test_that("uncertainty='bootstrap' and population='marginal' abort before fitting work", {
   skip_if_not_installed("drmTMB")
   set.seed(3)

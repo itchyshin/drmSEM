@@ -243,8 +243,19 @@ params (no MC noise) for **gaussian** and **poisson** (`var`/`p_gt`/`p_zero`/
 `quantile`), requires mean mediation, and aborts for other families (their
 `sigma`↔dispersion scale is OQ-1). Kernel-verified exact in `test-effect-kernels.R`
 (V-76). **Still open:** closed forms for the dispersion families once OQ-1 is
-settled, the natural/cross-world functional variant, multiple quantiles in one
-call, and a live-fit functional recovery beyond V-62..V-64. Original note below.
+settled, the natural/cross-world functional variant, and a live-fit functional
+recovery beyond V-62..V-64. Original note below.
+
+**Update 2026-06-08 — multiple quantiles in one call.** `direct_effects()` /
+`total_effects()` now accept a **vector `prob`** with `target = "quantile"`,
+returning a quantile *curve*: one row per probability with an added `prob`
+column, all sharing a single seed so the curve is internally coherent. A scalar
+`prob` keeps the historical one-row schema unchanged. `prob` is validated
+(`drm_check_prob()`): a vector is rejected for non-quantile targets and for the
+decomposing `indirect_effects()` (one row per quantity), and probabilities must
+lie strictly in (0, 1). `plot.drm_effect()` labels each curve row by its
+probability. Tested in `test-effect-api.R` (validation paths run without an
+engine; the live curve is `skip_if_not_installed`).
 
 **Implemented (2026-06-05):** `total_effects(..., target = c("mean","p_gt","p_zero","var"),
 threshold=)` simulates the outcome and reports the effect on that functional of

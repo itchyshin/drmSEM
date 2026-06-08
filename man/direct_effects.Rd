@@ -43,7 +43,11 @@ leaving the mean nearly unchanged.}
 
 \item{threshold}{Cutoff for \code{target = "p_gt"}.}
 
-\item{prob}{Probability for \code{target = "quantile"} (default \code{0.5}, the median).}
+\item{prob}{Probability for \code{target = "quantile"} (default \code{0.5}, the median).
+A length-\code{>1} vector requests a whole quantile \emph{curve}: one row per
+probability (with an added \code{prob} column), all sharing one set of draws so the
+curve is internally coherent. Vectors are accepted by \code{direct_effects()} and
+\code{total_effects()} only.}
 
 \item{functional}{How a non-mean \code{target} is evaluated: \code{"simulate"} (default;
 draw the outcome from its family and summarize) or \code{"analytic"} (a
@@ -81,7 +85,8 @@ deprecation warning.}
 }
 \value{
 A one-row data frame (\code{from}, \code{to}, \code{scale}, \code{target}, \code{estimate},
-\code{conf.low}, \code{conf.high}) with a \code{coefficients} attribute.
+\code{conf.low}, \code{conf.high}) with a \code{coefficients} attribute. A vector \code{prob}
+(quantile curve) returns one row per probability with an added \code{prob} column.
 }
 \description{
 The controlled direct effect holds all mediators at their observed values and
