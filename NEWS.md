@@ -1,5 +1,23 @@
 # drmSEM (development version)
 
+## symbolizer integration (`Suggests`)
+
+* `symbolize.drm_sem()` walks a fitted `drm_sem` in topological order, calls
+  `symbolizer::symbolize()` on each node's underlying `drmTMB` fit, and
+  returns a `symbolized_drm_sem`. The renderer S3 methods
+  `as_latex.symbolized_drm_sem()`, `equations.symbolized_drm_sem()`, and
+  `assumption_table.symbolized_drm_sem()` collate the per-node output with
+  topological-order section headers, so a whole SEM gets publication-quality
+  equations directly from the fitted object — no hand-maintained LaTeX in
+  vignettes or papers.
+* Covers the **model-specification** layer only: per-node distributional
+  equations, families, links, assumptions. The SEM layer (DAG, d-separation,
+  Fisher's C, the simulation-based effect calculus) stays with `drmSEM`
+  itself, because the distribution-mediated effect has no closed-form
+  symbolic representation by construction.
+* `symbolizer` is a `Suggests` dependency; the integration is gated on
+  `requireNamespace("symbolizer")`. See `vignette("equations-via-symbolizer")`.
+
 ## Documentation: rigorous referencing audit
 
 * Added structured `@references` blocks (Rdpack `\insertRef{}`) to every

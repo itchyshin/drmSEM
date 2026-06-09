@@ -1,0 +1,80 @@
+---
+title: "Equations via symbolizer"
+output: rmarkdown::html_vignette
+bibliography: ../inst/REFERENCES.bib
+link-citations: true
+vignette: >
+  %\VignetteIndexEntry{Equations via symbolizer}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+# drmSEM never fits its own likelihoods. The integration with symbolizer
+# operates on already-fitted nodes (each one a drmTMB fit), so this vignette
+# is illustrative and not evaluated when drmTMB or symbolizer is missing.
+has_engine <- requireNamespace("drmTMB", quietly = TRUE) &&
+              requireNamespace("symbolizer", quietly = TRUE)
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = has_engine)
+library(drmSEM)
+```
+
+`drmSEM` produces a **graph of distributional models**: each endogenous node is
+one `drmTMB` fit, and paths into `mu` / `sigma` / `nu` / `zi` / `hu` / `rho12`
+are first-class. Reporting that kind of model in a paper requires writing the
+per-node equations, families, links, and assumptions — error-prone work that
+also goes stale when the code changes.
+
+[`symbolizer`](https://itchyshin.github.io/symbolizer/) renders the equations
+**from the fitted object** itself. Its `drmTMB` extractor covers exactly the
+families and components `drmSEM` uses, so wiring it up is a thin bridge: walk
+the SEM in topological order, symbolize each node's `drmTMB` fit, and collate.
+
+## A two-node example
+
+```{r build}
+sem <- drm_sem(
+  size      = drm_node(drmTMB::bf(size ~ temp + habitat, sigma ~ temp),
+                       family = stats::gaussian()),
+  abundance = drm_node(drmTMB::bf(abundance ~ size + temp, zi ~ habitat),
+                       family = drmTMB::nbinom2()),
+  data = dat
+)
+```
+
+## Render
+
+```{r symbolize}
+sym <- symbolize(sem)        # walks sem$records, calls symbolizer::symbolize per node
+sym                          # prints a summary header
+
+as_latex(sym)                # publication-quality equations, node-by-node
+equations(sym)               # tidy tibble: one row per component, keyed by node
+assumption_table(sym)        # per-node families, links, deferred components
+```
+
+The collator labels each block with `## Node: <name>` so the reader can see
+exactly which equations belong to which response. `sigma` and `zi` sub-models
+appear next to their parent `mu`, with the link function spelled out — which
+makes the component-labelled grammar of `drmSEM` concrete instead of abstract.
+
+## Scope
+
+`symbolize.drm_sem()` covers the **model specification** layer (per-node
+distributional equations, families, links, assumptions). The **SEM layer** —
+the DAG, [`dsep()`], [`fisher_c()`], and the simulation-based effect calculus —
+stays with `drmSEM` itself, because the **distribution-mediated effect** row
+of [`indirect_effects()`] has no closed-form symbolic representation by
+construction. Symbolizer correctly stops at the per-node equations and lets
+`drmSEM` do the propagation.
+
+## See also
+
+- `vignette("effect-decomposition")` — the simulation-based effect calculus
+  that lives on top of these node equations.
+- `vignette("drmSEM-overview")` — the broader workflow.
+- The [`symbolizer` site](https://itchyshin.github.io/symbolizer/) — supported
+  families and components, equation rendering options, and the
+  `symbolized_model` object.
+
+## References
