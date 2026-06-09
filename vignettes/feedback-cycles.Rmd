@@ -1,6 +1,8 @@
 ---
 title: "Feedback cycles: reciprocal causation and the equilibrium effect (drm_cycle)"
 output: rmarkdown::html_vignette
+bibliography: ../inst/REFERENCES.bib
+link-citations: true
 vignette: >
   %\VignetteIndexEntry{Feedback cycles: reciprocal causation and the equilibrium effect (drm_cycle)}
   %\VignetteEngine{knitr::rmarkdown}
@@ -136,13 +138,14 @@ This is the single most important thing in this vignette, so it is not buried:
 > **Node-wise maximum likelihood of a declared cycle is *inconsistent* under
 > simultaneity, and `drmSEM` does not pretend otherwise.** When you fit a SEM
 > that declares a feedback motif, `drm_sem()` / `drm_psem()` emit a **warning**:
-> the per-node coefficients are biased because each loop node's regressor is also
-> its descendant. Consistent estimation needs either **instrumental variables /
-> 2SLS** (an exogenous predictor of `activity` that is excluded from the `stress`
-> equation, and vice versa) or a **joint likelihood** that estimates the whole
-> system at once. Neither is shipped: consistent feedback *estimation* is an
-> **engine** deliverable, not something the pure-R layer fakes. `drmSEM` will not
-> silently hand you a number and call it the structural effect.
+> the per-node coefficients are biased because each loop node's regressor is
+> also its descendant. Consistent estimation needs either **instrumental
+> variables / 2SLS** [@Bollen1996] (an exogenous predictor of `activity` that is
+> excluded from the `stress` equation, and vice versa) or a **joint likelihood**
+> that estimates the whole system at once. Neither is shipped: consistent
+> feedback *estimation* is an **engine** deliverable, not something the pure-R
+> layer fakes. `drmSEM` will not silently hand you a number and call it the
+> structural effect.
 
 The warning looks like this:
 
@@ -275,9 +278,9 @@ well-defined meaning even when the loop is present.
 ## d-separation: the test is scoped to the acyclic part
 
 The goodness-of-fit machinery is affected too. A DAG's conditional-independence
-claims come from d-separation, but a cyclic graph's independence structure is
-given by **sigma-separation** (the cyclic generalization; Forré & Mooij 2017),
-which differs from d-separation precisely around the loop. Rather than assert
+claims come from d-separation [@Pearl2009], but a cyclic graph's independence
+structure is given by **sigma-separation** — the cyclic generalization of
+@ForreMooij2017 — which differs from d-separation precisely around the loop. Rather than assert
 claims that may be false across the cycle, `basis_set()` **drops** the
 independence claims among the declared motif's nodes — exactly parallel to how a
 covariance edge drops the `y1 _||_ y2` claim.
@@ -317,3 +320,5 @@ For the full design — the two hard problems, the staged plan (what shipped in
 see `docs/design/10-cyclic-feedback.md`. For the *non*-directional coupling of
 two responses (a residual correlation, not a feedback loop), see the
 [bivariate-nodes vignette](bivariate-nodes.html).
+
+## References

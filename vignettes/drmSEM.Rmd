@@ -1,6 +1,8 @@
 ---
 title: "Distributional piecewise SEM with drmSEM"
 output: rmarkdown::html_vignette
+bibliography: ../inst/REFERENCES.bib
+link-citations: true
 vignette: >
   %\VignetteIndexEntry{Distributional piecewise SEM with drmSEM}
   %\VignetteEngine{knitr::rmarkdown}
@@ -30,8 +32,10 @@ only one of the things a predictor can do. A predictor can also change how
 *variable* a response is, how *over-dispersed* it is, how often it is a
 *structural zero*, or how strongly two responses *co-vary in their residuals*.
 
-`drmSEM` makes those targets first-class. It is the **SEM / graph /
-d-separation / path / effect-decomposition layer**; the
+`drmSEM` makes those targets first-class — in the distributional-regression
+tradition of @Rigby2005 and @Brooks2017 — while keeping the
+**piecewise** d-separation framework of @Shipley2009 and @Lefcheck2016. It is
+the **SEM / graph / d-separation / path / effect-decomposition layer**; the
 [`drmTMB`](https://github.com/itchyshin/drmTMB) package is the **fitting
 engine**. Each endogenous node is exactly one `drmTMB` fit, the system is
 **piecewise**, and the graph must be a **DAG**. A causal path is
@@ -217,8 +221,9 @@ plot(sem)
 ## d-separation and Fisher's C
 
 A piecewise SEM is tested by checking the **independence claims** the DAG
-implies: every pair of non-adjacent nodes should be conditionally independent
-given their parents. `basis_set()` lists those claims.
+implies [@Pearl2009; @Shipley2000; @Shipley2009]: every pair of non-adjacent
+nodes should be conditionally independent given their parents. `basis_set()`
+lists those claims.
 
 ```{r basis}
 basis_set(sem)
@@ -251,10 +256,11 @@ fisher_c(sem)
 
 Coefficient products are *not* a valid way to combine paths across non-Gaussian
 links or across distributional components. `drmSEM` therefore computes effects
-by **Monte-Carlo propagation** over the fitted DAG: it sets the exogenous
-predictor to two contrasting values, pushes the change through every downstream
-node, and reads the conditional (`RE = 0`) response-scale change in the mean of
-the target.
+by **Monte-Carlo propagation** over the fitted DAG — the counterfactual,
+`do()`-style framework of @Pearl2001, @Pearl2009 and @Imai2010: it sets the
+exogenous predictor to two contrasting values, pushes the change through every
+downstream node, and reads the conditional (`RE = 0`) response-scale change in
+the mean of the target.
 
 **Direct (controlled) effect.** Hold all mediators at their observed values;
 move only `temp`. Only the arrows that go *directly* into `survival` operate.
@@ -345,3 +351,5 @@ standardize(sem, method = "latent")   # fully standardized
 
 For the environment and CI setup that compiles and installs the `drmTMB`
 engine, see `CLOUD.md`; for the operating contract, see `AGENTS.md`.
+
+## References

@@ -36,3 +36,10 @@ if (requireNamespace("drmTMB", quietly = TRUE)) {
   abundance
 }
 }
+\references{
+\insertRef{Rigby2005}{drmSEM}
+
+\insertRef{Brooks2017}{drmSEM}
+
+\insertRef{Lefcheck2016}{drmSEM}
+}

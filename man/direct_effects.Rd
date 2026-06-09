@@ -104,3 +104,12 @@ direct_effects(sem, from = "temp", to = "abundance",
                uncertainty = "parametric", nsim = 50)
 }
 }
+\references{
+\insertRef{Robins1992}{drmSEM}
+
+\insertRef{Pearl2001}{drmSEM}
+
+\insertRef{Pearl2009}{drmSEM}
+
+\insertRef{VanderWeele2015}{drmSEM}
+}

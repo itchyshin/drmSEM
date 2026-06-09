@@ -33,6 +33,11 @@ sem <- drm_sem(
 loadings(sem)
 }
 }
+\references{
+\insertRef{BollenLennox1991}{drmSEM}
+
+\insertRef{Grace2008}{drmSEM}
+}
 \seealso{
 \code{\link[=drm_composite]{drm_composite()}}, \code{\link[=paths]{paths()}}.
 }

@@ -23,7 +23,9 @@ Imports:
     graphics,
     igraph,
     MASS,
+    Rdpack,
     stats
+RdMacros: Rdpack
 Suggests:
     ape,
     drmTMB,

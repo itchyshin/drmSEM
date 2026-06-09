@@ -36,6 +36,13 @@ instead).
 \examples{
 rho12(drm_pair(activity ~ x, boldness ~ x, rho12 = ~ x))
 }
+\references{
+\insertRef{Shipley2016}{drmSEM}
+
+\insertRef{Bollen1989}{drmSEM}
+
+\insertRef{Brooks2017}{drmSEM}
+}
 \seealso{
 \code{\link[=corpairs]{corpairs()}}, \code{\link[=covary]{covary()}}, \code{\link[=covariances]{covariances()}}, \code{\link[=drm_pair]{drm_pair()}}.
 }

@@ -1,6 +1,8 @@
 ---
 title: "Bivariate nodes: two responses, one correlation (drm_pair)"
 output: rmarkdown::html_vignette
+bibliography: ../inst/REFERENCES.bib
+link-citations: true
 vignette: >
   %\VignetteIndexEntry{Bivariate nodes: two responses, one correlation (drm_pair)}
   %\VignetteEngine{knitr::rmarkdown}
@@ -19,11 +21,12 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = has_engine)
 library(drmSEM)
 ```
 
-If you fit GLMMs, you already know how to ask "does `x` change the *mean* of
-`activity`?" This vignette is about a different, sharper question that a
-mean-only model cannot phrase: **do two responses stay coupled after we
+If you fit GLMMs [@Brooks2017], you already know how to ask "does `x` change
+the *mean* of `activity`?" This vignette is about a different, sharper question
+that a mean-only model cannot phrase: **do two responses stay coupled after we
 condition on their predictors, and is that coupling causal or merely
-correlational?** `drmSEM` makes you say which, with the bivariate-node grammar
+correlational?** The grammar follows the bidirected-edge convention of
+@Bollen1989 and @Shipley2016 and is exposed in the bivariate-node helper
 `drm_pair()`.
 
 It is the companion to the
@@ -230,3 +233,5 @@ declared edge changes d-separation, see
 For the full design — the three edge classes, residual vs higher-level, the
 level-compatibility rule, and the honest engine boundary — see
 `docs/design/07-bivariate-covariance-edges.md`.
+
+## References

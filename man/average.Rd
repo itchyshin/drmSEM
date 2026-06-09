@@ -38,6 +38,11 @@ averaging). This mirrors phylopath's \code{average()}.
 average(cmp)
 }
 }
+\references{
+\insertRef{Burnham2002}{drmSEM}
+
+\insertRef{vanderBijl2018}{drmSEM}
+}
 \seealso{
 \code{\link[=compare]{compare()}}, \code{\link[=best]{best()}}, \code{\link[=standardize]{standardize()}}.
 }

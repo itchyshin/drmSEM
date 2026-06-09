@@ -67,6 +67,15 @@ sem <- drm_psem(size = size_fit, abundance = abundance_fit, data = dat)
 paths(sem)
 }
 }
+\references{
+\insertRef{Shipley2009}{drmSEM}
+
+\insertRef{Lefcheck2016}{drmSEM}
+
+\insertRef{Brooks2017}{drmSEM}
+
+\insertRef{Rigby2005}{drmSEM}
+}
 \seealso{
 \code{\link[=drm_sem]{drm_sem()}} for the declarative interface that fits nodes for you.
 }

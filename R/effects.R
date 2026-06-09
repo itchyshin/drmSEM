@@ -10,8 +10,11 @@ drm_build_scenarios <- function(object, from, at = NULL) {
     if (from %in% object$endogenous) {
       ids <- object$records[[from]]$identifiers
       hit <- ids[ids %in% names(data)]
-      if (length(hit)) col <- hit[[1L]] else
+      if (length(hit)) {
+        col <- hit[[1L]]
+      } else {
         cli::cli_abort("Cannot find a data column for {.val {from}}.")
+      }
     } else {
       cli::cli_abort("{.val {from}} is not a column in the model data.")
     }
@@ -19,31 +22,70 @@ drm_build_scenarios <- function(object, from, at = NULL) {
   x <- data[[col]]
   if (is.null(at)) {
     if (is.numeric(x)) {
-      m <- mean(x, na.rm = TRUE); s <- stats::sd(x, na.rm = TRUE)
+      m <- mean(x, na.rm = TRUE)
+      s <- stats::sd(x, na.rm = TRUE)
       at <- c(m - 0.5 * s, m + 0.5 * s)
     } else {
       lv <- if (is.factor(x)) levels(x) else sort(unique(x))
-      if (length(lv) < 2L) cli::cli_abort("{.val {from}} has fewer than two levels.")
+      if (length(lv) < 2L) {
+        cli::cli_abort("{.val {from}} has fewer than two levels.")
+      }
       at <- lv[1:2]
     }
   }
-  lo <- data; hi <- data
-  lo[[col]] <- if (is.factor(x)) factor(at[[1]], levels = levels(x)) else at[[1]]
-  hi[[col]] <- if (is.factor(x)) factor(at[[2]], levels = levels(x)) else at[[2]]
+  lo <- data
+  hi <- data
+  lo[[col]] <- if (is.factor(x)) {
+    factor(at[[1]], levels = levels(x))
+  } else {
+    at[[1]]
+  }
+  hi[[col]] <- if (is.factor(x)) {
+    factor(at[[2]], levels = levels(x))
+  } else {
+    at[[2]]
+  }
   list(lo = lo, hi = hi, at = at, column = col)
 }
 
 # Draw-level contrast vector for a given active mediator set.
-drm_effect_contrast <- function(engines, scenarios, to, active, mediation,
-                                B, n_sim, draw, seed = NULL) {
-  if (!is.null(seed)) set.seed(seed)
+drm_effect_contrast <- function(
+  engines,
+  scenarios,
+  to,
+  active,
+  mediation,
+  B,
+  n_sim,
+  draw,
+  seed = NULL
+) {
+  if (!is.null(seed)) {
+    set.seed(seed)
+  }
   reps <- if (isTRUE(draw)) B else 1L
   vals <- numeric(reps)
   for (b in seq_len(reps)) {
     beta_list <- lapply(engines, drm_draw_beta, draw = draw)
     names(beta_list) <- names(engines)
-    mu_hi <- drm_expected_target(engines, scenarios$hi, to, active, mediation, beta_list, n_sim)
-    mu_lo <- drm_expected_target(engines, scenarios$lo, to, active, mediation, beta_list, n_sim)
+    mu_hi <- drm_expected_target(
+      engines,
+      scenarios$hi,
+      to,
+      active,
+      mediation,
+      beta_list,
+      n_sim
+    )
+    mu_lo <- drm_expected_target(
+      engines,
+      scenarios$lo,
+      to,
+      active,
+      mediation,
+      beta_list,
+      n_sim
+    )
     vals[[b]] <- mean(mu_hi - mu_lo, na.rm = TRUE)
   }
   vals
@@ -66,27 +108,63 @@ drm_effect_contrast <- function(engines, scenarios, to, active, mediation,
 # legs reduce to the mean legs exactly when target = "mean" (drm_functional_target
 # returns the exact predicted mean there), so the mean-target results are
 # unchanged.
-drm_decomp_legs <- function(engines, scenarios, to, active, B, n_sim, draw,
-                            seed = NULL, target = "mean", threshold = 0,
-                            prob = 0.5) {
-  if (!is.null(seed)) set.seed(seed)
+drm_decomp_legs <- function(
+  engines,
+  scenarios,
+  to,
+  active,
+  B,
+  n_sim,
+  draw,
+  seed = NULL,
+  target = "mean",
+  threshold = 0,
+  prob = 0.5
+) {
+  if (!is.null(seed)) {
+    set.seed(seed)
+  }
   reps <- if (isTRUE(draw)) B else 1L
-  legs <- matrix(NA_real_, reps, 3L,
-                 dimnames = list(NULL, c("cde", "tot_mean", "tot_dist")))
+  legs <- matrix(
+    NA_real_,
+    reps,
+    3L,
+    dimnames = list(NULL, c("cde", "tot_mean", "tot_dist"))
+  )
   ns_meanleg <- if (identical(target, "mean")) 1L else n_sim
   leg <- function(act, med, ns, beta_list) {
-    fhi <- drm_functional_target(engines, scenarios$hi, to, act, med, beta_list,
-                                 target, threshold, ns, prob)
-    flo <- drm_functional_target(engines, scenarios$lo, to, act, med, beta_list,
-                                 target, threshold, ns, prob)
+    fhi <- drm_functional_target(
+      engines,
+      scenarios$hi,
+      to,
+      act,
+      med,
+      beta_list,
+      target,
+      threshold,
+      ns,
+      prob
+    )
+    flo <- drm_functional_target(
+      engines,
+      scenarios$lo,
+      to,
+      act,
+      med,
+      beta_list,
+      target,
+      threshold,
+      ns,
+      prob
+    )
     fhi - flo
   }
   for (b in seq_len(reps)) {
     beta_list <- lapply(engines, drm_draw_beta, draw = draw)
     names(beta_list) <- names(engines)
-    legs[b, "cde"]      <- leg(character(0), "mean",         ns_meanleg, beta_list)
-    legs[b, "tot_mean"] <- leg(active,       "mean",         ns_meanleg, beta_list)
-    legs[b, "tot_dist"] <- leg(active,       "distribution", n_sim,      beta_list)
+    legs[b, "cde"] <- leg(character(0), "mean", ns_meanleg, beta_list)
+    legs[b, "tot_mean"] <- leg(active, "mean", ns_meanleg, beta_list)
+    legs[b, "tot_dist"] <- leg(active, "distribution", n_sim, beta_list)
   }
   legs
 }
@@ -95,8 +173,16 @@ drm_summ <- function(vals, level = 0.95) {
   a <- (1 - level) / 2
   data.frame(
     estimate = mean(vals, na.rm = TRUE),
-    conf.low = if (length(vals) > 1L) stats::quantile(vals, a, na.rm = TRUE, names = FALSE) else NA_real_,
-    conf.high = if (length(vals) > 1L) stats::quantile(vals, 1 - a, na.rm = TRUE, names = FALSE) else NA_real_,
+    conf.low = if (length(vals) > 1L) {
+      stats::quantile(vals, a, na.rm = TRUE, names = FALSE)
+    } else {
+      NA_real_
+    },
+    conf.high = if (length(vals) > 1L) {
+      stats::quantile(vals, 1 - a, na.rm = TRUE, names = FALSE)
+    } else {
+      NA_real_
+    },
     stringsAsFactors = FALSE
   )
 }
@@ -105,7 +191,9 @@ drm_validate_effect_args <- function(object, from, to) {
   if (!to %in% object$endogenous) {
     cli::cli_abort("{.arg to} = {.val {to}} must be an endogenous node.")
   }
-  if (identical(from, to)) cli::cli_abort("{.arg from} and {.arg to} must differ.")
+  if (identical(from, to)) {
+    cli::cli_abort("{.arg from} and {.arg to} must differ.")
+  }
 }
 
 # The mean/distribution *decomposition* through a declared feedback motif is not
@@ -125,10 +213,32 @@ drm_block_feedback_decomp <- function(object, fn) {
 
 # Analytic functional contrast with a clear abort when the family/target has no
 # closed form (OQ-11). Keeps the error message in one place for direct/total.
-drm_analytic_or_abort <- function(engines, scen, to, active, mediation, target,
-                                  threshold, prob, B, draw, seed) {
-  vals <- drm_functional_contrast_analytic(engines, scen, to, active, mediation,
-                                           target, threshold, prob, B, draw, seed)
+drm_analytic_or_abort <- function(
+  engines,
+  scen,
+  to,
+  active,
+  mediation,
+  target,
+  threshold,
+  prob,
+  B,
+  draw,
+  seed
+) {
+  vals <- drm_functional_contrast_analytic(
+    engines,
+    scen,
+    to,
+    active,
+    mediation,
+    target,
+    threshold,
+    prob,
+    B,
+    draw,
+    seed
+  )
   if (is.null(vals)) {
     fam <- engines[[to]]$family
     cli::cli_abort(c(
@@ -186,6 +296,14 @@ drm_analytic_or_abort <- function(engines, scen, to, active, mediation, target,
 #' @param ... Unused.
 #' @return A one-row data frame (`from`, `to`, `scale`, `target`, `estimate`,
 #'   `conf.low`, `conf.high`) with a `coefficients` attribute.
+#' @references
+#' \insertRef{Robins1992}{drmSEM}
+#'
+#' \insertRef{Pearl2001}{drmSEM}
+#'
+#' \insertRef{Pearl2009}{drmSEM}
+#'
+#' \insertRef{VanderWeele2015}{drmSEM}
 #' @examples
 #' \dontrun{
 #' sem <- drm_sem(
@@ -199,43 +317,98 @@ drm_analytic_or_abort <- function(engines, scen, to, active, mediation, target,
 #'                uncertainty = "parametric", nsim = 50)
 #' }
 #' @export
-direct_effects <- function(object, from, to, component = NULL,
-                           target = c("mean", "p_gt", "p_zero", "var", "quantile"),
-                           threshold = 0, prob = 0.5,
-                           functional = c("simulate", "analytic"),
-                           at = NULL, B = 200L,
-                           uncertainty = NULL, nsim = NULL, population = NULL,
-                           level = 0.95, seed = NULL,
-                           draw = NULL, n_sim = NULL, ...) {
+direct_effects <- function(
+  object,
+  from,
+  to,
+  component = NULL,
+  target = c("mean", "p_gt", "p_zero", "var", "quantile"),
+  threshold = 0,
+  prob = 0.5,
+  functional = c("simulate", "analytic"),
+  at = NULL,
+  B = 200L,
+  uncertainty = NULL,
+  nsim = NULL,
+  population = NULL,
+  level = 0.95,
+  seed = NULL,
+  draw = NULL,
+  n_sim = NULL,
+  ...
+) {
   target <- match.arg(target)
   functional <- match.arg(functional)
   drm_validate_effect_args(object, from, to)
-  ctl <- drm_effect_controls(uncertainty, nsim, population, draw, n_sim,
-                             default_draw = TRUE, default_nsim = 50L)
+  ctl <- drm_effect_controls(
+    uncertainty,
+    nsim,
+    population,
+    draw,
+    n_sim,
+    default_draw = TRUE,
+    default_nsim = 50L
+  )
   drm_require_drmTMB()
   engines <- drm_engines_from_sem(object)
   scen <- drm_build_scenarios(object, from, at)
   vals <- if (identical(target, "mean")) {
-    drm_effect_contrast(engines, scen, to, active = character(0),
-                        mediation = "mean", B = B, n_sim = 1L,
-                        draw = ctl$draw, seed = seed)
+    drm_effect_contrast(
+      engines,
+      scen,
+      to,
+      active = character(0),
+      mediation = "mean",
+      B = B,
+      n_sim = 1L,
+      draw = ctl$draw,
+      seed = seed
+    )
   } else if (identical(functional, "analytic")) {
-    drm_analytic_or_abort(engines, scen, to, active = character(0),
-                          mediation = "mean", target = target,
-                          threshold = threshold, prob = prob, B = B,
-                          draw = ctl$draw, seed = seed)
+    drm_analytic_or_abort(
+      engines,
+      scen,
+      to,
+      active = character(0),
+      mediation = "mean",
+      target = target,
+      threshold = threshold,
+      prob = prob,
+      B = B,
+      draw = ctl$draw,
+      seed = seed
+    )
   } else {
-    drm_functional_contrast(engines, scen, to, active = character(0),
-                            mediation = "distribution", target = target,
-                            threshold = threshold, B = B, n_sim = ctl$n_sim,
-                            draw = ctl$draw, seed = seed, prob = prob)
+    drm_functional_contrast(
+      engines,
+      scen,
+      to,
+      active = character(0),
+      mediation = "distribution",
+      target = target,
+      threshold = threshold,
+      B = B,
+      n_sim = ctl$n_sim,
+      draw = ctl$draw,
+      seed = seed,
+      prob = prob
+    )
   }
-  out <- cbind(data.frame(from = from, to = to, scale = "response",
-                          target = target, stringsAsFactors = FALSE),
-               drm_summ(vals, level))
+  out <- cbind(
+    data.frame(
+      from = from,
+      to = to,
+      scale = "response",
+      target = target,
+      stringsAsFactors = FALSE
+    ),
+    drm_summ(vals, level)
+  )
   ptab <- paths(object)
   ptab <- ptab[ptab$to == to & ptab$from == from, , drop = FALSE]
-  if (!is.null(component)) ptab <- ptab[ptab$component %in% component, , drop = FALSE]
+  if (!is.null(component)) {
+    ptab <- ptab[ptab$component %in% component, , drop = FALSE]
+  }
   attr(out, "coefficients") <- ptab
   class(out) <- c("drm_effect", "data.frame")
   out
@@ -276,6 +449,14 @@ direct_effects <- function(object, from, to, component = NULL,
 #' @param mediation Deprecated alias for `method` (`"mean"` maps to `"gcomp"`,
 #'   `"distribution"` to `"simulate"`); supplying it emits a deprecation warning.
 #' @return A one-row `drm_effect` data frame.
+#' @references
+#' \insertRef{Pearl2001}{drmSEM}
+#'
+#' \insertRef{Pearl2009}{drmSEM}
+#'
+#' \insertRef{Imai2010}{drmSEM}
+#'
+#' \insertRef{VanderWeele2015}{drmSEM}
 #' @examples
 #' \dontrun{
 #' sem <- drm_sem(
@@ -289,20 +470,40 @@ direct_effects <- function(object, from, to, component = NULL,
 #'               method = "simulate", uncertainty = "parametric", nsim = 50)
 #' }
 #' @export
-total_effects <- function(object, from, to, method = NULL,
-                          target = c("mean", "p_gt", "p_zero", "var", "quantile"),
-                          threshold = 0, prob = 0.5,
-                          functional = c("simulate", "analytic"),
-                          at = NULL, B = 200L,
-                          uncertainty = NULL, nsim = NULL, population = NULL,
-                          level = 0.95, seed = NULL,
-                          mediation = NULL, draw = NULL, n_sim = NULL, ...) {
+total_effects <- function(
+  object,
+  from,
+  to,
+  method = NULL,
+  target = c("mean", "p_gt", "p_zero", "var", "quantile"),
+  threshold = 0,
+  prob = 0.5,
+  functional = c("simulate", "analytic"),
+  at = NULL,
+  B = 200L,
+  uncertainty = NULL,
+  nsim = NULL,
+  population = NULL,
+  level = 0.95,
+  seed = NULL,
+  mediation = NULL,
+  draw = NULL,
+  n_sim = NULL,
+  ...
+) {
   target <- match.arg(target)
   functional <- match.arg(functional)
   mediation_resolved <- drm_resolve_mediation(method, mediation)
   drm_validate_effect_args(object, from, to)
-  ctl <- drm_effect_controls(uncertainty, nsim, population, draw, n_sim,
-                             default_draw = TRUE, default_nsim = 50L)
+  ctl <- drm_effect_controls(
+    uncertainty,
+    nsim,
+    population,
+    draw,
+    n_sim,
+    default_draw = TRUE,
+    default_nsim = 50L
+  )
   drm_require_drmTMB()
   engines <- drm_engines_from_sem(object)
   scen <- drm_build_scenarios(object, from, at)
@@ -329,9 +530,14 @@ total_effects <- function(object, from, to, method = NULL,
       data.frame(estimate = NA_real_, conf.low = NA_real_, conf.high = NA_real_)
     }
     out <- cbind(
-      data.frame(from = from, to = to, scale = "response",
-                 mediation = "equilibrium", target = target,
-                 stringsAsFactors = FALSE),
+      data.frame(
+        from = from,
+        to = to,
+        scale = "response",
+        mediation = "equilibrium",
+        target = target,
+        stringsAsFactors = FALSE
+      ),
       summ
     )
     attr(out, "converged") <- eq$converged
@@ -341,32 +547,69 @@ total_effects <- function(object, from, to, method = NULL,
 
   active <- setdiff(object$endogenous, c(from, to))
   # Analytic functionals need deterministic outcome params, i.e. mean mediation.
-  if (identical(functional, "analytic") && !identical(target, "mean") &&
-      !identical(mediation_resolved, "mean")) {
+  if (
+    identical(functional, "analytic") &&
+      !identical(target, "mean") &&
+      !identical(mediation_resolved, "mean")
+  ) {
     cli::cli_abort(c(
       "{.code functional = \"analytic\"} requires mean mediation.",
       "i" = "Use {.code method = \"gcomp\"} with the analytic functional, or {.code functional = \"simulate\"} with {.code method = \"simulate\"}."
     ))
   }
   vals <- if (identical(target, "mean")) {
-    drm_effect_contrast(engines, scen, to, active = active,
-                        mediation = mediation_resolved, B = B, n_sim = ctl$n_sim,
-                        draw = ctl$draw, seed = seed)
+    drm_effect_contrast(
+      engines,
+      scen,
+      to,
+      active = active,
+      mediation = mediation_resolved,
+      B = B,
+      n_sim = ctl$n_sim,
+      draw = ctl$draw,
+      seed = seed
+    )
   } else if (identical(functional, "analytic")) {
-    drm_analytic_or_abort(engines, scen, to, active = active,
-                          mediation = mediation_resolved, target = target,
-                          threshold = threshold, prob = prob, B = B,
-                          draw = ctl$draw, seed = seed)
+    drm_analytic_or_abort(
+      engines,
+      scen,
+      to,
+      active = active,
+      mediation = mediation_resolved,
+      target = target,
+      threshold = threshold,
+      prob = prob,
+      B = B,
+      draw = ctl$draw,
+      seed = seed
+    )
   } else {
-    drm_functional_contrast(engines, scen, to, active = active,
-                            mediation = mediation_resolved, target = target,
-                            threshold = threshold, B = B, n_sim = ctl$n_sim,
-                            draw = ctl$draw, seed = seed, prob = prob)
+    drm_functional_contrast(
+      engines,
+      scen,
+      to,
+      active = active,
+      mediation = mediation_resolved,
+      target = target,
+      threshold = threshold,
+      B = B,
+      n_sim = ctl$n_sim,
+      draw = ctl$draw,
+      seed = seed,
+      prob = prob
+    )
   }
-  out <- cbind(data.frame(from = from, to = to, scale = "response",
-                          mediation = mediation_resolved, target = target,
-                          stringsAsFactors = FALSE),
-               drm_summ(vals, level))
+  out <- cbind(
+    data.frame(
+      from = from,
+      to = to,
+      scale = "response",
+      mediation = mediation_resolved,
+      target = target,
+      stringsAsFactors = FALSE
+    ),
+    drm_summ(vals, level)
+  )
   class(out) <- c("drm_effect", "data.frame")
   out
 }
@@ -379,6 +622,18 @@ total_effects <- function(object, from, to, method = NULL,
 #' **distribution-mediated** part (the extra effect that appears when mediators
 #' pass realized draws, i.e. flowing through mediator scale / zero-inflation /
 #' shape).
+#'
+#' The controlled and natural direct/indirect estimands and their
+#' identification under the counterfactual framework are due to Pearl (2001),
+#' Robins & Greenland (1992), Imai et al. (2010), and VanderWeele (2015); the
+#' four-way decomposition under exposure–mediator interaction is VanderWeele
+#' (2014); the interventional estimand for multi-mediator settings is
+#' Vansteelandt & Daniel (2017). The **distribution-mediated** row reported
+#' here is a `drmSEM` construction: it isolates the Jensen-gap part of an
+#' indirect effect that flows through a mediator's higher-moment components
+#' (`sigma`, `zi`, `nu`), with no coefficient-product analogue. The
+#' construction sits on top of the cited mediation framework — it does not
+#' replace any of these estimands.
 #'
 #' @inheritParams total_effects
 #' @param through Optional set of mediator node names to route through. Defaults
@@ -409,6 +664,20 @@ total_effects <- function(object, from, to, method = NULL,
 #'   and a `target` column naming the reported functional. For
 #'   `effect = "natural"`, rows `total_path`, `natural_direct`,
 #'   `natural_indirect`, `mediated_interaction`.
+#' @references
+#' \insertRef{Robins1992}{drmSEM}
+#'
+#' \insertRef{Pearl2001}{drmSEM}
+#'
+#' \insertRef{Pearl2009}{drmSEM}
+#'
+#' \insertRef{Imai2010}{drmSEM}
+#'
+#' \insertRef{VanderWeele2014}{drmSEM}
+#'
+#' \insertRef{VanderWeele2015}{drmSEM}
+#'
+#' \insertRef{Vansteelandt2017}{drmSEM}
 #' @examples
 #' \dontrun{
 #' sem <- drm_sem(
@@ -422,14 +691,26 @@ total_effects <- function(object, from, to, method = NULL,
 #'                  uncertainty = "parametric", nsim = 50)
 #' }
 #' @export
-indirect_effects <- function(object, from, to, through = NULL,
-                             effect = c("controlled", "natural"),
-                             target = c("mean", "p_gt", "p_zero", "var", "quantile"),
-                             threshold = 0, prob = 0.5,
-                             at = NULL, B = 200L,
-                             uncertainty = NULL, nsim = NULL, population = NULL,
-                             level = 0.95, seed = NULL,
-                             draw = NULL, n_sim = NULL, ...) {
+indirect_effects <- function(
+  object,
+  from,
+  to,
+  through = NULL,
+  effect = c("controlled", "natural"),
+  target = c("mean", "p_gt", "p_zero", "var", "quantile"),
+  threshold = 0,
+  prob = 0.5,
+  at = NULL,
+  B = 200L,
+  uncertainty = NULL,
+  nsim = NULL,
+  population = NULL,
+  level = 0.95,
+  seed = NULL,
+  draw = NULL,
+  n_sim = NULL,
+  ...
+) {
   effect <- match.arg(effect)
   target <- match.arg(target)
   drm_validate_effect_args(object, from, to)
@@ -444,8 +725,15 @@ indirect_effects <- function(object, from, to, through = NULL,
       "i" = "Use {.code effect = \"controlled\"} for a non-mean {.arg target}; cross-world functionals are open (OQ-8/OQ-11)."
     ))
   }
-  ctl <- drm_effect_controls(uncertainty, nsim, population, draw, n_sim,
-                             default_draw = TRUE, default_nsim = 50L)
+  ctl <- drm_effect_controls(
+    uncertainty,
+    nsim,
+    population,
+    draw,
+    n_sim,
+    default_draw = TRUE,
+    default_nsim = 50L
+  )
   drm_require_drmTMB()
   engines <- drm_engines_from_sem(object)
   scen <- drm_build_scenarios(object, from, at)
@@ -453,25 +741,55 @@ indirect_effects <- function(object, from, to, through = NULL,
   active <- if (is.null(through)) all_med else intersect(through, all_med)
 
   if (identical(effect, "natural")) {
-    if (!is.null(seed)) set.seed(seed)
+    if (!is.null(seed)) {
+      set.seed(seed)
+    }
     reps <- if (isTRUE(ctl$draw)) B else 1L
-    mat <- matrix(NA_real_, reps, 3L, dimnames = list(NULL, c("nde", "nie", "total")))
+    mat <- matrix(
+      NA_real_,
+      reps,
+      3L,
+      dimnames = list(NULL, c("nde", "nie", "total"))
+    )
     for (bi in seq_len(reps)) {
       beta_list <- lapply(engines, drm_draw_beta, draw = ctl$draw)
       names(beta_list) <- names(engines)
-      mat[bi, ] <- drm_natural_target(engines, scen, scen$column, to, active,
-                                      "distribution", beta_list, ctl$n_sim)
+      mat[bi, ] <- drm_natural_target(
+        engines,
+        scen,
+        scen$column,
+        to,
+        active,
+        "distribution",
+        beta_list,
+        ctl$n_sim
+      )
     }
     rows <- rbind(
-      cbind(data.frame(quantity = "total_path"), drm_summ(mat[, "total"], level)),
-      cbind(data.frame(quantity = "natural_direct"), drm_summ(mat[, "nde"], level)),
-      cbind(data.frame(quantity = "natural_indirect"), drm_summ(mat[, "nie"], level)),
-      cbind(data.frame(quantity = "mediated_interaction"),
-            drm_summ(mat[, "total"] - mat[, "nde"] - mat[, "nie"], level))
+      cbind(
+        data.frame(quantity = "total_path"),
+        drm_summ(mat[, "total"], level)
+      ),
+      cbind(
+        data.frame(quantity = "natural_direct"),
+        drm_summ(mat[, "nde"], level)
+      ),
+      cbind(
+        data.frame(quantity = "natural_indirect"),
+        drm_summ(mat[, "nie"], level)
+      ),
+      cbind(
+        data.frame(quantity = "mediated_interaction"),
+        drm_summ(mat[, "total"] - mat[, "nde"] - mat[, "nie"], level)
+      )
     )
     out <- cbind(
-      data.frame(from = from, to = to, through = paste(active, collapse = ", "),
-                 stringsAsFactors = FALSE),
+      data.frame(
+        from = from,
+        to = to,
+        through = paste(active, collapse = ", "),
+        stringsAsFactors = FALSE
+      ),
       rows
     )
     rownames(out) <- NULL
@@ -479,12 +797,22 @@ indirect_effects <- function(object, from, to, through = NULL,
     return(out)
   }
 
-
   # Paired three-leg decomposition: a shared coefficient draw per replicate makes
   # mean_mediated and distribution_mediated valid common-random-numbers contrasts.
   # With a non-mean `target` the legs report the contrast on that functional.
-  legs <- drm_decomp_legs(engines, scen, to, active, B, ctl$n_sim, ctl$draw, seed,
-                          target = target, threshold = threshold, prob = prob)
+  legs <- drm_decomp_legs(
+    engines,
+    scen,
+    to,
+    active,
+    B,
+    ctl$n_sim,
+    ctl$draw,
+    seed,
+    target = target,
+    threshold = threshold,
+    prob = prob
+  )
   cde <- legs[, "cde"]
   tot_mean <- legs[, "tot_mean"]
   tot_dist <- legs[, "tot_dist"]
@@ -498,13 +826,19 @@ indirect_effects <- function(object, from, to, through = NULL,
     cbind(data.frame(quantity = "direct"), drm_summ(cde, level)),
     cbind(data.frame(quantity = "indirect"), drm_summ(ind_dist, level)),
     cbind(data.frame(quantity = "mean_mediated"), drm_summ(ind_mean, level)),
-    cbind(data.frame(quantity = "distribution_mediated"), drm_summ(dist_only, level))
+    cbind(
+      data.frame(quantity = "distribution_mediated"),
+      drm_summ(dist_only, level)
+    )
   )
   out <- cbind(
-    data.frame(from = from, to = to,
-               through = paste(active, collapse = ", "),
-               target = target,
-               stringsAsFactors = FALSE),
+    data.frame(
+      from = from,
+      to = to,
+      through = paste(active, collapse = ", "),
+      target = target,
+      stringsAsFactors = FALSE
+    ),
     rows
   )
   rownames(out) <- NULL

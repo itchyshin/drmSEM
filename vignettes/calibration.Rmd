@@ -1,6 +1,8 @@
 ---
 title: "Calibrating the d-separation test"
 output: rmarkdown::html_vignette
+bibliography: ../inst/REFERENCES.bib
+link-citations: true
 vignette: >
   %\VignetteIndexEntry{Calibrating the d-separation test}
   %\VignetteEngine{knitr::rmarkdown}
@@ -61,9 +63,10 @@ if (is.null(cal)) {
 
 ## Bottom line
 
-The calibration grid checks whether drmSEM's d-separation test keeps its false
-positive rate near the nominal level under a correct graph, and whether it
-rejects a graph when an omitted edge is truly present. In this cached run, all
+The calibration grid checks whether `drmSEM`'s d-separation test [@Shipley2000;
+@Shipley2009] keeps its false-positive rate near the nominal level under a
+correct graph, and whether it rejects a graph when an omitted edge is truly
+present. The simulation study follows the design principles of @Morris2019. In this cached run, all
 five acceptance checks passed.
 
 ```{r bottom-line, echo = FALSE, eval = !is.null(cal), results = "asis"}
@@ -314,3 +317,5 @@ cat(sprintf(
   m$drmSEM_version, m$R_version, m$git_sha, m$reps
 ))
 ```
+
+## References

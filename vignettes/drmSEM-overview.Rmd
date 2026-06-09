@@ -1,6 +1,8 @@
 ---
 title: "drmSEM overview"
 output: rmarkdown::html_vignette
+bibliography: ../inst/REFERENCES.bib
+link-citations: true
 vignette: >
   %\VignetteIndexEntry{drmSEM overview}
   %\VignetteEngine{knitr::rmarkdown}
@@ -66,8 +68,8 @@ such everywhere, and propagates their downstream consequences honestly.
 
 The consequences are concrete: each endogenous node is **exactly one `drmTMB`
 fit**, the system is **piecewise** (a graph of separately fitted local models, in
-the `piecewiseSEM` tradition), and the directed graph must be a **DAG** — cycles
-are an error. Every assumption about the engine's return shapes lives in a single
+the `piecewiseSEM` tradition of @Shipley2009 and @Lefcheck2016), and the
+directed graph must be a **DAG** — cycles are an error. Every assumption about the engine's return shapes lives in a single
 adapter, so `drmSEM` re-uses, never re-implements, `drmTMB`'s likelihoods, links,
 and family samplers.
 
@@ -148,11 +150,11 @@ meaning. So `drmSEM` *simulates* the intervention instead: it sets the predictor
 to two contrasting values, pushes the change through every downstream node in
 topological order (random effects held at zero), and reads off the conditional
 (`RE = 0`) response-scale change in the target. This is counterfactual,
-`do()`-style propagation in the tradition of Pearl and of Imai, Keele and
-Yamamoto. By default the `direct` quantity is a **controlled direct effect**
-(mediators held at their observed values), and the total/indirect split is
-simulation-based; these coincide with natural direct and indirect effects only
-under linearity with no exposure-mediator interaction. When they diverge,
+`do()`-style propagation in the tradition of @Pearl2001, @Pearl2009 and
+@Imai2010. By default the `direct` quantity is a **controlled direct effect**
+[@Robins1992], and the total/indirect split is simulation-based; these coincide
+with natural direct and indirect effects only under linearity with no
+exposure–mediator interaction [@VanderWeele2014]. When they diverge,
 `indirect_effects(effect = "natural")` returns the cross-world **natural**
 decomposition (`natural_direct`, `natural_indirect`, `mediated_interaction`)
 instead.
@@ -180,8 +182,8 @@ direct effect, which coincides with the natural direct and indirect effects only
 under linearity with no exposure-mediator interaction. For the general case,
 `indirect_effects(effect = "natural")` returns the cross-world natural
 decomposition — `natural_direct`, `natural_indirect`, and
-`mediated_interaction` (Pearl; Imai, Keele and Yamamoto) — validated against the
-linear-Gaussian recovery case.
+`mediated_interaction` [@Pearl2001; @Imai2010; @VanderWeele2014] — validated
+against the linear-Gaussian recovery case.
 
 ```{r effects}
 direct_effects(sem,   from = "temp", to = "survival")
@@ -213,10 +215,11 @@ total_effects(sem, from = "temp", to = "survival", target = "var")
 
 ## d-separation: an any-component test
 
-A piecewise SEM is tested by the **independence claims** its DAG implies: every
-pair of non-adjacent nodes should be conditionally independent given their
-parents. `drmSEM` sharpens the usual mean-only version. Because each node models a
-whole conditional distribution, a missing arrow `X -> Y` asserts that `X` predicts
+A piecewise SEM is tested by the **independence claims** its DAG implies
+[@Pearl2009]: every pair of non-adjacent nodes should be conditionally
+independent given their parents. `drmSEM` sharpens the usual mean-only version
+[@Shipley2000; @Shipley2009; @Lefcheck2016]. Because each node models a whole
+conditional distribution, a missing arrow `X -> Y` asserts that `X` predicts
 **none** of `Y`'s modelled components — `mu`, `sigma`, `zi`, and the rest.
 Adjacency is correspondingly any-component: an arrow into `zi(Y)` alone makes `X`
 adjacent to `Y`.
@@ -225,9 +228,9 @@ adjacent to `Y`.
 with `X` added to *every* component sub-formula and comparing to the base node by
 a likelihood-ratio test, with degrees of freedom equal to the number of added
 coefficients. `fisher_c()` combines the claim p-values into Fisher's C,
-`C = -2 * sum(log p)`, on `2k` degrees of freedom for `k` claims; a small p-value
-flags a missing path — including a missing path into a *non-mean* component, which
-a mean-only tool could never detect.
+`C = -2 * sum(log p)`, on `2k` degrees of freedom for `k` claims [@Shipley2000;
+@Shipley2009]; a small p-value flags a missing path — including a missing path
+into a *non-mean* component, which a mean-only tool could never detect.
 
 ```{r dsep}
 basis_set(sem)   # the implied independence claims
@@ -265,14 +268,14 @@ indirect_effects(sem_phylo, from = "x", to = "y2")
 ```
 
 This is the genuinely new contribution. Existing phylogenetic SEM tools
-(`phylopath`, `phylosem`) focus on causal relationships among trait *means* under
-phylogenetic covariance; `drmSEM` extends this to **distributional** SEM, where
-shared ancestry can be incorporated while direct and indirect effects are
-estimated for changes in means, variances, zero probabilities, and other
-response-distribution components. Practical notes: `phy` is an `ape` "phylo"
-object and must be ultrametric (rescale a raw tree with
-`ape::compute.brlen(phy, "Grafen")`), and every `species` level must be a tip
-label. Phylopath-style model-set comparison (`drm_dag()` / `drm_model_set()` /
+(`phylopath` [@vanderBijl2018], `phylosem` [@phylosem]) focus on causal
+relationships among trait *means* under phylogenetic covariance; `drmSEM`
+extends this to **distributional** SEM, where shared ancestry can be
+incorporated while direct and indirect effects are estimated for changes in
+means, variances, zero probabilities, and other response-distribution
+components. Practical notes: `phy` is an `ape` "phylo" object and must be
+ultrametric (rescale a raw tree with `ape::compute.brlen(phy, "Grafen")`), and
+every `species` level must be a tip label. Phylopath-style model-set comparison (`drm_dag()` / `drm_model_set()` /
 `compare()` / `best()` / `average()`, Phase 2) and evolutionary covariance
 models (`drm_phylo_cov()` for BM / lambda / OU / kappa on a *fixed* grid,
 Phase 3) ship today; phylogenetic paths *into* distributional components and
@@ -321,3 +324,5 @@ Phase 3) ship today; phylogenetic paths *into* distributional components and
 
 For the full walkthrough see `drmSEM.Rmd`; for effects, `effect-decomposition.Rmd`;
 for phylogeny, `phylogenetic-sem.Rmd`; for positioning, `comparison.Rmd`.
+
+## References

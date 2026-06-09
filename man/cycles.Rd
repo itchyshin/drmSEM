@@ -29,6 +29,11 @@ sem <- drm_psem(activity = a_fit, boldness = b_fit, data = dat,
 cycles(sem)
 }
 }
+\references{
+\insertRef{Bollen1996}{drmSEM}
+
+\insertRef{ForreMooij2017}{drmSEM}
+}
 \seealso{
 \code{\link[=drm_cycle]{drm_cycle()}}.
 }

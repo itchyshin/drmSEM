@@ -4,12 +4,20 @@ NULL
 
 # Bare column names used inside ggplot2::aes() in plot.drm_effect(); declared so
 # R CMD check does not flag them as undefined globals.
-utils::globalVariables(c("estimate", "quantity", "conf.low", "conf.high", ".channel"))
+utils::globalVariables(c(
+  "estimate",
+  "quantity",
+  "conf.low",
+  "conf.high",
+  ".channel"
+))
 
 # Colour and line style per distributional component, so the plot reads as a
 # distributional SEM rather than a plain DAG.
 drm_component_style <- function(component) {
-  if (startsWith(component, "sd")) return(list(col = "grey50", lty = 3))
+  if (startsWith(component, "sd")) {
+    return(list(col = "grey50", lty = 3))
+  }
   switch(
     component,
     mu = list(col = "black", lty = 1),
@@ -26,29 +34,53 @@ drm_component_style <- function(component) {
 # actually present), sourcing swatches from drm_component_style() so the legend
 # can never drift from the edges. Returns parallel lab/col/lty vectors: the
 # path-target rows first (in a fixed component order), then any covariance rows.
-drm_path_legend <- function(edges, cov = NULL, draw_cov = FALSE,
-                            draw_meas = FALSE) {
-  comp_lab <- c(mu = "mu", sigma = "sigma", nu = "nu", zi = "zi", hu = "hu",
-                rho12 = "rho12 (path)")
+drm_path_legend <- function(
+  edges,
+  cov = NULL,
+  draw_cov = FALSE,
+  draw_meas = FALSE
+) {
+  comp_lab <- c(
+    mu = "mu",
+    sigma = "sigma",
+    nu = "nu",
+    zi = "zi",
+    hu = "hu",
+    rho12 = "rho12 (path)"
+  )
   drawn <- ifelse(startsWith(edges$component, "sd"), "sd", edges$component)
-  present <- intersect(c("mu", "sigma", "nu", "zi", "hu", "sd", "rho12"),
-                       unique(drawn))
-  lab <- vapply(present, function(k)
-    if (identical(k, "sd")) "sd(.)" else unname(comp_lab[[k]]), character(1))
-  stys <- lapply(present, function(k)
-    drm_component_style(if (identical(k, "sd")) "sd(.)" else k))
+  present <- intersect(
+    c("mu", "sigma", "nu", "zi", "hu", "sd", "rho12"),
+    unique(drawn)
+  )
+  lab <- vapply(
+    present,
+    function(k) {
+      if (identical(k, "sd")) "sd(.)" else unname(comp_lab[[k]])
+    },
+    character(1)
+  )
+  stys <- lapply(present, function(k) {
+    drm_component_style(if (identical(k, "sd")) "sd(.)" else k)
+  })
   col <- vapply(stys, `[[`, character(1), "col")
   lty <- vapply(stys, `[[`, numeric(1), "lty")
   if (isTRUE(draw_cov) && !is.null(cov) && nrow(cov) > 0L) {
     if (any(cov$class == "residual")) {
-      lab <- c(lab, "rho12 (covary)"); col <- c(col, "#666666"); lty <- c(lty, 1)
+      lab <- c(lab, "rho12 (covary)")
+      col <- c(col, "#666666")
+      lty <- c(lty, 1)
     }
     if (any(cov$class != "residual")) {
-      lab <- c(lab, "corpair (covary)"); col <- c(col, "#666666"); lty <- c(lty, 2)
+      lab <- c(lab, "corpair (covary)")
+      col <- c(col, "#666666")
+      lty <- c(lty, 2)
     }
   }
   if (isTRUE(draw_meas)) {
-    lab <- c(lab, "loading (indicator)"); col <- c(col, "#3182bd"); lty <- c(lty, 1)
+    lab <- c(lab, "loading (indicator)")
+    col <- c(col, "#3182bd")
+    lty <- c(lty, 1)
   }
   list(lab = unname(lab), col = unname(col), lty = unname(lty))
 }
@@ -84,6 +116,12 @@ drm_path_legend <- function(edges, cov = NULL, draw_cov = FALSE,
 #'   honoured (if it carries rownames it is reordered to the internal vertex
 #'   order), so a fixed, crossing-free layout can be supplied.
 #' @return `x`, invisibly.
+#' @references
+#' \insertRef{Wright1934}{drmSEM}
+#'
+#' \insertRef{Shipley2016}{drmSEM}
+#'
+#' \insertRef{Lefcheck2016}{drmSEM}
 #' @examples
 #' \dontrun{
 #' sem <- drm_sem(
@@ -112,14 +150,16 @@ plot.drm_sem <- function(x, show = c("all", "paths"), ...) {
   e_df <- edges[, c("from", "to"), drop = FALSE]
   ecol <- vapply(styles, function(s) s$col, character(1))
   elty <- vapply(styles, function(s) s$lty, numeric(1))
-  earrow <- rep(2, nrow(e_df))            # forward arrowhead (directed path)
+  earrow <- rep(2, nrow(e_df)) # forward arrowhead (directed path)
   ecurv <- rep(0.12, nrow(e_df))
 
   # Covariance edges: double-headed arcs, NOT directed paths. Residual (rho12)
   # solid grey; higher-level (corpair) dashed grey. arrow.mode = 3 = both ends.
   if (draw_cov) {
-    e_df <- rbind(e_df, data.frame(from = cov$y1, to = cov$y2,
-                                   stringsAsFactors = FALSE))
+    e_df <- rbind(
+      e_df,
+      data.frame(from = cov$y1, to = cov$y2, stringsAsFactors = FALSE)
+    )
     is_res <- cov$class == "residual"
     ecol <- c(ecol, rep("#666666", nrow(cov)))
     elty <- c(elty, ifelse(is_res, 1, 2))
@@ -132,25 +172,34 @@ plot.drm_sem <- function(x, show = c("all", "paths"), ...) {
   # measurement model, distinct from structural paths and covariance arcs.
   ind_names <- character(0)
   if (draw_meas) {
-    meas <- do.call(rbind, lapply(comps, function(cp)
-      data.frame(from = cp$indicators, to = cp$name, stringsAsFactors = FALSE)))
+    meas <- do.call(
+      rbind,
+      lapply(comps, function(cp) {
+        data.frame(from = cp$indicators, to = cp$name, stringsAsFactors = FALSE)
+      })
+    )
     ind_names <- unique(meas$from)
     e_df <- rbind(e_df, meas)
     ecol <- c(ecol, rep("#3182bd", nrow(meas)))
     elty <- c(elty, rep(1, nrow(meas)))
-    earrow <- c(earrow, rep(2, nrow(meas)))   # indicator -> construct
+    earrow <- c(earrow, rep(2, nrow(meas))) # indicator -> construct
     ecurv <- c(ecurv, rep(0, nrow(meas)))
   }
 
   verts <- unique(c(x$endogenous, x$exogenous, e_df$from, e_df$to))
   g <- igraph::graph_from_data_frame(
-    d = e_df, vertices = data.frame(name = verts), directed = TRUE
+    d = e_df,
+    vertices = data.frame(name = verts),
+    directed = TRUE
   )
   igraph::E(g)$color <- ecol
   igraph::E(g)$lty <- elty
   igraph::E(g)$arrow.mode <- earrow
-  vcol <- ifelse(verts %in% x$endogenous, "#cde",
-                 ifelse(verts %in% ind_names, "#fff7bc", "#eee"))
+  vcol <- ifelse(
+    verts %in% x$endogenous,
+    "#cde",
+    ifelse(verts %in% ind_names, "#fff7bc", "#eee")
+  )
 
   # Layout: honour a caller-supplied `layout=` (a matrix; if it carries rownames
   # it is reordered to the internal vertex order, so the caller need not know it),
@@ -158,7 +207,9 @@ plot.drm_sem <- function(x, show = c("all", "paths"), ...) {
   dots <- list(...)
   lay <- if (!is.null(dots$layout)) {
     L <- as.matrix(dots$layout)
-    if (!is.null(rownames(L))) L <- L[verts, , drop = FALSE]
+    if (!is.null(rownames(L))) {
+      L <- L[verts, , drop = FALSE]
+    }
     L
   } else {
     igraph::layout_with_sugiyama(g)$layout
@@ -185,12 +236,18 @@ plot.drm_sem <- function(x, show = c("all", "paths"), ...) {
   }
 
   base <- list(
-    g, layout = lay,
-    vertex.color = vcol, vertex.frame.color = "grey40",
-    vertex.label.color = "black", vertex.size = 34,
-    edge.arrow.mode = earrow, edge.curved = ecurv
+    g,
+    layout = lay,
+    vertex.color = vcol,
+    vertex.frame.color = "grey40",
+    vertex.label.color = "black",
+    vertex.size = 34,
+    edge.arrow.mode = earrow,
+    edge.curved = ecurv
   )
-  if (is.null(dots$edge.arrow.size)) base$edge.arrow.size <- 0.5
+  if (is.null(dots$edge.arrow.size)) {
+    base$edge.arrow.size <- 0.5
+  }
   do.call(graphics::plot, c(base, dots))
 
   # Edge legend: lists ONLY the components/covariance classes/measurement edges
@@ -198,8 +255,13 @@ plot.drm_sem <- function(x, show = c("all", "paths"), ...) {
   lg <- drm_path_legend(edges, cov, draw_cov, draw_meas)
   if (length(lg$lab) > 0L) {
     graphics::legend(
-      "bottomleft", bty = "n", cex = 0.8, title = "path target",
-      legend = lg$lab, col = lg$col, lty = lg$lty
+      "bottomleft",
+      bty = "n",
+      cex = 0.8,
+      title = "path target",
+      legend = lg$lab,
+      col = lg$col,
+      lty = lg$lty
     )
   }
   # Node legend: modelled response vs exogenous predictor vs (if drawn) composite
@@ -211,8 +273,13 @@ plot.drm_sem <- function(x, show = c("all", "paths"), ...) {
     node_bg <- c(node_bg, "#fff7bc")
   }
   graphics::legend(
-    "topleft", bty = "n", cex = 0.8,
-    legend = node_lab, pt.bg = node_bg, pch = 21, col = "grey40"
+    "topleft",
+    bty = "n",
+    cex = 0.8,
+    legend = node_lab,
+    pt.bg = node_bg,
+    pch = 21,
+    col = "grey40"
   )
   invisible(x)
 }
@@ -239,6 +306,12 @@ plot.drm_sem <- function(x, show = c("all", "paths"), ...) {
 #'   `"forest"` if they are absent.
 #' @param ... Unused.
 #' @return A `ggplot` object (invisibly printed by default).
+#' @references
+#' \insertRef{Pearl2001}{drmSEM}
+#'
+#' \insertRef{Imai2010}{drmSEM}
+#'
+#' \insertRef{VanderWeele2015}{drmSEM}
 #' @examples
 #' \dontrun{
 #' sem <- drm_sem(
@@ -253,7 +326,9 @@ plot.drm_sem <- function(x, show = c("all", "paths"), ...) {
 #' @export
 plot.drm_effect <- function(x, style = c("forest", "stacked"), ...) {
   if (!requireNamespace("ggplot2", quietly = TRUE)) {
-    cli::cli_abort("Plotting an effect decomposition requires the {.pkg ggplot2} package.")
+    cli::cli_abort(
+      "Plotting an effect decomposition requires the {.pkg ggplot2} package."
+    )
   }
   style <- match.arg(style)
   df <- as.data.frame(x)
@@ -268,17 +343,25 @@ plot.drm_effect <- function(x, style = c("forest", "stacked"), ...) {
   to <- if ("to" %in% names(df)) df$to[[1L]] else "y"
   xlab <- sprintf("Effect of %s on %s (response scale)", from, to)
   part_cols <- c("direct", "mean_mediated", "distribution_mediated")
-  fills <- c(direct = "black", mean_mediated = "#1f78b4",
-             distribution_mediated = "#d95f02")
+  fills <- c(
+    direct = "black",
+    mean_mediated = "#1f78b4",
+    distribution_mediated = "#d95f02"
+  )
 
   if (identical(style, "stacked")) {
     parts <- df[df$quantity %in% part_cols, , drop = FALSE]
     if (nrow(parts) == 0L) {
-      cli::cli_warn("No decomposition components present; using {.val forest} style.")
+      cli::cli_warn(
+        "No decomposition components present; using {.val forest} style."
+      )
     } else {
       parts$quantity <- factor(as.character(parts$quantity), levels = part_cols)
       return(
-        ggplot2::ggplot(parts, ggplot2::aes(x = estimate, y = "effect", fill = quantity)) +
+        ggplot2::ggplot(
+          parts,
+          ggplot2::aes(x = estimate, y = "effect", fill = quantity)
+        ) +
           ggplot2::geom_col(width = 0.6) +
           ggplot2::geom_vline(xintercept = 0, linetype = 2, colour = "grey55") +
           ggplot2::scale_fill_manual(values = fills, name = NULL) +
@@ -289,15 +372,26 @@ plot.drm_effect <- function(x, style = c("forest", "stacked"), ...) {
   }
 
   # forest (default): one point-and-interval row per quantity
-  ord <- c("total_path", "total", "direct", "indirect",
-           "mean_mediated", "distribution_mediated", "effect")
+  ord <- c(
+    "total_path",
+    "total",
+    "direct",
+    "indirect",
+    "mean_mediated",
+    "distribution_mediated",
+    "effect"
+  )
   present <- intersect(ord, unique(df$quantity))
   present <- c(present, setdiff(unique(df$quantity), present))
   df$quantity <- factor(df$quantity, levels = rev(present))
   df$.channel <- ifelse(
-    df$quantity == "distribution_mediated", "distribution-mediated",
-    ifelse(df$quantity %in% c("indirect", "mean_mediated"), "mean-mediated",
-           "direct / total")
+    df$quantity == "distribution_mediated",
+    "distribution-mediated",
+    ifelse(
+      df$quantity %in% c("indirect", "mean_mediated"),
+      "mean-mediated",
+      "direct / total"
+    )
   )
   ggplot2::ggplot(df, ggplot2::aes(x = estimate, y = quantity)) +
     ggplot2::geom_vline(xintercept = 0, linetype = 2, colour = "grey55") +
@@ -309,8 +403,11 @@ plot.drm_effect <- function(x, style = c("forest", "stacked"), ...) {
       na.rm = TRUE
     ) +
     ggplot2::scale_colour_manual(
-      values = c("direct / total" = "black", "mean-mediated" = "#1f78b4",
-                 "distribution-mediated" = "#d95f02"),
+      values = c(
+        "direct / total" = "black",
+        "mean-mediated" = "#1f78b4",
+        "distribution-mediated" = "#d95f02"
+      ),
       name = NULL
     ) +
     ggplot2::labs(x = xlab, y = NULL) +

@@ -33,7 +33,9 @@ drm_mean_edges_by_to <- function(edges) {
     to <- me$to[[i]]
     from <- me$from[[i]]
     cur <- out[[to]]
-    if (is.null(cur)) cur <- character(0)
+    if (is.null(cur)) {
+      cur <- character(0)
+    }
     if (!from %in% cur) {
       out[[to]] <- c(cur, from)
     }
@@ -65,12 +67,17 @@ drm_lavaan_syntax <- function(mean_by_to, covariances, order = NULL) {
   }
   for (to in tos) {
     rhs <- mean_by_to[[to]]
-    if (length(rhs) == 0L) next
+    if (length(rhs) == 0L) {
+      next
+    }
     lines <- c(lines, sprintf("%s ~ %s", to, paste(rhs, collapse = " + ")))
   }
   if (!is.null(covariances) && nrow(covariances) > 0L) {
     for (i in seq_len(nrow(covariances))) {
-      lines <- c(lines, sprintf("%s ~~ %s", covariances$y1[[i]], covariances$y2[[i]]))
+      lines <- c(
+        lines,
+        sprintf("%s ~~ %s", covariances$y1[[i]], covariances$y2[[i]])
+      )
     }
   }
   paste(lines, collapse = "\n")
@@ -99,6 +106,8 @@ drm_lavaan_syntax <- function(mean_by_to, covariances, order = NULL) {
 #'   `cat()`s the syntax). The `dropped` attribute lists any non-`mu` component
 #'   paths that lavaan syntax could not represent.
 #' @seealso [from_lavaan()], [as_dot()], [covariances()].
+#' @references
+#' \insertRef{Rosseel2012}{drmSEM}
 #' @examples
 #' # From an unfitted candidate DAG (no engine needed):
 #' dag <- drm_dag(size ~ temp, abundance ~ size + temp)
@@ -159,19 +168,30 @@ drm_dag_edges <- function(dag) {
     for (cmp in names(comp_rhs)) {
       preds <- drm_fixed_predictors(comp_rhs[[cmp]])
       for (p in preds) {
-        if (identical(p, nm)) next
+        if (identical(p, nm)) {
+          next
+        }
         endo <- p %in% nodes
         rows[[length(rows) + 1L]] <- data.frame(
-          from = p, to = nm, component = cmp, term = p,
-          endogenous = endo, stringsAsFactors = FALSE
+          from = p,
+          to = nm,
+          component = cmp,
+          term = p,
+          endogenous = endo,
+          stringsAsFactors = FALSE
         )
       }
     }
   }
   edges <- if (length(rows) == 0L) {
-    data.frame(from = character(0), to = character(0), component = character(0),
-               term = character(0), endogenous = logical(0),
-               stringsAsFactors = FALSE)
+    data.frame(
+      from = character(0),
+      to = character(0),
+      component = character(0),
+      term = character(0),
+      endogenous = logical(0),
+      stringsAsFactors = FALSE
+    )
   } else {
     out <- do.call(rbind, rows)
     rownames(out) <- NULL
@@ -227,13 +247,18 @@ drm_lavaan_lines <- function(syntax) {
 drm_lavaan_rhs_tokens <- function(rhs) {
   parts <- trimws(unlist(strsplit(rhs, "\\+")))
   parts <- parts[nzchar(parts)]
-  toks <- vapply(parts, function(p) {
-    # a `label*var` or `coef*var` prefix: keep the part after the last `*`
-    if (grepl("\\*", p)) {
-      p <- trimws(sub("^.*\\*", "", p))
-    }
-    p
-  }, character(1), USE.NAMES = FALSE)
+  toks <- vapply(
+    parts,
+    function(p) {
+      # a `label*var` or `coef*var` prefix: keep the part after the last `*`
+      if (grepl("\\*", p)) {
+        p <- trimws(sub("^.*\\*", "", p))
+      }
+      p
+    },
+    character(1),
+    USE.NAMES = FALSE
+  )
   toks <- toks[nzchar(toks)]
   setdiff(unique(toks), c("1", "0"))
 }
@@ -258,6 +283,8 @@ drm_lavaan_rhs_tokens <- function(rhs) {
 #'   `covary` (a list of [covary()] declarations from the `~~` lines, possibly
 #'   empty).
 #' @seealso [as_lavaan()], [drm_dag()], [covary()].
+#' @references
+#' \insertRef{Rosseel2012}{drmSEM}
 #' @examples
 #' skel <- from_lavaan("abundance ~ size + temp\nsize ~ temp\nsize ~~ abundance")
 #' skel$dag
@@ -274,23 +301,29 @@ from_lavaan <- function(syntax) {
     lines <- lines[!grepl("=~", lines, fixed = TRUE)]
   }
 
-  reg_rhs <- list()   # response -> character() of predictors (first-seen order)
+  reg_rhs <- list() # response -> character() of predictors (first-seen order)
   covs <- list()
   for (ln in lines) {
     if (grepl("~~", ln, fixed = TRUE)) {
       sides <- strsplit(ln, "~~", fixed = TRUE)[[1L]]
       y1 <- trimws(sides[[1L]])
       y2 <- if (length(sides) >= 2L) trimws(sides[[2L]]) else ""
-      if (!nzchar(y1) || !nzchar(y2) || identical(y1, y2)) next  # skip variances
+      if (!nzchar(y1) || !nzchar(y2) || identical(y1, y2)) {
+        next
+      } # skip variances
       covs[[length(covs) + 1L]] <- covary(y1, y2)
     } else if (grepl("~", ln, fixed = TRUE)) {
       sides <- strsplit(ln, "~", fixed = TRUE)[[1L]]
       resp <- trimws(sides[[1L]])
       rhs <- if (length(sides) >= 2L) sides[[2L]] else ""
       toks <- drm_lavaan_rhs_tokens(rhs)
-      if (!nzchar(resp) || length(toks) == 0L) next  # skip intercept-only
+      if (!nzchar(resp) || length(toks) == 0L) {
+        next
+      } # skip intercept-only
       cur <- reg_rhs[[resp]]
-      if (is.null(cur)) cur <- character(0)
+      if (is.null(cur)) {
+        cur <- character(0)
+      }
       reg_rhs[[resp]] <- unique(c(cur, toks))
     }
     # other operators (e.g. `:=`, `==`) are not graph structure: ignore.
@@ -316,7 +349,9 @@ print.drm_skeleton <- function(x, ...) {
   if (is.null(x$dag)) {
     cli::cli_text("  no regression (`~`) structure")
   } else {
-    cli::cli_text("  {length(x$dag$formulas)} node{?s}: {.val {x$dag$responses}}")
+    cli::cli_text(
+      "  {length(x$dag$formulas)} node{?s}: {.val {x$dag$responses}}"
+    )
   }
   nc <- length(x$covary)
   cli::cli_text("  {nc} covariance edge{?s} (`~~`)")
@@ -344,18 +379,25 @@ drm_dot_id <- function(x) sprintf('"%s"', x)
 # Build the DOT string from a typed edge table (columns from, to, component)
 # and the full node set.
 drm_dot_syntax <- function(edges, nodes) {
-  lines <- c("digraph drmSEM {", "  rankdir=LR;",
-             "  node [shape=box, style=rounded];")
+  lines <- c(
+    "digraph drmSEM {",
+    "  rankdir=LR;",
+    "  node [shape=box, style=rounded];"
+  )
   for (n in nodes) {
     lines <- c(lines, sprintf("  %s;", drm_dot_id(n)))
   }
   if (!is.null(edges) && nrow(edges) > 0L) {
     for (i in seq_len(nrow(edges))) {
-      lines <- c(lines, sprintf(
-        "  %s -> %s [%s];",
-        drm_dot_id(edges$from[[i]]), drm_dot_id(edges$to[[i]]),
-        drm_dot_edge_attr(edges$component[[i]])
-      ))
+      lines <- c(
+        lines,
+        sprintf(
+          "  %s -> %s [%s];",
+          drm_dot_id(edges$from[[i]]),
+          drm_dot_id(edges$to[[i]]),
+          drm_dot_edge_attr(edges$component[[i]])
+        )
+      )
     }
   }
   lines <- c(lines, "}")
@@ -389,8 +431,13 @@ as_dot <- function(object, ...) {
 #' @rdname as_dot
 #' @export
 as_dot.drm_sem <- function(object, ...) {
-  nodes <- unique(c(object$order, object$endogenous, object$exogenous,
-                    object$edges$from, object$edges$to))
+  nodes <- unique(c(
+    object$order,
+    object$endogenous,
+    object$exogenous,
+    object$edges$from,
+    object$edges$to
+  ))
   structure(drm_dot_syntax(object$edges, nodes), class = "drm_dot")
 }
 

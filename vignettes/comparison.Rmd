@@ -1,6 +1,8 @@
 ---
 title: "drmSEM and other SEM tools"
 output: rmarkdown::html_vignette
+bibliography: ../inst/REFERENCES.bib
+link-citations: true
 vignette: >
   %\VignetteIndexEntry{drmSEM and other SEM tools}
   %\VignetteEngine{knitr::rmarkdown}
@@ -75,10 +77,10 @@ non-`NA` estimate) is not yet shipped
 
 ### drmSEM vs lavaan
 
-`lavaan` is the reference implementation of **classical, covariance-structure
-SEM**: latent constructs measured by multiple indicators, fitted as a single
-joint multivariate likelihood, with a mature path-diagram ecosystem
-(`semPlot::semPaths()`). If your model is fundamentally about **latent
+`lavaan` [@Rosseel2012] is the reference implementation of **classical,
+covariance-structure SEM** [@Bollen1989]: latent constructs measured by
+multiple indicators, fitted as a single joint multivariate likelihood, with a
+mature path-diagram ecosystem (`semPlot::semPaths()`). If your model is fundamentally about **latent
 variables** — measurement models, factor structure, latent regressions — use
 `lavaan`. `drmSEM` does not do latent variables (these and joint multivariate
 fitting are out of scope for 0.x, though both are possible future directions) and
@@ -106,8 +108,9 @@ as a distinct causal claim.
 
 ### drmSEM vs piecewiseSEM
 
-`piecewiseSEM` is the **closest cousin**: both are observed-variable, piecewise
-(local-estimation) SEMs tested by **d-separation** over a DAG. `piecewiseSEM`
+`piecewiseSEM` [@Lefcheck2016] is the **closest cousin**: both are
+observed-variable, piecewise (local-estimation) SEMs tested by **d-separation**
+over a DAG [@Shipley2000; @Shipley2009]. `piecewiseSEM`
 is broad and battle-tested — it wraps `lm`, `glm`, `glmer`, `glmmTMB`, and more
 — and `plot.psem()` draws the path diagram. The difference is the *level at
 which paths operate*: `piecewiseSEM` works on the **mean structure only**. Even
@@ -143,8 +146,9 @@ correctly.
 
 ### drmSEM vs glmmTMB
 
-`glmmTMB` is not an SEM at all — it is a **fitting engine** for distributional
-GLMMs, with rich families, a dispersion (`disp`) formula, and a zero-inflation
+`glmmTMB` [@Brooks2017] is not an SEM at all — it is a **fitting engine** for
+distributional GLMMs (in the GAMLSS sense of @Rigby2005), with rich families,
+a dispersion (`disp`) formula, and a zero-inflation
 (`zi`) formula. It is excellent at fitting *one* response with structure in
 several distributional parameters, but it has no graph, no d-separation, and no
 cross-node path propagation.
@@ -168,9 +172,9 @@ responses and want d-separation and decomposed effects across them, use
 
 ### drmSEM vs dsem
 
-`dsem` does **dynamic, time-series / state-space SEM**: structural relationships
-among variables observed *over time*, with latent states and temporal/lagged
-paths. It plots the DAG (`plot.dsem()`) and can return **total effects as a
+`dsem` [@dsem] does **dynamic, time-series / state-space SEM**: structural
+relationships among variables observed *over time*, with latent states and
+temporal/lagged paths. It plots the DAG (`plot.dsem()`) and can return **total effects as a
 matrix**. Its niche is temporal dynamics, which `drmSEM` does not address.
 
 ```r
@@ -263,3 +267,5 @@ data**, that is exactly the gap `drmSEM` fills.
 
 - `vignette("drmSEM")` — the worked `size -> abundance -> survival` example,
   end to end (paths, d-separation, Fisher's C, and the effect decomposition).
+
+## References

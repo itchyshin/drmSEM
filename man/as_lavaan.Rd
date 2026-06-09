@@ -43,6 +43,9 @@ the loss is explicit.
 dag <- drm_dag(size ~ temp, abundance ~ size + temp)
 as_lavaan(dag)
 }
+\references{
+\insertRef{Rosseel2012}{drmSEM}
+}
 \seealso{
 \code{\link[=from_lavaan]{from_lavaan()}}, \code{\link[=as_dot]{as_dot()}}, \code{\link[=covariances]{covariances()}}.
 }

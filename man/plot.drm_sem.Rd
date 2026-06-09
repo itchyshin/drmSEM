@@ -55,3 +55,10 @@ plot(sem)              # directed paths + any covariance arcs
 plot(sem, show = "paths")
 }
 }
+\references{
+\insertRef{Wright1934}{drmSEM}
+
+\insertRef{Shipley2016}{drmSEM}
+
+\insertRef{Lefcheck2016}{drmSEM}
+}

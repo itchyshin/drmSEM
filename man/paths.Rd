@@ -35,3 +35,12 @@ sem <- drm_sem(
 paths(sem)
 }
 }
+\references{
+\insertRef{Wright1934}{drmSEM}
+
+\insertRef{Shipley2009}{drmSEM}
+
+\insertRef{Lefcheck2016}{drmSEM}
+
+\insertRef{Rigby2005}{drmSEM}
+}

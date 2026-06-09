@@ -80,6 +80,10 @@ drm_dag_response <- function(f) {
 #'
 #' @return A `drm_dag` object: a list of captured node formulas.
 #' @seealso [drm_model_set()], [compare()].
+#' @references
+#' \insertRef{vanderBijl2018}{drmSEM}
+#'
+#' \insertRef{Lefcheck2016}{drmSEM}
 #' @export
 #'
 #' @examples
@@ -148,6 +152,8 @@ print.drm_dag <- function(x, ...) {
 #'
 #' @return A `drm_model_set` object.
 #' @seealso [drm_dag()], [compare()], [best()], [average()].
+#' @references
+#' \insertRef{vanderBijl2018}{drmSEM}
 #' @export
 #'
 #' @examples
@@ -235,8 +241,8 @@ drm_fit_dag <- function(dag, data, family, fit_env, dots) {
 #' `compare()` fits every candidate [drm_dag()] in a [drm_model_set()] with
 #' [drm_sem()] (one node per response, using a per-node or shared `family`),
 #' runs [dsep()]/[fisher_c()] on each, and ranks the candidates by an
-#' information criterion built on Fisher's C. This is drmSEM's analogue of
-#' phylopath's `phylo_path()`.
+#' information criterion built on Fisher's C. This is `drmSEM`'s analogue of
+#' phylopath's `phylo_path()` (van der Bijl 2018).
 #'
 #' The default ranking statistic is
 #' \deqn{\mathrm{CBIC} = C + k\log(n),}
@@ -250,6 +256,16 @@ drm_fit_dag <- function(dag, data, family, fit_env, dots) {
 #' CICc weight is \eqn{\exp(-\tfrac12\,\Delta\mathrm{CICc})}, normalised to sum
 #' to one. As \eqn{n \to \infty} the correction term tends to \eqn{2k}, so CICc
 #' reduces to the usual \eqn{C + 2k}.
+#'
+#' **Citation and novelty.** `CICc` is the C-statistic information criterion of
+#' Shipley (2013), used as the default in `phylopath` (van der Bijl 2018).
+#' `CBIC` is *introduced here* as a BIC-style analogue: it combines Shipley's C
+#' statistic with the BIC penalty \eqn{k\log(n)} (Schwarz 1978). As far as we
+#' can find, no published criterion of this exact form has been named or
+#' defaulted to in the piecewise-SEM / d-separation literature; users who want
+#' to stay on the established AIC-style ranking should set
+#' `criterion = "CICc"`. Information-criterion weights for multimodel inference
+#' follow Burnham & Anderson (2002).
 #'
 #' @param object A `drm_model_set`.
 #' @param data A data frame supplied to every node fit.
@@ -268,6 +284,16 @@ drm_fit_dag <- function(dag, data, family, fit_env, dots) {
 #'   per-model d-separation tables are carried in attributes for
 #'   [best()]/[average()].
 #' @seealso [best()], [average()], [drm_model_set()].
+#' @references
+#' \insertRef{Shipley2013}{drmSEM}
+#'
+#' \insertRef{Schwarz1978}{drmSEM}
+#'
+#' \insertRef{Burnham2002}{drmSEM}
+#'
+#' \insertRef{vanderBijl2018}{drmSEM}
+#'
+#' \insertRef{Lefcheck2016}{drmSEM}
 #' @export
 #'
 #' @examples
@@ -487,6 +513,8 @@ drm_as_compare <- function(object, ...) {
 #'
 #' @return The fitted `drm_sem` of the top-ranked candidate.
 #' @seealso [compare()], [average()].
+#' @references
+#' \insertRef{vanderBijl2018}{drmSEM}
 #' @export
 #'
 #' @examples
@@ -538,6 +566,10 @@ best.drm_compare <- function(object, ...) {
 #'   `to`, `component`, `std.estimate` (weighted mean) and `weight_sum` (total
 #'   weight of the models containing that path).
 #' @seealso [compare()], [best()], [standardize()].
+#' @references
+#' \insertRef{Burnham2002}{drmSEM}
+#'
+#' \insertRef{vanderBijl2018}{drmSEM}
 #' @export
 #'
 #' @examples

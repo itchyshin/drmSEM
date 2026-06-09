@@ -1,6 +1,8 @@
 ---
 title: "Effect decomposition"
 output: rmarkdown::html_vignette
+bibliography: ../inst/REFERENCES.bib
+link-citations: true
 vignette: >
   %\VignetteIndexEntry{Effect decomposition}
   %\VignetteEngine{knitr::rmarkdown}
@@ -62,9 +64,9 @@ folds it into the mean. `drmSEM` isolates it and labels it.
 The equations below (from `docs/design/02-effect-calculus.md`) name the exact
 component path each one travels.
 
-- **Direct.** `X -> mu(Y)`. The controlled direct effect: hold every mediator at
-  its observed value and move only `X`, so just the arrows running *directly*
-  into the mean of `Y` operate.
+- **Direct.** `X -> mu(Y)`. The controlled direct effect [@Robins1992;
+  @Pearl2001]: hold every mediator at its observed value and move only `X`, so
+  just the arrows running *directly* into the mean of `Y` operate.
 
 - **Mean-mediated.** `X -> mu(M1) -> mu(M2) -> mu(Y)`. The classical indirect
   path: `X` shifts the *mean* of a mediator, which shifts the *mean* of the next,
@@ -87,10 +89,10 @@ coefficient-product analogue**, because the signal lives in a distributional
 parameter and only becomes a mean effect after passing through a nonlinear link
 downstream — so a mean-only SEM reports it as zero. The *estimand* itself is not
 new: it is the interventional / distributional-mediation effect of the causal
-mediation literature (Pearl; Imai, Keele & Yamamoto; VanderWeele; Vansteelandt &
-Daniel). What is new is making a mediator's `sigma`/`zi`/shape a first-class
-causal target in a piecewise distributional GLMM SEM and surfacing this term as
-a labelled, uncertainty-quantified row. It is identified under the usual
+mediation literature [@Pearl2001; @Imai2010; @VanderWeele2015; @VanderWeele2014;
+@Vansteelandt2017]. What is new is making a mediator's `sigma`/`zi`/shape a
+first-class causal target in a piecewise distributional GLMM SEM and surfacing
+this term as a labelled, uncertainty-quantified row. It is identified under the usual
 mediation assumptions **plus** a correctly specified mediator *distribution*
 (its higher moments, not just its mean).
 
@@ -110,12 +112,13 @@ breaks both conditions:
   multiplies a spread coefficient by a downstream mean coefficient to get a mean
   effect.
 
-So `drmSEM` does not multiply coefficients. It **simulates the intervention**:
-set the predictor to two contrasting values (a one-SD contrast for numerics, the
-first two levels for factors), push each contrast through the whole fitted DAG
-with random effects held at zero, and read off the conditional (`RE = 0`)
-response-scale change in the mean of the target. The distribution-mediated effect is
-*only expressible at all* under this simulation view -- it has no
+So `drmSEM` does not multiply coefficients. It **simulates the intervention** —
+the counterfactual / do-style propagation of @Pearl2009 and @Imai2010: set the
+predictor to two contrasting values (a one-SD contrast for numerics, the first
+two levels for factors), push each contrast through the whole fitted DAG with
+random effects held at zero, and read off the conditional (`RE = 0`)
+response-scale change in the mean of the target. The distribution-mediated
+effect is *only expressible at all* under this simulation view -- it has no
 coefficient-product counterpart to compare against.
 
 ## The five-number decomposition
@@ -246,3 +249,5 @@ exactly why this vignette opens with the figure that does.
 
 For the full three-node worked system, d-separation, and Fisher's C, see the
 `drmSEM` introductory vignette.
+
+## References

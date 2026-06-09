@@ -1,6 +1,8 @@
 ---
 title: "Phylogenetic distributional SEM"
 output: rmarkdown::html_vignette
+bibliography: ../inst/REFERENCES.bib
+link-citations: true
 vignette: >
   %\VignetteIndexEntry{Phylogenetic distributional SEM}
   %\VignetteEngine{knitr::rmarkdown}
@@ -26,22 +28,24 @@ library(drmSEM)
 ## What is a *phylogenetic distributional* SEM?
 
 `drmSEM`'s niche is **phylogenetic distributional path analysis**: shared
-ancestry is a controlled-for random effect, while each causal arrow can target
-the *spread*, *zero-inflation*, or *shape* of a trait, not only its mean. The
-contrast with two neighbouring tools is:
+ancestry is a controlled-for random effect [@Felsenstein1985;
+@MartinsHansen1997], while each causal arrow can target the *spread*,
+*zero-inflation*, or *shape* of a trait, not only its mean. The contrast with
+two neighbouring tools is:
 
 | Package     | What it does                                                       |
 | ----------- | ----------------------------------------------------------------- |
-| `phylopath` | mean-only **confirmatory path analysis** on a phylogeny (d-sep + C) |
-| `phylosem`  | **joint** estimation of a phylogenetic comparative model *and* a SEM |
+| `phylopath` [@vanderBijl2018] | mean-only **confirmatory path analysis** on a phylogeny (d-sep + C) |
+| `phylosem` [@phylosem]  | **joint** estimation of a phylogenetic comparative model *and* a SEM |
 | `drmSEM`    | phylogenetic **distributional** SEM: per-node drmTMB fits, d-sep and effect decomposition over the fixed-effect DAG, with phylogeny as a structured random effect |
 
-`phylopath` answers "which DAG of *mean* relationships survives the data?".
-`phylosem` couples a Brownian-motion (or OU) process to a latent-variable SEM.
-`drmSEM` keeps the piecewise, observed-variable, one-fit-per-node design of the
-core package, and adds shared ancestry as just another random-effect term inside
-each node's likelihood -- so the same machinery that already separates a
-`sigma` path from a `mu` path now also works *after correcting for phylogeny*.
+`phylopath` answers "which DAG of *mean* relationships survives the data?"
+[@vanderBijl2018]. `phylosem` couples a Brownian-motion (or OU) process to a
+latent-variable SEM [@phylosem]. `drmSEM` keeps the piecewise,
+observed-variable, one-fit-per-node design of the core package, and adds shared
+ancestry as just another random-effect term inside each node's likelihood --
+so the same machinery that already separates a `sigma` path from a `mu` path
+now also works *after correcting for phylogeny*.
 
 ## The key idea: phylogeny is a structured random effect, not an edge
 
@@ -259,8 +263,9 @@ average(cmp)        # CBIC-weighted standardized path coefficients
 
 **Phase 3 -- evolutionary process models (works today).** `drm_phylo_cov()`
 builds the phylogenetic relatedness matrix under a *fixed* evolutionary model --
-Brownian motion (`"BM"`), Pagel's lambda (`"lambda"`) or kappa (`"kappa"`), or
-an Ornstein-Uhlenbeck decay (`"OU"`) -- and you feed it to a node through the
+Brownian motion (`"BM"`) [@Felsenstein1985], Pagel's lambda (`"lambda"`) or
+kappa (`"kappa"`) [@Pagel1999], or an Ornstein-Uhlenbeck decay (`"OU"`)
+[@MartinsHansen1997] -- and you feed it to a node through the
 `relmat(1 | species, K = K)` marker (which drmSEM strips from the causal edge
 set exactly as it strips `phylo(...)`). The evolutionary parameter is supplied
 on a grid by the caller; it is not jointly estimated with the node.
@@ -318,3 +323,5 @@ re-implementation of the comparative-methods stack.
   (fixed-grid BM/OU/lambda/kappa via `drm_phylo_cov()`) all work today; jointly
   estimated covariance, covariance-aware comparison, and Phase 4 distributional
   phylo paths remain roadmap. See `docs/design/06-phylogenetic-sem.md`.
+
+## References

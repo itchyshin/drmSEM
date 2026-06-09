@@ -34,6 +34,11 @@ the residual \code{rho12} because the two answer different biological questions
 \examples{
 corpairs(drm_pair(activity ~ x + (1 | id), boldness ~ x + (1 | id)))
 }
+\references{
+\insertRef{Bollen1989}{drmSEM}
+
+\insertRef{Brooks2017}{drmSEM}
+}
 \seealso{
 \code{\link[=rho12]{rho12()}}, \code{\link[=covary]{covary()}}, \code{\link[=covariances]{covariances()}}, \code{\link[=drm_pair]{drm_pair()}}.
 }

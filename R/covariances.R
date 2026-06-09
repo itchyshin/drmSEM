@@ -44,6 +44,10 @@ NULL
 #'   `"unstructured"`, `"phylo"`.
 #' @return A `drm_covary` declaration object.
 #' @seealso [covariances()], [drm_sem()].
+#' @references
+#' \insertRef{Shipley2016}{drmSEM}
+#'
+#' \insertRef{Bollen1989}{drmSEM}
 #' @examples
 #' # A residual (rho12) covariance edge between two responses:
 #' covary("activity", "boldness")
@@ -53,7 +57,9 @@ NULL
 covary <- function(y1, y2, level = NULL, structure = "unstructured") {
   chk_name <- function(v, arg) {
     if (!is.character(v) || length(v) != 1L || is.na(v) || !nzchar(v)) {
-      cli::cli_abort("{.arg {arg}} must be a single non-empty response name (string).")
+      cli::cli_abort(
+        "{.arg {arg}} must be a single non-empty response name (string)."
+      )
     }
   }
   chk_name(y1, "y1")
@@ -61,8 +67,13 @@ covary <- function(y1, y2, level = NULL, structure = "unstructured") {
   if (identical(y1, y2)) {
     cli::cli_abort("A covariance edge needs two {.emph distinct} responses.")
   }
-  if (!is.null(level) && (!is.character(level) || length(level) != 1L ||
-                          is.na(level) || !nzchar(level))) {
+  if (
+    !is.null(level) &&
+      (!is.character(level) ||
+        length(level) != 1L ||
+        is.na(level) ||
+        !nzchar(level))
+  ) {
     cli::cli_abort(c(
       "{.arg level} must be {.code NULL} or a single grouping name.",
       "i" = "{.code NULL} declares a residual (rho12) edge; a name declares a higher-level (corpair) edge."
@@ -74,7 +85,8 @@ covary <- function(y1, y2, level = NULL, structure = "unstructured") {
   # NB: the `structure` argument shadows base::structure(), so build the object
   # with an explicit class<- rather than a structure() call.
   out <- list(
-    y1 = y1, y2 = y2,
+    y1 = y1,
+    y2 = y2,
     class = if (is.null(level)) "residual" else "higher_level",
     level = if (is.null(level)) NA_character_ else level,
     structure = structure
@@ -88,7 +100,9 @@ print.drm_covary <- function(x, ...) {
   if (identical(x$class, "residual")) {
     cli::cli_text("<covariance edge> rho12({x$y1}, {x$y2}) [residual]")
   } else {
-    cli::cli_text("<covariance edge> corpair({x$level}: {x$y1}, {x$y2}) [higher-level]")
+    cli::cli_text(
+      "<covariance edge> corpair({x$level}: {x$y1}, {x$y2}) [higher-level]"
+    )
   }
   invisible(x)
 }
@@ -96,8 +110,12 @@ print.drm_covary <- function(x, ...) {
 # Empty, typed covariance-edge table.
 drm_empty_covariances <- function() {
   data.frame(
-    y1 = character(0), y2 = character(0), class = character(0),
-    level = character(0), structure = character(0), label = character(0),
+    y1 = character(0),
+    y2 = character(0),
+    class = character(0),
+    level = character(0),
+    structure = character(0),
+    label = character(0),
     stringsAsFactors = FALSE
   )
 }
@@ -112,8 +130,10 @@ drm_build_covariances <- function(covariances, records) {
   if (inherits(covariances, "drm_covary")) {
     covariances <- list(covariances)
   }
-  if (!is.list(covariances) ||
-      !all(vapply(covariances, inherits, logical(1), what = "drm_covary"))) {
+  if (
+    !is.list(covariances) ||
+      !all(vapply(covariances, inherits, logical(1), what = "drm_covary"))
+  ) {
     cli::cli_abort(c(
       "{.arg covariances} must be {.fn covary} declaration(s).",
       "i" = "Use {.code covariances = covary(\"y1\", \"y2\")} or a list of them."
@@ -123,13 +143,17 @@ drm_build_covariances <- function(covariances, records) {
     for (nm in names(records)) {
       if (tok %in% records[[nm]]$identifiers) return(nm)
     }
-    cli::cli_abort("{.fn covary}: {.val {tok}} is not a response node in this SEM.")
+    cli::cli_abort(
+      "{.fn covary}: {.val {tok}} is not a response node in this SEM."
+    )
   }
   rows <- lapply(covariances, function(cv) {
     n1 <- resolve(cv$y1)
     n2 <- resolve(cv$y2)
     if (identical(n1, n2)) {
-      cli::cli_abort("{.fn covary}: {.val {cv$y1}} and {.val {cv$y2}} resolve to the same node {.val {n1}}.")
+      cli::cli_abort(
+        "{.fn covary}: {.val {cv$y1}} and {.val {cv$y2}} resolve to the same node {.val {n1}}."
+      )
     }
     label <- if (identical(cv$class, "residual")) {
       sprintf("rho12(%s, %s)", n1, n2)
@@ -137,13 +161,24 @@ drm_build_covariances <- function(covariances, records) {
       sprintf("corpair(%s: %s, %s)", cv$level, n1, n2)
     }
     data.frame(
-      y1 = n1, y2 = n2, class = cv$class, level = cv$level,
-      structure = cv$structure, label = label, stringsAsFactors = FALSE
+      y1 = n1,
+      y2 = n2,
+      class = cv$class,
+      level = cv$level,
+      structure = cv$structure,
+      label = label,
+      stringsAsFactors = FALSE
     )
   })
   out <- do.call(rbind, rows)
   # Collapse duplicate declarations of the same unordered pair + class + level.
-  key <- paste(pmin(out$y1, out$y2), pmax(out$y1, out$y2), out$class, out$level, sep = "\r")
+  key <- paste(
+    pmin(out$y1, out$y2),
+    pmax(out$y1, out$y2),
+    out$class,
+    out$level,
+    sep = "\r"
+  )
   out <- out[!duplicated(key), , drop = FALSE]
   rownames(out) <- NULL
   out
@@ -176,6 +211,10 @@ drm_covariance_pairs <- function(object) {
 #' @return A `drm_covariances` data frame with columns `y1`, `y2`, `class`
 #'   (`"residual"` / `"higher_level"`), `level`, `structure`, `label`.
 #' @seealso [covary()], [paths()], [basis_set()].
+#' @references
+#' \insertRef{Shipley2016}{drmSEM}
+#'
+#' \insertRef{Bollen1989}{drmSEM}
 #' @examples
 #' \dontrun{
 #' sem <- drm_sem(
@@ -208,7 +247,10 @@ print.drm_covariances <- function(x, ...) {
     return(invisible(x))
   }
   cli::cli_text("<drmSEM covariance edges: {nrow(x)}>")
-  df <- as.data.frame(x)[, c("class", "level", "y1", "y2", "label"), drop = FALSE]
+  df <- as.data.frame(x)[,
+    c("class", "level", "y1", "y2", "label"),
+    drop = FALSE
+  ]
   print.data.frame(df, row.names = FALSE)
   invisible(x)
 }

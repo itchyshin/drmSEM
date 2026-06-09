@@ -33,6 +33,11 @@ rule; OQ-14). A declared feedback motif (\code{\link[=drm_cycle]{drm_cycle()}}, 
 independence claims among its nodes — DAG d-separation does not hold across a
 cycle, and the goodness-of-fit test is scoped to the acyclic part until
 sigma-separation lands.
+
+The any-component reading of an independence claim is a \code{drmSEM} choice on top
+of the local-likelihood d-separation framework of Shipley; the d-separation
+graphical criterion itself is due to Pearl, and the bidirected-edge handling
+of declared residual correlations follows Shipley's path-analysis treatment.
 }
 \examples{
 \dontrun{
@@ -44,4 +49,15 @@ sem <- drm_sem(
   data = dat)
 basis_set(sem)
 }
+}
+\references{
+\insertRef{Shipley2000}{drmSEM}
+
+\insertRef{Shipley2009}{drmSEM}
+
+\insertRef{Shipley2016}{drmSEM}
+
+\insertRef{Pearl2009}{drmSEM}
+
+\insertRef{Lefcheck2016}{drmSEM}
 }

@@ -121,3 +121,12 @@ total_effects(sem, from = "temp", to = "abundance",
               method = "simulate", uncertainty = "parametric", nsim = 50)
 }
 }
+\references{
+\insertRef{Pearl2001}{drmSEM}
+
+\insertRef{Pearl2009}{drmSEM}
+
+\insertRef{Imai2010}{drmSEM}
+
+\insertRef{VanderWeele2015}{drmSEM}
+}

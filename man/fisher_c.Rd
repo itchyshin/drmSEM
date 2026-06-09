@@ -26,6 +26,14 @@ Combines the independence-claim p-values from \code{\link[=dsep]{dsep()}} into F
 under the hypothesis that all missing arrows are absent. A small p-value
 indicates the DAG omits a needed path.
 }
+\details{
+This is the Fisher-combined goodness-of-fit test introduced by Shipley (2000)
+for path models on directed acyclic graphs and extended to generalized
+multilevel models by Shipley (2009); \code{piecewiseSEM} (Lefcheck 2016) is the
+established R implementation. The construction itself is unchanged here; what
+differs is that the p-values being combined are the any-component
+likelihood-ratio claims of \code{\link[=dsep]{dsep()}} rather than mean-only claims.
+}
 \examples{
 \dontrun{
 sem <- drm_sem(
@@ -36,4 +44,11 @@ sem <- drm_sem(
   data = dat)
 fisher_c(sem)
 }
+}
+\references{
+\insertRef{Shipley2000}{drmSEM}
+
+\insertRef{Shipley2009}{drmSEM}
+
+\insertRef{Lefcheck2016}{drmSEM}
 }

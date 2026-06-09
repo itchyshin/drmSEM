@@ -96,6 +96,18 @@ pass realized draws, i.e. flowing through mediator scale / zero-inflation /
 shape).
 }
 \details{
+The controlled and natural direct/indirect estimands and their
+identification under the counterfactual framework are due to Pearl (2001),
+Robins & Greenland (1992), Imai et al. (2010), and VanderWeele (2015); the
+four-way decomposition under exposure–mediator interaction is VanderWeele
+(2014); the interventional estimand for multi-mediator settings is
+Vansteelandt & Daniel (2017). The \strong{distribution-mediated} row reported
+here is a \code{drmSEM} construction: it isolates the Jensen-gap part of an
+indirect effect that flows through a mediator's higher-moment components
+(\code{sigma}, \code{zi}, \code{nu}), with no coefficient-product analogue. The
+construction sits on top of the cited mediation framework — it does not
+replace any of these estimands.
+
 \code{indirect_effects()} does not take a \code{method} argument: the controlled
 decomposition is formed from \emph{both} the mean-mediated and
 distribution-mediated legs, and the natural decomposition always uses
@@ -123,4 +135,19 @@ sem <- drm_sem(
 indirect_effects(sem, from = "temp", to = "abundance", through = "size",
                  uncertainty = "parametric", nsim = 50)
 }
+}
+\references{
+\insertRef{Robins1992}{drmSEM}
+
+\insertRef{Pearl2001}{drmSEM}
+
+\insertRef{Pearl2009}{drmSEM}
+
+\insertRef{Imai2010}{drmSEM}
+
+\insertRef{VanderWeele2014}{drmSEM}
+
+\insertRef{VanderWeele2015}{drmSEM}
+
+\insertRef{Vansteelandt2017}{drmSEM}
 }

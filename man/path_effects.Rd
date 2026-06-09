@@ -117,6 +117,17 @@ path_effects(sem, from = "temp", to = "survival")
 path_effects(sem, from = "temp", to = "survival", by = "component")
 }
 }
+\references{
+\insertRef{Pearl2001}{drmSEM}
+
+\insertRef{Pearl2009}{drmSEM}
+
+\insertRef{Avin2005}{drmSEM}
+
+\insertRef{Imai2010}{drmSEM}
+
+\insertRef{VanderWeele2015}{drmSEM}
+}
 \seealso{
 \code{\link[=indirect_effects]{indirect_effects()}}, \code{\link[=total_effects]{total_effects()}}.
 }

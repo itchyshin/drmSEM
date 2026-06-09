@@ -32,6 +32,13 @@ the fixed-point propagator. See \code{docs/design/10-cyclic-feedback.md}.
 \examples{
 drm_cycle("activity", "boldness")   # a reciprocal pair activity <-> boldness
 }
+\references{
+\insertRef{Bollen1996}{drmSEM}
+
+\insertRef{ForreMooij2017}{drmSEM}
+
+\insertRef{Bollen1989}{drmSEM}
+}
 \seealso{
 \code{\link[=cycles]{cycles()}}, \code{\link[=drm_sem]{drm_sem()}}.
 }

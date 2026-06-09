@@ -40,6 +40,11 @@ covary("activity", "boldness")
 # A higher-level random-effect (corpair) edge sharing the `id` grouping:
 covary("activity", "boldness", level = "id")
 }
+\references{
+\insertRef{Shipley2016}{drmSEM}
+
+\insertRef{Bollen1989}{drmSEM}
+}
 \seealso{
 \code{\link[=covariances]{covariances()}}, \code{\link[=drm_sem]{drm_sem()}}.
 }

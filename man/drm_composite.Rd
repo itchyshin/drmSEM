@@ -60,6 +60,13 @@ drm_composite("body_size", c("len", "mass", "wing"), data = dat)
 # first principal-component index instead:
 drm_composite("body_size", c("len", "mass", "wing"), method = "pca", data = dat)
 }
+\references{
+\insertRef{BollenLennox1991}{drmSEM}
+
+\insertRef{Grace2008}{drmSEM}
+
+\insertRef{Bollen1989}{drmSEM}
+}
 \seealso{
 \code{\link[=loadings]{loadings()}}, \code{\link[=drm_sem]{drm_sem()}}.
 }

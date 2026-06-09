@@ -1,6 +1,8 @@
 ---
 title: "Model selection with CBIC"
 output: rmarkdown::html_vignette
+bibliography: ../inst/REFERENCES.bib
+link-citations: true
 vignette: >
   %\VignetteIndexEntry{Model selection with CBIC}
   %\VignetteEngine{knitr::rmarkdown}
@@ -47,11 +49,24 @@ criterion built on Fisher's C,
 \mathrm{CBIC} = C + k\log(n),
 \]
 
-where \(C\) is Fisher's C statistic from the d-separation test, \(k\) is the
-number of fitted fixed-effect paths, and \(n\) is the number of observations.
-The stronger penalty matters because a harmless over-fitted DAG can have a very
-small C statistic. CBIC asks a stricter question: is the extra path worth its
-cost?
+where \(C\) is Fisher's C statistic from the d-separation test
+[@Shipley2000; @Shipley2009], \(k\) is the number of fitted fixed-effect paths,
+and \(n\) is the number of observations. The stronger penalty matters because a
+harmless over-fitted DAG can have a very small C statistic. CBIC asks a
+stricter question: is the extra path worth its cost?
+
+**Where this construction comes from.** The information-criterion family for
+Shipley's C statistic was introduced by @Shipley2013 as
+\(\mathrm{CIC} = C + 2k\), in direct analogy to AIC, with the small-sample
+correction \(\mathrm{CICc} = C + 2k\,n/(n - k - 1)\); `phylopath`
+[@vanderBijl2018] defaults to CICc. AIC-style penalties are well known to be
+inconsistent for true-model recovery — their selection probability for the
+true model asymptotes to a fixed value below one, even when the truth is in the
+candidate set and the sample grows [@Schwarz1978; @Burnham2002]. Combining
+Shipley's C with the BIC penalty \(k\log(n)\) gives a consistent variant; as far
+as we can find, this combination has not been named or defaulted to before, so
+the construction is introduced here as a `drmSEM` choice. The simulation
+evidence supporting it is reported in `validation.Rmd`.
 
 ## Build a candidate set
 
@@ -199,3 +214,5 @@ Read the comparison table in this order:
 This keeps the workflow honest: CBIC answers the "which DAG should I carry
 forward?" question, while CICc remains a useful view of near-ties and
 over-fitted alternatives.
+
+## References

@@ -15,6 +15,12 @@
 #'   fitted (for example `control`).
 #'
 #' @return A `drm_node` specification object.
+#' @references
+#' \insertRef{Rigby2005}{drmSEM}
+#'
+#' \insertRef{Brooks2017}{drmSEM}
+#'
+#' \insertRef{Lefcheck2016}{drmSEM}
 #' @export
 #'
 #' @examples
@@ -66,7 +72,9 @@ drm_fit_node <- function(spec, data, name) {
   control <- spec$args$control
   if (is.null(control)) {
     # request standard errors so vcov(), Wald CIs, and d-separation refits work
-    control <- tryCatch(drmTMB::drm_control(se = TRUE), error = function(e) NULL)
+    control <- tryCatch(drmTMB::drm_control(se = TRUE), error = function(e) {
+      NULL
+    })
   }
   args <- spec$args
   args$control <- NULL

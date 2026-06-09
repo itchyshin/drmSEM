@@ -33,6 +33,9 @@ skel <- from_lavaan("abundance ~ size + temp\nsize ~ temp\nsize ~~ abundance")
 skel$dag
 skel$covary
 }
+\references{
+\insertRef{Rosseel2012}{drmSEM}
+}
 \seealso{
 \code{\link[=as_lavaan]{as_lavaan()}}, \code{\link[=drm_dag]{drm_dag()}}, \code{\link[=covary]{covary()}}.
 }

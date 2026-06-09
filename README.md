@@ -180,6 +180,35 @@ validated by recovery tests that run without the engine. The full
 cloud / CI environment where `drmTMB` is compiled and installed. APIs may change
 before a stable release.
 
+## Methodological background
+
+`drmSEM` builds on a number of distinct literatures and is rigorous about
+crediting them at the point of use (see the `@references` blocks on each help
+page and the `bibliography:` of each vignette). The canonical entry points are:
+
+- piecewise SEM and local-likelihood d-separation — Shipley (2000, 2009,
+  2016) and Lefcheck (2016, `piecewiseSEM`);
+- d-separation as a graphical criterion — Pearl (2009);
+- counterfactual mediation — Pearl (2001), Robins & Greenland (1992),
+  Imai et al. (2010), VanderWeele (2014, 2015), Vansteelandt & Daniel (2017);
+- distributional regression — Rigby & Stasinopoulos (2005, GAMLSS),
+  Brooks et al. (2017, `glmmTMB`);
+- phylogenetic comparative methods — Felsenstein (1985), Martins & Hansen
+  (1997), Pagel (1999), van der Bijl (2018, `phylopath`), Thorson & van der
+  Bijl (2023, `phylosem`);
+- information criteria on Fisher's C — Shipley (2013, CICc), Schwarz
+  (1978, BIC), Burnham & Anderson (2002).
+
+Three constructions inside the package are explicitly **`drmSEM`
+contributions** built on this foundation — the **any-component d-separation
+test**, the **distribution-mediated effect row** in `indirect_effects()`, and
+the BIC-style **CBIC** information criterion that is now the default in
+`compare()`. Each is flagged as such in its help page and the corresponding
+vignette, with the underlying components cited.
+
+The bibliography lives in `inst/REFERENCES.bib` (and the JOSS-facing
+`paper.bib`); `?drmSEM` lists the principal sources.
+
 ## License
 
 GPL (>= 3).

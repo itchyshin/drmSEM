@@ -109,9 +109,11 @@ if (requireNamespace("ape", quietly = TRUE)) {
 }
 }
 \references{
-Martins, E. P. & Hansen, T. F. (1997). Phylogenies and the comparative
-method. \emph{The American Naturalist}, 149(4), 646-667.
+\insertRef{Felsenstein1985}{drmSEM}
 
-Pagel, M. (1999). Inferring the historical patterns of biological evolution.
-\emph{Nature}, 401, 877-884.
+\insertRef{MartinsHansen1997}{drmSEM}
+
+\insertRef{Pagel1999}{drmSEM}
+
+\insertRef{vanderBijl2018}{drmSEM}
 }

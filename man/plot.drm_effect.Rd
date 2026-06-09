@@ -46,3 +46,10 @@ eff <- indirect_effects(sem, from = "temp", to = "abundance", through = "size")
 plot(eff, style = "forest")
 }
 }
+\references{
+\insertRef{Pearl2001}{drmSEM}
+
+\insertRef{Imai2010}{drmSEM}
+
+\insertRef{VanderWeele2015}{drmSEM}
+}

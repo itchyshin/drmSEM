@@ -63,11 +63,13 @@
 #'   suitable as the `K =` argument of `relmat()`.
 #'
 #' @references
-#' Martins, E. P. & Hansen, T. F. (1997). Phylogenies and the comparative
-#' method. *The American Naturalist*, 149(4), 646-667.
+#' \insertRef{Felsenstein1985}{drmSEM}
 #'
-#' Pagel, M. (1999). Inferring the historical patterns of biological evolution.
-#' *Nature*, 401, 877-884.
+#' \insertRef{MartinsHansen1997}{drmSEM}
+#'
+#' \insertRef{Pagel1999}{drmSEM}
+#'
+#' \insertRef{vanderBijl2018}{drmSEM}
 #'
 #' @export
 #'
@@ -89,12 +91,14 @@
 #'   }
 #'   }
 #' }
-drm_phylo_cov <- function(tree,
-                          model = c("BM", "lambda", "OU", "kappa"),
-                          lambda = 1,
-                          alpha = 1,
-                          kappa = 1,
-                          standardize = TRUE) {
+drm_phylo_cov <- function(
+  tree,
+  model = c("BM", "lambda", "OU", "kappa"),
+  lambda = 1,
+  alpha = 1,
+  kappa = 1,
+  standardize = TRUE
+) {
   model <- match.arg(model)
 
   # `tree` must be a genuine ape phylo object. Validate the class first so a
@@ -121,7 +125,9 @@ drm_phylo_cov <- function(tree,
     # Pagel's kappa stretches/compresses individual branches, so it must act on
     # the branch lengths BEFORE the covariance is formed -- it cannot be a pure
     # transform of C. kappa = 1 leaves the tree (hence BM) unchanged.
-    if (!is.numeric(kappa) || length(kappa) != 1L || is.na(kappa) || kappa < 0) {
+    if (
+      !is.numeric(kappa) || length(kappa) != 1L || is.na(kappa) || kappa < 0
+    ) {
       cli::cli_abort("{.arg kappa} must be a single number {.code >= 0}.")
     }
     tree2 <- tree
@@ -132,10 +138,11 @@ drm_phylo_cov <- function(tree,
     # transforms below are pure matrix algebra (see the internal helpers), which
     # keeps their maths unit-testable without ape.
     C <- ape::vcv(tree)
-    C <- switch(model,
-      BM     = C,
+    C <- switch(
+      model,
+      BM = C,
       lambda = phylo_transform_lambda(C, lambda),
-      OU     = phylo_transform_ou(C, alpha)
+      OU = phylo_transform_ou(C, alpha)
     )
   }
 
@@ -161,8 +168,13 @@ drm_phylo_cov <- function(tree,
 #   lambda = 1 -> C unchanged (BM)
 #   lambda = 0 -> diagonal matrix (star phylogeny: no phylogenetic signal)
 phylo_transform_lambda <- function(C, lambda) {
-  if (!is.numeric(lambda) || length(lambda) != 1L || is.na(lambda) ||
-      lambda < 0 || lambda > 1) {
+  if (
+    !is.numeric(lambda) ||
+      length(lambda) != 1L ||
+      is.na(lambda) ||
+      lambda < 0 ||
+      lambda > 1
+  ) {
     cli::cli_abort("{.arg lambda} must be a single number in {.code [0, 1]}.")
   }
   C_l <- lambda * C

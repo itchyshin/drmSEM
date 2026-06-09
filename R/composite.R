@@ -52,6 +52,12 @@ NULL
 #'   internal-consistency measure for *reflective* indicator sets), shown by
 #'   `print()` / `summary()`.
 #' @seealso [loadings()], [drm_sem()].
+#' @references
+#' \insertRef{BollenLennox1991}{drmSEM}
+#'
+#' \insertRef{Grace2008}{drmSEM}
+#'
+#' \insertRef{Bollen1989}{drmSEM}
 #' @examples
 #' dat <- data.frame(len = rnorm(50), mass = rnorm(50), wing = rnorm(50))
 #' # equal-weighted index of three indicators:
@@ -59,35 +65,55 @@ NULL
 #' # first principal-component index instead:
 #' drm_composite("body_size", c("len", "mass", "wing"), method = "pca", data = dat)
 #' @export
-drm_composite <- function(name, indicators, weights = NULL,
-                          method = c("fixed", "pca"), data, standardize = FALSE) {
+drm_composite <- function(
+  name,
+  indicators,
+  weights = NULL,
+  method = c("fixed", "pca"),
+  data,
+  standardize = FALSE
+) {
   method <- match.arg(method)
   if (!is.character(name) || length(name) != 1L || !nzchar(name)) {
     cli::cli_abort("{.arg name} must be a single non-empty string.")
   }
   if (!is.character(indicators) || length(indicators) < 2L) {
-    cli::cli_abort("{.arg indicators} must name at least two indicator columns.")
+    cli::cli_abort(
+      "{.arg indicators} must name at least two indicator columns."
+    )
   }
   if (!is.logical(standardize) || length(standardize) != 1L) {
     cli::cli_abort("{.arg standardize} must be a single logical.")
   }
   if (missing(data) || !is.data.frame(data)) {
-    cli::cli_abort("{.arg data} (a data frame holding the indicators) is required.")
+    cli::cli_abort(
+      "{.arg data} (a data frame holding the indicators) is required."
+    )
   }
   miss <- setdiff(indicators, names(data))
   if (length(miss)) {
-    cli::cli_abort("Indicator column{?s} not found in {.arg data}: {.val {miss}}.")
+    cli::cli_abort(
+      "Indicator column{?s} not found in {.arg data}: {.val {miss}}."
+    )
   }
   num <- vapply(indicators, function(v) is.numeric(data[[v]]), logical(1))
   if (!all(num)) {
-    cli::cli_abort("All indicators must be numeric; not: {.val {indicators[!num]}}.")
+    cli::cli_abort(
+      "All indicators must be numeric; not: {.val {indicators[!num]}}."
+    )
   }
   M <- as.matrix(data[, indicators, drop = FALSE])
 
   if (identical(method, "fixed")) {
-    w <- if (is.null(weights)) rep(1 / length(indicators), length(indicators)) else weights
+    w <- if (is.null(weights)) {
+      rep(1 / length(indicators), length(indicators))
+    } else {
+      weights
+    }
     if (length(w) != length(indicators)) {
-      cli::cli_abort("{.arg weights} must have one value per indicator ({length(indicators)}).")
+      cli::cli_abort(
+        "{.arg weights} must have one value per indicator ({length(indicators)})."
+      )
     }
     loadings <- stats::setNames(as.numeric(w), indicators)
     scale_indicators <- FALSE
@@ -97,16 +123,23 @@ drm_composite <- function(name, indicators, weights = NULL,
     load1 <- pc$rotation[, 1L]
     # sign convention: the largest-magnitude loading is positive, so the score
     # points the intuitive way and is reproducible.
-    if (load1[which.max(abs(load1))] < 0) load1 <- -load1
+    if (load1[which.max(abs(load1))] < 0) {
+      load1 <- -load1
+    }
     loadings <- stats::setNames(as.numeric(load1), indicators)
     scale_indicators <- TRUE
     prop_var <- (pc$sdev^2 / sum(pc$sdev^2))[1L]
   }
 
   out <- list(
-    name = name, indicators = indicators, method = method,
-    loadings = loadings, scale = scale_indicators, prop_var = prop_var,
-    standardize = standardize, reliability = drm_cronbach_alpha(M)
+    name = name,
+    indicators = indicators,
+    method = method,
+    loadings = loadings,
+    scale = scale_indicators,
+    prop_var = prop_var,
+    standardize = standardize,
+    reliability = drm_cronbach_alpha(M)
   )
   class(out) <- "drm_composite"
   out
@@ -118,38 +151,54 @@ drm_composite <- function(name, indicators, weights = NULL,
 # signal), which is honest rather than clamped.
 drm_cronbach_alpha <- function(M) {
   k <- ncol(M)
-  if (k < 2L) return(NA_real_)
+  if (k < 2L) {
+    return(NA_real_)
+  }
   cv <- stats::cov(M)
   total_var <- sum(cv)
-  if (!is.finite(total_var) || total_var <= 0) return(NA_real_)
+  if (!is.finite(total_var) || total_var <= 0) {
+    return(NA_real_)
+  }
   (k / (k - 1)) * (1 - sum(diag(cv)) / total_var)
 }
 
 #' @export
 print.drm_composite <- function(x, ...) {
-  cli::cli_text("<composite construct> {x$name} = {x$method}({paste(x$indicators, collapse = ', ')})")
+  cli::cli_text(
+    "<composite construct> {x$name} = {x$method}({paste(x$indicators, collapse = ', ')})"
+  )
   if (!is.na(x$prop_var)) {
     cli::cli_text("  first-PC proportion of variance: {round(x$prop_var, 3)}")
   }
   if (!is.na(x$reliability)) {
     cli::cli_text("  reliability (Cronbach's alpha): {round(x$reliability, 3)}")
   }
-  if (isTRUE(x$standardize)) cli::cli_text("  score standardized (mean 0, sd 1)")
+  if (isTRUE(x$standardize)) {
+    cli::cli_text("  score standardized (mean 0, sd 1)")
+  }
   invisible(x)
 }
 
 #' @export
 summary.drm_composite <- function(object, ...) {
-  cli::cli_text("<composite construct> {.strong {object$name}} ({object$method})")
-  ld <- data.frame(indicator = object$indicators,
-                   loading = round(as.numeric(object$loadings[object$indicators]), 4),
-                   stringsAsFactors = FALSE)
+  cli::cli_text(
+    "<composite construct> {.strong {object$name}} ({object$method})"
+  )
+  ld <- data.frame(
+    indicator = object$indicators,
+    loading = round(as.numeric(object$loadings[object$indicators]), 4),
+    stringsAsFactors = FALSE
+  )
   print(ld, row.names = FALSE)
   if (!is.na(object$prop_var)) {
-    cli::cli_text("First-PC proportion of variance: {round(object$prop_var, 3)}")
+    cli::cli_text(
+      "First-PC proportion of variance: {round(object$prop_var, 3)}"
+    )
   }
   if (!is.na(object$reliability)) {
-    cli::cli_text("Reliability (Cronbach's alpha): {round(object$reliability, 3)}")
+    cli::cli_text(
+      "Reliability (Cronbach's alpha): {round(object$reliability, 3)}"
+    )
   }
   invisible(object)
 }
@@ -160,12 +209,18 @@ summary.drm_composite <- function(object, ...) {
 drm_score_composite <- function(spec, data) {
   miss <- setdiff(spec$indicators, names(data))
   if (length(miss)) {
-    cli::cli_abort("Composite {.val {spec$name}}: indicator{?s} {.val {miss}} missing from data.")
+    cli::cli_abort(
+      "Composite {.val {spec$name}}: indicator{?s} {.val {miss}} missing from data."
+    )
   }
   M <- as.matrix(data[, spec$indicators, drop = FALSE])
-  if (isTRUE(spec$scale)) M <- scale(M)
+  if (isTRUE(spec$scale)) {
+    M <- scale(M)
+  }
   score <- as.numeric(M %*% spec$loadings[spec$indicators])
-  if (isTRUE(spec$standardize)) score <- as.numeric(scale(score))
+  if (isTRUE(spec$standardize)) {
+    score <- as.numeric(scale(score))
+  }
   score
 }
 
@@ -178,8 +233,10 @@ drm_build_composites <- function(composites) {
   if (inherits(composites, "drm_composite")) {
     composites <- list(composites)
   }
-  if (!is.list(composites) ||
-      !all(vapply(composites, inherits, logical(1), what = "drm_composite"))) {
+  if (
+    !is.list(composites) ||
+      !all(vapply(composites, inherits, logical(1), what = "drm_composite"))
+  ) {
     cli::cli_abort(c(
       "{.arg composites} must be {.fn drm_composite} declaration(s).",
       "i" = "Use {.code composites = drm_composite(...)} or a list of them."
@@ -187,7 +244,9 @@ drm_build_composites <- function(composites) {
   }
   nms <- vapply(composites, function(c) c$name, character(1))
   if (anyDuplicated(nms)) {
-    cli::cli_abort("Composite names must be unique; duplicated: {.val {nms[duplicated(nms)]}}.")
+    cli::cli_abort(
+      "Composite names must be unique; duplicated: {.val {nms[duplicated(nms)]}}."
+    )
   }
   composites
 }
@@ -197,7 +256,9 @@ drm_apply_composites <- function(data, composites) {
   comps <- drm_build_composites(composites)
   for (spec in comps) {
     if (spec$name %in% names(data)) {
-      cli::cli_abort("Composite {.val {spec$name}} collides with an existing data column.")
+      cli::cli_abort(
+        "Composite {.val {spec$name}} collides with an existing data column."
+      )
     }
     data[[spec$name]] <- drm_score_composite(spec, data)
   }
@@ -216,6 +277,10 @@ drm_apply_composites <- function(data, composites) {
 #' @return A `drm_loadings` data frame with columns `composite`, `indicator`,
 #'   `loading`, `method`.
 #' @seealso [drm_composite()], [paths()].
+#' @references
+#' \insertRef{BollenLennox1991}{drmSEM}
+#'
+#' \insertRef{Grace2008}{drmSEM}
 #' @examples
 #' \dontrun{
 #' sem <- drm_sem(
@@ -233,16 +298,24 @@ loadings <- function(object, ...) {
 #' @export
 loadings.drm_sem <- function(object, ...) {
   comps <- object$composites
-  empty <- data.frame(composite = character(0), indicator = character(0),
-                      loading = numeric(0), method = character(0),
-                      stringsAsFactors = FALSE)
+  empty <- data.frame(
+    composite = character(0),
+    indicator = character(0),
+    loading = numeric(0),
+    method = character(0),
+    stringsAsFactors = FALSE
+  )
   if (is.null(comps) || length(comps) == 0L) {
     out <- empty
   } else {
     rows <- lapply(comps, function(spec) {
-      data.frame(composite = spec$name, indicator = spec$indicators,
-                 loading = as.numeric(spec$loadings[spec$indicators]),
-                 method = spec$method, stringsAsFactors = FALSE)
+      data.frame(
+        composite = spec$name,
+        indicator = spec$indicators,
+        loading = as.numeric(spec$loadings[spec$indicators]),
+        method = spec$method,
+        stringsAsFactors = FALSE
+      )
     })
     out <- do.call(rbind, rows)
   }
@@ -257,7 +330,9 @@ print.drm_loadings <- function(x, ...) {
     cli::cli_text("<drmSEM composite loadings: none>")
     return(invisible(x))
   }
-  cli::cli_text("<drmSEM composite loadings: {length(unique(x$composite))} construct{?s}>")
+  cli::cli_text(
+    "<drmSEM composite loadings: {length(unique(x$composite))} construct{?s}>"
+  )
   df <- as.data.frame(x)
   df$loading <- round(df$loading, 4)
   print.data.frame(df, row.names = FALSE)

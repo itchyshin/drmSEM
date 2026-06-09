@@ -7,9 +7,15 @@ NULL
 # there so structured-effect objects (e.g. a phylo `tree`) resolve (OQ-13).
 # `covariances` holds covary() declarations (residual rho12 / higher-level
 # corpair edges), stored separately from the directed `$edges` (OQ-14).
-new_drm_sem <- function(fits, data, call, fit_env = parent.frame(),
-                        covariances = NULL, composites = NULL,
-                        feedback = NULL) {
+new_drm_sem <- function(
+  fits,
+  data,
+  call,
+  fit_env = parent.frame(),
+  covariances = NULL,
+  composites = NULL,
+  feedback = NULL
+) {
   if (length(fits) == 0L) {
     cli::cli_abort("A drmSEM model needs at least one endogenous node.")
   }
@@ -109,6 +115,14 @@ new_drm_sem <- function(fits, data, call, fit_env = parent.frame(),
 #'
 #' @return A `drm_sem` object.
 #' @seealso [drm_sem()] for the declarative interface that fits nodes for you.
+#' @references
+#' \insertRef{Shipley2009}{drmSEM}
+#'
+#' \insertRef{Lefcheck2016}{drmSEM}
+#'
+#' \insertRef{Brooks2017}{drmSEM}
+#'
+#' \insertRef{Rigby2005}{drmSEM}
 #' @examples
 #' \dontrun{
 #' ctrl <- drmTMB::drm_control(se = TRUE)
@@ -122,8 +136,13 @@ new_drm_sem <- function(fits, data, call, fit_env = parent.frame(),
 #' paths(sem)
 #' }
 #' @export
-drm_psem <- function(..., data = NULL, covariances = NULL, composites = NULL,
-                     feedback = NULL) {
+drm_psem <- function(
+  ...,
+  data = NULL,
+  covariances = NULL,
+  composites = NULL,
+  feedback = NULL
+) {
   fits <- list(...)
   if (!all(vapply(fits, is_drmTMB_fit, logical(1)))) {
     cli::cli_abort(c(
@@ -134,9 +153,15 @@ drm_psem <- function(..., data = NULL, covariances = NULL, composites = NULL,
   if (is.null(data)) {
     data <- drm_fit_data(fits[[1L]])
   }
-  new_drm_sem(fits, data, match.call(), fit_env = parent.frame(),
-              covariances = covariances, composites = composites,
-              feedback = feedback)
+  new_drm_sem(
+    fits,
+    data,
+    match.call(),
+    fit_env = parent.frame(),
+    covariances = covariances,
+    composites = composites,
+    feedback = feedback
+  )
 }
 
 #' Fit and assemble a distributional piecewise SEM
@@ -164,6 +189,14 @@ drm_psem <- function(..., data = NULL, covariances = NULL, composites = NULL,
 #'
 #' @return A `drm_sem` object.
 #' @seealso [drm_psem()], [paths()], [dsep()], [indirect_effects()].
+#' @references
+#' \insertRef{Shipley2009}{drmSEM}
+#'
+#' \insertRef{Lefcheck2016}{drmSEM}
+#'
+#' \insertRef{Brooks2017}{drmSEM}
+#'
+#' \insertRef{Rigby2005}{drmSEM}
 #' @export
 #'
 #' @examples
@@ -183,8 +216,13 @@ drm_psem <- function(..., data = NULL, covariances = NULL, composites = NULL,
 #' dsep(sem)
 #' indirect_effects(sem, from = "temp", to = "abundance")
 #' }
-drm_sem <- function(..., data, covariances = NULL, composites = NULL,
-                    feedback = NULL) {
+drm_sem <- function(
+  ...,
+  data,
+  covariances = NULL,
+  composites = NULL,
+  feedback = NULL
+) {
   specs <- list(...)
   if (missing(data)) {
     cli::cli_abort("{.arg data} is required for {.fn drm_sem}.")
@@ -212,9 +250,15 @@ drm_sem <- function(..., data, covariances = NULL, composites = NULL,
     fits[[i]] <- drm_fit_node(specs[[i]], data = data, name = nms[[i]])
   }
   names(fits) <- nms
-  new_drm_sem(fits, data, match.call(), fit_env = parent.frame(),
-              covariances = covariances, composites = composites,
-              feedback = feedback)
+  new_drm_sem(
+    fits,
+    data,
+    match.call(),
+    fit_env = parent.frame(),
+    covariances = covariances,
+    composites = composites,
+    feedback = feedback
+  )
 }
 
 #' @export
@@ -227,24 +271,38 @@ print.drm_sem <- function(x, ...) {
   for (nm in x$order) {
     rec <- x$records[[nm]]
     conv <- drm_fit_converged(rec$fit)
-    flag <- if (isTRUE(conv)) "" else if (is.na(conv)) " (convergence unknown)" else " (NOT converged)"
+    flag <- if (isTRUE(conv)) {
+      ""
+    } else if (is.na(conv)) {
+      " (convergence unknown)"
+    } else {
+      " (NOT converged)"
+    }
     cli::cli_text(
       "{.strong {nm}} [{rec$family}] -> components {.val {rec$components}}{flag}"
     )
   }
   ne <- nrow(x$edges)
-  cli::cli_text("{ne} component-labelled edge{?s}. Use {.fn paths} to list them.")
+  cli::cli_text(
+    "{ne} component-labelled edge{?s}. Use {.fn paths} to list them."
+  )
   nc <- if (is.null(x$covariances)) 0L else nrow(x$covariances)
   if (nc > 0L) {
-    cli::cli_text("{nc} covariance edge{?s} (rho12/corpair). Use {.fn covariances} to list them.")
+    cli::cli_text(
+      "{nc} covariance edge{?s} (rho12/corpair). Use {.fn covariances} to list them."
+    )
   }
   np <- if (is.null(x$composites)) 0L else length(x$composites)
   if (np > 0L) {
-    cli::cli_text("{np} composite construct{?s}. Use {.fn loadings} to list the indicators.")
+    cli::cli_text(
+      "{np} composite construct{?s}. Use {.fn loadings} to list the indicators."
+    )
   }
   nf <- length(drm_feedback_motifs(x))
   if (nf > 0L) {
-    cli::cli_text("{nf} declared feedback motif{?s} (cyclic). Use {.fn cycles} to list them.")
+    cli::cli_text(
+      "{nf} declared feedback motif{?s} (cyclic). Use {.fn cycles} to list them."
+    )
   }
   invisible(x)
 }
@@ -258,9 +316,17 @@ summary.drm_sem <- function(object, ...) {
     n_nodes = length(object$endogenous),
     n_exogenous = length(object$exogenous),
     order = object$order,
-    families = vapply(object$records[object$order], function(r) r$family, character(1)),
+    families = vapply(
+      object$records[object$order],
+      function(r) r$family,
+      character(1)
+    ),
     components = lapply(object$records[object$order], function(r) r$components),
-    converged = vapply(object$order, function(nm) drm_fit_converged(object$records[[nm]]$fit), logical(1)),
+    converged = vapply(
+      object$order,
+      function(nm) drm_fit_converged(object$records[[nm]]$fit),
+      logical(1)
+    ),
     edges_by_component = comp_counts,
     paths = paths(object)
   )

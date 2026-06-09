@@ -38,6 +38,11 @@ sem <- drm_sem(
 covariances(sem)   # the residual rho12 edge, reported separately from paths()
 }
 }
+\references{
+\insertRef{Shipley2016}{drmSEM}
+
+\insertRef{Bollen1989}{drmSEM}
+}
 \seealso{
 \code{\link[=covary]{covary()}}, \code{\link[=paths]{paths()}}, \code{\link[=basis_set]{basis_set()}}.
 }

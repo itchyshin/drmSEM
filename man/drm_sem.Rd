@@ -54,6 +54,15 @@ dsep(sem)
 indirect_effects(sem, from = "temp", to = "abundance")
 }
 }
+\references{
+\insertRef{Shipley2009}{drmSEM}
+
+\insertRef{Lefcheck2016}{drmSEM}
+
+\insertRef{Brooks2017}{drmSEM}
+
+\insertRef{Rigby2005}{drmSEM}
+}
 \seealso{
 \code{\link[=drm_psem]{drm_psem()}}, \code{\link[=paths]{paths()}}, \code{\link[=dsep]{dsep()}}, \code{\link[=indirect_effects]{indirect_effects()}}.
 }

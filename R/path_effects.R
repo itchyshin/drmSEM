@@ -29,31 +29,57 @@ NULL
 # for a set of mediators. Operates on engines (no drmTMB), so it is unit-tested
 # directly with hand-built engines. `mediation` is "distribution" for the
 # user-facing accessor and "mean" for deterministic closed-form tests.
-drm_path_contrasts <- function(engines, scenarios, to, meds,
-                               mediation = "distribution",
-                               B = 200L, n_sim = 50L, draw = TRUE, seed = NULL) {
+drm_path_contrasts <- function(
+  engines,
+  scenarios,
+  to,
+  meds,
+  mediation = "distribution",
+  B = 200L,
+  n_sim = 50L,
+  draw = TRUE,
+  seed = NULL
+) {
   contrast <- function(active, med, ns) {
-    drm_effect_contrast(engines, scenarios, to, active = active,
-                        mediation = med, B = B, n_sim = ns, draw = draw, seed = seed)
+    drm_effect_contrast(
+      engines,
+      scenarios,
+      to,
+      active = active,
+      mediation = med,
+      B = B,
+      n_sim = ns,
+      draw = draw,
+      seed = seed
+    )
   }
   cde <- contrast(character(0), "mean", 1L)
   tot <- contrast(meds, mediation, n_sim)
   inclusion <- stats::setNames(
-    lapply(meds, function(mj) contrast(mj, mediation, n_sim) - cde), meds
+    lapply(meds, function(mj) contrast(mj, mediation, n_sim) - cde),
+    meds
   )
   exclusion <- stats::setNames(
-    lapply(meds, function(mj) tot - contrast(setdiff(meds, mj), mediation, n_sim)), meds
+    lapply(meds, function(mj) {
+      tot - contrast(setdiff(meds, mj), mediation, n_sim)
+    }),
+    meds
   )
   # mean-channel contribution of each mediator (mediator passes only its mean);
   # inclusion - mean_inclusion is then the distribution-mediated channel of Mj.
   mean_inclusion <- stats::setNames(
-    lapply(meds, function(mj) contrast(mj, "mean", 1L) - cde), meds
+    lapply(meds, function(mj) contrast(mj, "mean", 1L) - cde),
+    meds
   )
   total_indirect <- tot - cde
   remainder <- total_indirect - Reduce(`+`, inclusion)
-  list(total_indirect = total_indirect, inclusion = inclusion,
-       exclusion = exclusion, mean_inclusion = mean_inclusion,
-       remainder = remainder)
+  list(
+    total_indirect = total_indirect,
+    inclusion = inclusion,
+    exclusion = exclusion,
+    mean_inclusion = mean_inclusion,
+    remainder = remainder
+  )
 }
 
 # Return a copy of `engines` in which mediator `mediator`'s component `component`
@@ -80,30 +106,69 @@ drm_freeze_engine <- function(engines, mediator, component, ref_scenario) {
 # distribution-mediated effect when that component is frozen at its x0 value. A
 # component_remainder carries the non-separable part (channels do not partition
 # exactly under a nonlinear outcome). Pure function of engines (no drmTMB).
-drm_component_contrasts <- function(engines, scenarios, to, mj,
-                                    B = 200L, n_sim = 50L, draw = TRUE, seed = NULL) {
+drm_component_contrasts <- function(
+  engines,
+  scenarios,
+  to,
+  mj,
+  B = 200L,
+  n_sim = 50L,
+  draw = TRUE,
+  seed = NULL
+) {
   ctr <- function(eng, med) {
-    drm_effect_contrast(eng, scenarios, to, active = mj, mediation = med,
-                        B = B, n_sim = if (identical(med, "mean")) 1L else n_sim,
-                        draw = draw, seed = seed)
+    drm_effect_contrast(
+      eng,
+      scenarios,
+      to,
+      active = mj,
+      mediation = med,
+      B = B,
+      n_sim = if (identical(med, "mean")) 1L else n_sim,
+      draw = draw,
+      seed = seed
+    )
   }
-  cde <- drm_effect_contrast(engines, scenarios, to, active = character(0),
-                             mediation = "mean", B = B, n_sim = 1L,
-                             draw = draw, seed = seed)
-  full <- ctr(engines, "distribution")        # T_dist({Mj})
-  mean_channel <- ctr(engines, "mean") - cde   # Mj's mean channel
+  cde <- drm_effect_contrast(
+    engines,
+    scenarios,
+    to,
+    active = character(0),
+    mediation = "mean",
+    B = B,
+    n_sim = 1L,
+    draw = draw,
+    seed = seed
+  )
+  full <- ctr(engines, "distribution") # T_dist({Mj})
+  mean_channel <- ctr(engines, "mean") - cde # Mj's mean channel
   inclusion <- full - cde
   comps <- setdiff(engines[[mj]]$components, "mu")
-  channels <- stats::setNames(lapply(comps, function(cc) {
-    frozen <- drm_effect_contrast(drm_freeze_engine(engines, mj, cc, scenarios$lo),
-                                  scenarios, to, active = mj, mediation = "distribution",
-                                  B = B, n_sim = n_sim, draw = draw, seed = seed)
-    full - frozen
-  }), comps)
+  channels <- stats::setNames(
+    lapply(comps, function(cc) {
+      frozen <- drm_effect_contrast(
+        drm_freeze_engine(engines, mj, cc, scenarios$lo),
+        scenarios,
+        to,
+        active = mj,
+        mediation = "distribution",
+        B = B,
+        n_sim = n_sim,
+        draw = draw,
+        seed = seed
+      )
+      full - frozen
+    }),
+    comps
+  )
   channel_sum <- if (length(channels)) Reduce(`+`, channels) else 0
   remainder <- inclusion - mean_channel - channel_sum
-  list(inclusion = inclusion, mean = mean_channel,
-       channels = channels, remainder = remainder)
+  list(
+    inclusion = inclusion,
+    mean = mean_channel,
+    channels = channels,
+    remainder = remainder
+  )
 }
 
 # Does the per-mediator natural (cross-world) effect through `mj` have a recanting
@@ -113,10 +178,14 @@ drm_component_contrasts <- function(engines, scenarios, to, mj,
 # identified. Returns TRUE if such a witness exists.
 drm_recanting_witness <- function(object, from, mj, meds) {
   ve <- object$var_edges
-  if (is.null(ve)) ve <- unique(as.data.frame(object$edges)[, c("from", "to")])
+  if (is.null(ve)) {
+    ve <- unique(as.data.frame(object$edges)[, c("from", "to")])
+  }
   for (mi in setdiff(meds, mj)) {
-    if (length(drm_simple_paths(from, mi, ve)) > 0L &&
-        length(drm_simple_paths(mi, mj, ve)) > 0L) {
+    if (
+      length(drm_simple_paths(from, mi, ve)) > 0L &&
+        length(drm_simple_paths(mi, mj, ve)) > 0L
+    ) {
       return(TRUE)
     }
   }
@@ -170,6 +239,16 @@ drm_recanting_witness <- function(object, from, mj, meds) {
 #'   a descendant of `from` and an ancestor of this one) makes the natural
 #'   path-specific effect non-identified. `by` is ignored when `effect = "natural"`.
 #' @seealso [indirect_effects()], [total_effects()].
+#' @references
+#' \insertRef{Pearl2001}{drmSEM}
+#'
+#' \insertRef{Pearl2009}{drmSEM}
+#'
+#' \insertRef{Avin2005}{drmSEM}
+#'
+#' \insertRef{Imai2010}{drmSEM}
+#'
+#' \insertRef{VanderWeele2015}{drmSEM}
 #' @examples
 #' \dontrun{
 #' # per-mediator attribution of temp's indirect effect on survival
@@ -178,26 +257,46 @@ drm_recanting_witness <- function(object, from, mj, meds) {
 #' path_effects(sem, from = "temp", to = "survival", by = "component")
 #' }
 #' @export
-path_effects <- function(object, from, to, through = NULL,
-                         by = c("mediator", "component"),
-                         effect = c("controlled", "natural"),
-                         at = NULL, B = 200L,
-                         uncertainty = NULL, nsim = NULL, population = NULL,
-                         level = 0.95, seed = NULL,
-                         draw = NULL, n_sim = NULL, ...) {
+path_effects <- function(
+  object,
+  from,
+  to,
+  through = NULL,
+  by = c("mediator", "component"),
+  effect = c("controlled", "natural"),
+  at = NULL,
+  B = 200L,
+  uncertainty = NULL,
+  nsim = NULL,
+  population = NULL,
+  level = 0.95,
+  seed = NULL,
+  draw = NULL,
+  n_sim = NULL,
+  ...
+) {
   by <- match.arg(by)
   effect <- match.arg(effect)
   drm_validate_effect_args(object, from, to)
   drm_block_feedback_decomp(object, "path_effects")
-  ctl <- drm_effect_controls(uncertainty, nsim, population, draw, n_sim,
-                             default_draw = TRUE, default_nsim = 50L)
+  ctl <- drm_effect_controls(
+    uncertainty,
+    nsim,
+    population,
+    draw,
+    n_sim,
+    default_draw = TRUE,
+    default_nsim = 50L
+  )
   drm_require_drmTMB()
   engines <- drm_engines_from_sem(object)
   scen <- drm_build_scenarios(object, from, at)
   all_med <- setdiff(object$endogenous, c(from, to))
   meds <- if (is.null(through)) all_med else intersect(through, all_med)
   if (length(meds) == 0L) {
-    cli::cli_abort("No mediators between {.val {from}} and {.val {to}} to attribute over.")
+    cli::cli_abort(
+      "No mediators between {.val {from}} and {.val {to}} to attribute over."
+    )
   }
 
   add_row <- function(rows, med, estimand, v, identified = NA) {
@@ -213,7 +312,9 @@ path_effects <- function(object, from, to, through = NULL,
     # per-mediator cross-world natural indirect effect (the `nie` leg when only
     # Mj is set to its counterfactual world), flagged unidentified under a
     # recanting witness. Reuses the validated drm_natural_target kernel.
-    if (!is.null(seed)) set.seed(seed)
+    if (!is.null(seed)) {
+      set.seed(seed)
+    }
     reps <- if (isTRUE(ctl$draw)) B else 1L
     rows <- list()
     for (mj in meds) {
@@ -221,39 +322,81 @@ path_effects <- function(object, from, to, through = NULL,
       for (bi in seq_len(reps)) {
         beta_list <- lapply(engines, drm_draw_beta, draw = ctl$draw)
         names(beta_list) <- names(engines)
-        vals[[bi]] <- drm_natural_target(engines, scen, scen$column, to,
-                                         active = mj, mediation = "distribution",
-                                         beta_list = beta_list,
-                                         n_sim = ctl$n_sim)[["nie"]]
+        vals[[bi]] <- drm_natural_target(
+          engines,
+          scen,
+          scen$column,
+          to,
+          active = mj,
+          mediation = "distribution",
+          beta_list = beta_list,
+          n_sim = ctl$n_sim
+        )[["nie"]]
       }
-      rows <- add_row(rows, mj, "natural_indirect", vals,
-                      identified = !drm_recanting_witness(object, from, mj, meds))
+      rows <- add_row(
+        rows,
+        mj,
+        "natural_indirect",
+        vals,
+        identified = !drm_recanting_witness(object, from, mj, meds)
+      )
     }
   } else {
-    pc <- drm_path_contrasts(engines, scen, to, meds, mediation = "distribution",
-                             B = B, n_sim = ctl$n_sim, draw = ctl$draw, seed = seed)
+    pc <- drm_path_contrasts(
+      engines,
+      scen,
+      to,
+      meds,
+      mediation = "distribution",
+      B = B,
+      n_sim = ctl$n_sim,
+      draw = ctl$draw,
+      seed = seed
+    )
     rows <- add_row(list(), NA_character_, "total_indirect", pc$total_indirect)
     if (identical(by, "mediator")) {
       for (mj in meds) {
         rows <- add_row(rows, mj, "inclusion", pc$inclusion[[mj]])
         rows <- add_row(rows, mj, "exclusion", pc$exclusion[[mj]])
       }
-      rows <- add_row(rows, NA_character_, "interaction_remainder", pc$remainder)
+      rows <- add_row(
+        rows,
+        NA_character_,
+        "interaction_remainder",
+        pc$remainder
+      )
     } else {
       for (mj in meds) {
-        cc <- drm_component_contrasts(engines, scen, to, mj, B = B,
-                                      n_sim = ctl$n_sim, draw = ctl$draw, seed = seed)
+        cc <- drm_component_contrasts(
+          engines,
+          scen,
+          to,
+          mj,
+          B = B,
+          n_sim = ctl$n_sim,
+          draw = ctl$draw,
+          seed = seed
+        )
         rows <- add_row(rows, mj, "mean_channel", cc$mean)
         for (comp in names(cc$channels)) {
-          rows <- add_row(rows, mj, paste0(comp, "_channel"), cc$channels[[comp]])
+          rows <- add_row(
+            rows,
+            mj,
+            paste0(comp, "_channel"),
+            cc$channels[[comp]]
+          )
         }
         rows <- add_row(rows, mj, "component_remainder", cc$remainder)
       }
     }
   }
   out <- cbind(
-    data.frame(from = from, to = to, through = paste(meds, collapse = ", "),
-               stringsAsFactors = FALSE),
+    data.frame(
+      from = from,
+      to = to,
+      through = paste(meds, collapse = ", "),
+      stringsAsFactors = FALSE
+    ),
     do.call(rbind, rows)
   )
   rownames(out) <- NULL

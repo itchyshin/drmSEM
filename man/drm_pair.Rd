@@ -69,6 +69,13 @@ pair
 rho12(pair)      # declared residual edge (estimate NA -> needs a joint fit)
 corpairs(pair)   # declared higher-level edge at the shared `id` level
 }
+\references{
+\insertRef{Shipley2016}{drmSEM}
+
+\insertRef{Bollen1989}{drmSEM}
+
+\insertRef{Brooks2017}{drmSEM}
+}
 \seealso{
 \code{\link[=covary]{covary()}}, \code{\link[=rho12]{rho12()}}, \code{\link[=corpairs]{corpairs()}}, \code{\link[=drm_node]{drm_node()}},
 \code{\link[=drm_expand_pair]{drm_expand_pair()}}.

@@ -30,6 +30,11 @@ drm_dag(size ~ temp, fitness ~ size + temp)
 drm_dag(drmTMB::bf(size ~ temp, sigma ~ temp), fitness ~ size)
 }
 }
+\references{
+\insertRef{vanderBijl2018}{drmSEM}
+
+\insertRef{Lefcheck2016}{drmSEM}
+}
 \seealso{
 \code{\link[=drm_model_set]{drm_model_set()}}, \code{\link[=compare]{compare()}}.
 }

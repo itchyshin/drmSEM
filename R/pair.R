@@ -31,7 +31,9 @@ NULL
 # else the first variable (e.g. cbind(succ, fail) -> "succ"). Pure base R.
 drm_formula_response <- function(f) {
   if (!inherits(f, "formula") || length(f) != 3L) {
-    cli::cli_abort("Each pair member must be a two-sided formula (e.g. {.code y ~ x}).")
+    cli::cli_abort(
+      "Each pair member must be a two-sided formula (e.g. {.code y ~ x})."
+    )
   }
   lhs <- f[[2L]]
   if (is.symbol(lhs)) {
@@ -39,7 +41,9 @@ drm_formula_response <- function(f) {
   }
   v <- all.vars(lhs)
   if (length(v) == 0L) {
-    cli::cli_abort("Could not read a response variable from {.code {deparse(f)}}.")
+    cli::cli_abort(
+      "Could not read a response variable from {.code {deparse(f)}}."
+    )
   }
   v[[1L]]
 }
@@ -51,18 +55,24 @@ drm_formula_groups <- function(f) {
   rhs <- if (length(f) == 3L) f[[3L]] else f[[2L]]
   groups <- character(0)
   collect <- function(expr) {
-    if (!is.call(expr)) return(invisible())
+    if (!is.call(expr)) {
+      return(invisible())
+    }
     if (identical(expr[[1L]], as.name("(")) && length(expr) >= 2L) {
       inner <- expr[[2L]]
-      if (is.call(inner) &&
+      if (
+        is.call(inner) &&
           (identical(inner[[1L]], as.name("|")) ||
-           identical(inner[[1L]], as.name("||")))) {
+            identical(inner[[1L]], as.name("||")))
+      ) {
         grp <- inner[[length(inner)]]
         groups <<- c(groups, all.vars(grp))
         return(invisible())
       }
     }
-    for (i in seq_along(expr)[-1L]) collect(expr[[i]])
+    for (i in seq_along(expr)[-1L]) {
+      collect(expr[[i]])
+    }
   }
   collect(rhs)
   unique(groups)
@@ -106,6 +116,12 @@ drm_formula_groups <- function(f) {
 #' @return A `drm_pair` declaration object.
 #' @seealso [covary()], [rho12()], [corpairs()], [drm_node()],
 #'   [drm_expand_pair()].
+#' @references
+#' \insertRef{Shipley2016}{drmSEM}
+#'
+#' \insertRef{Bollen1989}{drmSEM}
+#'
+#' \insertRef{Brooks2017}{drmSEM}
 #' @examples
 #' # A bivariate node: two responses sharing an `id` grouping, with the residual
 #' # correlation itself modelled as a function of `x`.
@@ -118,17 +134,27 @@ drm_formula_groups <- function(f) {
 #' rho12(pair)      # declared residual edge (estimate NA -> needs a joint fit)
 #' corpairs(pair)   # declared higher-level edge at the shared `id` level
 #' @export
-drm_pair <- function(formula1, formula2, rho12 = NULL,
-                     family = stats::gaussian(), family2 = family,
-                     level = NULL, names = NULL) {
+drm_pair <- function(
+  formula1,
+  formula2,
+  rho12 = NULL,
+  family = stats::gaussian(),
+  family2 = family,
+  level = NULL,
+  names = NULL
+) {
   if (!inherits(formula1, "formula") || !inherits(formula2, "formula")) {
     cli::cli_abort("{.arg formula1} and {.arg formula2} must both be formulas.")
   }
   y1 <- drm_formula_response(formula1)
   y2 <- drm_formula_response(formula2)
   if (!is.null(names)) {
-    if (!is.character(names) || length(names) != 2L || anyNA(names) ||
-        !all(nzchar(names))) {
+    if (
+      !is.character(names) ||
+        length(names) != 2L ||
+        anyNA(names) ||
+        !all(nzchar(names))
+    ) {
       cli::cli_abort("{.arg names} must be two non-empty node names.")
     }
     y1 <- names[[1L]]
@@ -146,7 +172,9 @@ drm_pair <- function(formula1, formula2, rho12 = NULL,
   rho_preds <- character(0)
   if (!is.null(rho12)) {
     if (!inherits(rho12, "formula")) {
-      cli::cli_abort("{.arg rho12} must be a one-sided formula (e.g. {.code ~ x}) or {.code NULL}.")
+      cli::cli_abort(
+        "{.arg rho12} must be a one-sided formula (e.g. {.code ~ x}) or {.code NULL}."
+      )
     }
     rhs <- if (length(rho12) == 3L) rho12[[3L]] else rho12[[2L]]
     rho_preds <- drm_fixed_predictors(rhs)
@@ -154,14 +182,19 @@ drm_pair <- function(formula1, formula2, rho12 = NULL,
 
   # Higher-level (corpair) level: auto-detect shared grouping, or honour the
   # explicit `level` (NA suppresses).
-  shared <- intersect(drm_formula_groups(formula1), drm_formula_groups(formula2))
+  shared <- intersect(
+    drm_formula_groups(formula1),
+    drm_formula_groups(formula2)
+  )
   if (is.null(level)) {
     corpair_levels <- shared
   } else if (length(level) == 1L && is.na(level)) {
     corpair_levels <- character(0)
   } else {
     if (!is.character(level) || anyNA(level) || !all(nzchar(level))) {
-      cli::cli_abort("{.arg level} must be {.code NULL}, {.code NA}, or grouping name(s).")
+      cli::cli_abort(
+        "{.arg level} must be {.code NULL}, {.code NA}, or grouping name(s)."
+      )
     }
     missing_lv <- setdiff(level, shared)
     if (length(missing_lv) > 0L) {
@@ -174,7 +207,9 @@ drm_pair <- function(formula1, formula2, rho12 = NULL,
   }
 
   residual <- covary(y1, y2)
-  corpairs_decl <- lapply(corpair_levels, function(lv) covary(y1, y2, level = lv))
+  corpairs_decl <- lapply(corpair_levels, function(lv) {
+    covary(y1, y2, level = lv)
+  })
 
   out <- list(
     responses = c(y1, y2),
@@ -195,7 +230,9 @@ drm_pair <- function(formula1, formula2, rho12 = NULL,
 
 #' @export
 print.drm_pair <- function(x, ...) {
-  cli::cli_h3("<drm_pair> bivariate node {.val {x$responses[[1L]]}} & {.val {x$responses[[2L]]}}")
+  cli::cli_h3(
+    "<drm_pair> bivariate node {.val {x$responses[[1L]]}} & {.val {x$responses[[2L]]}}"
+  )
   fam1 <- drm_family_name(x$families[[1L]])
   fam2 <- drm_family_name(x$families[[2L]])
   f1 <- paste(deparse(x$formulas[[1L]]), collapse = " ")
@@ -203,14 +240,22 @@ print.drm_pair <- function(x, ...) {
   cli::cli_text("{.strong {x$responses[[1L]]}} [{fam1}]: {.code {f1}}")
   cli::cli_text("{.strong {x$responses[[2L]]}} [{fam2}]: {.code {f2}}")
   if (x$rho12$constant) {
-    cli::cli_text("residual correlation: rho12({x$responses[[1L]]}, {x$responses[[2L]]}) [constant]")
+    cli::cli_text(
+      "residual correlation: rho12({x$responses[[1L]]}, {x$responses[[2L]]}) [constant]"
+    )
   } else {
-    cli::cli_text("residual correlation: rho12 ~ {paste(x$rho12$predictors, collapse = ' + ')} [directed path into rho12]")
+    cli::cli_text(
+      "residual correlation: rho12 ~ {paste(x$rho12$predictors, collapse = ' + ')} [directed path into rho12]"
+    )
   }
   if (length(x$levels) > 0L) {
-    cli::cli_text("higher-level correlation: corpair at {length(x$levels)} level{?s} ({.val {x$levels}})")
+    cli::cli_text(
+      "higher-level correlation: corpair at {length(x$levels)} level{?s} ({.val {x$levels}})"
+    )
   }
-  cli::cli_text(cli::col_grey("estimates: NA (declared; joint bivariate fit is the 0.4 engine step)"))
+  cli::cli_text(cli::col_grey(
+    "estimates: NA (declared; joint bivariate fit is the 0.4 engine step)"
+  ))
   invisible(x)
 }
 
@@ -293,6 +338,12 @@ drm_rho12_note <- function() {
 #' @return A `drm_rho12` data frame: `y1`, `y2`, `predictors` (of `rho12 ~ x`, or
 #'   `""`), `constant`, `estimate`.
 #' @seealso [corpairs()], [covary()], [covariances()], [drm_pair()].
+#' @references
+#' \insertRef{Shipley2016}{drmSEM}
+#'
+#' \insertRef{Bollen1989}{drmSEM}
+#'
+#' \insertRef{Brooks2017}{drmSEM}
 #' @examples
 #' rho12(drm_pair(activity ~ x, boldness ~ x, rho12 = ~ x))
 #' @export
@@ -320,10 +371,16 @@ rho12.drm_sem <- function(object, ...) {
   cv <- object$covariances
   if (is.null(cv) || nrow(cv) == 0L) {
     return(structure(
-      data.frame(y1 = character(0), y2 = character(0), predictors = character(0),
-                 constant = logical(0), estimate = numeric(0),
-                 stringsAsFactors = FALSE),
-      class = c("drm_rho12", "data.frame"), note = drm_rho12_note()
+      data.frame(
+        y1 = character(0),
+        y2 = character(0),
+        predictors = character(0),
+        constant = logical(0),
+        estimate = numeric(0),
+        stringsAsFactors = FALSE
+      ),
+      class = c("drm_rho12", "data.frame"),
+      note = drm_rho12_note()
     ))
   }
   res <- cv[cv$class == "residual", c("y1", "y2"), drop = FALSE]
@@ -331,16 +388,24 @@ rho12.drm_sem <- function(object, ...) {
   # $edges with component == "rho12"; surface their predictors per response pair.
   edges <- object$edges
   preds_for <- function(y1, y2) {
-    if (is.null(edges) || nrow(edges) == 0L || is.null(edges$component)) return("")
+    if (is.null(edges) || nrow(edges) == 0L || is.null(edges$component)) {
+      return("")
+    }
     hit <- edges$component == "rho12" & edges$to %in% c(y1, y2)
     paste(unique(edges$term[hit]), collapse = " + ")
   }
-  preds <- if (nrow(res) == 0L) character(0) else {
-    vapply(seq_len(nrow(res)), function(i) preds_for(res$y1[[i]], res$y2[[i]]),
-           character(1))
+  preds <- if (nrow(res) == 0L) {
+    character(0)
+  } else {
+    vapply(
+      seq_len(nrow(res)),
+      function(i) preds_for(res$y1[[i]], res$y2[[i]]),
+      character(1)
+    )
   }
   out <- data.frame(
-    y1 = res$y1, y2 = res$y2,
+    y1 = res$y1,
+    y2 = res$y2,
     predictors = preds,
     constant = nchar(preds) == 0L,
     estimate = NA_real_,
@@ -359,7 +424,9 @@ print.drm_rho12 <- function(x, ...) {
   cli::cli_text("<residual correlation (rho12): {nrow(x)} edge{?s}>")
   print.data.frame(as.data.frame(x), row.names = FALSE)
   note <- attr(x, "note")
-  if (!is.null(note)) cli::cli_text(cli::col_grey(note))
+  if (!is.null(note)) {
+    cli::cli_text(cli::col_grey(note))
+  }
   invisible(x)
 }
 
@@ -379,6 +446,10 @@ print.drm_rho12 <- function(x, ...) {
 #' @param ... Unused.
 #' @return A `drm_corpairs` data frame: `level`, `y1`, `y2`, `estimate`.
 #' @seealso [rho12()], [covary()], [covariances()], [drm_pair()].
+#' @references
+#' \insertRef{Bollen1989}{drmSEM}
+#'
+#' \insertRef{Brooks2017}{drmSEM}
 #' @examples
 #' corpairs(drm_pair(activity ~ x + (1 | id), boldness ~ x + (1 | id)))
 #' @export
@@ -390,17 +461,33 @@ corpairs <- function(object, ...) {
 #' @export
 corpairs.drm_pair <- function(object, ...) {
   if (length(object$corpairs) == 0L) {
-    out <- data.frame(level = character(0), y1 = character(0),
-                      y2 = character(0), estimate = numeric(0),
-                      stringsAsFactors = FALSE)
+    out <- data.frame(
+      level = character(0),
+      y1 = character(0),
+      y2 = character(0),
+      estimate = numeric(0),
+      stringsAsFactors = FALSE
+    )
   } else {
-    out <- do.call(rbind, lapply(object$corpairs, function(cv) {
-      data.frame(level = cv$level, y1 = cv$y1, y2 = cv$y2,
-                 estimate = NA_real_, stringsAsFactors = FALSE)
-    }))
+    out <- do.call(
+      rbind,
+      lapply(object$corpairs, function(cv) {
+        data.frame(
+          level = cv$level,
+          y1 = cv$y1,
+          y2 = cv$y2,
+          estimate = NA_real_,
+          stringsAsFactors = FALSE
+        )
+      })
+    )
   }
   rownames(out) <- NULL
-  structure(out, class = c("drm_corpairs", "data.frame"), note = drm_rho12_note())
+  structure(
+    out,
+    class = c("drm_corpairs", "data.frame"),
+    note = drm_rho12_note()
+  )
 }
 
 #' @rdname corpairs
@@ -412,10 +499,19 @@ corpairs.drm_sem <- function(object, ...) {
   } else {
     hl <- cv[cv$class == "higher_level", c("level", "y1", "y2"), drop = FALSE]
   }
-  out <- data.frame(level = hl$level, y1 = hl$y1, y2 = hl$y2,
-                    estimate = NA_real_, stringsAsFactors = FALSE)
+  out <- data.frame(
+    level = hl$level,
+    y1 = hl$y1,
+    y2 = hl$y2,
+    estimate = NA_real_,
+    stringsAsFactors = FALSE
+  )
   rownames(out) <- NULL
-  structure(out, class = c("drm_corpairs", "data.frame"), note = drm_rho12_note())
+  structure(
+    out,
+    class = c("drm_corpairs", "data.frame"),
+    note = drm_rho12_note()
+  )
 }
 
 #' @export
@@ -427,6 +523,8 @@ print.drm_corpairs <- function(x, ...) {
   cli::cli_text("<higher-level correlation (corpair): {nrow(x)} edge{?s}>")
   print.data.frame(as.data.frame(x), row.names = FALSE)
   note <- attr(x, "note")
-  if (!is.null(note)) cli::cli_text(cli::col_grey(note))
+  if (!is.null(note)) {
+    cli::cli_text(cli::col_grey(note))
+  }
   invisible(x)
 }

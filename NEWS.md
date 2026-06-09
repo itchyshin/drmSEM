@@ -1,3 +1,32 @@
+# drmSEM (development version)
+
+## Documentation: rigorous referencing audit
+
+* Added structured `@references` blocks (Rdpack `\insertRef{}`) to every
+  user-facing help page (`?dsep`, `?fisher_c`, `?direct_effects`,
+  `?indirect_effects`, `?total_effects`, `?path_effects`, `?compare`,
+  `?drm_sem`, `?drm_psem`, `?drm_node`, `?covary`, `?drm_pair`, `?drm_cycle`,
+  `?drm_composite`, `?drm_phylo_cov`, `?as_lavaan`, `?standardize`, ...) so
+  every borrowed concept is attributed at the point of use.
+* All 12 vignettes now carry `bibliography: ../inst/REFERENCES.bib` and
+  `link-citations: true`; inline mentions ("Pearl", "Imai", "VanderWeele",
+  "Shipley", "Lefcheck", "Felsenstein", "Pagel", "Hansen") have been
+  converted to `[@Key]` citations. Each vignette ends with a `## References`
+  section, rendered by Pandoc.
+* New `inst/REFERENCES.bib` and an expanded `paper.bib` carry the canonical
+  sources for piecewise SEM, d-separation, counterfactual mediation,
+  distributional regression, phylogenetic comparative methods, information
+  criteria, and simulation methodology. `DESCRIPTION` now imports `Rdpack`
+  with `RdMacros: Rdpack` so `\insertRef{}` resolves at install time.
+* The three `drmSEM` constructions built on the cited foundations — the
+  **any-component d-separation test**, the **distribution-mediated effect
+  row**, and the BIC-style **CBIC** information criterion — are explicitly
+  flagged as package-specific contributions (with the underlying components
+  cited) in `?compare`, `?dsep`, `?indirect_effects`,
+  `vignette("model-selection")`, and `vignette("effect-decomposition")`.
+* `README.md` gains a "Methodological background" section listing the
+  canonical entry points and pointing to `inst/REFERENCES.bib`.
+
 # drmSEM 0.5.0
 
 This release closes the **cyclic / feedback-graph milestone** (roadmap §0.5) and

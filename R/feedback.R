@@ -43,14 +43,24 @@ NULL
 #' @param ... Two or more node names (strings) forming the feedback motif.
 #' @return A `drm_cycle` declaration object.
 #' @seealso [cycles()], [drm_sem()].
+#' @references
+#' \insertRef{Bollen1996}{drmSEM}
+#'
+#' \insertRef{ForreMooij2017}{drmSEM}
+#'
+#' \insertRef{Bollen1989}{drmSEM}
 #' @examples
 #' drm_cycle("activity", "boldness")   # a reciprocal pair activity <-> boldness
 #' @export
 drm_cycle <- function(...) {
   nodes <- list(...)
-  ok <- vapply(nodes, function(v) {
-    is.character(v) && length(v) == 1L && !is.na(v) && nzchar(v)
-  }, logical(1))
+  ok <- vapply(
+    nodes,
+    function(v) {
+      is.character(v) && length(v) == 1L && !is.na(v) && nzchar(v)
+    },
+    logical(1)
+  )
   if (length(nodes) == 0L || !all(ok)) {
     cli::cli_abort(c(
       "{.fn drm_cycle} takes node names as strings.",
@@ -87,8 +97,10 @@ drm_build_feedback <- function(feedback, records) {
   if (inherits(feedback, "drm_cycle")) {
     feedback <- list(feedback)
   }
-  if (!is.list(feedback) ||
-      !all(vapply(feedback, inherits, logical(1), what = "drm_cycle"))) {
+  if (
+    !is.list(feedback) ||
+      !all(vapply(feedback, inherits, logical(1), what = "drm_cycle"))
+  ) {
     cli::cli_abort(c(
       "{.arg feedback} must be {.fn drm_cycle} declaration(s).",
       "i" = "Use {.code feedback = drm_cycle(\"y1\", \"y2\")} or a list of them."
@@ -104,7 +116,9 @@ drm_build_feedback <- function(feedback, records) {
   for (i in seq_along(feedback)) {
     ns <- unique(vapply(feedback[[i]]$nodes, resolve, character(1)))
     if (length(ns) < 2L) {
-      cli::cli_abort("{.fn drm_cycle}: motif {i} resolves to fewer than two distinct nodes.")
+      cli::cli_abort(
+        "{.fn drm_cycle}: motif {i} resolves to fewer than two distinct nodes."
+      )
     }
     rows[[i]] <- data.frame(motif = i, node = ns, stringsAsFactors = FALSE)
   }
@@ -115,7 +129,9 @@ drm_build_feedback <- function(feedback, records) {
 
 # Motifs (list of node-sets) from a feedback table.
 drm_motifs_from_table <- function(fb) {
-  if (is.null(fb) || nrow(fb) == 0L) return(list())
+  if (is.null(fb) || nrow(fb) == 0L) {
+    return(list())
+  }
   unname(split(fb$node, fb$motif))
 }
 
@@ -127,7 +143,9 @@ drm_feedback_motifs <- function(object) {
 # All nodes participating in any declared feedback motif.
 drm_feedback_nodes <- function(object) {
   fb <- object$feedback
-  if (is.null(fb) || nrow(fb) == 0L) return(character(0))
+  if (is.null(fb) || nrow(fb) == 0L) {
+    return(character(0))
+  }
   unique(fb$node)
 }
 
@@ -137,7 +155,9 @@ drm_feedback_pairs <- function(object) {
   motifs <- drm_feedback_motifs(object)
   keys <- character(0)
   for (ns in motifs) {
-    if (length(ns) < 2L) next
+    if (length(ns) < 2L) {
+      next
+    }
     for (i in seq_len(length(ns) - 1L)) {
       for (j in seq(i + 1L, length(ns))) {
         keys <- c(keys, paste(min(ns[i], ns[j]), max(ns[i], ns[j]), sep = "\r"))
@@ -157,6 +177,10 @@ drm_feedback_pairs <- function(object) {
 #' @param ... Unused.
 #' @return A `drm_cycles` data frame with columns `motif` and `node`.
 #' @seealso [drm_cycle()].
+#' @references
+#' \insertRef{Bollen1996}{drmSEM}
+#'
+#' \insertRef{ForreMooij2017}{drmSEM}
 #' @examples
 #' \dontrun{
 #' sem <- drm_psem(activity = a_fit, boldness = b_fit, data = dat,
@@ -172,7 +196,9 @@ cycles <- function(object, ...) {
 #' @export
 cycles.drm_sem <- function(object, ...) {
   fb <- object$feedback
-  if (is.null(fb)) fb <- drm_empty_feedback()
+  if (is.null(fb)) {
+    fb <- drm_empty_feedback()
+  }
   class(fb) <- c("drm_cycles", "data.frame")
   fb
 }
@@ -203,14 +229,21 @@ drm_toposort_feedback <- function(nodes, edges, motifs) {
   rep_of <- stats::setNames(nodes, nodes)
   for (ms in motifs) {
     ms <- intersect(ms, nodes)
-    if (length(ms) < 1L) next
+    if (length(ms) < 1L) {
+      next
+    }
     r <- ms[[1L]]
-    for (n in ms) rep_of[[n]] <- r
+    for (n in ms) {
+      rep_of[[n]] <- r
+    }
   }
   cond_nodes <- unique(unname(rep_of[nodes]))
   if (nrow(edges) == 0L) {
-    cond_edges <- data.frame(from = character(0), to = character(0),
-                             stringsAsFactors = FALSE)
+    cond_edges <- data.frame(
+      from = character(0),
+      to = character(0),
+      stringsAsFactors = FALSE
+    )
   } else {
     cf <- unname(rep_of[as.character(edges$from)])
     ct <- unname(rep_of[as.character(edges$to)])
@@ -245,8 +278,14 @@ drm_toposort_feedback <- function(nodes, edges, motifs) {
 # Distributional feedback equilibria (sampling inside the loop) are deferred:
 # the fixed point is defined on the deterministic mean map for 0.5.0.
 # ---------------------------------------------------------------------------
-propagate_fixedpoint <- function(engines, scenario, active = names(engines),
-                                 beta_list = NULL, max_iter = 100L, tol = 1e-8) {
+propagate_fixedpoint <- function(
+  engines,
+  scenario,
+  active = names(engines),
+  beta_list = NULL,
+  max_iter = 100L,
+  tol = 1e-8
+) {
   work <- as.data.frame(scenario)
   # Seed each active node's working column so a cyclic parent reference resolves
   # on the first pass.
@@ -270,8 +309,12 @@ propagate_fixedpoint <- function(engines, scenario, active = names(engines),
       }
     }
     cur <- unlist(node_mean[active], use.names = FALSE)
-    if (!is.null(prev) && length(prev) == length(cur) &&
-        all(is.finite(cur)) && max(abs(cur - prev)) < tol) {
+    if (
+      !is.null(prev) &&
+        length(prev) == length(cur) &&
+        all(is.finite(cur)) &&
+        max(abs(cur - prev)) < tol
+    ) {
       converged <- TRUE
       break
     }
@@ -308,9 +351,19 @@ drm_reduced_form <- function(B, Gamma) {
 # feedback diverges, spectral radius >= 1). Used by total_effects() (0.5.x);
 # the equilibrium is on the deterministic MEAN map, so this is target = "mean"
 # only and the mean/distribution decomposition through a cycle is out of scope.
-drm_equilibrium_contrast <- function(engines, scenarios, to, B, draw, seed = NULL,
-                                     max_iter = 200L, tol = 1e-8) {
-  if (!is.null(seed)) set.seed(seed)
+drm_equilibrium_contrast <- function(
+  engines,
+  scenarios,
+  to,
+  B,
+  draw,
+  seed = NULL,
+  max_iter = 200L,
+  tol = 1e-8
+) {
+  if (!is.null(seed)) {
+    set.seed(seed)
+  }
   reps <- if (isTRUE(draw)) B else 1L
   vals <- numeric(reps)
   ok <- logical(reps)
@@ -318,10 +371,22 @@ drm_equilibrium_contrast <- function(engines, scenarios, to, B, draw, seed = NUL
   for (b in seq_len(reps)) {
     beta_list <- lapply(engines, drm_draw_beta, draw = draw)
     names(beta_list) <- names(engines)
-    hi <- propagate_fixedpoint(engines, scenarios$hi, active = active,
-                               beta_list = beta_list, max_iter = max_iter, tol = tol)
-    lo <- propagate_fixedpoint(engines, scenarios$lo, active = active,
-                               beta_list = beta_list, max_iter = max_iter, tol = tol)
+    hi <- propagate_fixedpoint(
+      engines,
+      scenarios$hi,
+      active = active,
+      beta_list = beta_list,
+      max_iter = max_iter,
+      tol = tol
+    )
+    lo <- propagate_fixedpoint(
+      engines,
+      scenarios$lo,
+      active = active,
+      beta_list = beta_list,
+      max_iter = max_iter,
+      tol = tol
+    )
     ok[[b]] <- isTRUE(hi$converged) && isTRUE(lo$converged)
     vals[[b]] <- mean(hi$mean[[to]] - lo$mean[[to]], na.rm = TRUE)
   }

@@ -1,6 +1,8 @@
 ---
 title: "Covariance edges, composites, and path attribution"
 output: rmarkdown::html_vignette
+bibliography: ../inst/REFERENCES.bib
+link-citations: true
 vignette: >
   %\VignetteIndexEntry{Covariance edges, composites, and path attribution}
   %\VignetteEngine{knitr::rmarkdown}
@@ -30,8 +32,9 @@ DAG of distributional paths:
 
 A directed path says "`X` causes a component of `Y`". A **covariance edge** says
 something different: two responses are *allowed to remain associated* after their
-modelled predictors, with **no direction and no mediated effect**. drmSEM keeps
-the two ideas strictly separate (`docs/design/07-bivariate-covariance-edges.md`).
+modelled predictors, with **no direction and no mediated effect** — the
+bidirected-edge convention of @Bollen1989 and @Shipley2016. drmSEM keeps the
+two ideas strictly separate (`docs/design/07-bivariate-covariance-edges.md`).
 
 There are two kinds, and they answer different biological questions:
 
@@ -75,9 +78,10 @@ dsep(sem)          # the activity _||_ boldness claim is dropped
 
 ## 2. Composite constructs: `drm_composite()` and `loadings()`
 
-A **composite (formative) construct** is a deterministic index built from two or
-more observed indicators *before* fitting — a weighted sum (`method = "fixed"`)
-or the first principal-component score (`method = "pca"`). Once materialized it is
+A **composite (formative) construct** [@BollenLennox1991; @Grace2008] is a
+deterministic index built from two or more observed indicators *before* fitting
+— a weighted sum (`method = "fixed"`) or the first principal-component score
+(`method = "pca"`). Once materialized it is
 an ordinary column, so a node formula can use it as a predictor or response, with
 **no engine change**. `drm_composite()` runs in pure R:
 
@@ -139,3 +143,5 @@ path-specific identification. `path_effects(effect = "natural")` also reports
 the natural per-mediator variant and includes an `identified` flag for the
 recanting-witness check. Live-fit integration and interval reporting remain
 roadmap items; see `docs/design/02-effect-calculus.md`.
+
+## References

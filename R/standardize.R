@@ -11,12 +11,7 @@ NULL
 # the log-link families' theoretical variance is mean-dependent (observation
 # level), not a constant -- that term is deferred (a tracked refinement).
 drm_link_latent_var <- function(link) {
-  switch(link,
-    logit = pi^2 / 3,
-    probit = 1,
-    cloglog = pi^2 / 6,
-    0
-  )
+  switch(link, logit = pi^2 / 3, probit = 1, cloglog = pi^2 / 6, 0)
 }
 
 # Latent-scale standardization divisor for one component's fitted linear
@@ -82,13 +77,13 @@ drm_latent_divisor <- function(eta, component, link) {
 #' @param ... Unused.
 #' @return The [paths()] table with an added `std.estimate` column (link scale).
 #' @references
-#' Grace JB, Bollen KA (2005). Interpreting the results from multiple regression
-#' and structural equation models. *Bull. Ecol. Soc. Am.* 86(4):283-295.
+#' \insertRef{GraceBollen2005}{drmSEM}
 #'
-#' Grace JB et al. (2018). Integrating the causes of biodiversity into structural
-#' equation models. *Ecosphere* (latent-theoretic standardization for GLM
-#' outcomes). Gelman A (2008). Scaling regression inputs by dividing by two
-#' standard deviations. *Stat. Med.* 27:2865-2873.
+#' \insertRef{Grace2008}{drmSEM}
+#'
+#' \insertRef{Grace2018}{drmSEM}
+#'
+#' \insertRef{Gelman2008}{drmSEM}
 #' @examples
 #' \dontrun{
 #' sem <- drm_sem(
@@ -123,7 +118,11 @@ standardize.drm_sem <- function(object, method = c("sd_x", "latent"), ...) {
         if (ncol(X) && length(b)) {
           eta <- as.numeric(X %*% b[colnames(X)])
           link <- drm_nominal_link(rec$family, cc)
-          lp_sd[[paste(nm, cc, sep = "::")]] <- drm_latent_divisor(eta, cc, link)
+          lp_sd[[paste(nm, cc, sep = "::")]] <- drm_latent_divisor(
+            eta,
+            cc,
+            link
+          )
         }
       }
     }

@@ -85,11 +85,11 @@ standardize(sem, method = "latent")
 }
 }
 \references{
-Grace JB, Bollen KA (2005). Interpreting the results from multiple regression
-and structural equation models. \emph{Bull. Ecol. Soc. Am.} 86(4):283-295.
+\insertRef{GraceBollen2005}{drmSEM}
 
-Grace JB et al. (2018). Integrating the causes of biodiversity into structural
-equation models. \emph{Ecosphere} (latent-theoretic standardization for GLM
-outcomes). Gelman A (2008). Scaling regression inputs by dividing by two
-standard deviations. \emph{Stat. Med.} 27:2865-2873.
+\insertRef{Grace2008}{drmSEM}
+
+\insertRef{Grace2018}{drmSEM}
+
+\insertRef{Gelman2008}{drmSEM}
 }

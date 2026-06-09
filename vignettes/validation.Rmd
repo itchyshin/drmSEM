@@ -1,6 +1,8 @@
 ---
 title: "Effect-interval coverage and model-selection recovery"
 output: rmarkdown::html_vignette
+bibliography: ../inst/REFERENCES.bib
+link-citations: true
 vignette: >
   %\VignetteIndexEntry{Effect-interval coverage and model-selection recovery}
   %\VignetteEngine{knitr::rmarkdown}
@@ -198,8 +200,11 @@ knitr::kable(
 Selection rate of the true DAG and mean criterion weight on the truth per
 sample size, with the rate at which the under-fitted (missing-edge) rival is
 wrongly selected. `CBIC` is now the default ranking because it is the
-parsimonious true-DAG recovery criterion. `CICc` remains available as a
-phylopath-style support measure for a small over-fitted candidate set.
+parsimonious true-DAG recovery criterion. `CICc` [@Shipley2013] remains
+available as a `phylopath`-style support measure [@vanderBijl2018] for a small
+over-fitted candidate set; it is an AIC-style criterion and so, as predicted by
+the classical theory [@Schwarz1978; @Burnham2002], does not asymptote to 100%
+true-DAG selection in this grid.
 
 ```{r selection-table, echo = FALSE, eval = !is.null(val)}
 sel_src <- val$model_selection
@@ -260,3 +265,5 @@ if (!is.null(p$c1_generated_at) || !is.null(p$c3_generated_at)) {
   ))
 }
 ```
+
+## References

@@ -1,6 +1,8 @@
 ---
 title: "Latent constructs: composites and reliability"
 output: rmarkdown::html_vignette
+bibliography: ../inst/REFERENCES.bib
+link-citations: true
 vignette: >
   %\VignetteIndexEntry{Latent constructs: composites and reliability}
   %\VignetteEngine{knitr::rmarkdown}
@@ -25,8 +27,8 @@ column *before* fitting, so it can be used as an ordinary predictor or response.
 ## A formative composite
 
 A **formative** construct is *defined* by its indicators (they are causes, not
-effects, of the construct). `drm_composite()` builds it; the helper is pure R and
-runs without the engine:
+effects, of the construct) [@BollenLennox1991; @Grace2008]. `drm_composite()`
+builds it; the helper is pure R and runs without the engine:
 
 ```{r formative, eval = TRUE}
 dat <- data.frame(
@@ -53,7 +55,8 @@ loadings(sem)
 ## A reflective-flavoured composite, and construct quality
 
 When the indicators are thought to be *effects* of one underlying dimension
-(reflective), the first principal component approximates that common factor.
+(reflective) [@Bollen1989; @Rosseel2012], the first principal component
+approximates that common factor.
 `method = "pca"` records the PC1 loadings and the proportion of variance it
 captures, and every composite reports its **reliability** (Cronbach's alpha — the
 internal consistency of the indicator set):
@@ -101,3 +104,5 @@ multivariate** work (or lavaan interop), and drmSEM does not pretend a composite
 is it. A composite is an *observed* index with transparent, recorded weights; use
 it when that is what you mean, and reach for a joint factor model when you need
 the latent estimated.
+
+## References

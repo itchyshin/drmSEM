@@ -26,6 +26,13 @@ p-value means X carries information about some component of Y beyond Y's
 parents, i.e. a missing arrow.
 }
 \details{
+This is the local-likelihood d-separation test of Shipley (2000, 2009),
+extended in \code{drmSEM} from a mean-only test to an \strong{any-component} test (the
+claim that X is irrelevant to \emph{every} modelled distributional parameter of
+Y). This any-component extension is a \code{drmSEM} construction; it has been
+calibrated against the family-grid data-generating processes in
+\verb{inst/calibration/}.
+
 Requires nodes fitted so that refits converge (the declarative \code{\link[=drm_sem]{drm_sem()}}
 requests standard errors automatically).
 }
@@ -39,4 +46,13 @@ sem <- drm_sem(
   data = dat)
 dsep(sem)
 }
+}
+\references{
+\insertRef{Shipley2000}{drmSEM}
+
+\insertRef{Shipley2009}{drmSEM}
+
+\insertRef{Lefcheck2016}{drmSEM}
+
+\insertRef{Pearl2009}{drmSEM}
 }

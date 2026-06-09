@@ -33,10 +33,25 @@ drm_order_index <- function(object) {
 #' cycle, and the goodness-of-fit test is scoped to the acyclic part until
 #' sigma-separation lands.
 #'
+#' The any-component reading of an independence claim is a `drmSEM` choice on top
+#' of the local-likelihood d-separation framework of Shipley; the d-separation
+#' graphical criterion itself is due to Pearl, and the bidirected-edge handling
+#' of declared residual correlations follows Shipley's path-analysis treatment.
+#'
 #' @param object A `drm_sem` object.
 #' @param ... Unused.
 #' @return A data frame with columns `claim`, `x`, `y`, `given` (comma-separated
 #'   conditioning set = Y's parents).
+#' @references
+#' \insertRef{Shipley2000}{drmSEM}
+#'
+#' \insertRef{Shipley2009}{drmSEM}
+#'
+#' \insertRef{Shipley2016}{drmSEM}
+#'
+#' \insertRef{Pearl2009}{drmSEM}
+#'
+#' \insertRef{Lefcheck2016}{drmSEM}
 #' @examples
 #' \dontrun{
 #' sem <- drm_sem(
@@ -64,31 +79,53 @@ basis_set.drm_sem <- function(object, ...) {
   # motif (drm_cycle(), 0.5) likewise drops independence claims among its nodes:
   # DAG d-separation does not apply across the cycle (sigma-separation is
   # deferred; docs/design/10-cyclic-feedback.md). Keyed unordered.
-  cov_pairs <- unique(c(drm_covariance_pairs(object), drm_feedback_pairs(object)))
+  cov_pairs <- unique(c(
+    drm_covariance_pairs(object),
+    drm_feedback_pairs(object)
+  ))
   rows <- list()
   for (y in object$order) {
     yi <- ord(y)
     parents_y <- drm_parents(y, edges)
     for (x in all_vars) {
-      if (identical(x, y)) next
-      if (ord(x) > yi) next            # X must be causally no later than Y
-      if (x %in% parents_y) next        # adjacent -> not a missing arrow
-      if (drm_is_parent(y, x, edges)) next
-      if (paste(pmin(x, y), pmax(x, y), sep = "\r") %in% cov_pairs) next
+      if (identical(x, y)) {
+        next
+      }
+      if (ord(x) > yi) {
+        next
+      } # X must be causally no later than Y
+      if (x %in% parents_y) {
+        next
+      } # adjacent -> not a missing arrow
+      if (drm_is_parent(y, x, edges)) {
+        next
+      }
+      if (paste(pmin(x, y), pmax(x, y), sep = "\r") %in% cov_pairs) {
+        next
+      }
       rows[[length(rows) + 1L]] <- data.frame(
-        x = x, y = y,
+        x = x,
+        y = y,
         given = paste(parents_y, collapse = ", "),
         stringsAsFactors = FALSE
       )
     }
   }
   if (length(rows) == 0L) {
-    out <- data.frame(claim = character(0), x = character(0), y = character(0),
-                      given = character(0), stringsAsFactors = FALSE)
+    out <- data.frame(
+      claim = character(0),
+      x = character(0),
+      y = character(0),
+      given = character(0),
+      stringsAsFactors = FALSE
+    )
     return(out)
   }
   out <- do.call(rbind, rows)
-  out <- cbind(claim = paste0(out$x, " _||_ ", out$y, " | {", out$given, "}"), out)
+  out <- cbind(
+    claim = paste0(out$x, " _||_ ", out$y, " | {", out$given, "}"),
+    out
+  )
   rownames(out) <- NULL
   out
 }
@@ -115,6 +152,13 @@ drm_add_column <- function(v, object) {
 #' p-value means X carries information about some component of Y beyond Y's
 #' parents, i.e. a missing arrow.
 #'
+#' This is the local-likelihood d-separation test of Shipley (2000, 2009),
+#' extended in `drmSEM` from a mean-only test to an **any-component** test (the
+#' claim that X is irrelevant to *every* modelled distributional parameter of
+#' Y). This any-component extension is a `drmSEM` construction; it has been
+#' calibrated against the family-grid data-generating processes in
+#' `inst/calibration/`.
+#'
 #' Requires nodes fitted so that refits converge (the declarative [drm_sem()]
 #' requests standard errors automatically).
 #'
@@ -122,6 +166,14 @@ drm_add_column <- function(v, object) {
 #' @param ... Unused.
 #' @return A data frame of claims with `df`, `LR`, and `p.value`, carrying a
 #'   `fisher_c` attribute (see [fisher_c()]).
+#' @references
+#' \insertRef{Shipley2000}{drmSEM}
+#'
+#' \insertRef{Shipley2009}{drmSEM}
+#'
+#' \insertRef{Lefcheck2016}{drmSEM}
+#'
+#' \insertRef{Pearl2009}{drmSEM}
 #' @examples
 #' \dontrun{
 #' sem <- drm_sem(
@@ -145,7 +197,9 @@ dsep.drm_sem <- function(object, ...) {
   if (nrow(bs) == 0L) {
     # Saturated DAG: no independence claims to test. Return an empty, typed
     # result (assigning a scalar column to a 0-row data.frame would error).
-    cli::cli_warn("Basis set is empty: the graph is fully saturated, no claims to test.")
+    cli::cli_warn(
+      "Basis set is empty: the graph is fully saturated, no claims to test."
+    )
     bs$df <- integer(0)
     bs$LR <- numeric(0)
     bs$p.value <- numeric(0)
@@ -204,8 +258,14 @@ drm_fisher_c_from_p <- function(p) {
   C <- -2 * sum(log(p))
   df <- 2L * k
   list(
-    C = C, df = df, k = k,
-    p.value = if (k > 0) stats::pchisq(C, df = df, lower.tail = FALSE) else NA_real_
+    C = C,
+    df = df,
+    k = k,
+    p.value = if (k > 0) {
+      stats::pchisq(C, df = df, lower.tail = FALSE)
+    } else {
+      NA_real_
+    }
   )
 }
 
@@ -216,9 +276,22 @@ drm_fisher_c_from_p <- function(p) {
 #' under the hypothesis that all missing arrows are absent. A small p-value
 #' indicates the DAG omits a needed path.
 #'
+#' This is the Fisher-combined goodness-of-fit test introduced by Shipley (2000)
+#' for path models on directed acyclic graphs and extended to generalized
+#' multilevel models by Shipley (2009); `piecewiseSEM` (Lefcheck 2016) is the
+#' established R implementation. The construction itself is unchanged here; what
+#' differs is that the p-values being combined are the any-component
+#' likelihood-ratio claims of [dsep()] rather than mean-only claims.
+#'
 #' @param object A `drm_sem` object or the result of [dsep()].
 #' @param ... Unused.
 #' @return A one-row data frame with `fisher_c`, `df`, `n_claims`, `p.value`.
+#' @references
+#' \insertRef{Shipley2000}{drmSEM}
+#'
+#' \insertRef{Shipley2009}{drmSEM}
+#'
+#' \insertRef{Lefcheck2016}{drmSEM}
 #' @examples
 #' \dontrun{
 #' sem <- drm_sem(
@@ -245,7 +318,10 @@ fisher_c.drm_sem <- function(object, ...) {
 fisher_c.drm_dsep <- function(object, ...) {
   fc <- attr(object, "fisher_c")
   data.frame(
-    fisher_c = fc$C, df = fc$df, n_claims = fc$k, p.value = fc$p.value,
+    fisher_c = fc$C,
+    df = fc$df,
+    n_claims = fc$k,
+    p.value = fc$p.value,
     stringsAsFactors = FALSE
   )
 }
@@ -255,7 +331,11 @@ print.drm_dsep <- function(x, ...) {
   fc <- attr(x, "fisher_c")
   cli::cli_text("<drmSEM d-separation: {nrow(x)} claim{?s}>")
   print.data.frame(
-    transform(as.data.frame(x), p.value = signif(p.value, 3), LR = round(LR, 3)),
+    transform(
+      as.data.frame(x),
+      p.value = signif(p.value, 3),
+      LR = round(LR, 3)
+    ),
     row.names = FALSE
   )
   if (!is.null(fc) && fc$k > 0) {

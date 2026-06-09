@@ -27,6 +27,68 @@ d-separation, path, and effect-decomposition layer. drmSEM never fits its own
 likelihoods.
 }
 
+\section{Methodological background}{
+
+\code{drmSEM} builds on a number of distinct literatures, all of which are cited
+at the point of use in the individual function help pages and the package
+vignettes. The canonical entry points are:
+\itemize{
+\item Piecewise SEM and local-likelihood d-separation:
+\insertRef{Shipley2000}{drmSEM},
+\insertRef{Shipley2009}{drmSEM},
+\insertRef{Lefcheck2016}{drmSEM}.
+\item d-separation foundation:
+\insertRef{Pearl2009}{drmSEM}.
+\item Counterfactual mediation (direct, indirect, natural, interventional):
+\insertRef{Pearl2001}{drmSEM},
+\insertRef{Imai2010}{drmSEM},
+\insertRef{VanderWeele2015}{drmSEM},
+\insertRef{VanderWeele2014}{drmSEM},
+\insertRef{Vansteelandt2017}{drmSEM}.
+\item Distributional regression:
+\insertRef{Rigby2005}{drmSEM},
+\insertRef{Brooks2017}{drmSEM}.
+\item Phylogenetic comparative covariance:
+\insertRef{Felsenstein1985}{drmSEM},
+\insertRef{Pagel1999}{drmSEM},
+\insertRef{MartinsHansen1997}{drmSEM},
+\insertRef{vanderBijl2018}{drmSEM}.
+\item Model selection on Fisher's C:
+\insertRef{Shipley2013}{drmSEM},
+\insertRef{Schwarz1978}{drmSEM},
+\insertRef{Burnham2002}{drmSEM}.
+}
+Within \code{drmSEM}, the \strong{any-component d-separation} test, the
+\strong{distribution-mediated effect} row, and the BIC-style \strong{CBIC} information
+criterion are package-specific constructions built on these foundations and
+are flagged as such in their respective help pages and vignettes.
+}
+
+\references{
+\insertRef{Shipley2000}{drmSEM}
+
+\insertRef{Shipley2009}{drmSEM}
+
+\insertRef{Shipley2013}{drmSEM}
+
+\insertRef{Lefcheck2016}{drmSEM}
+
+\insertRef{Pearl2001}{drmSEM}
+
+\insertRef{Pearl2009}{drmSEM}
+
+\insertRef{Imai2010}{drmSEM}
+
+\insertRef{VanderWeele2015}{drmSEM}
+
+\insertRef{Rigby2005}{drmSEM}
+
+\insertRef{Brooks2017}{drmSEM}
+
+\insertRef{Felsenstein1985}{drmSEM}
+
+\insertRef{vanderBijl2018}{drmSEM}
+}
 \seealso{
 Useful links:
 \itemize{

@@ -36,8 +36,8 @@ per-model d-separation tables are carried in attributes for
 \code{compare()} fits every candidate \code{\link[=drm_dag]{drm_dag()}} in a \code{\link[=drm_model_set]{drm_model_set()}} with
 \code{\link[=drm_sem]{drm_sem()}} (one node per response, using a per-node or shared \code{family}),
 runs \code{\link[=dsep]{dsep()}}/\code{\link[=fisher_c]{fisher_c()}} on each, and ranks the candidates by an
-information criterion built on Fisher's C. This is drmSEM's analogue of
-phylopath's \code{phylo_path()}.
+information criterion built on Fisher's C. This is \code{drmSEM}'s analogue of
+phylopath's \code{phylo_path()} (van der Bijl 2018).
 }
 \details{
 The default ranking statistic is
@@ -52,6 +52,16 @@ conservative about extra paths. \code{criterion = "CICc"} instead ranks by
 CICc weight is \eqn{\exp(-\tfrac12\,\Delta\mathrm{CICc})}, normalised to sum
 to one. As \eqn{n \to \infty} the correction term tends to \eqn{2k}, so CICc
 reduces to the usual \eqn{C + 2k}.
+
+\strong{Citation and novelty.} \code{CICc} is the C-statistic information criterion of
+Shipley (2013), used as the default in \code{phylopath} (van der Bijl 2018).
+\code{CBIC} is \emph{introduced here} as a BIC-style analogue: it combines Shipley's C
+statistic with the BIC penalty \eqn{k\log(n)} (Schwarz 1978). As far as we
+can find, no published criterion of this exact form has been named or
+defaulted to in the piecewise-SEM / d-separation literature; users who want
+to stay on the established AIC-style ranking should set
+\code{criterion = "CICc"}. Information-criterion weights for multimodel inference
+follow Burnham & Anderson (2002).
 }
 \examples{
 \dontrun{
@@ -66,6 +76,17 @@ cmp
 best(cmp)
 average(cmp)
 }
+}
+\references{
+\insertRef{Shipley2013}{drmSEM}
+
+\insertRef{Schwarz1978}{drmSEM}
+
+\insertRef{Burnham2002}{drmSEM}
+
+\insertRef{vanderBijl2018}{drmSEM}
+
+\insertRef{Lefcheck2016}{drmSEM}
 }
 \seealso{
 \code{\link[=best]{best()}}, \code{\link[=average]{average()}}, \code{\link[=drm_model_set]{drm_model_set()}}.

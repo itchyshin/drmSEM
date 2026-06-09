@@ -26,6 +26,9 @@ models <- drm_model_set(
 models
 }
 }
+\references{
+\insertRef{vanderBijl2018}{drmSEM}
+}
 \seealso{
 \code{\link[=drm_dag]{drm_dag()}}, \code{\link[=compare]{compare()}}, \code{\link[=best]{best()}}, \code{\link[=average]{average()}}.
 }
