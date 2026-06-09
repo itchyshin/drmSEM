@@ -177,19 +177,23 @@ CBIC passed the recovery gate in this grid: it selected the true DAG in 92.7% of
 replicates at `n = 300` and 97.3% at `n = 1000`, and it never selected the
 missing-edge model. CICc also avoided the missing-edge model, but it selected
 the true DAG only 61.0% and 57.3% of the time because the over-fitted rival kept
-substantial support. That is why CBIC is the default.
+substantial support. This is a scoped validation claim: it supports CBIC as the
+default on the tested three-candidate chain, not as a guarantee over arbitrary
+DAG sets or untested families. That is why CBIC is the default.
 
 ## A practical reading rule
 
 Read the comparison table in this order:
 
-1. Check whether any candidate has a poor d-separation result. A model with a
+1. Define the candidate DAGs before ranking them. `compare()` is a confirmatory
+   comparison tool, not a graph-discovery routine.
+2. Check whether any candidate has a poor d-separation result. A model with a
    violated missing-edge claim is usually not a good scientific explanation.
-2. Use CBIC and `wCBIC` to choose the parsimonious candidate.
-3. Inspect CICc as a support sensitivity check. If CICc gives a harmless
+3. Use CBIC and `wCBIC` to choose the parsimonious candidate.
+4. Inspect CICc as a support sensitivity check. If CICc gives a harmless
    over-fitted model non-trivial support, report that as uncertainty about a
    weak extra path, not as evidence that the extra path is needed.
-4. Use `average()` when the substantive paths are more important than the
+5. Use `average()` when the substantive paths are more important than the
    identity of a single top model.
 
 This keeps the workflow honest: CBIC answers the "which DAG should I carry
