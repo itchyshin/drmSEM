@@ -131,9 +131,9 @@ dec <- indirect_effects(sem, "x", "y", uncertainty = "parametric", B = 400)
 A true DAG (`x -> m -> y`, with the direct `x -> y` edge omitted) versus a
 candidate set that includes the truth, an over-fitted rival, and a
 missing-edge rival. Over replicates we record how often [`best()`] returns the
-truth and the mean model weight on it. The default `CICc` criterion is
-phylopath-style and can retain over-fitted rivals; `CBIC` uses a stronger
-BIC-style penalty for extra paths.
+truth and the mean model weight on it. The default `CBIC` criterion uses a
+BIC-style penalty for extra paths; `CICc` is still reported as the
+phylopath-style support criterion and can retain over-fitted rivals.
 
 ```{r design-c3, echo = TRUE, eval = FALSE}
 models <- drm_model_set(
@@ -143,8 +143,8 @@ models <- drm_model_set(
 )
 cmp <- compare(models, data = dat,
                family = list(m = gaussian(), y = gaussian()))
-selected <- cmp$model[which.min(cmp$CICc)]   # best() picks the lowest CICc
-selected_bic <- cmp$model[which.min(cmp$CBIC)] # CBIC is the parsimonious check
+selected <- cmp$model[which.min(cmp$CBIC)]      # best() defaults to CBIC
+selected_cicc <- cmp$model[which.min(cmp$CICc)] # CICc support ranking
 ```
 
 This study code is shown **for transparency only** and is never evaluated when
@@ -197,9 +197,9 @@ knitr::kable(
 
 Selection rate of the true DAG and mean criterion weight on the truth per
 sample size, with the rate at which the under-fitted (missing-edge) rival is
-wrongly selected. `CICc` is the phylopath-style default; `CBIC` is the
-BIC-style criterion used when the target is parsimonious true-DAG recovery
-rather than predictive support for a small over-fitted set.
+wrongly selected. `CBIC` is now the default ranking because it is the
+parsimonious true-DAG recovery criterion. `CICc` remains available as a
+phylopath-style support measure for a small over-fitted candidate set.
 
 ```{r selection-table, echo = FALSE, eval = !is.null(val)}
 sel_src <- val$model_selection

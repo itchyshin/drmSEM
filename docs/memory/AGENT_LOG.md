@@ -1189,3 +1189,11 @@ truth selection 0.9733, mean truth weight 0.8830; missing-edge rate 0 at both
 sample sizes). CICc remained below the true-DAG recovery threshold (`0.6100` and
 `0.5733`), which supports the design distinction that CICc is the default
 support criterion while CBIC is the parsimonious true-DAG recovery check.
+
+## 2026-06-09 — Codex makes CBIC the default comparison criterion
+
+After the C-3 cache showed CBIC passing true-DAG recovery and CICc failing that
+specific recovery claim, switched `compare()` / `best()` / `average()` defaults
+from CICc to CBIC. CICc remains available with `criterion = "CICc"` and is still
+reported in comparison tables and the validation article as the phylopath-style
+support ranking.

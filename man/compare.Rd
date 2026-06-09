@@ -5,9 +5,9 @@
 \alias{compare.drm_model_set}
 \title{Fit and rank a set of candidate causal models}
 \usage{
-compare(object, data, family = NULL, criterion = c("CICc", "CBIC"), ...)
+compare(object, data, family = NULL, criterion = c("CBIC", "CICc"), ...)
 
-\method{compare}{drm_model_set}(object, data, family = NULL, criterion = c("CICc", "CBIC"), ...)
+\method{compare}{drm_model_set}(object, data, family = NULL, criterion = c("CBIC", "CICc"), ...)
 }
 \arguments{
 \item{object}{A \code{drm_model_set}.}
@@ -18,8 +18,8 @@ compare(object, data, family = NULL, criterion = c("CICc", "CBIC"), ...)
 named list of families keyed by node (response) name. \code{NULL} uses the
 \code{\link[=drm_node]{drm_node()}} default (Gaussian) for every node.}
 
-\item{criterion}{Ranking criterion. \code{"CICc"} keeps the phylopath-style
-default; \code{"CBIC"} uses a BIC-style penalty for stronger parsimony.}
+\item{criterion}{Ranking criterion. \code{"CBIC"} is the default BIC-style
+parsimony criterion; \code{"CICc"} gives the phylopath-style support ranking.}
 
 \item{...}{Further arguments passed on to each \code{\link[=drm_sem]{drm_sem()}} fit.}
 }
@@ -41,16 +41,17 @@ phylopath's \code{phylo_path()}.
 }
 \details{
 The default ranking statistic is
-\deqn{\mathrm{CICc} = C + 2k\,\frac{n}{n - k - 1},}
+\deqn{\mathrm{CBIC} = C + k\log(n),}
 where \eqn{C} is Fisher's C statistic from the model's d-separation test,
 \eqn{k} is the number of estimated fixed-effect coefficients across all
 nodes (counted via \code{\link[=paths]{paths()}}), and \eqn{n} is the number of observations.
+CBIC uses a BIC-style penalty and is the default because it is more
+conservative about extra paths. \code{criterion = "CICc"} instead ranks by
+\deqn{\mathrm{CICc} = C + 2k\,\frac{n}{n - k - 1},}
 \eqn{\Delta}CICc is the difference from the best (lowest-CICc) model and the
 CICc weight is \eqn{\exp(-\tfrac12\,\Delta\mathrm{CICc})}, normalised to sum
 to one. As \eqn{n \to \infty} the correction term tends to \eqn{2k}, so CICc
-reduces to the usual \eqn{C + 2k}. \code{criterion = "CBIC"} instead ranks by
-\eqn{\mathrm{CBIC} = C + k\log(n)}, a BIC-style penalty that is more
-conservative about extra paths.
+reduces to the usual \eqn{C + 2k}.
 }
 \examples{
 \dontrun{

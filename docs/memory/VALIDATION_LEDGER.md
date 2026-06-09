@@ -549,6 +549,6 @@ same seed scheme as `inst/validation/generate.R`.
   missing-edge selections. This matches the design decision that over-fitted but
   harmless rivals can retain CICc support.
 
-Status: C-3 true-DAG recovery is **validated for CBIC** on this grid; CICc remains
-the backward-compatible default comparison criterion and is **not** the recovery
-claim.
+Status: C-3 true-DAG recovery is **validated for CBIC** on this grid; CBIC is now
+the default comparison criterion. CICc remains available explicitly and is
+**not** the recovery claim.

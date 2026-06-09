@@ -28,15 +28,17 @@ test_that("drm_add_cicc computes CICc = C + 2k * n/(n-k-1)", {
   names(expected_cbic) <- tab$model
   expect_equal(out$CBIC, unname(expected_cbic[out$model]))
 
-  # The table is sorted ascending by CICc and dCICc is the delta from the min.
-  expect_false(is.unsorted(out$CICc))
+  # The default table is sorted ascending by CBIC; deltas are from each
+  # criterion's minimum.
+  expect_false(is.unsorted(out$CBIC))
+  expect_equal(attr(out, "criterion"), "CBIC")
   expect_equal(min(out$dCICc), 0)
   expect_equal(out$dCICc, out$CICc - min(out$CICc))
   expect_equal(min(out$dCBIC), 0)
   expect_equal(out$dCBIC, out$CBIC - min(out$CBIC))
 })
 
-test_that("Akaike weights sum to 1 and the best model carries the most weight", {
+test_that("criterion weights sum to 1 and the best model carries the most weight", {
   tab <- data.frame(
     model = c("a", "b", "c"),
     fisher_c = c(2, 4, 10),
@@ -47,15 +49,15 @@ test_that("Akaike weights sum to 1 and the best model carries the most weight", 
   out <- drm_add_cicc(tab)
 
   expect_equal(sum(out$weight), 1)
-  expect_equal(out$weight, out$wCICc)
-  # lowest CICc <=> highest weight
-  expect_equal(out$model[which.min(out$CICc)], out$model[which.max(out$weight)])
-  # weights are monotone-decreasing along the (CICc-sorted) table
+  expect_equal(out$weight, out$wCBIC)
+  # lowest CBIC <=> highest weight
+  expect_equal(out$model[which.min(out$CBIC)], out$model[which.max(out$weight)])
+  # weights are monotone-decreasing along the (CBIC-sorted) table
   expect_false(is.unsorted(rev(out$weight)))
-  expect_equal(out$weight, exp(-0.5 * out$dCICc) / sum(exp(-0.5 * out$dCICc)))
+  expect_equal(out$weight, exp(-0.5 * out$dCBIC) / sum(exp(-0.5 * out$dCBIC)))
 })
 
-test_that("CBIC uses a stronger penalty than CICc when requested", {
+test_that("CBIC is the default and CICc remains available when requested", {
   tab <- data.frame(
     model = c("truth", "overfit"),
     fisher_c = c(4, 0),
@@ -65,7 +67,7 @@ test_that("CBIC uses a stronger penalty than CICc when requested", {
   )
 
   cicc <- drm_add_cicc(tab, criterion = "CICc")
-  cbic <- drm_add_cicc(tab, criterion = "CBIC")
+  cbic <- drm_add_cicc(tab)
 
   expect_equal(cicc$model[[which.min(cicc$CICc)]], "overfit")
   expect_equal(cicc$weight, cicc$wCICc)
@@ -108,13 +110,17 @@ test_that("drm_add_cicc handles a non-estimable correction (n - k - 1 <= 0)", {
     n = c(10L, 10L),
     stringsAsFactors = FALSE
   )
-  out <- drm_add_cicc(tab)
+  out <- drm_add_cicc(tab, criterion = "CICc")
   # CICc undefined where denom <= 0; weight degrades to 0, not NaN-propagated.
   expect_true(is.na(out$CICc[out$model == "saturated"]))
   expect_equal(out$weight[out$model == "saturated"], 0)
   expect_true(is.finite(out$CBIC[out$model == "saturated"]))
   # the estimable model still gets all the (finite) weight.
   expect_equal(out$weight[out$model == "ok"], 1)
+
+  cbic <- drm_add_cicc(tab)
+  expect_equal(cbic$weight, cbic$wCBIC)
+  expect_true(all(is.finite(cbic$weight)))
 })
 
 # ---------------------------------------------------------------------------
@@ -175,7 +181,7 @@ drm_model_set_dag_full <- function() {
 
 skip_if_not_installed("drmTMB")
 
-test_that("compare() fits a model set and ranks candidates by CICc", {
+test_that("compare() fits a model set and ranks candidates by CBIC", {
   dat <- simulate_drmsem_dgp(n = 300, seed = 11)
 
   models <- drm_model_set(
@@ -219,19 +225,19 @@ test_that("compare() fits a model set and ranks candidates by CICc", {
     ) %in%
       names(cmp)
   ))
-  # weights sum to ~1 and the table is sorted ascending by CICc
+  # weights sum to ~1 and the table is sorted ascending by CBIC by default
   expect_equal(sum(cmp$weight, na.rm = TRUE), 1, tolerance = 1e-8)
-  expect_equal(cmp$weight, cmp$wCICc)
-  expect_false(is.unsorted(cmp$CICc, na.rm = TRUE))
-  expect_equal(attr(cmp, "criterion"), "CICc")
+  expect_equal(cmp$weight, cmp$wCBIC)
+  expect_false(is.unsorted(cmp$CBIC, na.rm = TRUE))
+  expect_equal(attr(cmp, "criterion"), "CBIC")
   expect_true(all(cmp$n == nrow(dat)))
   expect_no_error(print(cmp))
 
-  # best() returns the fitted drm_sem of the lowest-CICc candidate.
+  # best() returns the fitted drm_sem of the lowest-CBIC candidate.
   top <- best(cmp)
   expect_s3_class(top, "drm_sem")
 
-  # average() returns CICc-weighted standardized paths.
+  # average() returns CBIC-weighted standardized paths.
   avg <- average(cmp)
   expect_s3_class(avg, "drm_average")
   expect_true(all(

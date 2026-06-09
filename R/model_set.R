@@ -8,12 +8,11 @@ NULL
 # A `drm_dag` is an unfitted candidate causal model: a set of node formulas.
 # A `drm_model_set` is a named collection of competing `drm_dag`s. `compare()`
 # fits each candidate with drm_sem(), runs the existing dsep()/fisher_c()
-# machinery, and ranks the candidates by CICc by default (a
-# small-sample-corrected information criterion built on Fisher's C), reporting
-# deltas and weights -- mirroring phylopath's define_model_set()/phylo_path()/
-# best()/average() workflow but with drmTMB families and component-labelled
-# paths. A CBIC criterion is also available when the user wants a stronger
-# penalty for extra paths.
+# machinery, and ranks the candidates by CBIC by default (a BIC-style
+# information criterion built on Fisher's C), reporting deltas and weights --
+# mirroring phylopath's define_model_set()/phylo_path()/best()/average()
+# workflow but with drmTMB families and component-labelled paths. CICc remains
+# available when the user wants phylopath-style support weights.
 #
 # Construction (drm_dag/drm_model_set) and the criterion/weight arithmetic are
 # pure base R and need no engine; every drmTMB-touching step lives inside
@@ -240,24 +239,25 @@ drm_fit_dag <- function(dag, data, family, fit_env, dots) {
 #' phylopath's `phylo_path()`.
 #'
 #' The default ranking statistic is
-#' \deqn{\mathrm{CICc} = C + 2k\,\frac{n}{n - k - 1},}
+#' \deqn{\mathrm{CBIC} = C + k\log(n),}
 #' where \eqn{C} is Fisher's C statistic from the model's d-separation test,
 #' \eqn{k} is the number of estimated fixed-effect coefficients across all
 #' nodes (counted via [paths()]), and \eqn{n} is the number of observations.
+#' CBIC uses a BIC-style penalty and is the default because it is more
+#' conservative about extra paths. `criterion = "CICc"` instead ranks by
+#' \deqn{\mathrm{CICc} = C + 2k\,\frac{n}{n - k - 1},}
 #' \eqn{\Delta}CICc is the difference from the best (lowest-CICc) model and the
 #' CICc weight is \eqn{\exp(-\tfrac12\,\Delta\mathrm{CICc})}, normalised to sum
 #' to one. As \eqn{n \to \infty} the correction term tends to \eqn{2k}, so CICc
-#' reduces to the usual \eqn{C + 2k}. `criterion = "CBIC"` instead ranks by
-#' \eqn{\mathrm{CBIC} = C + k\log(n)}, a BIC-style penalty that is more
-#' conservative about extra paths.
+#' reduces to the usual \eqn{C + 2k}.
 #'
 #' @param object A `drm_model_set`.
 #' @param data A data frame supplied to every node fit.
 #' @param family Optional. A single `drmTMB` family applied to every node, or a
 #'   named list of families keyed by node (response) name. `NULL` uses the
 #'   [drm_node()] default (Gaussian) for every node.
-#' @param criterion Ranking criterion. `"CICc"` keeps the phylopath-style
-#'   default; `"CBIC"` uses a BIC-style penalty for stronger parsimony.
+#' @param criterion Ranking criterion. `"CBIC"` is the default BIC-style
+#'   parsimony criterion; `"CICc"` gives the phylopath-style support ranking.
 #' @param ... Further arguments passed on to each [drm_sem()] fit.
 #'
 #' @return A `drm_compare` object: a data frame with one row per candidate and
@@ -287,7 +287,7 @@ compare <- function(
   object,
   data,
   family = NULL,
-  criterion = c("CICc", "CBIC"),
+  criterion = c("CBIC", "CICc"),
   ...
 ) {
   UseMethod("compare")
@@ -299,7 +299,7 @@ compare.drm_model_set <- function(
   object,
   data,
   family = NULL,
-  criterion = c("CICc", "CBIC"),
+  criterion = c("CBIC", "CICc"),
   ...
 ) {
   drm_require_drmTMB()
@@ -368,7 +368,7 @@ compare.drm_model_set <- function(
 # Factored out so the model-selection arithmetic is testable without an engine.
 #
 # CICc = C + 2 * k * (n / (n - k - 1)).
-drm_add_cicc <- function(tab, criterion = c("CICc", "CBIC")) {
+drm_add_cicc <- function(tab, criterion = c("CBIC", "CICc")) {
   criterion <- match.arg(criterion)
   C <- tab$fisher_c
   k <- tab$k
@@ -431,8 +431,12 @@ drm_delta_weights <- function(score) {
 
 drm_compare_criterion <- function(x) {
   criterion <- attr(x, "criterion", exact = TRUE)
-  if (is.null(criterion) || !criterion %in% c("CICc", "CBIC")) {
-    criterion <- "CICc"
+  if (
+    is.null(criterion) ||
+      !criterion %in% c("CBIC", "CICc") ||
+      !criterion %in% names(x)
+  ) {
+    criterion <- if ("CBIC" %in% names(x)) "CBIC" else "CICc"
   }
   criterion
 }
@@ -519,8 +523,8 @@ best.drm_compare <- function(object, ...) {
 #'
 #' `average()` returns model-averaged standardized path coefficients across the
 #' candidate set, weighting each model's [standardize()]d [paths()] by the
-#' selected criterion's weight (`CICc` by default, or `CBIC` when
-#' `compare(..., criterion = "CBIC")` was used). Coefficients are matched on
+#' selected criterion's weight (`CBIC` by default, or `CICc` when
+#' `compare(..., criterion = "CICc")` was used). Coefficients are matched on
 #' `from`, `to` and `component`, so a path present in only some candidates is
 #' averaged over the weight of the models that contain it (conditional
 #' averaging). This mirrors phylopath's `average()`.

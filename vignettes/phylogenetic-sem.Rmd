@@ -238,10 +238,10 @@ candidate DAGs can be ranked by a C-statistic information criterion (the
 `phylopath` workflow), with model-averaged paths. `drm_dag()` captures one
 unfitted candidate, `drm_model_set()` collects the named candidates,
 `compare()` fits each with `drm_sem()`, runs the any-component d-separation test,
-and ranks them by CICc (a small-sample-corrected criterion built on Fisher's C)
-with delta-CICc and Akaike weights. `best()` returns the top fitted SEM and
-`average()` returns CICc-weighted standardized paths. Each candidate's nodes may
-carry the same `phylo(...)` / `relmat(...)` term, so the comparison is
+and ranks them by CBIC by default (a BIC-style criterion built on Fisher's C),
+while still reporting CICc support weights. `best()` returns the top fitted SEM
+and `average()` returns criterion-weighted standardized paths. Each candidate's
+nodes may carry the same `phylo(...)` / `relmat(...)` term, so the comparison is
 phylogenetically corrected node-by-node.
 
 ```{r modelset, eval = has_engine}
@@ -252,9 +252,9 @@ models <- drm_model_set(
 cmp <- compare(models, data = dat,
                family = list(size = stats::gaussian(),
                              fitness = drmTMB::nbinom2()))
-cmp                 # CICc, delta-CICc, Akaike weight per candidate
-best(cmp)           # the lowest-CICc fitted drm_sem
-average(cmp)        # CICc-weighted standardized path coefficients
+cmp                 # CBIC/CICc deltas and weights per candidate
+best(cmp)           # the lowest-CBIC fitted drm_sem
+average(cmp)        # CBIC-weighted standardized path coefficients
 ```
 
 **Phase 3 -- evolutionary process models (works today).** `drm_phylo_cov()`

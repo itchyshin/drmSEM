@@ -51,9 +51,10 @@ ranking criterion?
   model and the mean model weight on the truth for both `CICc` and `CBIC`.
 - **Metric:** selection rate + mean truth-weight by criterion. **Acceptance:**
   `CBIC` selection rate is high and increasing with n; the missing-edge rival is
-  reliably penalised (its d-sep claim is violated). `CICc` is still reported but
-  is treated as a phylopath-style, AIC-like support measure that may retain
-  over-fitted rivals rather than a consistent true-DAG selector.
+  reliably penalised (its d-sep claim is violated). `CBIC` is the default
+  ranking criterion. `CICc` is still reported but is treated as a
+  phylopath-style, AIC-like support measure that may retain over-fitted rivals
+  rather than a consistent true-DAG selector.
 
 ### C-4 — Sampler dispersion vs `drmTMB::simulate()` (OQ-1 closeout)
 Wave 1 initially suggested that `drm_sample_family()`'s **variance** did not
