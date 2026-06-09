@@ -194,8 +194,10 @@ drm_fit_logLik <- function(fit) {
 #' @keywords internal
 #' @noRd
 drm_fit_converged <- function(fit) {
-  if (requireNamespace("drmTMB", quietly = TRUE) &&
-      exists("is_converged", envir = asNamespace("drmTMB"))) {
+  if (
+    requireNamespace("drmTMB", quietly = TRUE) &&
+      exists("is_converged", envir = asNamespace("drmTMB"))
+  ) {
     conv <- tryCatch(drmTMB::is_converged(fit), error = function(e) NA)
     if (length(conv) == 1L && !is.na(conv)) {
       return(isTRUE(conv))
@@ -212,9 +214,13 @@ drm_fit_converged <- function(fit) {
 #' newdata columns).
 #' @keywords internal
 #' @noRd
-drm_predict_parameters <- function(fit, newdata, dpar = NULL,
-                                    type = c("response", "link"),
-                                    include_newdata = FALSE) {
+drm_predict_parameters <- function(
+  fit,
+  newdata,
+  dpar = NULL,
+  type = c("response", "link"),
+  include_newdata = FALSE
+) {
   drm_require_drmTMB()
   type <- match.arg(type)
   drmTMB::predict_parameters(
@@ -234,27 +240,52 @@ drm_predict_parameters <- function(fit, newdata, dpar = NULL,
 #' avoid treating numeric `newdata` columns as predictions.
 #' @keywords internal
 #' @noRd
-drm_predict_parameter_values <- function(fit, newdata, dpar,
-                                         type = c("response", "link")) {
+drm_predict_parameter_values <- function(
+  fit,
+  newdata,
+  dpar,
+  type = c("response", "link")
+) {
   type <- match.arg(type)
   pp <- as.data.frame(drm_predict_parameters(
-    fit, newdata = newdata, dpar = dpar, type = type,
+    fit,
+    newdata = newdata,
+    dpar = dpar,
+    type = type,
     include_newdata = FALSE
   ))
   drm_prediction_estimate_column(pp, dpar, nrow(newdata), names(newdata))
 }
 
-drm_prediction_estimate_column <- function(pp, dpar, n, newdata_names = character(0)) {
-  if (dpar %in% names(pp) && is.numeric(pp[[dpar]]) && length(pp[[dpar]]) == n) {
+drm_prediction_estimate_column <- function(
+  pp,
+  dpar,
+  n,
+  newdata_names = character(0)
+) {
+  if (
+    dpar %in% names(pp) && is.numeric(pp[[dpar]]) && length(pp[[dpar]]) == n
+  ) {
     return(as.numeric(pp[[dpar]]))
   }
-  if ("estimate" %in% names(pp) && is.numeric(pp$estimate) &&
-      length(pp$estimate) == n) {
+  if (
+    "estimate" %in%
+      names(pp) &&
+      is.numeric(pp$estimate) &&
+      length(pp$estimate) == n
+  ) {
     return(as.numeric(pp$estimate))
   }
   numeric_cols <- names(pp)[vapply(pp, is.numeric, logical(1))]
-  metadata_cols <- c("row", "conf.low", "conf.high", "std.error", "statistic",
-                     "p.value", newdata_names)
+  metadata_cols <- c(
+    "row",
+    "conf.low",
+    "conf.high",
+    "std.error",
+    "statistic",
+    "p.value",
+    newdata_names
+  )
   candidates <- setdiff(numeric_cols, metadata_cols)
   if (length(candidates)) {
     col <- pp[[candidates[[length(candidates)]]]]
@@ -271,13 +302,20 @@ drm_prediction_estimate_column <- function(pp, dpar, n, newdata_names = characte
 #' @return A fitted `drmTMB` object, or `NULL` if the refit fails.
 #' @keywords internal
 #' @noRd
-drm_refit_augmented <- function(fit, add_var, components = NULL,
-                                se = TRUE, env = parent.frame()) {
+drm_refit_augmented <- function(
+  fit,
+  add_var,
+  components = NULL,
+  se = TRUE,
+  env = parent.frame()
+) {
   drm_require_drmTMB()
   ff <- drm_fit_formula(fit)
   calls <- ff$calls
   nms <- ff$names
-  if (is.null(nms)) nms <- rep("", length(calls))
+  if (is.null(nms)) {
+    nms <- rep("", length(calls))
+  }
   entries <- drm_fit_entries(fit)
   if (is.null(components)) {
     components <- drm_fit_components(fit)
@@ -373,8 +411,12 @@ drm_fixed_design <- function(fit, component, newdata) {
     stats::model.matrix(form, data = as.data.frame(newdata)),
     error = function(e) NULL
   )
-  out <- matrix(0, nrow = nrow(newdata), ncol = length(coef_names),
-                dimnames = list(NULL, coef_names))
+  out <- matrix(
+    0,
+    nrow = nrow(newdata),
+    ncol = length(coef_names),
+    dimnames = list(NULL, coef_names)
+  )
   if (!is.null(mm)) {
     shared <- intersect(colnames(mm), coef_names)
     out[, shared] <- mm[, shared, drop = FALSE]

@@ -38,9 +38,15 @@ drm_dep_warn <- function(old, new) {
 # and their deprecated aliases) onto the engine knobs. Returns a list with
 # `draw` (logical) and `n_sim` (integer). New arguments win over the deprecated
 # aliases; not-yet-implemented choices abort with an OQ pointer.
-drm_effect_controls <- function(uncertainty = NULL, nsim = NULL, population = NULL,
-                                draw = NULL, n_sim = NULL,
-                                default_draw = TRUE, default_nsim = 50L) {
+drm_effect_controls <- function(
+  uncertainty = NULL,
+  nsim = NULL,
+  population = NULL,
+  draw = NULL,
+  n_sim = NULL,
+  default_draw = TRUE,
+  default_nsim = 50L
+) {
   # population --------------------------------------------------------------
   if (!is.null(population)) {
     population <- match.arg(population, c("conditional", "marginal"))
@@ -65,7 +71,9 @@ drm_effect_controls <- function(uncertainty = NULL, nsim = NULL, population = NU
       ))
     }
     if (!is.null(draw)) {
-      cli::cli_warn("Both {.arg uncertainty} and the deprecated {.arg draw} were supplied; using {.arg uncertainty}.")
+      cli::cli_warn(
+        "Both {.arg uncertainty} and the deprecated {.arg draw} were supplied; using {.arg uncertainty}."
+      )
     }
     draw_out <- identical(uncertainty, "parametric")
   } else if (!is.null(draw)) {
@@ -77,7 +85,9 @@ drm_effect_controls <- function(uncertainty = NULL, nsim = NULL, population = NU
   nsim_out <- default_nsim
   if (!is.null(nsim)) {
     if (!is.null(n_sim)) {
-      cli::cli_warn("Both {.arg nsim} and the deprecated {.arg n_sim} were supplied; using {.arg nsim}.")
+      cli::cli_warn(
+        "Both {.arg nsim} and the deprecated {.arg n_sim} were supplied; using {.arg nsim}."
+      )
     }
     nsim_out <- as.integer(nsim)
   } else if (!is.null(n_sim)) {
@@ -94,7 +104,9 @@ drm_resolve_mediation <- function(method = NULL, mediation = NULL) {
   if (!is.null(method)) {
     method <- match.arg(method, c("simulate", "gcomp"))
     if (!is.null(mediation)) {
-      cli::cli_warn("Both {.arg method} and the deprecated {.arg mediation} were supplied; using {.arg method}.")
+      cli::cli_warn(
+        "Both {.arg method} and the deprecated {.arg mediation} were supplied; using {.arg method}."
+      )
     }
     return(if (identical(method, "simulate")) "distribution" else "mean")
   }

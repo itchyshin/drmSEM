@@ -5,35 +5,68 @@
 # emitted as a lavaan mean (`~`) regression; it is dropped-with-notice.
 
 # A drm_sem stub carrying only the slots the interop layer reads.
-make_interop_sem <- function(edges, covariances = NULL, order = NULL,
-                             endogenous = NULL, exogenous = NULL) {
-  if (is.null(order)) order <- unique(edges$to)
-  if (is.null(endogenous)) endogenous <- unique(edges$to)
+make_interop_sem <- function(
+  edges,
+  covariances = NULL,
+  order = NULL,
+  endogenous = NULL,
+  exogenous = NULL
+) {
+  if (is.null(order)) {
+    order <- unique(edges$to)
+  }
+  if (is.null(endogenous)) {
+    endogenous <- unique(edges$to)
+  }
   if (is.null(exogenous)) {
     exogenous <- setdiff(unique(edges$from), endogenous)
   }
-  structure(list(
-    edges = edges, covariances = covariances, order = order,
-    endogenous = endogenous, exogenous = exogenous
-  ), class = "drm_sem")
+  structure(
+    list(
+      edges = edges,
+      covariances = covariances,
+      order = order,
+      endogenous = endogenous,
+      exogenous = exogenous
+    ),
+    class = "drm_sem"
+  )
 }
 
 mu_edge <- function(from, to) {
-  data.frame(from = from, to = to, component = "mu", link = "identity",
-             term = from, endogenous = FALSE, stringsAsFactors = FALSE)
+  data.frame(
+    from = from,
+    to = to,
+    component = "mu",
+    link = "identity",
+    term = from,
+    endogenous = FALSE,
+    stringsAsFactors = FALSE
+  )
 }
 
 # ---- as_lavaan(): mean structure + covariances ------------------------------
 
 test_that("as_lavaan emits one regression per node and a ~~ line per covariance", {
-  edges <- rbind(mu_edge("temp", "size"),
-                 mu_edge("size", "abundance"),
-                 mu_edge("temp", "abundance"))
-  cov_df <- data.frame(y1 = "size", y2 = "abundance", class = "residual",
-                       level = NA_character_, structure = "unstructured",
-                       label = "rho12(size, abundance)", stringsAsFactors = FALSE)
-  sem <- make_interop_sem(edges, covariances = cov_df,
-                          order = c("size", "abundance"))
+  edges <- rbind(
+    mu_edge("temp", "size"),
+    mu_edge("size", "abundance"),
+    mu_edge("temp", "abundance")
+  )
+  cov_df <- data.frame(
+    y1 = "size",
+    y2 = "abundance",
+    class = "residual",
+    level = NA_character_,
+    structure = "unstructured",
+    label = "rho12(size, abundance)",
+    stringsAsFactors = FALSE
+  )
+  sem <- make_interop_sem(
+    edges,
+    covariances = cov_df,
+    order = c("size", "abundance")
+  )
   lav <- as_lavaan(sem)
   expect_s3_class(lav, "drm_lavaan")
   txt <- unclass(lav)
@@ -47,9 +80,15 @@ test_that("as_lavaan emits one regression per node and a ~~ line per covariance"
 test_that("as_lavaan drops non-mu component paths with an explicit notice (honesty)", {
   edges <- rbind(
     mu_edge("temp", "size"),
-    data.frame(from = "habitat", to = "size", component = "sigma",
-               link = "log", term = "habitat", endogenous = FALSE,
-               stringsAsFactors = FALSE)
+    data.frame(
+      from = "habitat",
+      to = "size",
+      component = "sigma",
+      link = "log",
+      term = "habitat",
+      endogenous = FALSE,
+      stringsAsFactors = FALSE
+    )
   )
   sem <- make_interop_sem(edges, order = "size")
   # the message fires once and names the dropped distributional path
@@ -78,8 +117,10 @@ test_that("from_lavaan parses ~ into a drm_dag and ~~ into covary()", {
   expect_setequal(skel$dag$responses, c("abundance", "size"))
   expect_length(skel$covary, 1L)
   expect_s3_class(skel$covary[[1L]], "drm_covary")
-  expect_identical(sort(c(skel$covary[[1L]]$y1, skel$covary[[1L]]$y2)),
-                   c("abundance", "size"))
+  expect_identical(
+    sort(c(skel$covary[[1L]]$y1, skel$covary[[1L]]$y2)),
+    c("abundance", "size")
+  )
 })
 
 test_that("from_lavaan strips fixed-coefficient prefixes and intercept/variance lines", {
@@ -108,34 +149,51 @@ test_that("from_lavaan rejects non-string input", {
 # ---- round-trip: from_lavaan(as_lavaan(sem)) recovers the structure ---------
 
 test_that("round-trip recovers directed mean structure and covariances", {
-  edges <- rbind(mu_edge("temp", "size"),
-                 mu_edge("size", "abundance"),
-                 mu_edge("temp", "abundance"))
-  cov_df <- data.frame(y1 = "size", y2 = "abundance", class = "residual",
-                       level = NA_character_, structure = "unstructured",
-                       label = "rho12(size, abundance)", stringsAsFactors = FALSE)
-  sem <- make_interop_sem(edges, covariances = cov_df,
-                          order = c("size", "abundance"))
+  edges <- rbind(
+    mu_edge("temp", "size"),
+    mu_edge("size", "abundance"),
+    mu_edge("temp", "abundance")
+  )
+  cov_df <- data.frame(
+    y1 = "size",
+    y2 = "abundance",
+    class = "residual",
+    level = NA_character_,
+    structure = "unstructured",
+    label = "rho12(size, abundance)",
+    stringsAsFactors = FALSE
+  )
+  sem <- make_interop_sem(
+    edges,
+    covariances = cov_df,
+    order = c("size", "abundance")
+  )
 
   back <- from_lavaan(unclass(as_lavaan(sem)))
 
   # directed structure: same responses and same parent sets
   expect_setequal(back$dag$responses, c("size", "abundance"))
   expect_setequal(all.vars(back$dag$formulas[["size"]]), c("size", "temp"))
-  expect_setequal(all.vars(back$dag$formulas[["abundance"]]),
-                  c("abundance", "size", "temp"))
+  expect_setequal(
+    all.vars(back$dag$formulas[["abundance"]]),
+    c("abundance", "size", "temp")
+  )
   # covariance edge recovered
   expect_length(back$covary, 1L)
-  expect_setequal(c(back$covary[[1L]]$y1, back$covary[[1L]]$y2),
-                  c("size", "abundance"))
+  expect_setequal(
+    c(back$covary[[1L]]$y1, back$covary[[1L]]$y2),
+    c("size", "abundance")
+  )
 })
 
 test_that("round-trip on a drm_dag recovers the directed edges", {
   dag <- drm_dag(size ~ temp, abundance ~ size + temp)
   back <- from_lavaan(unclass(as_lavaan(dag)))
   expect_setequal(back$dag$responses, c("size", "abundance"))
-  expect_setequal(all.vars(back$dag$formulas[["abundance"]]),
-                  c("abundance", "size", "temp"))
+  expect_setequal(
+    all.vars(back$dag$formulas[["abundance"]]),
+    c("abundance", "size", "temp")
+  )
 })
 
 # ---- as_dot(): component-labelled DOT export --------------------------------
@@ -143,9 +201,15 @@ test_that("round-trip on a drm_dag recovers the directed edges", {
 test_that("as_dot emits one labelled edge per typed edge, keeping non-mu paths", {
   edges <- rbind(
     mu_edge("temp", "size"),
-    data.frame(from = "habitat", to = "size", component = "sigma",
-               link = "log", term = "habitat", endogenous = FALSE,
-               stringsAsFactors = FALSE)
+    data.frame(
+      from = "habitat",
+      to = "size",
+      component = "sigma",
+      link = "log",
+      term = "habitat",
+      endogenous = FALSE,
+      stringsAsFactors = FALSE
+    )
   )
   sem <- make_interop_sem(edges, order = "size")
   dot <- as_dot(sem)
@@ -170,7 +234,9 @@ test_that("as_dot works on a drm_dag including a distributional component", {
 # ---- internal helpers -------------------------------------------------------
 
 test_that("drm_lavaan_rhs_tokens strips numeric/label prefixes", {
-  expect_setequal(drmSEM:::drm_lavaan_rhs_tokens("a + 0.5*b + lab*c"),
-                  c("a", "b", "c"))
+  expect_setequal(
+    drmSEM:::drm_lavaan_rhs_tokens("a + 0.5*b + lab*c"),
+    c("a", "b", "c")
+  )
   expect_identical(drmSEM:::drm_lavaan_rhs_tokens("1"), character(0))
 })

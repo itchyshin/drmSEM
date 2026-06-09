@@ -66,11 +66,14 @@ test_that("V-65: latent standardization of a live logit GLM uses sqrt(Var(eta)+p
   expect_equal(p$link[p$from == "x" & p$to == "y"], "logit")
 
   eta <- fitted_eta(sem, "y", "mu")
-  divisor <- sqrt(stats::var(eta) + pi^2 / 3)         # the sigma_E latent divisor
+  divisor <- sqrt(stats::var(eta) + pi^2 / 3) # the sigma_E latent divisor
 
   s <- standardize(sem, "latent")
-  expect_equal(pick_std(s, "x"), b_fitted * stats::sd(dat$x) / divisor,
-               tolerance = 1e-8)
+  expect_equal(
+    pick_std(s, "x"),
+    b_fitted * stats::sd(dat$x) / divisor,
+    tolerance = 1e-8
+  )
 
   # the sigma_E inflation strictly shrinks the standardized coefficient relative
   # to the old sd(eta)-only divisor (live confirmation of the OQ-4 correction).
@@ -97,8 +100,11 @@ test_that("V-66: latent standardization of a live Gaussian identity node is sd_x
   s <- standardize(sem, "latent")
 
   # identity carries NO sigma_E term: divisor is exactly sd(eta).
-  expect_equal(pick_std(s, "x"), b_fitted * stats::sd(dat$x) / stats::sd(eta),
-               tolerance = 1e-8)
+  expect_equal(
+    pick_std(s, "x"),
+    b_fitted * stats::sd(dat$x) / stats::sd(eta),
+    tolerance = 1e-8
+  )
   # single-predictor identity mean path => |latent| == 1 (sign of b).
   expect_equal(abs(pick_std(s, "x")), 1, tolerance = 1e-6)
 })
@@ -110,12 +116,12 @@ test_that("V-66: latent standardization of a live Gaussian identity node is sd_x
 test_that("V-67: a formative composite fits as both predictor and response; effects flow", {
   set.seed(62)
   n <- 1500
-  z <- stats::rnorm(n)                              # latent construct
+  z <- stats::rnorm(n) # latent construct
   dat <- data.frame(
     i1 = z + stats::rnorm(n, sd = 0.4),
     i2 = z + stats::rnorm(n, sd = 0.4),
     i3 = z + stats::rnorm(n, sd = 0.4),
-    x  = stats::rnorm(n)
+    x = stats::rnorm(n)
   )
   dat$z_true <- z
   dat$y <- 0.5 * z + 0.3 * dat$x + stats::rnorm(n)
@@ -124,14 +130,18 @@ test_that("V-67: a formative composite fits as both predictor and response; effe
   # predictor) in the same SEM: x -> size -> y.
   sem <- drm_sem(
     size = drm_node(drmTMB::bf(size ~ x), family = stats::gaussian()),
-    y    = drm_node(drmTMB::bf(y ~ size + x), family = stats::gaussian()),
+    y = drm_node(drmTMB::bf(y ~ size + x), family = stats::gaussian()),
     data = dat,
-    composites = drm_composite("size", c("i1", "i2", "i3"),
-                               method = "pca", data = dat)
+    composites = drm_composite(
+      "size",
+      c("i1", "i2", "i3"),
+      method = "pca",
+      data = dat
+    )
   )
 
   expect_s3_class(sem, "drm_sem")
-  expect_true("size" %in% names(sem$data))           # materialized before fitting
+  expect_true("size" %in% names(sem$data)) # materialized before fitting
 
   # loadings() reports exactly the three indicators.
   expect_equal(sort(loadings(sem)$indicator), c("i1", "i2", "i3"))
@@ -142,12 +152,17 @@ test_that("V-67: a formative composite fits as both predictor and response; effe
   expect_true(any(p$from == "size" & p$to == "y"))
 
   # an effect THROUGH the composite (x -> size -> y) is finite and non-trivial.
-  ie <- indirect_effects(sem, from = "x", to = "y", through = "size",
-                         uncertainty = "none")
+  ie <- indirect_effects(
+    sem,
+    from = "x",
+    to = "y",
+    through = "size",
+    uncertainty = "none"
+  )
   mm <- ie$estimate[ie$quantity == "mean_mediated"]
   tp <- ie$estimate[ie$quantity == "total_path"]
   expect_true(is.finite(mm) && is.finite(tp))
-  expect_gt(abs(mm), 0)                              # the construct really mediates
+  expect_gt(abs(mm), 0) # the construct really mediates
 })
 
 test_that("V-68: Cronbach alpha on a live composite matches the closed form", {
@@ -163,7 +178,11 @@ test_that("V-68: Cronbach alpha on a live composite matches the closed form", {
 
   # closed-form Cronbach alpha on the SAME indicator covariance matrix.
   M <- as.matrix(dat[, c("a", "b", "cc")])
-  expect_equal(spec$reliability, drmSEM:::drm_cronbach_alpha(M), tolerance = 1e-10)
+  expect_equal(
+    spec$reliability,
+    drmSEM:::drm_cronbach_alpha(M),
+    tolerance = 1e-10
+  )
   # three positively-correlated indicators => a sensible (0,1) reliability.
   expect_gt(spec$reliability, 0)
   expect_lt(spec$reliability, 1)
@@ -184,8 +203,12 @@ fitted_B_Gamma <- function(sem, endo, exo) {
   B <- matrix(0, k, k, dimnames = list(endo, endo))
   Gamma <- matrix(0, k, length(exo), dimnames = list(endo, exo))
   for (i in seq_len(nrow(p))) {
-    to <- p$to[[i]]; from <- p$from[[i]]; est <- p$estimate[[i]]
-    if (to %in% endo && from %in% endo) B[to, from] <- est
+    to <- p$to[[i]]
+    from <- p$from[[i]]
+    est <- p$estimate[[i]]
+    if (to %in% endo && from %in% endo) {
+      B[to, from] <- est
+    }
     if (to %in% endo && from %in% exo) Gamma[to, from] <- est
   }
   list(B = B, Gamma = Gamma)
@@ -194,10 +217,15 @@ fitted_B_Gamma <- function(sem, endo, exo) {
 test_that("V-69: feedback equilibrium total effect matches the fitted reduced form", {
   set.seed(64)
   n <- 2000
-  x <- stats::rnorm(n); zz <- stats::rnorm(n)
+  x <- stats::rnorm(n)
+  zz <- stats::rnorm(n)
   # generate a stable reciprocal system y1 <-> y2 (true |b12*b21| < 1).
-  e1 <- stats::rnorm(n); e2 <- stats::rnorm(n)
-  a1 <- 0.5; a2 <- 0.4; b12 <- 0.3; b21 <- 0.25
+  e1 <- stats::rnorm(n)
+  e2 <- stats::rnorm(n)
+  a1 <- 0.5
+  a2 <- 0.4
+  b12 <- 0.3
+  b21 <- 0.25
   # solve the structural system for the realized data (reduced form per row)
   det <- 1 - b12 * b21
   y1 <- (a1 * x + b12 * (a2 * zz) + e1 + b12 * e2) / det
@@ -208,18 +236,23 @@ test_that("V-69: feedback equilibrium total effect matches the fitted reduced fo
     sem <- drm_sem(
       y1 = drm_node(drmTMB::bf(y1 ~ x + y2), family = stats::gaussian()),
       y2 = drm_node(drmTMB::bf(y2 ~ zz + y1), family = stats::gaussian()),
-      data = dat, feedback = drm_cycle("y1", "y2")
+      data = dat,
+      feedback = drm_cycle("y1", "y2")
     )
   )
   expect_identical(nrow(cycles(sem)), 2L)
 
-  endo <- c("y1", "y2"); exo <- c("x", "zz")
+  endo <- c("y1", "y2")
+  exo <- c("x", "zz")
   bg <- fitted_B_Gamma(sem, endo, exo)
   # require a stable FITTED system for the comparison to be defined.
   rho <- drmSEM:::drm_spectral_radius(bg$B)
-  skip_if(rho >= 1, "fitted feedback system is not stable; reduced form undefined")
+  skip_if(
+    rho >= 1,
+    "fitted feedback system is not stable; reduced form undefined"
+  )
 
-  Tm <- solve(diag(2) - bg$B) %*% bg$Gamma     # fitted (I-B)^-1 Gamma
+  Tm <- solve(diag(2) - bg$B) %*% bg$Gamma # fitted (I-B)^-1 Gamma
 
   # the equilibrium contrast scales the x-column of T by the contrast width
   # (mean +/- 0.5 sd => width = sd(x)); compare to total_effects(... y2).
@@ -239,23 +272,35 @@ test_that("V-70: a divergent declared system reports NA, never a fabricated numb
   # rho(B) >= 1: no stable equilibrium. We cannot guarantee a *fitted* B diverges,
   # so exercise the equilibrium engine directly on hand engines with such a B
   # (mirrors the live total_effects() NA branch in R/effects.R). b12*b21 = 1.2 > 1.
-  a1 <- 0.5; a2 <- 0.3; b12 <- 1.2; b21 <- 1.0
+  a1 <- 0.5
+  a2 <- 0.3
+  b12 <- 1.2
+  b21 <- 1.0
   lin_engine <- function(name, fn) {
-    list(name = name, identifier = name, family = "gaussian",
-         predict = function(scenario, beta = NULL) data.frame(mu = fn(scenario)))
+    list(
+      name = name,
+      identifier = name,
+      family = "gaussian",
+      predict = function(scenario, beta = NULL) data.frame(mu = fn(scenario))
+    )
   }
   eng <- list(
     y1 = lin_engine("y1", function(s) a1 * s$x + b12 * s$y2),
     y2 = lin_engine("y2", function(s) a2 * s$x + b21 * s$y1)
   )
-  scen <- list(lo = data.frame(x = rep(0, 5)), hi = data.frame(x = rep(1, 5)),
-               column = "x")
+  scen <- list(
+    lo = data.frame(x = rep(0, 5)),
+    hi = data.frame(x = rep(1, 5)),
+    column = "x"
+  )
   eq <- drmSEM:::drm_equilibrium_contrast(eng, scen, "y1", B = 1L, draw = FALSE)
-  expect_false(eq$converged)         # the honest "no equilibrium" signal
+  expect_false(eq$converged) # the honest "no equilibrium" signal
   # and the matching reduced-form guard flags the same B unstable.
   B <- matrix(c(0, b21, b12, 0), nrow = 2)
-  expect_false(attr(drmSEM:::drm_reduced_form(B, matrix(c(a1, a2), ncol = 1)),
-                    "stable"))
+  expect_false(attr(
+    drmSEM:::drm_reduced_form(B, matrix(c(a1, a2), ncol = 1)),
+    "stable"
+  ))
 })
 
 # ---------------------------------------------------------------------------
@@ -266,7 +311,7 @@ test_that("V-71: natural effects sum to the total path on a nonlinear single-med
   set.seed(66)
   n <- 2500
   x <- stats::rnorm(n)
-  m <- stats::rnorm(n, 0.5 * x, 0.7)                # x -> M
+  m <- stats::rnorm(n, 0.5 * x, 0.7) # x -> M
   # log-link Poisson outcome: nonlinear in M, NO x:M interaction.
   y <- stats::rpois(n, exp(-0.2 + 0.4 * m))
   dat <- data.frame(x, m, y)
@@ -277,11 +322,18 @@ test_that("V-71: natural effects sum to the total path on a nonlinear single-med
     data = dat
   )
 
-  ne <- indirect_effects(sem, from = "x", to = "y", effect = "natural",
-                         uncertainty = "none", nsim = 400, seed = 7)
+  ne <- indirect_effects(
+    sem,
+    from = "x",
+    to = "y",
+    effect = "natural",
+    uncertainty = "none",
+    nsim = 400,
+    seed = 7
+  )
   nde <- ne$estimate[ne$quantity == "natural_direct"]
   nie <- ne$estimate[ne$quantity == "natural_indirect"]
-  mi  <- ne$estimate[ne$quantity == "mediated_interaction"]
+  mi <- ne$estimate[ne$quantity == "mediated_interaction"]
   tot <- ne$estimate[ne$quantity == "total_path"]
 
   expect_true(all(is.finite(c(nde, nie, mi, tot))))
@@ -310,9 +362,16 @@ test_that("V-72: adding an x:M interaction moves mediated_interaction off zero",
     y = drm_node(drmTMB::bf(y ~ m + x:m), family = stats::poisson()),
     data = dat
   )
-  ne_int <- indirect_effects(sem_int, from = "x", to = "y", effect = "natural",
-                             uncertainty = "none", nsim = 400, seed = 8)
-  mi_int  <- ne_int$estimate[ne_int$quantity == "mediated_interaction"]
+  ne_int <- indirect_effects(
+    sem_int,
+    from = "x",
+    to = "y",
+    effect = "natural",
+    uncertainty = "none",
+    nsim = 400,
+    seed = 8
+  )
+  mi_int <- ne_int$estimate[ne_int$quantity == "mediated_interaction"]
   tot_int <- ne_int$estimate[ne_int$quantity == "total_path"]
   nde_int <- ne_int$estimate[ne_int$quantity == "natural_direct"]
   nie_int <- ne_int$estimate[ne_int$quantity == "natural_indirect"]

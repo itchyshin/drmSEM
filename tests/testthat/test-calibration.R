@@ -31,12 +31,19 @@ test_that("V-17: d-separation Type-I rate is near nominal and power is high", {
   p_null <- vapply(seq_len(reps), chain_claim_p, numeric(1), beta_xy = 0)
   type1 <- mean(p_null < 0.05, na.rm = TRUE)
 
-  p_alt <- vapply(seq_len(reps), function(s) chain_claim_p(1000 + s, beta_xy = 0.6),
-                  numeric(1))
+  p_alt <- vapply(
+    seq_len(reps),
+    function(s) chain_claim_p(1000 + s, beta_xy = 0.6),
+    numeric(1)
+  )
   power <- mean(p_alt < 0.05, na.rm = TRUE)
 
-  cat(sprintf("\nV-17 calibration (%d reps): Type-I = %.2f (target ~0.05), power = %.2f\n",
-              reps, type1, power))
+  cat(sprintf(
+    "\nV-17 calibration (%d reps): Type-I = %.2f (target ~0.05), power = %.2f\n",
+    reps,
+    type1,
+    power
+  ))
 
   # Every claim must yield a usable p-value.
   expect_true(all(is.finite(p_null)) && all(is.finite(p_alt)))

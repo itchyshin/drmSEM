@@ -25,7 +25,7 @@ simulate_phylo_chain <- function(n = 150, seed = 1) {
   # drmTMB's phylo() requires an ULTRAMETRIC tree (equal root-to-tip distances);
   # a raw ape::rtree() is not, so rescale branch lengths with Grafen's method.
   phy <- ape::compute.brlen(ape::rtree(12), method = "Grafen", power = 1)
-  species_levels <- phy$tip.label    # factor levels == tip labels (must match)
+  species_levels <- phy$tip.label # factor levels == tip labels (must match)
   n_sp <- length(species_levels)
 
   # Species-level random intercepts. A proper phylogenetic effect would draw
@@ -37,11 +37,13 @@ simulate_phylo_chain <- function(n = 150, seed = 1) {
   names(sp_re_y1) <- species_levels
   names(sp_re_y2) <- species_levels
 
-  species <- factor(sample(species_levels, n, replace = TRUE),
-                    levels = species_levels)
+  species <- factor(
+    sample(species_levels, n, replace = TRUE),
+    levels = species_levels
+  )
   sp <- as.character(species)
 
-  x  <- stats::rnorm(n)
+  x <- stats::rnorm(n)
   y1 <- 0.2 + 0.7 * x + sp_re_y1[sp] + stats::rnorm(n, sd = 0.5)
   y2 <- -0.1 + 0.6 * y1 + 0.3 * x + sp_re_y2[sp] + stats::rnorm(n, sd = 0.5)
 

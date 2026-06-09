@@ -69,7 +69,9 @@ drm_build_node_records <- function(fits) {
 # Map a predictor token to a node name (or NA if exogenous), excluding `self`.
 drm_match_node <- function(token, records, self) {
   for (nm in names(records)) {
-    if (identical(nm, self)) next
+    if (identical(nm, self)) {
+      next
+    }
     if (token %in% records[[nm]]$identifiers) {
       return(nm)
     }
@@ -91,7 +93,9 @@ drm_build_edges <- function(records) {
         src <- drm_match_node(p, records, self = nm)
         endogenous <- !is.na(src)
         from <- if (endogenous) src else p
-        if (identical(from, nm)) next # no self loops from response self-reference
+        if (identical(from, nm)) {
+          next
+        } # no self loops from response self-reference
         rows[[length(rows) + 1L]] <- data.frame(
           from = from,
           to = nm,
@@ -106,8 +110,12 @@ drm_build_edges <- function(records) {
   }
   if (length(rows) == 0L) {
     return(data.frame(
-      from = character(0), to = character(0), component = character(0),
-      link = character(0), term = character(0), endogenous = logical(0),
+      from = character(0),
+      to = character(0),
+      component = character(0),
+      link = character(0),
+      term = character(0),
+      endogenous = logical(0),
       stringsAsFactors = FALSE
     ))
   }
@@ -121,8 +129,11 @@ drm_build_edges <- function(records) {
 #' @noRd
 drm_collapse_edges <- function(edges) {
   if (nrow(edges) == 0L) {
-    return(data.frame(from = character(0), to = character(0),
-                      stringsAsFactors = FALSE))
+    return(data.frame(
+      from = character(0),
+      to = character(0),
+      stringsAsFactors = FALSE
+    ))
   }
   ve <- unique(edges[, c("from", "to")])
   rownames(ve) <- NULL

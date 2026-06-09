@@ -16,11 +16,21 @@
 # splits at the root, sharing path length 1 with both t1 and t2 (the root edge).
 # diag = T = 3; off-diagonals are the shared path lengths. Symmetric and PSD.
 known_bm_cov <- function() {
-  C <- matrix(c(
-    3, 2, 1,
-    2, 3, 1,
-    1, 1, 3
-  ), nrow = 3, byrow = TRUE)
+  C <- matrix(
+    c(
+      3,
+      2,
+      1,
+      2,
+      3,
+      1,
+      1,
+      1,
+      3
+    ),
+    nrow = 3,
+    byrow = TRUE
+  )
   dimnames(C) <- list(c("t1", "t2", "t3"), c("t1", "t2", "t3"))
   C
 }
@@ -91,11 +101,11 @@ test_that("OU alpha large -> identity; alpha -> 0 -> all-ones", {
   C <- known_bm_cov()
   big <- drmSEM:::phylo_transform_ou(C, 50)
   off <- upper.tri(C)
-  expect_true(all(big[off] < 1e-6))            # approaches identity
+  expect_true(all(big[off] < 1e-6)) # approaches identity
   expect_equal(diag(big), rep(1, nrow(C)), ignore_attr = TRUE)
 
   tiny <- drmSEM:::phylo_transform_ou(C, 1e-8)
-  expect_true(all(abs(tiny - 1) < 1e-6))       # approaches all-ones
+  expect_true(all(abs(tiny - 1) < 1e-6)) # approaches all-ones
 })
 
 test_that("OU result is positive semi-definite for a reasonable alpha", {
@@ -124,8 +134,8 @@ test_that("phylo_to_corr yields unit diagonal, symmetry, preserved dimnames", {
 
 test_that("standardising an already-correlation matrix is a near-identity", {
   C <- known_bm_cov()
-  R <- drmSEM:::phylo_to_corr(C)         # a correlation matrix (unit diag)
-  R2 <- drmSEM:::phylo_to_corr(R)        # re-standardising it
+  R <- drmSEM:::phylo_to_corr(C) # a correlation matrix (unit diag)
+  R2 <- drmSEM:::phylo_to_corr(R) # re-standardising it
   expect_equal(R2, R, tolerance = 1e-12)
 })
 
@@ -142,8 +152,10 @@ test_that("drm_phylo_cov() gives a clear error when ape is unavailable", {
   # Only meaningful when ape is genuinely absent: a fake phylo object passes the
   # class check, then the ape guard must abort. When ape IS installed this path
   # cannot be reached with a fake tree (vcv would error first), so skip it.
-  skip_if(requireNamespace("ape", quietly = TRUE),
-          "ape is installed; the ape-missing guard is unreachable here")
+  skip_if(
+    requireNamespace("ape", quietly = TRUE),
+    "ape is installed; the ape-missing guard is unreachable here"
+  )
   fake <- structure(list(), class = "phylo")
   expect_error(drm_phylo_cov(fake, "BM"))
 })
@@ -162,7 +174,7 @@ test_that("drm_phylo_cov() builds BM / lambda / OU / kappa over a real tree", {
   expect_equal(rownames(K), tips)
   expect_equal(colnames(K), tips)
   expect_true(isSymmetric(K))
-  expect_equal(diag(K), rep(1, 6), ignore_attr = TRUE)   # standardised
+  expect_equal(diag(K), rep(1, 6), ignore_attr = TRUE) # standardised
 
   # BM without standardisation keeps the raw vcv (diag = root-to-tip height).
   K_raw <- drm_phylo_cov(tree, "BM", standardize = FALSE)
@@ -201,8 +213,10 @@ test_that("a relmat() node built from drm_phylo_cov() forms a valid SEM", {
   sp_re <- stats::rnorm(n_sp, sd = 0.4)
   names(sp_re) <- species_levels
   n <- 120
-  species <- factor(sample(species_levels, n, replace = TRUE),
-                    levels = species_levels)
+  species <- factor(
+    sample(species_levels, n, replace = TRUE),
+    levels = species_levels
+  )
   sp <- as.character(species)
   x <- stats::rnorm(n)
   y <- 0.2 + 0.7 * x + sp_re[sp] + stats::rnorm(n, sd = 0.5)

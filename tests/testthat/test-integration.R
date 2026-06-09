@@ -42,9 +42,14 @@ test_that("d-separation flags a true omitted edge and Fisher's C runs", {
   # omit the real size -> survival arrow; d-sep should detect it
   dat <- simulate_drmsem_dgp(n = 300, seed = 11)
   sem <- drm_sem(
-    size = drm_node(drmTMB::bf(size ~ temp + habitat), family = stats::gaussian()),
-    survival = drm_node(drmTMB::bf(cbind(alive, dead) ~ temp),
-                        family = drmTMB::beta_binomial()),
+    size = drm_node(
+      drmTMB::bf(size ~ temp + habitat),
+      family = stats::gaussian()
+    ),
+    survival = drm_node(
+      drmTMB::bf(cbind(alive, dead) ~ temp),
+      family = drmTMB::beta_binomial()
+    ),
     data = dat
   )
   d <- dsep(sem)
@@ -63,7 +68,9 @@ test_that("effects run and total decomposes into direct + indirect", {
   # drm_draw_beta() falls back to the point estimate for non-finite vcov blocks.
   expect_true(is.finite(de$estimate))
   ie <- indirect_effects(sem, from = "temp", to = "survival", B = 40, nsim = 20)
-  expect_true(all(c("total_path", "direct", "indirect",
-                    "distribution_mediated") %in% ie$quantity))
+  expect_true(all(
+    c("total_path", "direct", "indirect", "distribution_mediated") %in%
+      ie$quantity
+  ))
   expect_true(all(is.finite(ie$estimate)))
 })

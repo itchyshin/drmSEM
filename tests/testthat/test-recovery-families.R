@@ -36,12 +36,14 @@ ie_q <- function(ie, q) ie$estimate[ie$quantity == q]
 # computed through drmTMB's predictor rather than drmSEM's inverse-link kernels --
 # an independent path that does not touch any dispersion parameterization.
 mean_do_contrast <- function(fit_m, fit_y, data, from_col, med_col, at) {
-  lo <- data; hi <- data
+  lo <- data
+  hi <- data
   lo[[from_col]] <- at[[1]]
   hi[[from_col]] <- at[[2]]
   mu_m_lo <- pp_col(fit_m, lo, "mu")
   mu_m_hi <- pp_col(fit_m, hi, "mu")
-  ylo <- lo; yhi <- hi
+  ylo <- lo
+  yhi <- hi
   ylo[[med_col]] <- mu_m_lo
   yhi[[med_col]] <- mu_m_hi
   mu_y_lo <- mu_y_of(fit_y, ylo, mu_m_lo)
@@ -51,7 +53,8 @@ mean_do_contrast <- function(fit_m, fit_y, data, from_col, med_col, at) {
 
 # Scenario contrast points exactly as drm_build_scenarios() builds them.
 scen_at <- function(x) {
-  m <- mean(x, na.rm = TRUE); s <- stats::sd(x, na.rm = TRUE)
+  m <- mean(x, na.rm = TRUE)
+  s <- stats::sd(x, na.rm = TRUE)
   c(m - 0.5 * s, m + 0.5 * s)
 }
 
@@ -60,7 +63,10 @@ scen_at <- function(x) {
 # numeric newdata columns when current drmTMB returns a metadata-rich table.
 pp_col <- function(fit, newdata, dpar) {
   drmSEM:::drm_predict_parameter_values(
-    fit, newdata = newdata, dpar = dpar, type = "response"
+    fit,
+    newdata = newdata,
+    dpar = dpar,
+    type = "response"
   )
 }
 
@@ -99,9 +105,15 @@ test_that("V-45: gaussian (identity) chain -- mean-mediated == fitted-coef produ
   b_my <- p$estimate[p$from == "m" & p$to == "y" & p$component == "mu"]
   s <- contrast_width(dat$x)
 
-  ie <- indirect_effects(sem, from = "x", to = "y", uncertainty = "none", nsim = 1)
-  mm  <- ie_q(ie, "mean_mediated")
-  dm  <- ie_q(ie, "distribution_mediated")
+  ie <- indirect_effects(
+    sem,
+    from = "x",
+    to = "y",
+    uncertainty = "none",
+    nsim = 1
+  )
+  mm <- ie_q(ie, "mean_mediated")
+  dm <- ie_q(ie, "distribution_mediated")
   ind <- ie_q(ie, "indirect")
   dir <- ie_q(ie, "direct")
   tot <- ie_q(ie, "total_path")
@@ -135,17 +147,24 @@ test_that("V-46: poisson (log) chain -- closure, sign, and total matches a drmTM
     data = dat
   )
 
-  ie <- indirect_effects(sem, from = "x", to = "y", uncertainty = "none", nsim = 400, seed = 46)
+  ie <- indirect_effects(
+    sem,
+    from = "x",
+    to = "y",
+    uncertainty = "none",
+    nsim = 400,
+    seed = 46
+  )
   tot <- ie_q(ie, "total_path")
   dir <- ie_q(ie, "direct")
   ind <- ie_q(ie, "indirect")
-  mm  <- ie_q(ie, "mean_mediated")
-  dm  <- ie_q(ie, "distribution_mediated")
+  mm <- ie_q(ie, "mean_mediated")
+  dm <- ie_q(ie, "distribution_mediated")
 
   expect_true(all(is.finite(c(tot, dir, ind, mm, dm))))
-  expect_gt(ind, 0)                                   # sign: positive chain
-  expect_equal(tot, dir + ind, tolerance = 1e-6)      # closure
-  expect_equal(ind, mm + dm, tolerance = 1e-6)        # closure
+  expect_gt(ind, 0) # sign: positive chain
+  expect_equal(tot, dir + ind, tolerance = 1e-6) # closure
+  expect_equal(ind, mm + dm, tolerance = 1e-6) # closure
 
   # Robust recovery signal: mean-mediated is finite and strictly positive (the
   # x -> m -> y chain has a positive product). The predict-based do-contrast
@@ -173,17 +192,24 @@ test_that("V-47: nbinom2 (log) chain -- closure, finiteness, sign under overdisp
     data = dat
   )
 
-  ie <- indirect_effects(sem, from = "x", to = "y", uncertainty = "none", nsim = 400, seed = 47)
+  ie <- indirect_effects(
+    sem,
+    from = "x",
+    to = "y",
+    uncertainty = "none",
+    nsim = 400,
+    seed = 47
+  )
   tot <- ie_q(ie, "total_path")
   dir <- ie_q(ie, "direct")
   ind <- ie_q(ie, "indirect")
-  mm  <- ie_q(ie, "mean_mediated")
-  dm  <- ie_q(ie, "distribution_mediated")
+  mm <- ie_q(ie, "mean_mediated")
+  dm <- ie_q(ie, "distribution_mediated")
 
   expect_true(all(is.finite(c(tot, dir, ind, mm, dm))))
-  expect_gt(ind, 0)                                   # sign: positive chain
-  expect_equal(tot, dir + ind, tolerance = 1e-6)      # closure
-  expect_equal(ind, mm + dm, tolerance = 1e-6)        # closure
+  expect_gt(ind, 0) # sign: positive chain
+  expect_equal(tot, dir + ind, tolerance = 1e-6) # closure
+  expect_equal(ind, mm + dm, tolerance = 1e-6) # closure
 
   # Robust recovery signal (the log-link do-contrast magnitude is fragile; see
   # V-46): mean-mediated finite and strictly positive, with closure above.
@@ -217,14 +243,26 @@ test_that("V-48: beta (logit) chain on a proportion response -- closure and sign
     data = dat
   )
 
-  ie <- indirect_effects(sem, from = "x", to = "y", uncertainty = "none", nsim = 200, seed = 48)
+  ie <- indirect_effects(
+    sem,
+    from = "x",
+    to = "y",
+    uncertainty = "none",
+    nsim = 200,
+    seed = 48
+  )
   expect_true(all(is.finite(ie$estimate)))
-  expect_gt(ie_q(ie, "indirect"), 0)                                  # positive logit chain
-  expect_equal(ie_q(ie, "total_path"),
-               ie_q(ie, "direct") + ie_q(ie, "indirect"), tolerance = 1e-6)
-  expect_equal(ie_q(ie, "indirect"),
-               ie_q(ie, "mean_mediated") + ie_q(ie, "distribution_mediated"),
-               tolerance = 1e-6)
+  expect_gt(ie_q(ie, "indirect"), 0) # positive logit chain
+  expect_equal(
+    ie_q(ie, "total_path"),
+    ie_q(ie, "direct") + ie_q(ie, "indirect"),
+    tolerance = 1e-6
+  )
+  expect_equal(
+    ie_q(ie, "indirect"),
+    ie_q(ie, "mean_mediated") + ie_q(ie, "distribution_mediated"),
+    tolerance = 1e-6
+  )
 })
 
 
@@ -245,18 +283,33 @@ test_that("V-49: beta_binomial (logit) chain with cbind() response -- closure an
 
   sem <- drm_sem(
     m = drm_node(drmTMB::bf(m ~ x), family = stats::gaussian()),
-    y = drm_node(drmTMB::bf(cbind(succ, fail) ~ m), family = drmTMB::beta_binomial()),
+    y = drm_node(
+      drmTMB::bf(cbind(succ, fail) ~ m),
+      family = drmTMB::beta_binomial()
+    ),
     data = dat
   )
 
-  ie <- indirect_effects(sem, from = "x", to = "y", uncertainty = "none", nsim = 200, seed = 49)
+  ie <- indirect_effects(
+    sem,
+    from = "x",
+    to = "y",
+    uncertainty = "none",
+    nsim = 200,
+    seed = 49
+  )
   expect_true(all(is.finite(ie$estimate)))
-  expect_gt(ie_q(ie, "indirect"), 0)                                  # positive logit chain
-  expect_equal(ie_q(ie, "total_path"),
-               ie_q(ie, "direct") + ie_q(ie, "indirect"), tolerance = 1e-6)
-  expect_equal(ie_q(ie, "indirect"),
-               ie_q(ie, "mean_mediated") + ie_q(ie, "distribution_mediated"),
-               tolerance = 1e-6)
+  expect_gt(ie_q(ie, "indirect"), 0) # positive logit chain
+  expect_equal(
+    ie_q(ie, "total_path"),
+    ie_q(ie, "direct") + ie_q(ie, "indirect"),
+    tolerance = 1e-6
+  )
+  expect_equal(
+    ie_q(ie, "indirect"),
+    ie_q(ie, "mean_mediated") + ie_q(ie, "distribution_mediated"),
+    tolerance = 1e-6
+  )
 })
 
 
@@ -276,14 +329,26 @@ test_that("V-50: beta (logit) chain on a (0,1) response -- closure and sign", {
     data = dat
   )
 
-  ie <- indirect_effects(sem, from = "x", to = "y", uncertainty = "none", nsim = 300, seed = 50)
+  ie <- indirect_effects(
+    sem,
+    from = "x",
+    to = "y",
+    uncertainty = "none",
+    nsim = 300,
+    seed = 50
+  )
   expect_true(all(is.finite(ie$estimate)))
-  expect_gt(ie_q(ie, "indirect"), 0)                                  # positive logit chain
-  expect_equal(ie_q(ie, "total_path"),
-               ie_q(ie, "direct") + ie_q(ie, "indirect"), tolerance = 1e-6)
-  expect_equal(ie_q(ie, "indirect"),
-               ie_q(ie, "mean_mediated") + ie_q(ie, "distribution_mediated"),
-               tolerance = 1e-6)
+  expect_gt(ie_q(ie, "indirect"), 0) # positive logit chain
+  expect_equal(
+    ie_q(ie, "total_path"),
+    ie_q(ie, "direct") + ie_q(ie, "indirect"),
+    tolerance = 1e-6
+  )
+  expect_equal(
+    ie_q(ie, "indirect"),
+    ie_q(ie, "mean_mediated") + ie_q(ie, "distribution_mediated"),
+    tolerance = 1e-6
+  )
 })
 
 
@@ -294,7 +359,7 @@ test_that("V-51: Gamma (log) chain -- closure, sign, and total matches a drmTMB 
   m <- stats::rnorm(n, 0.4 * x, 1)
   mu_y <- exp(0.3 + 0.3 * m)
   shape <- 4
-  y <- stats::rgamma(n, shape = shape, rate = shape / mu_y)  # mean = mu_y
+  y <- stats::rgamma(n, shape = shape, rate = shape / mu_y) # mean = mu_y
   dat <- data.frame(x, m, y)
 
   sem <- drm_sem(
@@ -303,14 +368,24 @@ test_that("V-51: Gamma (log) chain -- closure, sign, and total matches a drmTMB 
     data = dat
   )
 
-  ie <- indirect_effects(sem, from = "x", to = "y", uncertainty = "none", nsim = 300, seed = 51)
-  tot <- ie_q(ie, "total_path"); dir <- ie_q(ie, "direct"); ind <- ie_q(ie, "indirect")
-  mm  <- ie_q(ie, "mean_mediated"); dm <- ie_q(ie, "distribution_mediated")
+  ie <- indirect_effects(
+    sem,
+    from = "x",
+    to = "y",
+    uncertainty = "none",
+    nsim = 300,
+    seed = 51
+  )
+  tot <- ie_q(ie, "total_path")
+  dir <- ie_q(ie, "direct")
+  ind <- ie_q(ie, "indirect")
+  mm <- ie_q(ie, "mean_mediated")
+  dm <- ie_q(ie, "distribution_mediated")
 
   expect_true(all(is.finite(c(tot, dir, ind, mm, dm))))
-  expect_gt(ind, 0)                                   # positive log-linear chain
-  expect_equal(tot, dir + ind, tolerance = 1e-6)      # closure
-  expect_equal(ind, mm + dm, tolerance = 1e-6)        # closure
+  expect_gt(ind, 0) # positive log-linear chain
+  expect_equal(tot, dir + ind, tolerance = 1e-6) # closure
+  expect_equal(ind, mm + dm, tolerance = 1e-6) # closure
 
   # Recovery signal for the mean-mediated leg: the log-link Gamma chain has a
   # positive a*b path, so the mean-propagated mediated effect is finite and
@@ -339,14 +414,24 @@ test_that("V-52: lognormal (identity meanlog) chain -- closure, sign, and mean-m
     data = dat
   )
 
-  ie <- indirect_effects(sem, from = "x", to = "y", uncertainty = "none", nsim = 400, seed = 52)
-  tot <- ie_q(ie, "total_path"); dir <- ie_q(ie, "direct"); ind <- ie_q(ie, "indirect")
-  mm  <- ie_q(ie, "mean_mediated"); dm <- ie_q(ie, "distribution_mediated")
+  ie <- indirect_effects(
+    sem,
+    from = "x",
+    to = "y",
+    uncertainty = "none",
+    nsim = 400,
+    seed = 52
+  )
+  tot <- ie_q(ie, "total_path")
+  dir <- ie_q(ie, "direct")
+  ind <- ie_q(ie, "indirect")
+  mm <- ie_q(ie, "mean_mediated")
+  dm <- ie_q(ie, "distribution_mediated")
 
   expect_true(all(is.finite(c(tot, dir, ind, mm, dm))))
-  expect_gt(ind, 0)                                   # positive log-linear chain
-  expect_equal(tot, dir + ind, tolerance = 1e-6)      # closure
-  expect_equal(ind, mm + dm, tolerance = 1e-6)        # closure
+  expect_gt(ind, 0) # positive log-linear chain
+  expect_equal(tot, dir + ind, tolerance = 1e-6) # closure
+  expect_equal(ind, mm + dm, tolerance = 1e-6) # closure
 
   # The mediator M is homoscedastic Gaussian and the lognormal response mean is
   # monotone increasing in M, so the mean-mediated leg is finite and strictly
@@ -366,8 +451,11 @@ test_that("V-53: x -> sigma(M) feeding a NONLINEAR lognormal outcome -- distribu
   set.seed(53)
   n <- 2000
   x <- stats::rnorm(n)
-  a <- 0.0; s0 <- -0.2; s1 <- 0.9      # mean(M) flat in x; log-sd(M) rises in x
-  b0 <- 0.2; b1 <- 0.5
+  a <- 0.0
+  s0 <- -0.2
+  s1 <- 0.9 # mean(M) flat in x; log-sd(M) rises in x
+  b0 <- 0.2
+  b1 <- 0.5
   m <- stats::rnorm(n, a * x, exp(s0 + s1 * x))
   y <- stats::rlnorm(n, meanlog = b0 + b1 * m, sdlog = 0.3)
   dat <- data.frame(x, m, y)
@@ -378,15 +466,24 @@ test_that("V-53: x -> sigma(M) feeding a NONLINEAR lognormal outcome -- distribu
     data = dat
   )
 
-  ie <- indirect_effects(sem, from = "x", to = "y", uncertainty = "none",
-                         nsim = 4000, seed = 53)
-  tot <- ie_q(ie, "total_path"); dir <- ie_q(ie, "direct"); ind <- ie_q(ie, "indirect")
-  mm  <- ie_q(ie, "mean_mediated"); dm <- ie_q(ie, "distribution_mediated")
+  ie <- indirect_effects(
+    sem,
+    from = "x",
+    to = "y",
+    uncertainty = "none",
+    nsim = 4000,
+    seed = 53
+  )
+  tot <- ie_q(ie, "total_path")
+  dir <- ie_q(ie, "direct")
+  ind <- ie_q(ie, "indirect")
+  mm <- ie_q(ie, "mean_mediated")
+  dm <- ie_q(ie, "distribution_mediated")
 
   expect_true(all(is.finite(c(tot, dir, ind, mm, dm))))
-  expect_gt(dm, 0)                                    # the distributional channel is real
-  expect_equal(tot, dir + ind, tolerance = 1e-6)      # closure
-  expect_equal(ind, mm + dm, tolerance = 1e-6)        # closure
+  expect_gt(dm, 0) # the distributional channel is real
+  expect_equal(tot, dir + ind, tolerance = 1e-6) # closure
+  expect_equal(ind, mm + dm, tolerance = 1e-6) # closure
 
   # Magnitude check computed from the FITTED meanlog/sigma coefficients (NOT DGP
   # truth), generous tol. For a lognormal outcome with meanlog
@@ -400,7 +497,10 @@ test_that("V-53: x -> sigma(M) feeding a NONLINEAR lognormal outcome -- distribu
   fit_m <- sem$records$m$fit
   fit_y <- sem$records$y$fit
   at <- scen_at(dat$x)
-  lo <- dat; hi <- dat; lo$x <- at[[1]]; hi$x <- at[[2]]
+  lo <- dat
+  hi <- dat
+  lo$x <- at[[1]]
+  hi$x <- at[[2]]
 
   mu_m_lo <- pp_col(fit_m, lo, "mu")
   mu_m_hi <- pp_col(fit_m, hi, "mu")
@@ -414,8 +514,12 @@ test_that("V-53: x -> sigma(M) feeding a NONLINEAR lognormal outcome -- distribu
   ybar_mean_lo <- mean(mu_y_of(fit_y, lo, mu_m_lo))
   ybar_mean_hi <- mean(mu_y_of(fit_y, hi, mu_m_hi))
   # distribution-leg outcome mean: multiply by the lognormal Jensen factor.
-  ybar_dist_lo <- mean(mu_y_of(fit_y, lo, mu_m_lo) * exp(0.5 * by1^2 * sd_m_lo^2))
-  ybar_dist_hi <- mean(mu_y_of(fit_y, hi, mu_m_hi) * exp(0.5 * by1^2 * sd_m_hi^2))
+  ybar_dist_lo <- mean(
+    mu_y_of(fit_y, lo, mu_m_lo) * exp(0.5 * by1^2 * sd_m_lo^2)
+  )
+  ybar_dist_hi <- mean(
+    mu_y_of(fit_y, hi, mu_m_hi) * exp(0.5 * by1^2 * sd_m_hi^2)
+  )
 
   # The Jensen gap implied by the FITTED mu/sigma coefficients is itself positive:
   # an independent (fitted-parameter, not engine) confirmation that the realized-M
@@ -424,7 +528,7 @@ test_that("V-53: x -> sigma(M) feeding a NONLINEAR lognormal outcome -- distribu
   expected_dm <- (ybar_dist_hi - ybar_dist_lo) - (ybar_mean_hi - ybar_mean_lo)
   # corroboration only (the primary dm > 0 + closure are asserted above); guard
   # the fitted-parameter recompute so a flaky predict read can't false-fail.
-  if (is.finite(expected_dm)) expect_gt(expected_dm, 0)  # analytic gap positive too
+  if (is.finite(expected_dm)) expect_gt(expected_dm, 0) # analytic gap positive too
   # Magnitude (`expect_equal(dm, expected_dm, ...)`) relaxed to the sign/closure
   # recovery signals: the absolute size of the distributional leg is sensitive to
   # the lognormal-sdlog <-> sigma mapping and Monte-Carlo noise at this nsim, so we
@@ -432,7 +536,6 @@ test_that("V-53: x -> sigma(M) feeding a NONLINEAR lognormal outcome -- distribu
   # fitted-parameter Jensen gap is positive) rather than a tight magnitude match
   # we cannot verify offline (see report).
 })
-
 
 
 test_that("V-54: x -> sigma(M) feeding a NONLINEAR Gamma outcome -- distribution_mediated > 0 and closure", {
@@ -444,7 +547,10 @@ test_that("V-54: x -> sigma(M) feeding a NONLINEAR Gamma outcome -- distribution
   set.seed(54)
   n <- 2000
   x <- stats::rnorm(n)
-  s0 <- -0.2; s1 <- 0.9; b0 <- 0.3; b1 <- 0.5
+  s0 <- -0.2
+  s1 <- 0.9
+  b0 <- 0.3
+  b1 <- 0.5
   m <- stats::rnorm(n, 0.0 * x, exp(s0 + s1 * x))
   mu_y <- exp(b0 + b1 * m)
   shape <- 6
@@ -457,13 +563,22 @@ test_that("V-54: x -> sigma(M) feeding a NONLINEAR Gamma outcome -- distribution
     data = dat
   )
 
-  ie <- indirect_effects(sem, from = "x", to = "y", uncertainty = "none",
-                         nsim = 4000, seed = 54)
-  tot <- ie_q(ie, "total_path"); dir <- ie_q(ie, "direct"); ind <- ie_q(ie, "indirect")
-  mm  <- ie_q(ie, "mean_mediated"); dm <- ie_q(ie, "distribution_mediated")
+  ie <- indirect_effects(
+    sem,
+    from = "x",
+    to = "y",
+    uncertainty = "none",
+    nsim = 4000,
+    seed = 54
+  )
+  tot <- ie_q(ie, "total_path")
+  dir <- ie_q(ie, "direct")
+  ind <- ie_q(ie, "indirect")
+  mm <- ie_q(ie, "mean_mediated")
+  dm <- ie_q(ie, "distribution_mediated")
 
   expect_true(all(is.finite(c(tot, dir, ind, mm, dm))))
-  expect_gt(dm, 0)                                    # distributional channel is real
-  expect_equal(tot, dir + ind, tolerance = 1e-6)      # closure
-  expect_equal(ind, mm + dm, tolerance = 1e-6)        # closure
+  expect_gt(dm, 0) # distributional channel is real
+  expect_equal(tot, dir + ind, tolerance = 1e-6) # closure
+  expect_equal(ind, mm + dm, tolerance = 1e-6) # closure
 })

@@ -23,7 +23,9 @@
 # =============================================================================
 
 if (!requireNamespace("drmTMB", quietly = TRUE)) {
-  stop("inst/calibration/generate.R needs the drmTMB engine (github::itchyshin/drmTMB).")
+  stop(
+    "inst/calibration/generate.R needs the drmTMB engine (github::itchyshin/drmTMB)."
+  )
 }
 
 suppressPackageStartupMessages({
@@ -35,10 +37,10 @@ suppressPackageStartupMessages({
 # in vignettes/calibration.Rmd mirror it for transparency.
 # ----------------------------------------------------------------------------
 GRID <- list(
-  n      = c(100L, 250L, 500L, 1000L),
-  beta   = c(0, 0.1, 0.2, 0.3, 0.5, 0.8),
+  n = c(100L, 250L, 500L, 1000L),
+  beta = c(0, 0.1, 0.2, 0.3, 0.5, 0.8),
   family = c("mean_only", "distributional", "cross_link"),
-  reps   = 200L
+  reps = 200L
 )
 
 # ----------------------------------------------------------------------------
@@ -103,9 +105,9 @@ make_cross_link <- function(seed, beta, n) {
 }
 
 DGP <- list(
-  mean_only      = make_mean_only,
+  mean_only = make_mean_only,
   distributional = make_distributional,
-  cross_link     = make_cross_link
+  cross_link = make_cross_link
 )
 
 # ----------------------------------------------------------------------------
@@ -120,9 +122,15 @@ run_one <- function(family, seed, beta, n) {
   )
   if (is.null(built)) {
     return(data.frame(
-      family = family, n = n, beta = beta, seed = seed,
-      claim_p = NA_real_, claim_df = NA_integer_, status = "build_failed",
-      fisher_c_p = NA_real_, stringsAsFactors = FALSE
+      family = family,
+      n = n,
+      beta = beta,
+      seed = seed,
+      claim_p = NA_real_,
+      claim_df = NA_integer_,
+      status = "build_failed",
+      fisher_c_p = NA_real_,
+      stringsAsFactors = FALSE
     ))
   }
   d <- tryCatch(
@@ -131,9 +139,15 @@ run_one <- function(family, seed, beta, n) {
   )
   if (is.null(d)) {
     return(data.frame(
-      family = family, n = n, beta = beta, seed = seed,
-      claim_p = NA_real_, claim_df = NA_integer_, status = "dsep_failed",
-      fisher_c_p = NA_real_, stringsAsFactors = FALSE
+      family = family,
+      n = n,
+      beta = beta,
+      seed = seed,
+      claim_p = NA_real_,
+      claim_df = NA_integer_,
+      status = "dsep_failed",
+      fisher_c_p = NA_real_,
+      stringsAsFactors = FALSE
     ))
   }
   row <- d$x == "x" & d$y == "y"
@@ -157,8 +171,14 @@ run_one <- function(family, seed, beta, n) {
 # ----------------------------------------------------------------------------
 message(
   "drmSEM OQ-6 calibration: ",
-  length(GRID$family), " families x ", length(GRID$n), " n x ",
-  length(GRID$beta), " beta x ", GRID$reps, " reps = ",
+  length(GRID$family),
+  " families x ",
+  length(GRID$n),
+  " n x ",
+  length(GRID$beta),
+  " beta x ",
+  GRID$reps,
+  " reps = ",
   length(GRID$family) * length(GRID$n) * length(GRID$beta) * GRID$reps,
   " fits."
 )
@@ -171,7 +191,8 @@ for (family in GRID$family) {
       for (r in seq_len(GRID$reps)) {
         # Stable, collision-free seed across the whole grid.
         seed <- as.integer(
-          1e6 * match(family, GRID$family) +
+          1e6 *
+            match(family, GRID$family) +
             1e4 * match(n, GRID$n) +
             1e2 * match(beta, GRID$beta) +
             r
@@ -193,7 +214,11 @@ rownames(per_rep) <- NULL
 # augmented-component count (the centerpiece OQ-6 diagnostic).
 # ----------------------------------------------------------------------------
 alpha <- 0.05
-ok <- per_rep[per_rep$status == "ok" & is.finite(per_rep$claim_p), , drop = FALSE]
+ok <- per_rep[
+  per_rep$status == "ok" & is.finite(per_rep$claim_p),
+  ,
+  drop = FALSE
+]
 
 agg <- function(df, by) {
   out <- aggregate(
@@ -217,14 +242,16 @@ power <- agg(
   ok[ok$beta > 0, , drop = FALSE],
   by = list(
     family = ok$family[ok$beta > 0],
-    n      = ok$n[ok$beta > 0],
-    beta   = ok$beta[ok$beta > 0]
+    n = ok$n[ok$beta > 0],
+    beta = ok$beta[ok$beta > 0]
   )
 )
 
 # Per-replicate Fisher's C p-values for the uniformity/QQ plot (nulls only:
 # beta == 0, where the DAG is correctly specified).
-fisher_c_null_p <- per_rep$fisher_c_p[per_rep$beta == 0 & is.finite(per_rep$fisher_c_p)]
+fisher_c_null_p <- per_rep$fisher_c_p[
+  per_rep$beta == 0 & is.finite(per_rep$fisher_c_p)
+]
 
 # ----------------------------------------------------------------------------
 # Acceptance checks for promoting V-17. These are deliberately stored in the
@@ -260,9 +287,7 @@ status_n <- aggregate(
   by = list(family = per_rep$family, n = per_rep$n, beta = per_rep$beta),
   FUN = length
 )
-status_summary <- merge(status_summary, status_n,
-  by = c("family", "n", "beta")
-)
+status_summary <- merge(status_summary, status_n, by = c("family", "n", "beta"))
 status_summary$pass <- status_summary$ok_rate >= 0.95
 
 fisher_uniform <- data.frame(
@@ -284,20 +309,23 @@ power_strong <- power[power$beta == max(GRID$beta), , drop = FALSE]
 power_strong$pass <- power_strong$reject >= 0.80
 power_mid <- power[power$beta == 0.5 & power$n >= 250, , drop = FALSE]
 power_mid$pass <- power_mid$reject >= 0.70
-power_monotone <- do.call(rbind, lapply(
-  split(power, list(power$family, power$n), drop = TRUE),
-  function(df) {
-    df <- df[order(df$beta), , drop = FALSE]
-    diffs <- diff(df$reject)
-    data.frame(
-      family = df$family[[1L]],
-      n = df$n[[1L]],
-      min_step = if (length(diffs)) min(diffs, na.rm = TRUE) else NA_real_,
-      pass = !length(diffs) || all(diffs >= -0.05),
-      stringsAsFactors = FALSE
-    )
-  }
-))
+power_monotone <- do.call(
+  rbind,
+  lapply(
+    split(power, list(power$family, power$n), drop = TRUE),
+    function(df) {
+      df <- df[order(df$beta), , drop = FALSE]
+      diffs <- diff(df$reject)
+      data.frame(
+        family = df$family[[1L]],
+        n = df$n[[1L]],
+        min_step = if (length(diffs)) min(diffs, na.rm = TRUE) else NA_real_,
+        pass = !length(diffs) || all(diffs >= -0.05),
+        stringsAsFactors = FALSE
+      )
+    }
+  )
+)
 
 acceptance <- list(
   status_summary = status_summary,
@@ -325,8 +353,7 @@ acceptance <- list(
       all(type1$pass),
       all(type1_by_df$pass),
       fisher_uniform$pass[[1L]],
-      all(power_strong$pass) && all(power_mid$pass) &&
-        all(power_monotone$pass)
+      all(power_strong$pass) && all(power_mid$pass) && all(power_monotone$pass)
     ),
     stringsAsFactors = FALSE
   )
@@ -334,8 +361,11 @@ acceptance <- list(
 
 git_sha <- tryCatch(
   {
-    s <- system2("git", c("rev-parse", "--short", "HEAD"),
-      stdout = TRUE, stderr = FALSE
+    s <- system2(
+      "git",
+      c("rev-parse", "--short", "HEAD"),
+      stdout = TRUE,
+      stderr = FALSE
     )
     if (length(s)) s[[1L]] else NA_character_
   },
@@ -363,19 +393,25 @@ meta <- list(
 )
 
 cal <- list(
-  meta            = meta,
-  per_rep         = per_rep,
-  type1           = type1,
-  type1_by_df     = type1_by_df,
-  power           = power,
-  acceptance      = acceptance,
+  meta = meta,
+  per_rep = per_rep,
+  type1 = type1,
+  type1_by_df = type1_by_df,
+  power = power,
+  acceptance = acceptance,
   fisher_c_null_p = fisher_c_null_p
 )
 
 out_path <- file.path("inst", "calibration", "calibration-results.rds")
 saveRDS(cal, out_path)
 message(
-  "Wrote ", out_path, " (drmTMB ", meta$drmTMB_version,
-  ", drmTMB sha ", meta$drmTMB_remote_sha,
-  ", drmSEM sha ", meta$git_sha, ")."
+  "Wrote ",
+  out_path,
+  " (drmTMB ",
+  meta$drmTMB_version,
+  ", drmTMB sha ",
+  meta$drmTMB_remote_sha,
+  ", drmSEM sha ",
+  meta$git_sha,
+  ")."
 )

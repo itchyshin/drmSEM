@@ -30,17 +30,20 @@ test_that("a p == 0 claim inflates Fisher's C rather than being dropped", {
 })
 
 test_that("basis set excludes adjacent pairs and respects causal order", {
-  obj <- structure(list(
-    order = c("size", "abund"),
-    endogenous = c("size", "abund"),
-    exogenous = c("temp", "habitat"),
-    edges = data.frame(
-      from = c("temp", "temp", "size", "habitat"),
-      to   = c("size", "abund", "abund", "abund"),
-      component = c("mu", "mu", "mu", "zi"),
-      stringsAsFactors = FALSE
-    )
-  ), class = "drm_sem")
+  obj <- structure(
+    list(
+      order = c("size", "abund"),
+      endogenous = c("size", "abund"),
+      exogenous = c("temp", "habitat"),
+      edges = data.frame(
+        from = c("temp", "temp", "size", "habitat"),
+        to = c("size", "abund", "abund", "abund"),
+        component = c("mu", "mu", "mu", "zi"),
+        stringsAsFactors = FALSE
+      )
+    ),
+    class = "drm_sem"
+  )
   bs <- basis_set(obj)
   # habitat -> size is a legitimate missing-arrow claim
   expect_true(any(bs$x == "habitat" & bs$y == "size"))

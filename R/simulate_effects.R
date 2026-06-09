@@ -44,18 +44,33 @@ drm_sample_family <- function(family, params, n) {
     gaussian = stats::rnorm(n, mean = mu, sd = sigma),
     student = mu + sigma * stats::rt(n, df = pmax(params$nu %||% 5, 2.1)),
     lognormal = stats::rlnorm(n, meanlog = mu, sdlog = sigma),
-    Gamma = stats::rgamma(n, shape = 1 / pmax(sigma^2, 1e-8),
-                          rate = 1 / pmax(sigma^2, 1e-8) / pmax(mu, 1e-8)),
-    gamma = stats::rgamma(n, shape = 1 / pmax(sigma^2, 1e-8),
-                          rate = 1 / pmax(sigma^2, 1e-8) / pmax(mu, 1e-8)),
+    Gamma = stats::rgamma(
+      n,
+      shape = 1 / pmax(sigma^2, 1e-8),
+      rate = 1 / pmax(sigma^2, 1e-8) / pmax(mu, 1e-8)
+    ),
+    gamma = stats::rgamma(
+      n,
+      shape = 1 / pmax(sigma^2, 1e-8),
+      rate = 1 / pmax(sigma^2, 1e-8) / pmax(mu, 1e-8)
+    ),
     poisson = stats::rpois(n, lambda = pmax(mu, 0)),
     # drmTMB's `sigma` is treated as an SD-like scale: the nbinom2 size (theta) is
     # 1/sigma^2 (so var = mu + mu^2 * sigma^2), and the beta precision is 1/sigma^2.
     # V-57..V-60 assert these moments against drmTMB::simulate().
-    nbinom2 = stats::rnbinom(n, mu = pmax(mu, 0),
-                             size = pmax(1 / pmax(sigma, 1e-8)^2, 1e-8)),
-    truncated_nbinom2 = pmax(1, stats::rnbinom(n, mu = pmax(mu, 0),
-                                               size = pmax(1 / pmax(sigma, 1e-8)^2, 1e-8))),
+    nbinom2 = stats::rnbinom(
+      n,
+      mu = pmax(mu, 0),
+      size = pmax(1 / pmax(sigma, 1e-8)^2, 1e-8)
+    ),
+    truncated_nbinom2 = pmax(
+      1,
+      stats::rnbinom(
+        n,
+        mu = pmax(mu, 0),
+        size = pmax(1 / pmax(sigma, 1e-8)^2, 1e-8)
+      )
+    ),
     beta = {
       phi <- 1 / pmax(sigma, 1e-3)^2
       stats::rbeta(n, shape1 = mu * phi, shape2 = (1 - mu) * phi)
@@ -91,8 +106,12 @@ drm_sample_family <- function(family, params, n) {
     #   scale=phi*(p-1)*mu^(p-1))), then enable a sampler gated on params$power
     #   (or params$nu) holding 1 < p < 2. Until then, mean fallback.
     {
-      drm_warn_once(paste0("family-sampler-", family),
-        cli::format_inline("No realized-value sampler for family {.val {family}}; using its mean."))
+      drm_warn_once(
+        paste0("family-sampler-", family),
+        cli::format_inline(
+          "No realized-value sampler for family {.val {family}}; using its mean."
+        )
+      )
       mu
     }
   )
@@ -118,7 +137,9 @@ drm_family_expected_mean <- function(family, params) {
     lognormal = exp(mu + 0.5 * sigma^2),
     mu
   )
-  if (any(zi > 0)) out <- (1 - zi) * out
+  if (any(zi > 0)) {
+    out <- (1 - zi) * out
+  }
   out
 }
 
@@ -141,8 +162,14 @@ drm_engines_from_sem <- function(object) {
     fit <- rec$fit
     family <- rec$family
     comps <- drm_fit_prediction_components(fit)
-    coef_list <- stats::setNames(lapply(comps, function(cc) drm_fit_coef(fit, cc)), comps)
-    links <- stats::setNames(vapply(comps, function(cc) drm_nominal_link(family, cc), character(1)), comps)
+    coef_list <- stats::setNames(
+      lapply(comps, function(cc) drm_fit_coef(fit, cc)),
+      comps
+    )
+    links <- stats::setNames(
+      vapply(comps, function(cc) drm_nominal_link(family, cc), character(1)),
+      comps
+    )
     V <- drm_fit_vcov(fit)
     ident <- if (rec$response_label %in% names(object$data)) {
       rec$response_label
@@ -152,21 +179,38 @@ drm_engines_from_sem <- function(object) {
       nm
     }
     local({
-      fit_l <- fit; comps_l <- comps; coef_l <- coef_list; links_l <- links
+      fit_l <- fit
+      comps_l <- comps
+      coef_l <- coef_list
+      links_l <- links
       predict_fn <- function(scenario, beta = NULL) {
         out <- data.frame(.row = seq_len(nrow(scenario)))
         for (cc in comps_l) {
           X <- drm_fixed_design(fit_l, cc, scenario)
-          b <- if (!is.null(beta) && !is.null(beta[[cc]])) beta[[cc]] else coef_l[[cc]]
-          eta <- if (ncol(X) == 0L) rep(0, nrow(scenario)) else as.numeric(X %*% b)
+          b <- if (!is.null(beta) && !is.null(beta[[cc]])) {
+            beta[[cc]]
+          } else {
+            coef_l[[cc]]
+          }
+          eta <- if (ncol(X) == 0L) {
+            rep(0, nrow(scenario))
+          } else {
+            as.numeric(X %*% b)
+          }
           out[[cc]] <- drm_inv_link(links_l[[cc]], eta)
         }
         out$.row <- NULL
         out
       }
       engines[[nm]] <<- list(
-        name = nm, identifier = ident, family = family, components = comps_l,
-        links = links_l, coef = coef_l, vcov = V, predict = predict_fn
+        name = nm,
+        identifier = ident,
+        family = family,
+        components = comps_l,
+        links = links_l,
+        coef = coef_l,
+        vcov = V,
+        predict = predict_fn
       )
     })
   }
@@ -183,7 +227,9 @@ drm_draw_beta <- function(engine, draw = TRUE) {
   out <- engine$coef
   for (cc in engine$components) {
     co <- engine$coef[[cc]]
-    if (length(co) == 0L) next
+    if (length(co) == 0L) {
+      next
+    }
     keys <- paste0(cc, ":", names(co))
     if (all(keys %in% rownames(V))) {
       Vb <- V[keys, keys, drop = FALSE]
@@ -193,7 +239,8 @@ drm_draw_beta <- function(engine, draw = TRUE) {
       # component fall back to the point estimate (already in `out[[cc]]`).
       if (all(is.finite(Vb))) {
         out[[cc]] <- stats::setNames(
-          as.numeric(MASS::mvrnorm(1, mu = co, Sigma = Vb)), names(co)
+          as.numeric(MASS::mvrnorm(1, mu = co, Sigma = Vb)),
+          names(co)
         )
       }
     }
@@ -205,8 +252,13 @@ drm_draw_beta <- function(engine, draw = TRUE) {
 # `active` is the set of mediator node names allowed to feed their computed
 # value downstream; inactive nodes keep their scenario column values.
 # Returns a list with `mean` (per-node response-scale mean vector) and `work`.
-drm_propagate <- function(engines, scenario, active, mediation = "mean",
-                          beta_list = NULL) {
+drm_propagate <- function(
+  engines,
+  scenario,
+  active,
+  mediation = "mean",
+  beta_list = NULL
+) {
   work <- as.data.frame(scenario)
   node_mean <- list()
   for (eng in engines) {
@@ -227,12 +279,22 @@ drm_propagate <- function(engines, scenario, active, mediation = "mean",
 
 # Expected response-scale mean of `to` under a scenario, averaging over inner
 # realizations when mediation == "distribution".
-drm_expected_target <- function(engines, scenario, to, active, mediation,
-                                 beta_list, n_sim = 1L) {
+drm_expected_target <- function(
+  engines,
+  scenario,
+  to,
+  active,
+  mediation,
+  beta_list,
+  n_sim = 1L
+) {
   if (identical(mediation, "distribution") && n_sim > 1L) {
     acc <- numeric(nrow(scenario))
     for (s in seq_len(n_sim)) {
-      acc <- acc + drm_propagate(engines, scenario, active, mediation, beta_list)$mean[[to]]
+      acc <- acc +
+        drm_propagate(engines, scenario, active, mediation, beta_list)$mean[[
+          to
+        ]]
     }
     acc / n_sim
   } else {
@@ -245,13 +307,32 @@ drm_expected_target <- function(engines, scenario, to, active, mediation,
 # Unlike the controlled split, the mediator is set to its predicted distribution
 # under each exposure level, not to its observed values. Returns one parameter
 # draw as c(nde, nie, total). See docs/design/02-effect-calculus.md (OQ-8).
-drm_natural_target <- function(engines, scenarios, from_col, to, active,
-                               mediation = "distribution", beta_list = NULL,
-                               n_sim = 1L) {
+drm_natural_target <- function(
+  engines,
+  scenarios,
+  from_col,
+  to,
+  active,
+  mediation = "distribution",
+  beta_list = NULL,
+  n_sim = 1L
+) {
   one <- function() {
     # mediator worlds: propagate the exposure contrast through the mediators
-    work0 <- drm_propagate(engines, scenarios$lo, active, mediation, beta_list)$work
-    work1 <- drm_propagate(engines, scenarios$hi, active, mediation, beta_list)$work
+    work0 <- drm_propagate(
+      engines,
+      scenarios$lo,
+      active,
+      mediation,
+      beta_list
+    )$work
+    work1 <- drm_propagate(
+      engines,
+      scenarios$hi,
+      active,
+      mediation,
+      beta_list
+    )$work
     eng_to <- engines[[to]]
     # predict the outcome's response-scale mean with the DIRECT exposure set to
     # `from_src` while the mediators stay at their (already-fixed) world values.
@@ -259,15 +340,17 @@ drm_natural_target <- function(engines, scenarios, from_col, to, active,
       work[[from_col]] <- from_src[[from_col]]
       mean(eng_to$predict(work, beta = beta_list[[to]])$mu, na.rm = TRUE)
     }
-    y00 <- pmu(work0, scenarios$lo)   # Y(x0, M(x0))
-    y10 <- pmu(work0, scenarios$hi)   # Y(x1, M(x0))
-    y01 <- pmu(work1, scenarios$lo)   # Y(x0, M(x1))
-    y11 <- pmu(work1, scenarios$hi)   # Y(x1, M(x1))
+    y00 <- pmu(work0, scenarios$lo) # Y(x0, M(x0))
+    y10 <- pmu(work0, scenarios$hi) # Y(x1, M(x0))
+    y01 <- pmu(work1, scenarios$lo) # Y(x0, M(x1))
+    y11 <- pmu(work1, scenarios$hi) # Y(x1, M(x1))
     c(nde = y10 - y00, nie = y01 - y00, total = y11 - y00)
   }
   if (identical(mediation, "distribution") && n_sim > 1L) {
     acc <- c(nde = 0, nie = 0, total = 0)
-    for (s in seq_len(n_sim)) acc <- acc + one()
+    for (s in seq_len(n_sim)) {
+      acc <- acc + one()
+    }
     acc / n_sim
   } else {
     one()
@@ -278,8 +361,12 @@ drm_natural_target <- function(engines, scenarios, from_col, to, active,
 # any functional of the predicted outcome distribution, not just the mean.
 # `quantile` reports the `prob`-quantile (e.g. the median at prob = 0.5, or a tail
 # quantile that a path into `sigma`/`nu` moves while leaving the mean unchanged).
-drm_outcome_functional <- function(y, target = "mean", threshold = 0,
-                                   prob = 0.5) {
+drm_outcome_functional <- function(
+  y,
+  target = "mean",
+  threshold = 0,
+  prob = 0.5
+) {
   switch(
     target,
     mean = mean(y, na.rm = TRUE),
@@ -299,12 +386,31 @@ drm_outcome_functional <- function(y, target = "mean", threshold = 0,
 # functional is defined. Respecting `mediation` here (rather than forcing
 # "distribution") is what keeps the mean- vs distribution-mediated split of
 # indirect_effects() non-degenerate for a non-mean target.
-drm_functional_target <- function(engines, scenario, to, active, mediation,
-                                  beta_list, target = "mean", threshold = 0,
-                                  n_sim = 1L, prob = 0.5) {
+drm_functional_target <- function(
+  engines,
+  scenario,
+  to,
+  active,
+  mediation,
+  beta_list,
+  target = "mean",
+  threshold = 0,
+  n_sim = 1L,
+  prob = 0.5
+) {
   if (identical(target, "mean")) {
-    return(mean(drm_expected_target(engines, scenario, to, active, mediation,
-                                    beta_list, n_sim), na.rm = TRUE))
+    return(mean(
+      drm_expected_target(
+        engines,
+        scenario,
+        to,
+        active,
+        mediation,
+        beta_list,
+        n_sim
+      ),
+      na.rm = TRUE
+    ))
   }
   eng_to <- engines[[to]]
   reps <- max(as.integer(n_sim), 1L)
@@ -319,19 +425,52 @@ drm_functional_target <- function(engines, scenario, to, active, mediation,
 }
 
 # Contrast of an outcome functional across the low/high scenarios (OQ-11).
-drm_functional_contrast <- function(engines, scenarios, to, active, mediation,
-                                    target, threshold, B, n_sim, draw, seed = NULL,
-                                    prob = 0.5) {
-  if (!is.null(seed)) set.seed(seed)
+drm_functional_contrast <- function(
+  engines,
+  scenarios,
+  to,
+  active,
+  mediation,
+  target,
+  threshold,
+  B,
+  n_sim,
+  draw,
+  seed = NULL,
+  prob = 0.5
+) {
+  if (!is.null(seed)) {
+    set.seed(seed)
+  }
   reps <- if (isTRUE(draw)) B else 1L
   vals <- numeric(reps)
   for (b in seq_len(reps)) {
     beta_list <- lapply(engines, drm_draw_beta, draw = draw)
     names(beta_list) <- names(engines)
-    fhi <- drm_functional_target(engines, scenarios$hi, to, active, mediation,
-                                 beta_list, target, threshold, n_sim, prob)
-    flo <- drm_functional_target(engines, scenarios$lo, to, active, mediation,
-                                 beta_list, target, threshold, n_sim, prob)
+    fhi <- drm_functional_target(
+      engines,
+      scenarios$hi,
+      to,
+      active,
+      mediation,
+      beta_list,
+      target,
+      threshold,
+      n_sim,
+      prob
+    )
+    flo <- drm_functional_target(
+      engines,
+      scenarios$lo,
+      to,
+      active,
+      mediation,
+      beta_list,
+      target,
+      threshold,
+      n_sim,
+      prob
+    )
     vals[[b]] <- fhi - flo
   }
   vals
@@ -345,8 +484,13 @@ drm_functional_contrast <- function(engines, scenarios, to, active, mediation,
 # dispersion (nbinom2/Gamma/beta) share the unconfirmed sigma<->dispersion scale
 # (OQ-1), so their closed forms are withheld until that is settled -- callers fall
 # back to simulation there.
-drm_analytic_functional <- function(family, params, target = "mean",
-                                    threshold = 0, prob = 0.5) {
+drm_analytic_functional <- function(
+  family,
+  params,
+  target = "mean",
+  threshold = 0,
+  prob = 0.5
+) {
   mu <- params$mu
   sigma <- if (!is.null(params$sigma)) params$sigma else rep(1, length(mu))
   if (identical(family, "gaussian")) {
@@ -355,7 +499,7 @@ drm_analytic_functional <- function(family, params, target = "mean",
       mean = mu,
       var = sigma^2,
       p_gt = stats::pnorm(threshold, mean = mu, sd = sigma, lower.tail = FALSE),
-      p_zero = rep(0, length(mu)),            # continuous: Pr(Y = 0) = 0
+      p_zero = rep(0, length(mu)), # continuous: Pr(Y = 0) = 0
       quantile = stats::qnorm(prob, mean = mu, sd = sigma),
       NULL
     )
@@ -378,14 +522,24 @@ drm_analytic_functional <- function(family, params, target = "mean",
 # their MEAN -- analytic functionals require deterministic outcome params), read
 # the outcome node's predicted params, apply the closed form, average over rows.
 # Returns NULL if no closed form exists for the (family, target).
-drm_functional_target_analytic <- function(engines, scenario, to, active,
-                                           mediation, beta_list, target,
-                                           threshold = 0, prob = 0.5) {
+drm_functional_target_analytic <- function(
+  engines,
+  scenario,
+  to,
+  active,
+  mediation,
+  beta_list,
+  target,
+  threshold = 0,
+  prob = 0.5
+) {
   work <- drm_propagate(engines, scenario, active, mediation, beta_list)$work
   eng_to <- engines[[to]]
   params <- eng_to$predict(work, beta = beta_list[[to]])
   fv <- drm_analytic_functional(eng_to$family, params, target, threshold, prob)
-  if (is.null(fv)) return(NULL)
+  if (is.null(fv)) {
+    return(NULL)
+  }
   mean(fv, na.rm = TRUE)
 }
 
@@ -393,22 +547,52 @@ drm_functional_target_analytic <- function(engines, scenario, to, active,
 # outcome functional across the low/high scenarios. Requires mean mediation (the
 # outcome params must be deterministic). Returns NULL when the family/target has
 # no closed form, so the caller can abort or fall back.
-drm_functional_contrast_analytic <- function(engines, scenarios, to, active,
-                                             mediation, target, threshold, prob,
-                                             B, draw, seed = NULL) {
-  if (!is.null(seed)) set.seed(seed)
+drm_functional_contrast_analytic <- function(
+  engines,
+  scenarios,
+  to,
+  active,
+  mediation,
+  target,
+  threshold,
+  prob,
+  B,
+  draw,
+  seed = NULL
+) {
+  if (!is.null(seed)) {
+    set.seed(seed)
+  }
   reps <- if (isTRUE(draw)) B else 1L
   vals <- numeric(reps)
   for (b in seq_len(reps)) {
     beta_list <- lapply(engines, drm_draw_beta, draw = draw)
     names(beta_list) <- names(engines)
-    fhi <- drm_functional_target_analytic(engines, scenarios$hi, to, active,
-                                          mediation, beta_list, target,
-                                          threshold, prob)
-    flo <- drm_functional_target_analytic(engines, scenarios$lo, to, active,
-                                          mediation, beta_list, target,
-                                          threshold, prob)
-    if (is.null(fhi) || is.null(flo)) return(NULL)
+    fhi <- drm_functional_target_analytic(
+      engines,
+      scenarios$hi,
+      to,
+      active,
+      mediation,
+      beta_list,
+      target,
+      threshold,
+      prob
+    )
+    flo <- drm_functional_target_analytic(
+      engines,
+      scenarios$lo,
+      to,
+      active,
+      mediation,
+      beta_list,
+      target,
+      threshold,
+      prob
+    )
+    if (is.null(fhi) || is.null(flo)) {
+      return(NULL)
+    }
     vals[[b]] <- fhi - flo
   }
   vals

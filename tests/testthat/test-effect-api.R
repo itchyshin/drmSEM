@@ -19,7 +19,8 @@ test_that("drm_effect_controls maps the unified surface onto engine knobs", {
 
   # custom default_nsim is honoured when nsim is absent
   expect_identical(
-    drmSEM:::drm_effect_controls(default_nsim = 1L)$n_sim, 1L
+    drmSEM:::drm_effect_controls(default_nsim = 1L)$n_sim,
+    1L
   )
 })
 
@@ -61,7 +62,10 @@ test_that("deprecated aliases still work but warn, and the new arg wins", {
 
 test_that("drm_resolve_mediation maps method and deprecates mediation", {
   expect_identical(drmSEM:::drm_resolve_mediation(), "mean")
-  expect_identical(drmSEM:::drm_resolve_mediation(method = "simulate"), "distribution")
+  expect_identical(
+    drmSEM:::drm_resolve_mediation(method = "simulate"),
+    "distribution"
+  )
   expect_identical(drmSEM:::drm_resolve_mediation(method = "gcomp"), "mean")
 
   expect_warning(
@@ -72,7 +76,10 @@ test_that("drm_resolve_mediation maps method and deprecates mediation", {
 
   # method wins over the deprecated mediation, with a warning
   expect_warning(
-    m2 <- drmSEM:::drm_resolve_mediation(method = "gcomp", mediation = "distribution"),
+    m2 <- drmSEM:::drm_resolve_mediation(
+      method = "gcomp",
+      mediation = "distribution"
+    ),
     "using"
   )
   expect_identical(m2, "mean")
@@ -99,8 +106,14 @@ test_that("new surface reproduces the deprecated-alias results exactly", {
   )
 
   # total_effects: method="gcomp" + uncertainty="none" == mediation="mean" + draw=FALSE
-  new_tot <- total_effects(sem, "x", "y", method = "gcomp",
-                           uncertainty = "none", seed = 1)
+  new_tot <- total_effects(
+    sem,
+    "x",
+    "y",
+    method = "gcomp",
+    uncertainty = "none",
+    seed = 1
+  )
   old_tot <- suppressWarnings(
     total_effects(sem, "x", "y", mediation = "mean", draw = FALSE, seed = 1)
   )
@@ -108,7 +121,14 @@ test_that("new surface reproduces the deprecated-alias results exactly", {
   expect_identical(new_tot$mediation, "mean")
 
   # indirect_effects: uncertainty="none"/nsim=1 == draw=FALSE/n_sim=1
-  new_ie <- indirect_effects(sem, "x", "y", uncertainty = "none", nsim = 1, seed = 2)
+  new_ie <- indirect_effects(
+    sem,
+    "x",
+    "y",
+    uncertainty = "none",
+    nsim = 1,
+    seed = 2
+  )
   old_ie <- suppressWarnings(
     indirect_effects(sem, "x", "y", draw = FALSE, n_sim = 1, seed = 2)
   )
@@ -128,8 +148,15 @@ test_that("direct_effects exposes outcome functionals (target=) like total_effec
     data = dat
   )
 
-  de <- direct_effects(sem, "x", "cnt", target = "p_zero",
-                       uncertainty = "none", nsim = 50, seed = 5)
+  de <- direct_effects(
+    sem,
+    "x",
+    "cnt",
+    target = "p_zero",
+    uncertainty = "none",
+    nsim = 50,
+    seed = 5
+  )
   expect_s3_class(de, "drm_effect")
   expect_identical(de$target, "p_zero")
   expect_true(is.finite(de$estimate))

@@ -8,8 +8,11 @@ simulate_drmsem_dgp <- function(n = 400, seed = 1) {
   habitat <- factor(sample(c("A", "B"), n, replace = TRUE))
   hb <- as.integer(habitat == "B")
 
-  size <- stats::rnorm(n, mean = 0.3 + 0.6 * temp + 0.4 * hb,
-                       sd = exp(-0.3 + 0.4 * temp))
+  size <- stats::rnorm(
+    n,
+    mean = 0.3 + 0.6 * temp + 0.4 * hb,
+    sd = exp(-0.3 + 0.4 * temp)
+  )
   mu_ab <- exp(0.5 + 0.3 * size + 0.2 * temp)
   zi <- stats::plogis(-1 + 1.5 * hb)
   abundance <- stats::rnbinom(n, mu = mu_ab, size = 2)

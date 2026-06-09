@@ -9,8 +9,18 @@ drm_supported_sampler_families <- function() {
   # degrades to a plain beta draw when zoi/coi are absent (the zoi/coi inflation
   # mapping is the only unconfirmed piece; see drm_sample_family). tweedie is
   # deliberately omitted -- it has no realized-value sampler and falls back to mean.
-  c("gaussian", "student", "lognormal", "Gamma", "gamma", "poisson",
-    "nbinom2", "truncated_nbinom2", "beta", "zero_one_beta")
+  c(
+    "gaussian",
+    "student",
+    "lognormal",
+    "Gamma",
+    "gamma",
+    "poisson",
+    "nbinom2",
+    "truncated_nbinom2",
+    "beta",
+    "zero_one_beta"
+  )
 }
 
 #' Diagnose a fitted distributional SEM
@@ -70,9 +80,13 @@ print.drm_diagnostics <- function(x, ...) {
   cli::cli_h2("drmSEM diagnostics")
   print.data.frame(as.data.frame(x), row.names = FALSE)
   exo <- attr(x, "exogenous")
-  if (length(exo)) cli::cli_text("Exogenous variables: {.val {exo}}")
+  if (length(exo)) {
+    cli::cli_text("Exogenous variables: {.val {exo}}")
+  }
   if (any(!x$converged %in% TRUE)) {
-    cli::cli_warn("One or more nodes did not converge; effects and d-separation may be unreliable.")
+    cli::cli_warn(
+      "One or more nodes did not converge; effects and d-separation may be unreliable."
+    )
   }
   if (any(!x$vcov_available)) {
     cli::cli_warn(c(

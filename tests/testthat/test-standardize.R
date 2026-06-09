@@ -62,31 +62,41 @@ build_chain_sem <- function() {
   set.seed(1)
   n <- 200
   dat <- data.frame(
-    x   = rnorm(n, 0, 1),
-    m   = rnorm(n, 0, 1),
+    x = rnorm(n, 0, 1),
+    m = rnorm(n, 0, 1),
     grp = factor(rep(c("A", "B"), length.out = n))
   )
 
   fit_M <- make_fakefit(
     coef_list = list(mu = c("(Intercept)" = 0.1, x = 2.0)),
-    entries   = list(fml_entry("mu", "m", quote(m), quote(x))),
-    family    = "gaussian", data = dat
+    entries = list(fml_entry("mu", "m", quote(m), quote(x))),
+    family = "gaussian",
+    data = dat
   )
   fit_Y <- make_fakefit(
     coef_list = list(mu = c("(Intercept)" = -0.2, m = -3.0, grpB = 0.7)),
-    entries   = list(fml_entry("mu", "y", quote(y), quote(m + grp))),
-    family    = "gaussian", data = dat
+    entries = list(fml_entry("mu", "y", quote(y), quote(m + grp))),
+    family = "gaussian",
+    data = dat
   )
 
   structure(
     list(
-      data  = dat,
+      data = dat,
       order = c("M", "Y"),
       records = list(
-        M = list(fit = fit_M, family = "gaussian",
-                 components = "mu", identifiers = "m"),
-        Y = list(fit = fit_Y, family = "gaussian",
-                 components = "mu", identifiers = "y")
+        M = list(
+          fit = fit_M,
+          family = "gaussian",
+          components = "mu",
+          identifiers = "m"
+        ),
+        Y = list(
+          fit = fit_Y,
+          family = "gaussian",
+          components = "mu",
+          identifiers = "y"
+        )
       )
     ),
     class = "drm_sem"
@@ -122,7 +132,7 @@ test_that("sd_x leaves a factor coefficient unchanged (SD = 1 convention)", {
 test_that("sd_x preserves the sign of a negative coefficient", {
   obj <- build_chain_sem()
   s <- standardize(obj, "sd_x")
-  expect_lt(pick(s, "m"), 0)        # b_my < 0
+  expect_lt(pick(s, "m"), 0) # b_my < 0
   expect_equal(sign(pick(s, "m")), -1)
 })
 
@@ -139,7 +149,7 @@ test_that("latent divides sd_x by the target component's linear-predictor SD", {
 
   # Reconstruct each target component's fitted linear predictor SD exactly as
   # standardize() does: eta = X %*% b over the model data.
-  Xm <- stats::model.matrix(~ x, data = dat)
+  Xm <- stats::model.matrix(~x, data = dat)
   bm <- c("(Intercept)" = 0.1, x = b_xm)[colnames(Xm)]
   sclp_M <- stats::sd(as.numeric(Xm %*% bm))
 
@@ -180,21 +190,28 @@ test_that("standardized table reports component link scale (log for sigma)", {
 
   fit_Y <- make_fakefit(
     coef_list = list(
-      mu    = c("(Intercept)" = 0, m = -3.0),
+      mu = c("(Intercept)" = 0, m = -3.0),
       sigma = c("(Intercept)" = 0, x = 1.5)
     ),
     entries = list(
       fml_entry("mu", "y", quote(y), quote(m)),
       fml_entry("sigma", NA, NA, quote(x))
     ),
-    family = "gaussian", data = dat
+    family = "gaussian",
+    data = dat
   )
   obj <- structure(
     list(
-      data = dat, order = "Y",
-      records = list(Y = list(fit = fit_Y, family = "gaussian",
-                              components = c("mu", "sigma"),
-                              identifiers = "y"))
+      data = dat,
+      order = "Y",
+      records = list(
+        Y = list(
+          fit = fit_Y,
+          family = "gaussian",
+          components = c("mu", "sigma"),
+          identifiers = "y"
+        )
+      )
     ),
     class = "drm_sem"
   )
@@ -225,8 +242,10 @@ test_that("drm_latent_divisor adds sigma_E only for a non-identity-link mean pat
   eta <- stats::rnorm(500, 0, 1.3)
   V <- stats::var(eta)
   # mean path on logit -> sqrt(Var(eta) + pi^2/3)
-  expect_equal(drmSEM:::drm_latent_divisor(eta, "mu", "logit"),
-               sqrt(V + pi^2 / 3))
+  expect_equal(
+    drmSEM:::drm_latent_divisor(eta, "mu", "logit"),
+    sqrt(V + pi^2 / 3)
+  )
   # mean path on identity -> sd(eta) (no inflation)
   expect_equal(drmSEM:::drm_latent_divisor(eta, "mu", "identity"), sqrt(V))
   # a non-mean component (sigma) never gets the term, whatever the link label
@@ -240,21 +259,31 @@ test_that("V-44: a logit-link mean path standardizes by sqrt(Var(eta) + pi^2/3)"
   b_x <- 1.3
   fit_Y <- make_fakefit(
     coef_list = list(mu = c("(Intercept)" = 0.2, x = b_x)),
-    entries   = list(fml_entry("mu", "y", quote(y), quote(x))),
-    family    = "binomial", data = dat   # logit-link mu
+    entries = list(fml_entry("mu", "y", quote(y), quote(x))),
+    family = "binomial",
+    data = dat # logit-link mu
   )
   obj <- structure(
-    list(data = dat, order = "Y",
-         records = list(Y = list(fit = fit_Y, family = "binomial",
-                                 components = "mu", identifiers = "y"))),
+    list(
+      data = dat,
+      order = "Y",
+      records = list(
+        Y = list(
+          fit = fit_Y,
+          family = "binomial",
+          components = "mu",
+          identifiers = "y"
+        )
+      )
+    ),
     class = "drm_sem"
   )
   s <- standardize(obj, "latent")
 
-  Xy <- stats::model.matrix(~ x, data = dat)
+  Xy <- stats::model.matrix(~x, data = dat)
   by <- c("(Intercept)" = 0.2, x = b_x)[colnames(Xy)]
   eta <- as.numeric(Xy %*% by)
-  divisor <- sqrt(stats::var(eta) + pi^2 / 3)        # the OQ-4 sigma_E divisor
+  divisor <- sqrt(stats::var(eta) + pi^2 / 3) # the OQ-4 sigma_E divisor
 
   expect_equal(pick(s, "x"), b_x * stats::sd(dat$x) / divisor)
   # the sigma_E term shrinks the standardized coefficient vs the old sd(eta)-only

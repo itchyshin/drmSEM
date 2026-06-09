@@ -7,9 +7,12 @@
 # ---- formula parsing helpers ------------------------------------------------
 
 test_that("drm_formula_response reads the response label", {
-  expect_identical(drmSEM:::drm_formula_response(activity ~ x + (1 | id)), "activity")
+  expect_identical(
+    drmSEM:::drm_formula_response(activity ~ x + (1 | id)),
+    "activity"
+  )
   expect_identical(drmSEM:::drm_formula_response(cbind(succ, fail) ~ x), "succ")
-  expect_error(drmSEM:::drm_formula_response(~ x), "two-sided")
+  expect_error(drmSEM:::drm_formula_response(~x), "two-sided")
 })
 
 test_that("drm_formula_groups extracts grouping factors, ignoring the |p| label", {
@@ -29,7 +32,7 @@ test_that("drm_pair records responses, families, rho12, and shared level", {
   pair <- drm_pair(
     activity ~ x + (1 | id),
     boldness ~ x + (1 | id),
-    rho12 = ~ x
+    rho12 = ~x
   )
   expect_s3_class(pair, "drm_pair")
   expect_identical(pair$responses, c("activity", "boldness"))
@@ -52,7 +55,11 @@ test_that("drm_pair defaults to a constant residual correlation and no corpair",
 
 test_that("drm_pair honours explicit and suppressed levels", {
   # NA suppresses the corpair even when a grouping is shared
-  pair_na <- drm_pair(activity ~ x + (1 | id), boldness ~ x + (1 | id), level = NA)
+  pair_na <- drm_pair(
+    activity ~ x + (1 | id),
+    boldness ~ x + (1 | id),
+    level = NA
+  )
   expect_identical(pair_na$levels, character(0))
 
   # an explicit level not shared by both responses warns (level-compatibility)
@@ -63,10 +70,13 @@ test_that("drm_pair honours explicit and suppressed levels", {
 })
 
 test_that("drm_pair validates its inputs", {
-  expect_error(drm_pair(~ x, boldness ~ x), "two-sided")
+  expect_error(drm_pair(~x, boldness ~ x), "two-sided")
   expect_error(drm_pair("y ~ x", boldness ~ x), "must both be formulas")
   expect_error(drm_pair(y ~ x, y ~ z), "distinct")
-  expect_error(drm_pair(activity ~ x, boldness ~ x, rho12 = "x"), "one-sided formula")
+  expect_error(
+    drm_pair(activity ~ x, boldness ~ x, rho12 = "x"),
+    "one-sided formula"
+  )
   expect_error(
     drm_pair(activity ~ x, boldness ~ x, names = c("a", "a")),
     "distinct"
@@ -82,13 +92,13 @@ test_that("names= overrides the response labels", {
 # ---- rho12() / corpairs() accessors on a drm_pair ---------------------------
 
 test_that("rho12(pair) reports the declared residual edge with NA estimate", {
-  pair <- drm_pair(activity ~ x, boldness ~ x, rho12 = ~ x)
+  pair <- drm_pair(activity ~ x, boldness ~ x, rho12 = ~x)
   r <- rho12(pair)
   expect_s3_class(r, "drm_rho12")
   expect_identical(nrow(r), 1L)
   expect_identical(r$predictors, "x")
   expect_false(r$constant)
-  expect_true(is.na(r$estimate))           # never fabricated
+  expect_true(is.na(r$estimate)) # never fabricated
 })
 
 test_that("corpairs(pair) reports declared higher-level edges with NA estimate", {
@@ -111,33 +121,63 @@ test_that("a pair's residual edge drops the y1 _||_ y2 independence claim", {
     c(list(pair$residual), pair$corpairs),
     list(y1 = list(identifiers = "y1"), y2 = list(identifiers = "y2"))
   )
-  obj <- structure(list(
-    order = c("y1", "y2"), endogenous = c("y1", "y2"), exogenous = "x",
-    edges = data.frame(from = c("x", "x"), to = c("y1", "y2"),
-                       component = c("mu", "mu"), stringsAsFactors = FALSE),
-    covariances = cov_df
-  ), class = "drm_sem")
+  obj <- structure(
+    list(
+      order = c("y1", "y2"),
+      endogenous = c("y1", "y2"),
+      exogenous = "x",
+      edges = data.frame(
+        from = c("x", "x"),
+        to = c("y1", "y2"),
+        component = c("mu", "mu"),
+        stringsAsFactors = FALSE
+      ),
+      covariances = cov_df
+    ),
+    class = "drm_sem"
+  )
   bs <- basis_set(obj)
-  expect_false(any((bs$x == "y1" & bs$y == "y2") | (bs$x == "y2" & bs$y == "y1")))
+  expect_false(any(
+    (bs$x == "y1" & bs$y == "y2") | (bs$x == "y2" & bs$y == "y1")
+  ))
 })
 
 # ---- rho12() / corpairs() on a drm_sem (declared edges, NA estimate) ---------
 
 test_that("rho12()/corpairs() on a drm_sem read the declared covariance edges", {
   cov_df <- rbind(
-    data.frame(y1 = "activity", y2 = "boldness", class = "residual",
-               level = NA_character_, structure = "unstructured",
-               label = "rho12(activity, boldness)", stringsAsFactors = FALSE),
-    data.frame(y1 = "activity", y2 = "boldness", class = "higher_level",
-               level = "id", structure = "unstructured",
-               label = "corpair(id: activity, boldness)", stringsAsFactors = FALSE)
+    data.frame(
+      y1 = "activity",
+      y2 = "boldness",
+      class = "residual",
+      level = NA_character_,
+      structure = "unstructured",
+      label = "rho12(activity, boldness)",
+      stringsAsFactors = FALSE
+    ),
+    data.frame(
+      y1 = "activity",
+      y2 = "boldness",
+      class = "higher_level",
+      level = "id",
+      structure = "unstructured",
+      label = "corpair(id: activity, boldness)",
+      stringsAsFactors = FALSE
+    )
   )
-  obj <- structure(list(
-    covariances = cov_df,
-    edges = data.frame(from = character(0), to = character(0),
-                       component = character(0), term = character(0),
-                       stringsAsFactors = FALSE)
-  ), class = "drm_sem")
+  obj <- structure(
+    list(
+      covariances = cov_df,
+      edges = data.frame(
+        from = character(0),
+        to = character(0),
+        component = character(0),
+        term = character(0),
+        stringsAsFactors = FALSE
+      )
+    ),
+    class = "drm_sem"
+  )
 
   r <- rho12(obj)
   expect_identical(nrow(r), 1L)

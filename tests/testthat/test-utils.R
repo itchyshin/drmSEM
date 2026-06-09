@@ -7,17 +7,19 @@ test_that("fixed-effect predictor extraction drops bars and markers", {
     c("temp", "habitat")
   )
   expect_setequal(
-    drm_fixed_predictors(rhs(~ size + temp + mi(x) + phylo(1 | species) + (1 | site))),
+    drm_fixed_predictors(rhs(
+      ~ size + temp + mi(x) + phylo(1 | species) + (1 | site)
+    )),
     c("size", "temp", "x")
   )
-  expect_length(drm_fixed_predictors(rhs(~ 1)), 0L)
+  expect_length(drm_fixed_predictors(rhs(~1)), 0L)
   expect_length(drm_fixed_predictors(NULL), 0L)
 })
 
 test_that("topological sort orders a DAG and flags cycles", {
   e <- data.frame(
     from = c("x", "size", "temp", "size"),
-    to   = c("size", "abund", "abund", "fit")
+    to = c("size", "abund", "abund", "fit")
   )
   ts <- drm_toposort(c("size", "abund", "fit"), e)
   expect_true(ts$acyclic)
@@ -30,11 +32,15 @@ test_that("topological sort orders a DAG and flags cycles", {
 test_that("ancestors and simple paths are correct", {
   e <- data.frame(
     from = c("x", "size", "temp", "size"),
-    to   = c("size", "abund", "abund", "fit")
+    to = c("size", "abund", "abund", "fit")
   )
   expect_setequal(drm_ancestors("abund", e), c("size", "temp", "x"))
   sp <- drm_simple_paths("x", "abund", e)
-  expect_true(any(vapply(sp, function(p) identical(p, c("x", "size", "abund")), logical(1))))
+  expect_true(any(vapply(
+    sp,
+    function(p) identical(p, c("x", "size", "abund")),
+    logical(1)
+  )))
 })
 
 test_that("coefficient names map back to predictor variables", {
@@ -52,6 +58,8 @@ test_that("structured-effect markers do not leak species/tree as predictors", {
   expect_false("species" %in% drm_fixed_predictors(rhs))
   expect_false("tree" %in% drm_fixed_predictors(rhs))
 
-  rhs2 <- (~ z + animal(1 | id, pedigree = ped) + spatial(1 | site, coords = xy))[[2L]]
+  rhs2 <- (~ z +
+    animal(1 | id, pedigree = ped) +
+    spatial(1 | site, coords = xy))[[2L]]
   expect_setequal(drm_fixed_predictors(rhs2), "z")
 })

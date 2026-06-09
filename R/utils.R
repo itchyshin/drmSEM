@@ -12,9 +12,22 @@ NULL
 # when collecting fixed-effect predictors. `mi(x)` is special-cased to keep `x`.
 drmsem_marker_funs <- function() {
   c(
-    "phylo", "phylo_interaction", "spatial", "animal", "relmat", "gr",
-    "meta_V", "meta_known_V", "corpair", "s", "t2", "te", "ti", "offset",
-    "poly", "I"
+    "phylo",
+    "phylo_interaction",
+    "spatial",
+    "animal",
+    "relmat",
+    "gr",
+    "meta_V",
+    "meta_known_V",
+    "corpair",
+    "s",
+    "t2",
+    "te",
+    "ti",
+    "offset",
+    "poly",
+    "I"
   )
 }
 
@@ -24,18 +37,26 @@ drmsem_marker_funs <- function() {
 drm_drop_bars <- function(expr) {
   if (is.call(expr) && identical(expr[[1L]], as.name("("))) {
     inner <- expr[[2L]]
-    if (is.call(inner) &&
+    if (
+      is.call(inner) &&
         (identical(inner[[1L]], as.name("|")) ||
-         identical(inner[[1L]], as.name("||")))) {
+          identical(inner[[1L]], as.name("||")))
+    ) {
       return(NULL)
     }
   }
   if (is.call(expr) && identical(expr[[1L]], as.name("+"))) {
     lhs <- drm_drop_bars(expr[[2L]])
     rhs <- if (length(expr) >= 3L) drm_drop_bars(expr[[3L]]) else NULL
-    if (is.null(lhs) && is.null(rhs)) return(NULL)
-    if (is.null(lhs)) return(rhs)
-    if (is.null(rhs)) return(lhs)
+    if (is.null(lhs) && is.null(rhs)) {
+      return(NULL)
+    }
+    if (is.null(lhs)) {
+      return(rhs)
+    }
+    if (is.null(rhs)) {
+      return(lhs)
+    }
     return(call("+", lhs, rhs))
   }
   expr
@@ -59,16 +80,26 @@ drm_strip_markers <- function(expr) {
     if (fun == "+") {
       lhs <- drm_strip_markers(expr[[2L]])
       rhs <- if (length(expr) >= 3L) drm_strip_markers(expr[[3L]]) else NULL
-      if (is.null(lhs) && is.null(rhs)) return(NULL)
-      if (is.null(lhs)) return(rhs)
-      if (is.null(rhs)) return(lhs)
+      if (is.null(lhs) && is.null(rhs)) {
+        return(NULL)
+      }
+      if (is.null(lhs)) {
+        return(rhs)
+      }
+      if (is.null(rhs)) {
+        return(lhs)
+      }
       return(call("+", lhs, rhs))
     }
     if (fun %in% c("*", ":", "-", "/")) {
       args <- lapply(as.list(expr)[-1L], drm_strip_markers)
       args <- args[!vapply(args, is.null, logical(1))]
-      if (length(args) == 0L) return(NULL)
-      if (length(args) == 1L) return(args[[1L]])
+      if (length(args) == 0L) {
+        return(NULL)
+      }
+      if (length(args) == 1L) {
+        return(args[[1L]])
+      }
       return(as.call(c(head, args)))
     }
   }
@@ -123,7 +154,9 @@ drm_toposort <- function(nodes, edges) {
   to <- to[keep]
 
   indeg <- stats::setNames(rep(0L, length(nodes)), nodes)
-  for (t in to) indeg[[t]] <- indeg[[t]] + 1L
+  for (t in to) {
+    indeg[[t]] <- indeg[[t]] + 1L
+  }
 
   ready <- nodes[indeg[nodes] == 0L]
   order <- character(0)

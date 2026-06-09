@@ -34,7 +34,7 @@ simulate_phylo_distributional <- function(n = 150, seed = 1) {
   # drmTMB's phylo() requires an ULTRAMETRIC tree (equal root-to-tip distances);
   # a raw ape::rtree() is not, so rescale branch lengths with Grafen's method.
   phy <- ape::compute.brlen(ape::rtree(12), method = "Grafen", power = 1)
-  species_levels <- phy$tip.label    # factor levels == tip labels (must match)
+  species_levels <- phy$tip.label # factor levels == tip labels (must match)
   n_sp <- length(species_levels)
 
   # Per-species (phylogenetic) random intercept on the mediator's mean. Modest
@@ -42,8 +42,10 @@ simulate_phylo_distributional <- function(n = 150, seed = 1) {
   sp_re_m <- stats::rnorm(n_sp, sd = 0.4)
   names(sp_re_m) <- species_levels
 
-  species <- factor(sample(species_levels, n, replace = TRUE),
-                    levels = species_levels)
+  species <- factor(
+    sample(species_levels, n, replace = TRUE),
+    levels = species_levels
+  )
   sp <- as.character(species)
 
   x <- stats::rnorm(n)
@@ -51,7 +53,7 @@ simulate_phylo_distributional <- function(n = 150, seed = 1) {
   # Mediator m: mean shifts with x AND with the phylogenetic offset; the
   # residual SCALE also grows with x (the distributional path). log-sigma is
   # linear in x, so sigma = exp(-0.3 + 0.8 * x): a genuine x -> sigma(m) edge.
-  mu_m    <- 0.2 + 0.7 * x + sp_re_m[sp]
+  mu_m <- 0.2 + 0.7 * x + sp_re_m[sp]
   sigma_m <- exp(-0.3 + 0.8 * x)
   m <- mu_m + stats::rnorm(n, sd = sigma_m)
 
@@ -111,8 +113,11 @@ test_that("paths() exposes the x -> sigma(m) distributional edge and hides phylo
   # The DISTRIBUTIONAL path is the headline: an edge from `x` into node `m`
   # labelled on the `sigma` component (residual scale), distinct from the mean
   # path x -> mu(m).
-  sigma_edge <- p[p$from == "x" & p$to == "m" & p$component == "sigma", ,
-                  drop = FALSE]
+  sigma_edge <- p[
+    p$from == "x" & p$to == "m" & p$component == "sigma",
+    ,
+    drop = FALSE
+  ]
   expect_true(nrow(sigma_edge) >= 1L)
   expect_true(all(is.finite(sigma_edge$estimate)))
 
@@ -138,8 +143,16 @@ test_that("indirect_effects() returns a finite distribution-mediated effect", {
   expect_s3_class(eff, "drm_effect")
 
   # The five decomposition quantities are all present...
-  expect_true(all(c("total_path", "direct", "indirect",
-                    "mean_mediated", "distribution_mediated") %in% eff$quantity))
+  expect_true(all(
+    c(
+      "total_path",
+      "direct",
+      "indirect",
+      "mean_mediated",
+      "distribution_mediated"
+    ) %in%
+      eff$quantity
+  ))
 
   # ...and every point estimate is finite (no NA/Inf from the propagation).
   expect_true(all(is.finite(eff$estimate)))
