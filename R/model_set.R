@@ -8,14 +8,16 @@ NULL
 # A `drm_dag` is an unfitted candidate causal model: a set of node formulas.
 # A `drm_model_set` is a named collection of competing `drm_dag`s. `compare()`
 # fits each candidate with drm_sem(), runs the existing dsep()/fisher_c()
-# machinery, and ranks the candidates by CICc (a small-sample-corrected
-# information criterion built on Fisher's C), reporting delta-CICc and Akaike
-# weights -- mirroring phylopath's define_model_set()/phylo_path()/best()/
-# average() workflow but with drmTMB families and component-labelled paths.
+# machinery, and ranks the candidates by CICc by default (a
+# small-sample-corrected information criterion built on Fisher's C), reporting
+# deltas and weights -- mirroring phylopath's define_model_set()/phylo_path()/
+# best()/average() workflow but with drmTMB families and component-labelled
+# paths. A CBIC criterion is also available when the user wants a stronger
+# penalty for extra paths.
 #
-# Construction (drm_dag/drm_model_set) and the CICc/weight arithmetic are pure
-# base R and need no engine; every drmTMB-touching step lives inside compare()/
-# best()/average() so the package loads without drmTMB installed.
+# Construction (drm_dag/drm_model_set) and the criterion/weight arithmetic are
+# pure base R and need no engine; every drmTMB-touching step lives inside
+# compare()/best()/average() so the package loads without drmTMB installed.
 # ---------------------------------------------------------------------------
 
 # The response label of a captured node formula, used as the node name.
@@ -40,8 +42,11 @@ drm_dag_response <- function(f) {
   # first entry's LHS variable.
   if (inherits(f, "drm_formula") && !is.null(f$entries)) {
     for (e in f$entries) {
-      if (identical(as.character(e$dpar), "mu") &&
-          !is.null(e$response) && !is.na(e$response)) {
+      if (
+        identical(as.character(e$dpar), "mu") &&
+          !is.null(e$response) &&
+          !is.na(e$response)
+      ) {
         v <- all.vars(e$lhs)
         if (length(v)) return(v[[1L]])
       }
@@ -55,7 +60,9 @@ drm_dag_response <- function(f) {
   }
   # last resort: deparse + all.vars on the object
   v <- all.vars(f)
-  if (length(v)) return(v[[1L]])
+  if (length(v)) {
+    return(v[[1L]])
+  }
   cli::cli_abort("Could not determine the response of a {.fn drm_dag} formula.")
 }
 
@@ -119,7 +126,13 @@ print.drm_dag <- function(x, ...) {
   cli::cli_text("<drm_dag> {length(x$formulas)} node{?s}: {.val {x$responses}}")
   for (nm in names(x$formulas)) {
     f <- x$formulas[[nm]]
-    obj <- if (inherits(f, "formula")) f else if (!is.null(f$formula)) f$formula else f
+    obj <- if (inherits(f, "formula")) {
+      f
+    } else if (!is.null(f$formula)) {
+      f$formula
+    } else {
+      f
+    }
     txt <- paste(deparse(obj), collapse = " ")
     cli::cli_text("  {.strong {nm}}: {txt}")
   }
@@ -152,7 +165,9 @@ drm_model_set <- function(...) {
     cli::cli_abort("A {.fn drm_model_set} needs at least one {.fn drm_dag}.")
   }
   if (!all(vapply(dags, inherits, logical(1), what = "drm_dag"))) {
-    cli::cli_abort("Every argument to {.fn drm_model_set} must be a {.fn drm_dag}.")
+    cli::cli_abort(
+      "Every argument to {.fn drm_model_set} must be a {.fn drm_dag}."
+    )
   }
   if (is.null(names(dags)) || any(!nzchar(names(dags)))) {
     cli::cli_abort("Every candidate in a {.fn drm_model_set} must be named.")
@@ -182,8 +197,9 @@ drm_dag_node <- function(formula, response, family) {
   fam <- NULL
   if (is.null(family)) {
     fam <- NULL
-  } else if (is.list(family) && !is.null(names(family)) &&
-             !inherits(family, "family")) {
+  } else if (
+    is.list(family) && !is.null(names(family)) && !inherits(family, "family")
+  ) {
     # a named per-node list of families
     if (response %in% names(family)) {
       fam <- family[[response]]
@@ -219,31 +235,38 @@ drm_fit_dag <- function(dag, data, family, fit_env, dots) {
 #'
 #' `compare()` fits every candidate [drm_dag()] in a [drm_model_set()] with
 #' [drm_sem()] (one node per response, using a per-node or shared `family`),
-#' runs [dsep()]/[fisher_c()] on each, and ranks the candidates by a
-#' small-sample-corrected information criterion built on Fisher's C. This is
-#' drmSEM's analogue of phylopath's `phylo_path()`.
+#' runs [dsep()]/[fisher_c()] on each, and ranks the candidates by an
+#' information criterion built on Fisher's C. This is drmSEM's analogue of
+#' phylopath's `phylo_path()`.
 #'
-#' The ranking statistic is
+#' The default ranking statistic is
 #' \deqn{\mathrm{CICc} = C + 2k\,\frac{n}{n - k - 1},}
 #' where \eqn{C} is Fisher's C statistic from the model's d-separation test,
 #' \eqn{k} is the number of estimated fixed-effect coefficients across all
 #' nodes (counted via [paths()]), and \eqn{n} is the number of observations.
 #' \eqn{\Delta}CICc is the difference from the best (lowest-CICc) model and the
-#' Akaike weight is \eqn{\exp(-\tfrac12\,\Delta\mathrm{CICc})}, normalised to sum
+#' CICc weight is \eqn{\exp(-\tfrac12\,\Delta\mathrm{CICc})}, normalised to sum
 #' to one. As \eqn{n \to \infty} the correction term tends to \eqn{2k}, so CICc
-#' reduces to the usual \eqn{C + 2k}.
+#' reduces to the usual \eqn{C + 2k}. `criterion = "CBIC"` instead ranks by
+#' \eqn{\mathrm{CBIC} = C + k\log(n)}, a BIC-style penalty that is more
+#' conservative about extra paths.
 #'
 #' @param object A `drm_model_set`.
 #' @param data A data frame supplied to every node fit.
 #' @param family Optional. A single `drmTMB` family applied to every node, or a
 #'   named list of families keyed by node (response) name. `NULL` uses the
 #'   [drm_node()] default (Gaussian) for every node.
+#' @param criterion Ranking criterion. `"CICc"` keeps the phylopath-style
+#'   default; `"CBIC"` uses a BIC-style penalty for stronger parsimony.
 #' @param ... Further arguments passed on to each [drm_sem()] fit.
 #'
 #' @return A `drm_compare` object: a data frame with one row per candidate and
 #'   columns `model`, `fisher_c`, `df`, `p.value`, `k`, `n`, `CICc`, `dCICc`,
-#'   `weight`, sorted by `CICc`. The fitted `drm_sem` objects and per-model
-#'   d-separation tables are carried in attributes for [best()]/[average()].
+#'   `wCICc`, `CBIC`, `dCBIC`, `wCBIC`, and `weight`, sorted by the selected
+#'   `criterion`. `weight` is the weight for the selected criterion, so
+#'   [average()] follows the same ranking rule. The fitted `drm_sem` objects and
+#'   per-model d-separation tables are carried in attributes for
+#'   [best()]/[average()].
 #' @seealso [best()], [average()], [drm_model_set()].
 #' @export
 #'
@@ -260,17 +283,30 @@ drm_fit_dag <- function(dag, data, family, fit_env, dots) {
 #' best(cmp)
 #' average(cmp)
 #' }
-compare <- function(object, data, family = NULL, ...) {
+compare <- function(
+  object,
+  data,
+  family = NULL,
+  criterion = c("CICc", "CBIC"),
+  ...
+) {
   UseMethod("compare")
 }
 
 #' @rdname compare
 #' @export
-compare.drm_model_set <- function(object, data, family = NULL, ...) {
+compare.drm_model_set <- function(
+  object,
+  data,
+  family = NULL,
+  criterion = c("CICc", "CBIC"),
+  ...
+) {
   drm_require_drmTMB()
   if (missing(data)) {
     cli::cli_abort("{.arg data} is required for {.fn compare}.")
   }
+  criterion <- match.arg(criterion)
   fit_env <- parent.frame()
   dots <- list(...)
   data <- as.data.frame(data)
@@ -290,8 +326,13 @@ compare.drm_model_set <- function(object, data, family = NULL, ...) {
   for (i in seq_along(model_names)) {
     nm <- model_names[[i]]
     cli::cli_progress_step("Fitting candidate {.val {nm}}")
-    sem <- drm_fit_dag(object$models[[i]], data = data, family = family,
-                       fit_env = fit_env, dots = dots)
+    sem <- drm_fit_dag(
+      object$models[[i]],
+      data = data,
+      family = family,
+      fit_env = fit_env,
+      dots = dots
+    )
     d <- dsep(sem)
     fc <- fisher_c(d)
     fits[[i]] <- sem
@@ -312,51 +353,109 @@ compare.drm_model_set <- function(object, data, family = NULL, ...) {
     n = rep.int(n, length(model_names)),
     stringsAsFactors = FALSE
   )
-  tab <- drm_add_cicc(tab)
+  tab <- drm_add_cicc(tab, criterion = criterion)
   attr(tab, "fits") <- fits
   attr(tab, "dsep") <- dseps
   attr(tab, "n") <- n
+  attr(tab, "criterion") <- criterion
   class(tab) <- c("drm_compare", "data.frame")
   tab
 }
 
 # Pure-arithmetic core: given a data.frame carrying fisher_c (C), k and n,
-# add CICc, dCICc and (normalised Akaike) weight, sorted ascending by CICc.
+# add CICc/CBIC, deltas and normalised weights, sorted ascending by the selected
+# criterion.
 # Factored out so the model-selection arithmetic is testable without an engine.
 #
 # CICc = C + 2 * k * (n / (n - k - 1)).
-drm_add_cicc <- function(tab) {
+drm_add_cicc <- function(tab, criterion = c("CICc", "CBIC")) {
+  criterion <- match.arg(criterion)
   C <- tab$fisher_c
   k <- tab$k
   n <- tab$n
   denom <- n - k - 1
   correction <- ifelse(denom > 0, n / denom, NA_real_)
-  cicc <- C + 2 * k * correction
-  tab$CICc <- cicc
-  ord <- order(cicc, na.last = TRUE)
+  tab$CICc <- C + 2 * k * correction
+  tab$CBIC <- C + k * log(n)
+
+  cicc <- drm_delta_weights(tab$CICc)
+  tab$dCICc <- cicc$delta
+  tab$wCICc <- cicc$weight
+
+  cbic <- drm_delta_weights(tab$CBIC)
+  tab$dCBIC <- cbic$delta
+  tab$wCBIC <- cbic$weight
+
+  weight_col <- paste0("w", criterion)
+  tab$weight <- tab[[weight_col]]
+  preferred <- c(
+    "model",
+    "fisher_c",
+    "df",
+    "p.value",
+    "k",
+    "n",
+    "CICc",
+    "dCICc",
+    "wCICc",
+    "CBIC",
+    "dCBIC",
+    "wCBIC",
+    "weight"
+  )
+  tab <- tab[,
+    c(intersect(preferred, names(tab)), setdiff(names(tab), preferred)),
+    drop = FALSE
+  ]
+  ord <- order(tab[[criterion]], na.last = TRUE)
   tab <- tab[ord, , drop = FALSE]
-  best_cicc <- min(tab$CICc, na.rm = TRUE)
-  tab$dCICc <- tab$CICc - best_cicc
-  rel <- exp(-0.5 * tab$dCICc)
-  rel[!is.finite(rel)] <- 0
-  total <- sum(rel)
-  tab$weight <- if (total > 0) rel / total else rep.int(NA_real_, nrow(tab))
+  attr(tab, "criterion") <- criterion
   rownames(tab) <- NULL
   tab
+}
+
+drm_delta_weights <- function(score) {
+  finite <- is.finite(score)
+  delta <- rep(NA_real_, length(score))
+  weight <- rep(0, length(score))
+  if (any(finite)) {
+    delta[finite] <- score[finite] - min(score[finite])
+    rel <- exp(-0.5 * delta[finite])
+    total <- sum(rel)
+    if (total > 0) {
+      weight[finite] <- rel / total
+    }
+  }
+  list(delta = delta, weight = weight)
+}
+
+drm_compare_criterion <- function(x) {
+  criterion <- attr(x, "criterion", exact = TRUE)
+  if (is.null(criterion) || !criterion %in% c("CICc", "CBIC")) {
+    criterion <- "CICc"
+  }
+  criterion
 }
 
 #' @export
 print.drm_compare <- function(x, ...) {
   cli::cli_text("<drmSEM model comparison: {nrow(x)} candidate{?s}>")
+  criterion <- drm_compare_criterion(x)
   df <- as.data.frame(x)
   df$fisher_c <- round(df$fisher_c, 2)
   df$p.value <- signif(df$p.value, 3)
   df$CICc <- round(df$CICc, 2)
   df$dCICc <- round(df$dCICc, 2)
+  df$wCICc <- round(df$wCICc, 3)
+  df$CBIC <- round(df$CBIC, 2)
+  df$dCBIC <- round(df$dCBIC, 2)
+  df$wCBIC <- round(df$wCBIC, 3)
   df$weight <- round(df$weight, 3)
   print.data.frame(df, row.names = FALSE)
-  top <- df$model[[which.min(df$CICc)]]
-  cli::cli_text("Best model by CICc: {.strong {top}}. Use {.fn best}/{.fn average}.")
+  top <- df$model[[which.min(x[[criterion]])]]
+  cli::cli_text(
+    "Best model by {criterion}: {.strong {top}}. Use {.fn best}/{.fn average}."
+  )
   invisible(x)
 }
 
@@ -368,12 +467,15 @@ drm_as_compare <- function(object, ...) {
   if (inherits(object, "drm_model_set")) {
     return(compare(object, ...))
   }
-  cli::cli_abort("Expected a {.cls drm_compare} or {.cls drm_model_set} object.")
+  cli::cli_abort(
+    "Expected a {.cls drm_compare} or {.cls drm_model_set} object."
+  )
 }
 
 #' Best-supported candidate model
 #'
-#' `best()` returns the fitted [drm_sem] of the candidate with the lowest CICc.
+#' `best()` returns the fitted [drm_sem] of the top-ranked candidate under the
+#' criterion used by [compare()].
 #'
 #' @param object A `drm_compare` (from [compare()]) or a `drm_model_set`.
 #' @param ... Passed to [compare()] when `object` is an unfitted model set
@@ -404,8 +506,8 @@ best.drm_compare <- function(object, ...) {
   if (is.null(fits)) {
     cli::cli_abort("This comparison carries no fitted models.")
   }
-  # the table is sorted ascending by CICc, so row 1 is the best model
-  top <- object$model[[which.min(object$CICc)]]
+  criterion <- drm_compare_criterion(object)
+  top <- object$model[[which.min(object[[criterion]])]]
   fit <- fits[[top]]
   if (is.null(fit)) {
     cli::cli_abort("Could not recover the fitted model for {.val {top}}.")
@@ -413,14 +515,15 @@ best.drm_compare <- function(object, ...) {
   fit
 }
 
-#' CICc-weighted average of standardized path coefficients
+#' Criterion-weighted average of standardized path coefficients
 #'
 #' `average()` returns model-averaged standardized path coefficients across the
-#' candidate set, weighting each model's [standardize()]d [paths()] by its
-#' Akaike weight. Coefficients are matched on `from`, `to` and `component`, so a
-#' path present in only some candidates is averaged over the weight of the
-#' models that contain it (conditional averaging). This mirrors phylopath's
-#' `average()`.
+#' candidate set, weighting each model's [standardize()]d [paths()] by the
+#' selected criterion's weight (`CICc` by default, or `CBIC` when
+#' `compare(..., criterion = "CBIC")` was used). Coefficients are matched on
+#' `from`, `to` and `component`, so a path present in only some candidates is
+#' averaged over the weight of the models that contain it (conditional
+#' averaging). This mirrors phylopath's `average()`.
 #'
 #' @param object A `drm_compare` (from [compare()]) or a `drm_model_set`.
 #' @param method Standardization passed to [standardize()] (`"sd_x"` or
@@ -458,24 +561,34 @@ average.drm_compare <- function(object, method = c("sd_x", "latent"), ...) {
   }
   weights <- stats::setNames(object$weight, object$model)
 
-  acc <- list()  # key -> list(from,to,component, wsum, wxsum)
+  acc <- list() # key -> list(from,to,component, wsum, wxsum)
   for (nm in object$model) {
     w <- weights[[nm]]
-    if (!is.finite(w) || w <= 0) next
+    if (!is.finite(w) || w <= 0) {
+      next
+    }
     fit <- fits[[nm]]
-    if (is.null(fit)) next
+    if (is.null(fit)) {
+      next
+    }
     std <- standardize(fit, method = method)
-    if (nrow(std) == 0L) next
+    if (nrow(std) == 0L) {
+      next
+    }
     for (j in seq_len(nrow(std))) {
       key <- paste(std$from[[j]], std$to[[j]], std$component[[j]], sep = "\r")
       val <- std$std.estimate[[j]]
-      if (!is.finite(val)) next
+      if (!is.finite(val)) {
+        next
+      }
       cur <- acc[[key]]
       if (is.null(cur)) {
         acc[[key]] <- list(
-          from = std$from[[j]], to = std$to[[j]],
+          from = std$from[[j]],
+          to = std$to[[j]],
           component = std$component[[j]],
-          wsum = w, wxsum = w * val
+          wsum = w,
+          wxsum = w * val
         )
       } else {
         cur$wsum <- cur$wsum + w
@@ -487,22 +600,30 @@ average.drm_compare <- function(object, method = c("sd_x", "latent"), ...) {
 
   if (length(acc) == 0L) {
     out <- data.frame(
-      from = character(0), to = character(0), component = character(0),
-      std.estimate = numeric(0), weight_sum = numeric(0),
+      from = character(0),
+      to = character(0),
+      component = character(0),
+      std.estimate = numeric(0),
+      weight_sum = numeric(0),
       stringsAsFactors = FALSE
     )
     class(out) <- c("drm_average", "data.frame")
     return(out)
   }
 
-  out <- do.call(rbind, lapply(acc, function(e) {
-    data.frame(
-      from = e$from, to = e$to, component = e$component,
-      std.estimate = e$wxsum / e$wsum,
-      weight_sum = e$wsum,
-      stringsAsFactors = FALSE
-    )
-  }))
+  out <- do.call(
+    rbind,
+    lapply(acc, function(e) {
+      data.frame(
+        from = e$from,
+        to = e$to,
+        component = e$component,
+        std.estimate = e$wxsum / e$wsum,
+        weight_sum = e$wsum,
+        stringsAsFactors = FALSE
+      )
+    })
+  )
   rownames(out) <- NULL
   out <- out[order(out$to, out$component, out$from), , drop = FALSE]
   rownames(out) <- NULL
@@ -512,7 +633,9 @@ average.drm_compare <- function(object, method = c("sd_x", "latent"), ...) {
 
 #' @export
 print.drm_average <- function(x, ...) {
-  cli::cli_text("<drmSEM model-averaged standardized paths: {nrow(x)} path{?s}>")
+  cli::cli_text(
+    "<drmSEM model-averaged standardized paths: {nrow(x)} path{?s}>"
+  )
   df <- as.data.frame(x)
   df$std.estimate <- round(df$std.estimate, 4)
   df$weight_sum <- round(df$weight_sum, 3)

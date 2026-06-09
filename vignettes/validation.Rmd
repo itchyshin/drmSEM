@@ -78,8 +78,8 @@ Two studies are tabulated here:
 
 - **Effect-interval coverage.** Does `uncertainty = "parametric"` produce
   intervals that cover the true effect at the nominal rate?
-- **Model-selection recovery.** Does [`best()`] select the true DAG, and how much
-  Akaike weight lands on the truth?
+- **Model-selection recovery.** Does [`best()`] select the true DAG under the
+  chosen information criterion, and how much model weight lands on the truth?
 
 Two related checks live elsewhere and are **not** reimplemented here:
 d-separation Type-I / power is the calibration study on its own page, and
@@ -131,7 +131,9 @@ dec <- indirect_effects(sem, "x", "y", uncertainty = "parametric", B = 400)
 A true DAG (`x -> m -> y`, with the direct `x -> y` edge omitted) versus a
 candidate set that includes the truth, an over-fitted rival, and a
 missing-edge rival. Over replicates we record how often [`best()`] returns the
-truth and the mean Akaike weight on it.
+truth and the mean model weight on it. The default `CICc` criterion is
+phylopath-style and can retain over-fitted rivals; `CBIC` uses a stronger
+BIC-style penalty for extra paths.
 
 ```{r design-c3, echo = TRUE, eval = FALSE}
 models <- drm_model_set(
@@ -142,6 +144,7 @@ models <- drm_model_set(
 cmp <- compare(models, data = dat,
                family = list(m = gaussian(), y = gaussian()))
 selected <- cmp$model[which.min(cmp$CICc)]   # best() picks the lowest CICc
+selected_bic <- cmp$model[which.min(cmp$CBIC)] # CBIC is the parsimonious check
 ```
 
 This study code is shown **for transparency only** and is never evaluated when
@@ -192,20 +195,26 @@ knitr::kable(
 
 ## Model-selection recovery
 
-Selection rate of the true DAG and mean Akaike weight on the truth per sample
-size, with the rate at which the under-fitted (missing-edge) rival is wrongly
-selected.
+Selection rate of the true DAG and mean criterion weight on the truth per
+sample size, with the rate at which the under-fitted (missing-edge) rival is
+wrongly selected. `CICc` is the phylopath-style default; `CBIC` is the
+BIC-style criterion used when the target is parsimonious true-DAG recovery
+rather than predictive support for a small over-fitted set.
 
 ```{r selection-table, echo = FALSE, eval = !is.null(val)}
-sel_tab <- val$model_selection[order(val$model_selection$n),
-                               c("n", "selection_rate", "mean_truth_weight",
-                                 "missing_edge_rate", "n_rep", "acceptance")]
+sel_src <- val$model_selection
+if (!"criterion" %in% names(sel_src)) {
+  sel_src$criterion <- "CICc"
+}
+sel_tab <- sel_src[order(sel_src$criterion, sel_src$n),
+                   c("criterion", "n", "selection_rate", "mean_truth_weight",
+                     "missing_edge_rate", "n_rep", "acceptance")]
 knitr::kable(
   sel_tab,
   digits  = 3,
-  col.names = c("n", "selection rate", "mean truth weight",
+  col.names = c("criterion", "n", "selection rate", "mean truth weight",
                 "missing-edge rate", "reps", "pass"),
-  caption = "Truth selection rate and mean Akaike weight on the truth."
+  caption = "Truth selection rate and mean criterion weight on the truth."
 )
 ```
 
@@ -219,12 +228,13 @@ Rscript inst/validation/generate.R
 ```
 
 That script guards on `requireNamespace("drmTMB")`, sweeps the grids above,
-collects only data (coverage flags, widths, selection labels, Akaike weights --
+collects only data (coverage flags, widths, selection labels, model weights --
 never fitted objects), and writes a compact summary list to
 `inst/validation/validation-results.rds`. The cache carries a `provenance` stamp
 recording the **drmTMB version, date, R version, git SHA, replicate count, seed,
 and n-grid** so every table on this page is traceable to the exact engine that
-produced it.
+produced it. If a cache was assembled from a retained coverage block plus a
+fresh model-selection block, the scope note below records that explicitly.
 
 ```{r provenance, echo = FALSE, eval = !is.null(val)}
 p <- val$provenance
@@ -235,4 +245,18 @@ cat(sprintf(
   p$drmSEM_version, p$R_version, p$git_sha, p$R, p$seed,
   paste(p$n_grid, collapse = ", ")
 ))
+if (!is.null(p$validation_scope)) {
+  cat(sprintf("\nScope note: %s\n", p$validation_scope))
+}
+if (!is.null(p$c1_generated_at) || !is.null(p$c3_generated_at)) {
+  cat(sprintf(
+    "\nStudy blocks:\n  C1 coverage generated:        %s (drmSEM %s, git %s)\n  C3 model selection generated: %s (drmSEM %s, git %s)\n",
+    if (is.null(p$c1_generated_at)) NA_character_ else p$c1_generated_at,
+    if (is.null(p$c1_drmSEM_version)) NA_character_ else p$c1_drmSEM_version,
+    if (is.null(p$c1_git_sha)) NA_character_ else p$c1_git_sha,
+    if (is.null(p$c3_generated_at)) p$generated_at else p$c3_generated_at,
+    if (is.null(p$c3_drmSEM_version)) p$drmSEM_version else p$c3_drmSEM_version,
+    if (is.null(p$c3_git_sha)) p$git_sha else p$c3_git_sha
+  ))
+}
 ```

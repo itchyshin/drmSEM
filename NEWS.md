@@ -412,8 +412,13 @@ counterfactual propagation rather than coefficient products.
   d-separation test, and ranks the candidates by CICc (a small-sample-corrected
   information criterion built on Fisher's C), reporting delta-CICc and Akaike
   weights.
-* `best()` returns the lowest-CICc fitted SEM; `average()` returns CICc-weighted
-  (conditional) model-averaged standardized path coefficients.
+* `compare()` gains `criterion = "CBIC"` as a BIC-style alternative to the
+  default CICc ranking. The comparison table now reports CICc and CBIC deltas and
+  weights side by side; `best()` and `average()` follow the criterion used by
+  `compare()`.
+* `best()` returns the top-ranked fitted SEM under the selected criterion;
+  `average()` returns criterion-weighted (conditional) model-averaged
+  standardized path coefficients.
 
 ## Phylogenetic covariance
 

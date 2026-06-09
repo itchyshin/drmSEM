@@ -4,7 +4,7 @@
 \alias{average}
 \alias{average.drm_model_set}
 \alias{average.drm_compare}
-\title{CICc-weighted average of standardized path coefficients}
+\title{Criterion-weighted average of standardized path coefficients}
 \usage{
 average(object, ...)
 
@@ -26,11 +26,12 @@ weight of the models containing that path).
 }
 \description{
 \code{average()} returns model-averaged standardized path coefficients across the
-candidate set, weighting each model's \code{\link[=standardize]{standardize()}}d \code{\link[=paths]{paths()}} by its
-Akaike weight. Coefficients are matched on \code{from}, \code{to} and \code{component}, so a
-path present in only some candidates is averaged over the weight of the
-models that contain it (conditional averaging). This mirrors phylopath's
-\code{average()}.
+candidate set, weighting each model's \code{\link[=standardize]{standardize()}}d \code{\link[=paths]{paths()}} by the
+selected criterion's weight (\code{CICc} by default, or \code{CBIC} when
+\code{compare(..., criterion = "CBIC")} was used). Coefficients are matched on
+\code{from}, \code{to} and \code{component}, so a path present in only some candidates is
+averaged over the weight of the models that contain it (conditional
+averaging). This mirrors phylopath's \code{average()}.
 }
 \examples{
 \dontrun{

@@ -42,15 +42,18 @@ outside the calibrated OQ-6 grid?
   **scoped to the tested grid** (the standing rule).
 
 ### C-3 — Model-selection recovery rate
-**Question:** does `compare()` / `best()` select the true DAG?
+**Question:** does `compare()` / `best()` select the true DAG under the requested
+ranking criterion?
 
 - **DGP:** a true DAG plus a candidate set (`drm_dag()` / `drm_model_set()`) that
   includes the truth, an over-fitted, and an under-fitted (missing-edge) rival.
 - **Procedure:** over `R` replicates, record how often `best()` returns the true
-  model and the mean Akaike weight on the truth.
-- **Metric:** selection rate + mean truth-weight. **Acceptance:** selection rate
-  high and increasing with n; the missing-edge rival is reliably penalised (its
-  d-sep claim is violated).
+  model and the mean model weight on the truth for both `CICc` and `CBIC`.
+- **Metric:** selection rate + mean truth-weight by criterion. **Acceptance:**
+  `CBIC` selection rate is high and increasing with n; the missing-edge rival is
+  reliably penalised (its d-sep claim is violated). `CICc` is still reported but
+  is treated as a phylopath-style, AIC-like support measure that may retain
+  over-fitted rivals rather than a consistent true-DAG selector.
 
 ### C-4 — Sampler dispersion vs `drmTMB::simulate()` (OQ-1 closeout)
 Wave 1 initially suggested that `drm_sample_family()`'s **variance** did not

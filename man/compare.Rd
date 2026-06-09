@@ -5,9 +5,9 @@
 \alias{compare.drm_model_set}
 \title{Fit and rank a set of candidate causal models}
 \usage{
-compare(object, data, family = NULL, ...)
+compare(object, data, family = NULL, criterion = c("CICc", "CBIC"), ...)
 
-\method{compare}{drm_model_set}(object, data, family = NULL, ...)
+\method{compare}{drm_model_set}(object, data, family = NULL, criterion = c("CICc", "CBIC"), ...)
 }
 \arguments{
 \item{object}{A \code{drm_model_set}.}
@@ -18,31 +18,39 @@ compare(object, data, family = NULL, ...)
 named list of families keyed by node (response) name. \code{NULL} uses the
 \code{\link[=drm_node]{drm_node()}} default (Gaussian) for every node.}
 
+\item{criterion}{Ranking criterion. \code{"CICc"} keeps the phylopath-style
+default; \code{"CBIC"} uses a BIC-style penalty for stronger parsimony.}
+
 \item{...}{Further arguments passed on to each \code{\link[=drm_sem]{drm_sem()}} fit.}
 }
 \value{
 A \code{drm_compare} object: a data frame with one row per candidate and
 columns \code{model}, \code{fisher_c}, \code{df}, \code{p.value}, \code{k}, \code{n}, \code{CICc}, \code{dCICc},
-\code{weight}, sorted by \code{CICc}. The fitted \code{drm_sem} objects and per-model
-d-separation tables are carried in attributes for \code{\link[=best]{best()}}/\code{\link[=average]{average()}}.
+\code{wCICc}, \code{CBIC}, \code{dCBIC}, \code{wCBIC}, and \code{weight}, sorted by the selected
+\code{criterion}. \code{weight} is the weight for the selected criterion, so
+\code{\link[=average]{average()}} follows the same ranking rule. The fitted \code{drm_sem} objects and
+per-model d-separation tables are carried in attributes for
+\code{\link[=best]{best()}}/\code{\link[=average]{average()}}.
 }
 \description{
 \code{compare()} fits every candidate \code{\link[=drm_dag]{drm_dag()}} in a \code{\link[=drm_model_set]{drm_model_set()}} with
 \code{\link[=drm_sem]{drm_sem()}} (one node per response, using a per-node or shared \code{family}),
-runs \code{\link[=dsep]{dsep()}}/\code{\link[=fisher_c]{fisher_c()}} on each, and ranks the candidates by a
-small-sample-corrected information criterion built on Fisher's C. This is
-drmSEM's analogue of phylopath's \code{phylo_path()}.
+runs \code{\link[=dsep]{dsep()}}/\code{\link[=fisher_c]{fisher_c()}} on each, and ranks the candidates by an
+information criterion built on Fisher's C. This is drmSEM's analogue of
+phylopath's \code{phylo_path()}.
 }
 \details{
-The ranking statistic is
+The default ranking statistic is
 \deqn{\mathrm{CICc} = C + 2k\,\frac{n}{n - k - 1},}
 where \eqn{C} is Fisher's C statistic from the model's d-separation test,
 \eqn{k} is the number of estimated fixed-effect coefficients across all
 nodes (counted via \code{\link[=paths]{paths()}}), and \eqn{n} is the number of observations.
 \eqn{\Delta}CICc is the difference from the best (lowest-CICc) model and the
-Akaike weight is \eqn{\exp(-\tfrac12\,\Delta\mathrm{CICc})}, normalised to sum
+CICc weight is \eqn{\exp(-\tfrac12\,\Delta\mathrm{CICc})}, normalised to sum
 to one. As \eqn{n \to \infty} the correction term tends to \eqn{2k}, so CICc
-reduces to the usual \eqn{C + 2k}.
+reduces to the usual \eqn{C + 2k}. \code{criterion = "CBIC"} instead ranks by
+\eqn{\mathrm{CBIC} = C + k\log(n)}, a BIC-style penalty that is more
+conservative about extra paths.
 }
 \examples{
 \dontrun{

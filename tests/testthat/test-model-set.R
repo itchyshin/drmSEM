@@ -1,12 +1,12 @@
 # Phase 2: phylopath-style confirmatory model comparison.
 #
-# The pure-logic tests exercise the CICc / dCICc / weight arithmetic and the
+# The pure-logic tests exercise the CICc / CBIC / weight arithmetic and the
 # drm_dag()/drm_model_set() constructors + print methods WITHOUT the drmTMB
 # engine (loading drmSEM needs no engine). The end-to-end test that actually
 # fits candidates is gated on drmTMB and mirrors test-integration.R.
 
 # ---------------------------------------------------------------------------
-# Pure-logic: CICc / dCICc / weight arithmetic (no engine required)
+# Pure-logic: CICc / CBIC / weight arithmetic (no engine required)
 # ---------------------------------------------------------------------------
 
 test_that("drm_add_cicc computes CICc = C + 2k * n/(n-k-1)", {
@@ -19,15 +19,21 @@ test_that("drm_add_cicc computes CICc = C + 2k * n/(n-k-1)", {
   )
   out <- drm_add_cicc(tab)
 
-  # CICc matches the formula row by row.
+  # CICc and CBIC match the formulas row by row.
   expected_cicc <- tab$fisher_c + 2 * tab$k * (tab$n / (tab$n - tab$k - 1))
   names(expected_cicc) <- tab$model
   expect_equal(out$CICc, unname(expected_cicc[out$model]))
+
+  expected_cbic <- tab$fisher_c + tab$k * log(tab$n)
+  names(expected_cbic) <- tab$model
+  expect_equal(out$CBIC, unname(expected_cbic[out$model]))
 
   # The table is sorted ascending by CICc and dCICc is the delta from the min.
   expect_false(is.unsorted(out$CICc))
   expect_equal(min(out$dCICc), 0)
   expect_equal(out$dCICc, out$CICc - min(out$CICc))
+  expect_equal(min(out$dCBIC), 0)
+  expect_equal(out$dCBIC, out$CBIC - min(out$CBIC))
 })
 
 test_that("Akaike weights sum to 1 and the best model carries the most weight", {
@@ -41,6 +47,7 @@ test_that("Akaike weights sum to 1 and the best model carries the most weight", 
   out <- drm_add_cicc(tab)
 
   expect_equal(sum(out$weight), 1)
+  expect_equal(out$weight, out$wCICc)
   # lowest CICc <=> highest weight
   expect_equal(out$model[which.min(out$CICc)], out$model[which.max(out$weight)])
   # weights are monotone-decreasing along the (CICc-sorted) table
@@ -48,11 +55,41 @@ test_that("Akaike weights sum to 1 and the best model carries the most weight", 
   expect_equal(out$weight, exp(-0.5 * out$dCICc) / sum(exp(-0.5 * out$dCICc)))
 })
 
+test_that("CBIC uses a stronger penalty than CICc when requested", {
+  tab <- data.frame(
+    model = c("truth", "overfit"),
+    fisher_c = c(4, 0),
+    k = c(2L, 3L),
+    n = c(1000L, 1000L),
+    stringsAsFactors = FALSE
+  )
+
+  cicc <- drm_add_cicc(tab, criterion = "CICc")
+  cbic <- drm_add_cicc(tab, criterion = "CBIC")
+
+  expect_equal(cicc$model[[which.min(cicc$CICc)]], "overfit")
+  expect_equal(cicc$weight, cicc$wCICc)
+
+  expect_equal(cbic$model[[which.min(cbic$CBIC)]], "truth")
+  expect_equal(cbic$weight, cbic$wCBIC)
+  expect_equal(attr(cbic, "criterion"), "CBIC")
+})
+
 test_that("CICc reduces to C + 2k as n grows large", {
-  small <- data.frame(model = "m", fisher_c = 5, k = 4L, n = 30L,
-                      stringsAsFactors = FALSE)
-  large <- data.frame(model = "m", fisher_c = 5, k = 4L, n = 1e7,
-                      stringsAsFactors = FALSE)
+  small <- data.frame(
+    model = "m",
+    fisher_c = 5,
+    k = 4L,
+    n = 30L,
+    stringsAsFactors = FALSE
+  )
+  large <- data.frame(
+    model = "m",
+    fisher_c = 5,
+    k = 4L,
+    n = 1e7,
+    stringsAsFactors = FALSE
+  )
   cicc_small <- drm_add_cicc(small)$CICc
   cicc_large <- drm_add_cicc(large)$CICc
 
@@ -75,6 +112,7 @@ test_that("drm_add_cicc handles a non-estimable correction (n - k - 1 <= 0)", {
   # CICc undefined where denom <= 0; weight degrades to 0, not NaN-propagated.
   expect_true(is.na(out$CICc[out$model == "saturated"]))
   expect_equal(out$weight[out$model == "saturated"], 0)
+  expect_true(is.finite(out$CBIC[out$model == "saturated"]))
   # the estimable model still gets all the (finite) weight.
   expect_equal(out$weight[out$model == "ok"], 1)
 })
@@ -95,12 +133,12 @@ test_that("drm_dag() rejects empty input, non-formulas, and duplicate responses"
   expect_error(drm_dag(), "at least one")
   expect_error(drm_dag(1), "formula")
   expect_error(drm_dag(y ~ x, y ~ z), "unique")
-  expect_error(drm_dag(~ x), "response")
+  expect_error(drm_dag(~x), "response")
 })
 
 test_that("drm_model_set() collects named drm_dags and prints", {
   models <- drm_model_set(
-    direct   = drm_dag(fitness ~ temp + size),
+    direct = drm_dag(fitness ~ temp + size),
     mediated = drm_dag(size ~ temp, fitness ~ size + temp)
   )
   expect_s3_class(models, "drm_model_set")
@@ -144,9 +182,9 @@ test_that("compare() fits a model set and ranks candidates by CICc", {
     # true generating structure: temp -> size -> abundance, temp -> abundance
     mediated = drm_model_set_dag_mediated(),
     # omits the size -> abundance arrow (should fit worse)
-    direct   = drm_model_set_dag_direct(),
+    direct = drm_model_set_dag_direct(),
     # adds a spurious arrow but is otherwise saturated for these three nodes
-    full     = drm_model_set_dag_full()
+    full = drm_model_set_dag_full()
   )
 
   cmp <- compare(
@@ -163,11 +201,29 @@ test_that("compare() fits a model set and ranks candidates by CICc", {
   expect_equal(nrow(cmp), length(models$models))
   expect_setequal(cmp$model, names(models$models))
   # the required comparison columns are present
-  expect_true(all(c("model", "fisher_c", "df", "p.value", "k", "n",
-                    "CICc", "dCICc", "weight") %in% names(cmp)))
+  expect_true(all(
+    c(
+      "model",
+      "fisher_c",
+      "df",
+      "p.value",
+      "k",
+      "n",
+      "CICc",
+      "dCICc",
+      "wCICc",
+      "CBIC",
+      "dCBIC",
+      "wCBIC",
+      "weight"
+    ) %in%
+      names(cmp)
+  ))
   # weights sum to ~1 and the table is sorted ascending by CICc
   expect_equal(sum(cmp$weight, na.rm = TRUE), 1, tolerance = 1e-8)
+  expect_equal(cmp$weight, cmp$wCICc)
   expect_false(is.unsorted(cmp$CICc, na.rm = TRUE))
+  expect_equal(attr(cmp, "criterion"), "CICc")
   expect_true(all(cmp$n == nrow(dat)))
   expect_no_error(print(cmp))
 
@@ -178,6 +234,7 @@ test_that("compare() fits a model set and ranks candidates by CICc", {
   # average() returns CICc-weighted standardized paths.
   avg <- average(cmp)
   expect_s3_class(avg, "drm_average")
-  expect_true(all(c("from", "to", "component", "std.estimate",
-                    "weight_sum") %in% names(avg)))
+  expect_true(all(
+    c("from", "to", "component", "std.estimate", "weight_sum") %in% names(avg)
+  ))
 })

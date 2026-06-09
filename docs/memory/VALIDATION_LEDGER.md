@@ -532,3 +532,23 @@ sampler (mean-fallback only), zero_one_beta zoi/coi inflation, and student `nu`
 remain unconfirmed against `drmTMB::simulate()` (as in `test-oq1-samplers.R`); the
 V-53 lognormal-mu / mediator-sigma response-scale parameterization is buffered by
 a generous tolerance and worth a live sanity check.
+
+## 2026-06-08 — C-3 model-selection recovery: CBIC validated, CICc scoped
+
+`inst/validation/validation-results.rds` now carries a regenerated C-3
+model-selection block from the current source checkout, with C-1 coverage
+retained from the previous cache because the full coverage rerun exceeded the
+live-lane wall-time budget. The C-3 grid used `R = 300`, `n = 300, 1000`, and the
+same seed scheme as `inst/validation/generate.R`.
+
+- **CBIC (`C + k log(n)`) passed the C-3 recovery gate:** truth selection was
+  `0.9267` at `n = 300` and `0.9733` at `n = 1000`; mean truth weight was
+  `0.8169` and `0.8830`; the missing-edge rival was never selected.
+- **CICc is now scoped as support / AIC-like ranking, not a consistent true-DAG
+  selector:** truth selection stayed at `0.6100` and `0.5733`, with zero
+  missing-edge selections. This matches the design decision that over-fitted but
+  harmless rivals can retain CICc support.
+
+Status: C-3 true-DAG recovery is **validated for CBIC** on this grid; CICc remains
+the backward-compatible default comparison criterion and is **not** the recovery
+claim.

@@ -1162,3 +1162,30 @@ homepage read like a mobile/full-width layout. Removed the forced full-width
 homepage main column so pkgdown's desktop two-column shape returns (content and
 header on the left, links/sidebar on the right), then moderated the desktop
 title/logo to `3.75rem`/`260px` with tablet/mobile breakpoints kept separate.
+
+## 2026-06-08 — Codex CBIC model-selection criterion
+
+Wave-2 C-3 showed that CICc selected the true chain (`x -> m -> y`) only about
+60% of the time while never selecting the missing-edge rival. Fisher reviewed the
+result as expected AIC-like behaviour: CICc is phylopath-style support and can
+retain a harmless over-fitted direct path, so it should not be treated as a
+consistent true-DAG selector. Added `criterion = "CBIC"` to `compare()` as a
+BIC-style penalty (`C + k log(n)`) while keeping CICc as the default. `best()` and
+`average()` now follow the criterion used by `compare()`, and comparison tables
+report CICc/CBIC deltas and weights side by side. Updated the wave-2 generator
+and validation article scaffold so the next C-3 run records and reports both
+criteria separately.
+
+## 2026-06-08 — Codex C-3 CBIC validation cache update
+
+The full `Rscript inst/validation/generate.R` rerun was stopped after more than
+100 minutes because it had not completed the first C-1 coverage block; process
+sampling showed ordinary R/model-frame work, not a crash. Since CBIC changes only
+C-3 model selection, regenerated C-3 from the current source checkout and merged
+it with the retained C-1 coverage cache, recording the mixed provenance in
+`inst/validation/validation-results.rds`. Result: CBIC passed the C-3 recovery
+gate (`n = 300`: truth selection 0.9267, mean truth weight 0.8169; `n = 1000`:
+truth selection 0.9733, mean truth weight 0.8830; missing-edge rate 0 at both
+sample sizes). CICc remained below the true-DAG recovery threshold (`0.6100` and
+`0.5733`), which supports the design distinction that CICc is the default
+support criterion while CBIC is the parsimonious true-DAG recovery check.

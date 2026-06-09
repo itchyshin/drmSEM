@@ -22,7 +22,8 @@ best(object, ...)
 The fitted \code{drm_sem} of the top-ranked candidate.
 }
 \description{
-\code{best()} returns the fitted \link{drm_sem} of the candidate with the lowest CICc.
+\code{best()} returns the fitted \link{drm_sem} of the top-ranked candidate under the
+criterion used by \code{\link[=compare]{compare()}}.
 }
 \examples{
 \dontrun{
