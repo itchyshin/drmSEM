@@ -1197,3 +1197,12 @@ specific recovery claim, switched `compare()` / `best()` / `average()` defaults
 from CICc to CBIC. CICc remains available with `criterion = "CICc"` and is still
 reported in comparison tables and the validation article as the phylopath-style
 support ranking.
+
+## 2026-06-09 — Codex model-selection article
+
+Added `vignettes/model-selection.Rmd` as the user-facing guide for confirmatory
+candidate-DAG comparison. The article explains `drm_dag()`, `drm_model_set()`,
+`compare()`, `best()`, and `average()`, makes CBIC the default reading path,
+shows how to request `criterion = "CICc"` for support-ranking sensitivity, and
+summarizes the cached C-3 validation result that motivated the default switch.
+Updated `_pkgdown.yml` so the article appears in the Concepts section.

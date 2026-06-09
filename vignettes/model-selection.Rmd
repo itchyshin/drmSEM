@@ -1,0 +1,197 @@
+---
+title: "Model selection with CBIC"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Model selection with CBIC}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+# This article explains the workflow without fitting models during R CMD check
+# or pkgdown. The validation table is read from the cached live-lane study.
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  eval = FALSE
+)
+
+source_results_path <- file.path("inst", "validation",
+                                 "validation-results.rds")
+installed_results_path <- system.file("validation", "validation-results.rds",
+                                      package = "drmSEM")
+results_path <- if (file.exists(source_results_path)) {
+  source_results_path
+} else {
+  installed_results_path
+}
+val <- if (nzchar(results_path) && file.exists(results_path)) {
+  readRDS(results_path)
+} else {
+  NULL
+}
+
+library(drmSEM)
+```
+
+Use model selection when you have a small set of biologically plausible DAGs and
+want to ask which graph is best supported after each endogenous node has been
+fitted with `drmTMB`. The workflow is confirmatory: you name the candidate DAGs,
+fit the same data under each candidate, and compare their d-separation evidence.
+It is not an all-subsets search over every possible graph.
+
+`drmSEM` now uses **CBIC** as the default ranking criterion. CBIC is a BIC-style
+criterion built on Fisher's C,
+
+\[
+\mathrm{CBIC} = C + k\log(n),
+\]
+
+where \(C\) is Fisher's C statistic from the d-separation test, \(k\) is the
+number of fitted fixed-effect paths, and \(n\) is the number of observations.
+The stronger penalty matters because a harmless over-fitted DAG can have a very
+small C statistic. CBIC asks a stricter question: is the extra path worth its
+cost?
+
+## Build a candidate set
+
+Suppose the scientific question is whether temperature acts on fitness directly
+or through body size. The candidate set might contain a direct model, a mediated
+model, and a deliberately over-fitted model with both routes.
+
+```{r candidate-set}
+models <- drm_model_set(
+  direct = drm_dag(
+    size ~ temp,
+    fitness ~ temp
+  ),
+  mediated = drm_dag(
+    size ~ temp,
+    fitness ~ size
+  ),
+  direct_plus_mediated = drm_dag(
+    size ~ temp,
+    fitness ~ temp + size
+  )
+)
+```
+
+Each `drm_dag()` is an unfitted candidate graph. The formulas describe the
+structural parents of each endogenous node. A fair comparison keeps the response
+set and data set fixed across candidates, then changes the arrows that represent
+the competing biological explanations.
+
+## Fit and rank the models
+
+`compare()` fits every candidate with `drm_sem()`, runs the d-separation test,
+combines the independence-claim p-values into Fisher's C, and adds both CBIC and
+CICc scores.
+
+```{r compare}
+cmp <- compare(
+  models,
+  data = dat,
+  family = list(
+    size = stats::gaussian(),
+    fitness = drmTMB::nbinom2()
+  )
+)
+
+cmp
+```
+
+The printed table contains both criteria:
+
+- `CBIC`, `dCBIC`, and `wCBIC` are the default ranking score, delta, and weight.
+- `CICc`, `dCICc`, and `wCICc` are retained for the phylopath-style support
+  ranking.
+- `weight` is the weight for the selected criterion. With the default
+  `compare()`, it is the same as `wCBIC`.
+
+The top model is the row with the lowest CBIC. `best()` returns that fitted SEM.
+
+```{r best-average}
+top <- best(cmp)
+paths(top)
+
+avg <- average(cmp)
+avg
+```
+
+`average()` returns criterion-weighted standardized paths. With the default
+ranking, those are CBIC-weighted paths. A path that appears in only some
+candidates is averaged conditionally over the models that contain it, with
+`weight_sum` showing how much model weight supported that path.
+
+## When to ask for CICc
+
+CICc remains available:
+
+```{r cicc}
+cmp_cicc <- compare(
+  models,
+  data = dat,
+  family = list(
+    size = stats::gaussian(),
+    fitness = drmTMB::nbinom2()
+  ),
+  criterion = "CICc"
+)
+```
+
+Use CICc when you want a phylopath-style support ranking or a sensitivity check.
+Do not read CICc as the default true-DAG recovery claim. In the validation study
+below, CICc often retained an over-fitted rival that added a harmless direct
+path, while CBIC selected the generating DAG.
+
+## What the validation showed
+
+The model-selection validation study generated data from a true chain
+`x -> m -> y`, compared that truth against an over-fitted rival and a
+missing-edge rival, and repeated the comparison 300 times at each sample size.
+The current cached results are:
+
+```{r validation-table, echo = FALSE, eval = TRUE}
+if (!is.null(val) && !is.null(val$model_selection)) {
+  sel_src <- val$model_selection
+  if (!"criterion" %in% names(sel_src)) {
+    sel_src$criterion <- "CICc"
+  }
+  sel_tab <- sel_src[order(sel_src$criterion, sel_src$n),
+                     c("criterion", "n", "selection_rate",
+                       "mean_truth_weight", "missing_edge_rate", "n_rep",
+                       "acceptance")]
+  knitr::kable(
+    sel_tab,
+    digits = 3,
+    col.names = c("criterion", "n", "truth selection",
+                  "mean truth weight", "missing-edge rate", "reps", "pass"),
+    caption = "Model-selection recovery in the cached validation study."
+  )
+} else {
+  cat("No cached model-selection validation table is available in this build.")
+}
+```
+
+CBIC passed the recovery gate in this grid: it selected the true DAG in 92.7% of
+replicates at `n = 300` and 97.3% at `n = 1000`, and it never selected the
+missing-edge model. CICc also avoided the missing-edge model, but it selected
+the true DAG only 61.0% and 57.3% of the time because the over-fitted rival kept
+substantial support. That is why CBIC is the default.
+
+## A practical reading rule
+
+Read the comparison table in this order:
+
+1. Check whether any candidate has a poor d-separation result. A model with a
+   violated missing-edge claim is usually not a good scientific explanation.
+2. Use CBIC and `wCBIC` to choose the parsimonious candidate.
+3. Inspect CICc as a support sensitivity check. If CICc gives a harmless
+   over-fitted model non-trivial support, report that as uncertainty about a
+   weak extra path, not as evidence that the extra path is needed.
+4. Use `average()` when the substantive paths are more important than the
+   identity of a single top model.
+
+This keeps the workflow honest: CBIC answers the "which DAG should I carry
+forward?" question, while CICc remains a useful view of near-ties and
+over-fitted alternatives.

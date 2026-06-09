@@ -75,7 +75,7 @@ reference:
       - path_effects
       - plot.drm_effect
   - title: Model comparison
-    desc: Compare competing causal DAGs by Fisher's C / CICc.
+    desc: Compare competing causal DAGs by Fisher's C / CBIC.
     contents:
       - drm_dag
       - drm_model_set
@@ -114,6 +114,7 @@ articles:
       - bivariate-nodes
       - feedback-cycles
       - latent-variables
+      - model-selection
       - comparison
       - phylogenetic-sem
       - calibration

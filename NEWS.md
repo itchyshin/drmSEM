@@ -408,6 +408,9 @@ counterfactual propagation rather than coefficient products.
 * `drm_dag()` captures one unfitted candidate causal model (a set of node
   formulas), and `drm_model_set()` collects named candidates into a comparison
   set — drmSEM's analogues of `phylopath::define_model_set()`.
+* A new `model-selection` article explains the CBIC-default workflow, shows how
+  to request the CICc support ranking, and summarizes the cached C-3 recovery
+  results.
 * `compare()` now defaults to `criterion = "CBIC"`, the BIC-style ranking that
   passed the model-selection recovery check. The comparison table still reports
   CICc and CBIC deltas and weights side by side; use `criterion = "CICc"` for the
