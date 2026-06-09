@@ -1206,3 +1206,17 @@ candidate-DAG comparison. The article explains `drm_dag()`, `drm_model_set()`,
 shows how to request `criterion = "CICc"` for support-ranking sensitivity, and
 summarizes the cached C-3 validation result that motivated the default switch.
 Updated `_pkgdown.yml` so the article appears in the Concepts section.
+
+## 2026-06-09 — Codex GitHub Actions symbolizer-docs cleanup
+
+The latest `main` GitHub Actions failures were from the symbolizer integration
+docs: `R CMD check` failed while rebuilding `equations-via-symbolizer.Rmd`
+because the vignette called bare `symbolize()` / renderer generics under
+`library(drmSEM)`, and `pkgdown::check_pkgdown()` failed because the new
+symbolizer article and S3 topics were missing from `_pkgdown.yml`. Qualified the
+vignette and roxygen examples as `symbolizer::symbolize()`,
+`symbolizer::as_latex()`, `symbolizer::equations()`, and
+`symbolizer::assumption_table()`, then indexed `equations-via-symbolizer`,
+`symbolize.drm_sem`, and `symbolized_drm_sem` in pkgdown. Also made the
+symbolizer vignette self-contained by simulating its two-node example data in
+the setup chunk when `drmTMB` and `symbolizer` are installed.

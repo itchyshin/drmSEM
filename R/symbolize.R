@@ -46,10 +46,10 @@
 #'                        family = drmTMB::nbinom2()),
 #'   data = dat
 #' )
-#' sym <- symbolize(sem)
-#' as_latex(sym)            # publication-ready equations, node-by-node
-#' equations(sym)           # raw equation list
-#' assumption_table(sym)    # per-node families, links, deferred components
+#' sym <- symbolizer::symbolize(sem)
+#' symbolizer::as_latex(sym)         # publication-ready equations
+#' symbolizer::equations(sym)        # raw equation table
+#' symbolizer::assumption_table(sym) # families, links, deferred components
 #' }
 #' @exportS3Method symbolizer::symbolize
 symbolize.drm_sem <- function(
@@ -106,13 +106,13 @@ symbolize.drm_sem <- function(
 #' `symbolized_model`s in topological order, prefixes each block with a
 #' `## Node: <name>` header, and concatenates the result.
 #'
-#' @param x A `symbolized_drm_sem` from [symbolize()] dispatched on a
-#'   `drm_sem`.
+#' @param x A `symbolized_drm_sem` from [symbolizer::symbolize()] dispatched on
+#'   a `drm_sem`.
 #' @param notation,... Passed through to the underlying per-node generic.
 #' @return The collated rendering (a character string for
 #'   [symbolizer::as_latex()] / [symbolizer::equations()]; a tibble for
 #'   [symbolizer::assumption_table()]).
-#' @seealso [symbolize()].
+#' @seealso [symbolizer::symbolize()].
 #' @name symbolized_drm_sem
 NULL
 
@@ -183,7 +183,10 @@ print.symbolized_drm_sem <- function(x, ...) {
   )
   cli::cli_text("Nodes (topological order): {.val {x$order}}")
   cli::cli_text(
-    "Use {.fn as_latex} / {.fn equations} / {.fn assumption_table} to render."
+    paste(
+      "Use {.fn symbolizer::as_latex} / {.fn symbolizer::equations} /",
+      "{.fn symbolizer::assumption_table} to render."
+    )
   )
   invisible(x)
 }

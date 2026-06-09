@@ -74,6 +74,11 @@ reference:
       - total_effects
       - path_effects
       - plot.drm_effect
+  - title: Symbolizer integration
+    desc: Render per-node equations from fitted drmSEM objects.
+    contents:
+      - symbolize.drm_sem
+      - symbolized_drm_sem
   - title: Model comparison
     desc: Compare competing causal DAGs by Fisher's C / CBIC.
     contents:
@@ -114,6 +119,7 @@ articles:
       - bivariate-nodes
       - feedback-cycles
       - latent-variables
+      - equations-via-symbolizer
       - model-selection
       - comparison
       - phylogenetic-sem

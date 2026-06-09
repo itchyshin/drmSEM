@@ -17,6 +17,23 @@ has_engine <- requireNamespace("drmTMB", quietly = TRUE) &&
               requireNamespace("symbolizer", quietly = TRUE)
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = has_engine)
 library(drmSEM)
+if (has_engine) {
+  set.seed(13)
+  n <- 300
+  temp <- stats::rnorm(n)
+  habitat <- factor(sample(c("A", "B"), n, replace = TRUE))
+  habitat_b <- habitat == "B"
+  size <- stats::rnorm(
+    n,
+    mean = 0.3 + 0.6 * temp + 0.4 * habitat_b,
+    sd = exp(-0.3 + 0.3 * temp)
+  )
+  mu_abundance <- exp(0.5 + 0.25 * size + 0.15 * temp)
+  zi_abundance <- stats::plogis(-1 + 0.8 * habitat_b)
+  abundance <- stats::rnbinom(n, mu = mu_abundance, size = 2)
+  abundance[stats::runif(n) < zi_abundance] <- 0L
+  dat <- data.frame(temp, habitat, size, abundance)
+}
 ```
 
 `drmSEM` produces a **graph of distributional models**: each endogenous node is
@@ -45,12 +62,12 @@ sem <- drm_sem(
 ## Render
 
 ```{r symbolize}
-sym <- symbolize(sem)        # walks sem$records, calls symbolizer::symbolize per node
+sym <- symbolizer::symbolize(sem) # walks sem$records, symbolizes each node
 sym                          # prints a summary header
 
-as_latex(sym)                # publication-quality equations, node-by-node
-equations(sym)               # tidy tibble: one row per component, keyed by node
-assumption_table(sym)        # per-node families, links, deferred components
+symbolizer::as_latex(sym)    # publication-quality equations, node-by-node
+symbolizer::equations(sym)   # tidy tibble: one row per component, keyed by node
+symbolizer::assumption_table(sym) # families, links, deferred components
 ```
 
 The collator labels each block with `## Node: <name>` so the reader can see

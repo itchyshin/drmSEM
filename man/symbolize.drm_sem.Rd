@@ -50,10 +50,10 @@ sem <- drm_sem(
                        family = drmTMB::nbinom2()),
   data = dat
 )
-sym <- symbolize(sem)
-as_latex(sym)            # publication-ready equations, node-by-node
-equations(sym)           # raw equation list
-assumption_table(sym)    # per-node families, links, deferred components
+sym <- symbolizer::symbolize(sem)
+symbolizer::as_latex(sym)         # publication-ready equations
+symbolizer::equations(sym)        # raw equation table
+symbolizer::assumption_table(sym) # families, links, deferred components
 }
 }
 \references{

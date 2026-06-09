@@ -14,8 +14,8 @@
 \method{assumption_table}{symbolized_drm_sem}(x, ...)
 }
 \arguments{
-\item{x}{A \code{symbolized_drm_sem} from \code{\link[symbolizer:symbolize]{symbolize()}} dispatched on a
-\code{drm_sem}.}
+\item{x}{A \code{symbolized_drm_sem} from \code{\link[symbolizer:symbolize]{symbolizer::symbolize()}} dispatched on
+a \code{drm_sem}.}
 
 \item{notation, ...}{Passed through to the underlying per-node generic.}
 }
@@ -32,5 +32,5 @@ These are \code{drm_sem}-aware methods for \code{symbolizer}'s
 \verb{## Node: <name>} header, and concatenates the result.
 }
 \seealso{
-\code{\link[symbolizer:symbolize]{symbolize()}}.
+\code{\link[symbolizer:symbolize]{symbolizer::symbolize()}}.
 }
