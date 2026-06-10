@@ -1220,3 +1220,11 @@ vignette and roxygen examples as `symbolizer::symbolize()`,
 `symbolize.drm_sem`, and `symbolized_drm_sem` in pkgdown. Also made the
 symbolizer vignette self-contained by simulating its two-node example data in
 the setup chunk when `drmTMB` and `symbolizer` are installed.
+
+## 2026-06-10 — Codex workflow deprecation cleanup
+
+After the symbolizer-docs cleanup restored green Actions, GitHub still annotated
+the workflows with platform/action maintenance notices. Updated the pkgdown Pages
+deployment actions to the current major versions (`configure-pages@v6`,
+`upload-pages-artifact@v5`, `deploy-pages@v5`) and pinned the R-CMD-check Windows
+matrix entry to `windows-2025` instead of the moving `windows-latest` label.
