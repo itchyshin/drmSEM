@@ -1229,3 +1229,12 @@ deployment actions to the current major versions (`configure-pages@v6`,
 `upload-pages-artifact@v5`, `deploy-pages@v5`) and pinned the R-CMD-check Windows
 matrix entry to `windows-2025-vs2026` instead of the moving `windows-latest`
 label after GitHub reported that `windows-2025` itself is being redirected there.
+
+## 2026-06-10 — Codex pkgdown paper image warning cleanup
+
+The pkgdown build rendered `paper.md` before copying `man/figures` into the
+generated `reference/figures/` directory, producing a harmless but noisy
+"Missing images" line for `reference/figures/drmsem-hero-dag.png`. Added a
+source-controlled pkgdown asset at that rewritten path so the paper image exists
+before the home/paper pages are rendered, while leaving the manuscript-facing
+`paper.md` link to `man/figures/drmsem-hero-dag.png` unchanged.
