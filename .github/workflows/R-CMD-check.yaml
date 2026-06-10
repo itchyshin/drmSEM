@@ -28,7 +28,7 @@ jobs:
         config:
           - {os: ubuntu-latest,  r: 'release'}
           - {os: macos-latest,   r: 'release'}
-          - {os: windows-2025,  r: 'release'}
+          - {os: windows-2025-vs2026, r: 'release'}
 
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}

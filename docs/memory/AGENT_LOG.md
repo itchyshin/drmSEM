@@ -1227,4 +1227,5 @@ After the symbolizer-docs cleanup restored green Actions, GitHub still annotated
 the workflows with platform/action maintenance notices. Updated the pkgdown Pages
 deployment actions to the current major versions (`configure-pages@v6`,
 `upload-pages-artifact@v5`, `deploy-pages@v5`) and pinned the R-CMD-check Windows
-matrix entry to `windows-2025` instead of the moving `windows-latest` label.
+matrix entry to `windows-2025-vs2026` instead of the moving `windows-latest`
+label after GitHub reported that `windows-2025` itself is being redirected there.
