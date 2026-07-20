@@ -108,9 +108,13 @@ live-fit analytic-effect tier flip, and OQ-14 joint fit.
 
 See `06-phylogenetic-sem.md` for the staged phylogenetic roadmap (Phase 1 phylo
 nodes, Phase 2 model comparison, and Phase 3 fixed-grid evolutionary covariance
-via `drm_phylo_cov()` all ship today; Phase 4 adds distributional phylogenetic
-paths). Effect-theory refinements (natural effects, marginal effects, bootstrap,
-outcome functionals) are OQ-8..12 in `../memory/OPEN_QUESTIONS.md`.
+via `drm_phylo_cov()` all ship today). **Correction (2026-07-19):** Phase 4
+(distributional phylogenetic paths) also ships today — it was framed above as
+future work, but `test-phylo-distributional.R` shows it already passes via
+generic composition; see the status correction at the top of
+`06-phylogenetic-sem.md`. Effect-theory refinements (natural effects, marginal
+effects, bootstrap, outcome functionals) are OQ-8..12 in
+`../memory/OPEN_QUESTIONS.md`.
 
 ## Non-goals (kept off the roadmap deliberately)
 

@@ -1,5 +1,21 @@
 # 06 — Phylogenetic distributional SEM
 
+**Status correction (2026-07-19):** the Phase 4 combination described below as
+future work — a phylogenetically-structured mediator (`phylo(1|species)` on
+`mu`) that *also* carries a distributional path (`sigma ~ x`) — now passes
+today, live-fit, via generic composition rather than any phylo-specific code:
+`drmsem_marker_funs()` (`R/utils.R`) strips `phylo()` from the fixed-effect
+predictor set the same way it strips any structured-effect marker, so the
+`sigma` sub-formula composes with a phylo mean term with no special-casing
+required. See `tests/testthat/test-phylo-distributional.R` (asserts the
+`x -> sigma(m)` edge is exposed, the phylo marker does not leak into `paths()`,
+and `indirect_effects()` returns a finite `distribution_mediated` quantity) and
+the "Phylogenetic relatedness matrices and phylo-aware SEM" row in
+`docs/design/capability-status.md` (marked `covered`). The design rationale
+below — why this is the novel contribution, the worked example, the outcome
+functionals — remains valid; only the *status* framing (Phase 4 = future) was
+stale.
+
 drmSEM should cover the **phylopath** niche directly and part of the **phylosem**
 niche, but its unique contribution is **phylogenetic _distributional_ SEM**: shared
 ancestry enters each node, while direct/indirect/total effects are estimated for
