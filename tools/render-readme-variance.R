@@ -8,12 +8,22 @@
 # variance that is genuinely caused, and a downstream conclusion that a mean-only
 # SEM gets wrong.
 #
-# THE EXAMPLE (diversified bet-hedging, cross-sectional, SIMULATED -- not a real
-# dataset). Three reproductive strategies have EQUAL mean reproductive output by
-# construction and differ only in how variable that output is. Recruitment
-# saturates in output (logit link, intercept in the concave region), so spread
-# alone depresses mean recruitment -- the Jensen-gap mechanism that
+# THE EXAMPLE (cost of variance under diminishing returns; cross-sectional,
+# SIMULATED -- not a real dataset). Three groups have EQUAL mean reproductive
+# output by construction and differ only in how variable that output is.
+# Recruitment saturates in output (logit link, intercept in the concave region),
+# so spread alone depresses mean recruitment -- the Jensen-gap mechanism that
 # test-effect-kernels.R and test-analytic-effects.R verify.
+#
+# DELIBERATELY NOT CALLED "BET-HEDGING" (corrected 2026-08-09). An earlier draft
+# used that label and it misled the first reader, including the package author.
+# In bet-hedging theory variance is ADAPTIVE -- it pays off in a FLUCTUATING
+# environment through geometric-mean fitness. This example has a constant
+# environment, where variance is purely a cost, so the label predicted the
+# opposite of what the figure shows. Darwin's review flagged the terminology risk
+# explicitly (drmSEM is cross-sectional and cannot represent the temporal /
+# stochastic-environment literature where bet-hedging actually pays); the warning
+# was recorded and then not applied. Do not reintroduce the term here.
 #
 # The concavity is BUILT IN, exactly as the hero's log-link abundance node is;
 # that is a demonstration of a mechanism, not an empirical discovery, and the
@@ -40,12 +50,15 @@ devtools::load_all(".", quiet = TRUE)
 # manufacture the result.
 set.seed(11)
 n <- 1500L
+# Level names describe the VARIANCE plainly. The earlier
+# conservative/mixed/diversified naming imported bet-hedging connotations --
+# "diversified" reads as adaptive, while here it is the worst-performing group.
 strategy <- factor(
-  rep(c("conservative", "mixed", "diversified"), each = n / 3L),
-  levels = c("conservative", "mixed", "diversified")
+  rep(c("consistent", "intermediate", "variable"), each = n / 3L),
+  levels = c("consistent", "intermediate", "variable")
 )
-s_mixed <- as.integer(strategy == "mixed")
-s_div <- as.integer(strategy == "diversified")
+s_mixed <- as.integer(strategy == "intermediate")
+s_div <- as.integer(strategy == "variable")
 
 # EQUAL means; only the spread is caused.
 output <- stats::rnorm(n, mean = 0, sd = exp(-0.35 + 0.55 * s_mixed + 1.05 * s_div))
@@ -168,7 +181,7 @@ p_a <- ggplot2::ggplot() +
   ) +
   ggplot2::labs(
     title = "The same average, different spread",
-    subtitle = "Fitted distribution of reproductive output under each strategy",
+    subtitle = "Fitted distribution of reproductive output in each group",
     x = "Reproductive output", y = NULL
   ) +
   # Strategy names live on the axis rather than floating in the panel, so a label
@@ -298,7 +311,7 @@ p_c <- ggplot2::ggplot() +
   ) +
   ggplot2::labs(
     title = "What a mean-only SEM would miss",
-    subtitle = "Effect of strategy on recruitment, split by channel",
+    subtitle = "Effect of group on recruitment, split by channel",
     x = "Change in recruitment probability", y = NULL
   ) +
   # Pad the x range: without this the mean channel's upper tail sits exactly on
@@ -322,8 +335,9 @@ fig <- (p_a | p_b | p_c) +
     # panel can: the provenance, the honest caveat, and the one thing a reader
     # can misread off panel A.
     caption = paste(
-      "Simulated bet-hedging example (n = 1500), fitted with drmSEM on a live drmTMB engine. In panel A a taller curve is more concentrated, not more important.",
-      "Recruitment saturates in reproductive output, so spread alone depresses mean recruitment -- and that saturating response is built into the simulation, not discovered in it.",
+      "Simulated example (n = 1500), fitted with drmSEM on a live drmTMB engine, and unrelated to the size/abundance/survival diagram elsewhere. In panel A a taller curve is more concentrated, not more important.",
+      "Recruitment saturates in reproductive output, so two units above average gain less than two units below lose -- being variable drags the mean down even when mean output is unchanged.",
+      "That saturating response is built into the simulation, not discovered in it.",
       sep = "\n"
     ),
     theme = ggplot2::theme(

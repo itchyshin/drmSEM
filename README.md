@@ -17,17 +17,24 @@ probability, random-effect scale, and residual correlation.
 
 ![Component-labelled DAG for the canonical size, abundance, and survival example. Black solid arrows target the mean, green dashed arrows target sigma, and orange dotted arrows target zero inflation.](man/figures/drmsem-hero-dag.png)
 
-The diagram above says *which* component each path targets. The figure below
-shows why that matters. Three reproductive strategies have identical mean
-reproductive output and differ only in how variable it is; because recruitment
-saturates, that spread alone moves the outcome. A mean-only SEM has nothing to
-find here — the mean channel is 0.004 [-0.011, 0.019] — while the
-distribution-mediated channel carries the whole effect, -0.028 [-0.035, -0.023].
+The diagram above says *which* component each path targets. **A second and
+completely separate example** — different variables, different system — shows why
+that matters.
+
+Three groups produce the same *average* reproductive output and differ only in
+how variable it is. Recruitment rises with output but saturates, so the good half
+of that variation gains less than the bad half loses: two units above average
+raises recruitment probability by 0.14, while two units below lowers it by 0.38.
+Being variable therefore drags mean recruitment down even though mean output is
+unchanged. A mean-only SEM has nothing to find here — the mean channel is
+0.004 [-0.011, 0.019] — while the distribution-mediated channel carries the whole
+effect, -0.028 [-0.035, -0.023].
+
 The example is simulated, and the saturating response is built into the
 simulation rather than discovered in it; reproduce it with
 `Rscript tools/render-readme-variance.R`.
 
-![Three panels from a simulated bet-hedging example. Left: the fitted distribution of reproductive output under three strategies, drawn as stacked curves that share a centre but grow visibly wider from conservative (SD 0.70) to mixed (SD 1.23) to diversified (SD 2.05). Middle: the fitted variability of output for each strategy, shown as tapered 95% compatibility eyes with hollow point estimates, rising from left to right. Right: the effect of strategy on recruitment split into two channels, showing that the mean channel's interval covers zero while the spread channel's interval lies entirely below zero.](man/figures/drmsem-caused-variance.png)
+![Three panels from a simulated example in which variability, not the average, drives the outcome. Left: the fitted distribution of reproductive output for three groups, drawn as stacked curves that share a centre but grow visibly wider from consistent (SD 0.70) to intermediate (SD 1.23) to variable (SD 2.05). Middle: the fitted variability of output for each group, shown as tapered 95% compatibility eyes with hollow point estimates, rising from left to right. Right: the effect of group on recruitment split into two channels, showing that the mean channel's interval covers zero while the spread channel's interval lies entirely below zero.](man/figures/drmsem-caused-variance.png)
 
 ## Installation
 
