@@ -93,7 +93,7 @@ p <- ggplot2::ggplot(dens, ggplot2::aes(x = x, y = y)) +
   ) +
   ggplot2::labs(
     title = "What the dashed arrow means",
-    subtitle = "Fitted distribution of size across temperature, from the model on the left",
+    subtitle = "Fitted distribution of size across temperature, from the model above",
     x = "Size", y = NULL
   ) +
   ggplot2::scale_y_continuous(breaks = NULL) +
@@ -108,7 +108,7 @@ p <- ggplot2::ggplot(dens, ggplot2::aes(x = x, y = y)) +
   ) +
   ggplot2::labs(caption = paste(
     sprintf(
-      "Same simulated example as the diagram on the left (n = %d), fitted with drmSEM on a live drmTMB engine.",
+      "Same simulated example as the diagram above (n = %d), fitted with drmSEM on a live drmTMB engine.",
       n
     ),
     sprintf(
@@ -130,23 +130,26 @@ dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
 # it to a raster and wrap it. It gets roughly half the figure width here, so its
 # two legends stay legible -- the reason an earlier inset attempt was abandoned.
 dag_png <- tempfile(fileext = ".png")
-ragg::agg_png(dag_png, width = 1500, height = 1150, units = "px", res = 200, background = "white")
+ragg::agg_png(dag_png, width = 2000, height = 1000, units = "px", res = 200, background = "white")
 graphics::par(mar = c(0.3, 0.3, 1.6, 0.3), family = "sans")
 plot(
   sem,
   main = "The model",
   cex.main = 1.15,
+  # Wide, shallow layout: the panel is now full-width and short, so spread the
+  # graph horizontally rather than leaving tall empty margins.
   layout = rbind(
-    size = c(0.8, 1.0), abundance = c(-1.2, -0.2), survival = c(1.6, -1.2),
-    temp = c(-1.2, 1.0), habitat = c(0.8, -0.2)
+    temp = c(-1.5, 0.9), size = c(0.1, 0.9),
+    abundance = c(-0.7, -0.9), habitat = c(1.5, 0.1), survival = c(1.5, -0.9)
   ),
-  vertex.label.cex = 0.70, edge.width = 1.9, edge.arrow.size = 0.62
+  # vertex.size raised so the longest label ("abundance") fits inside its circle.
+  vertex.size = 46, vertex.label.cex = 0.85, edge.width = 2.2, edge.arrow.size = 0.7
 )
 grDevices::dev.off()
 dag <- patchwork::wrap_elements(grid::rasterGrob(png::readPNG(dag_png), interpolate = TRUE))
 
-fig <- (dag | p) +
-  patchwork::plot_layout(widths = c(1, 1.25)) +
+fig <- (dag / p) +
+  patchwork::plot_layout(heights = c(1, 1.15)) +
   patchwork::plot_annotation(
     title = "A causal path can target the spread, not just the mean",
     theme = ggplot2::theme(
@@ -155,7 +158,7 @@ fig <- (dag | p) +
   )
 
 out <- file.path(out_dir, "drmsem-main.png")
-ragg::agg_png(out, width = 2600, height = 1050, units = "px", res = 200, background = "white")
+ragg::agg_png(out, width = 2000, height = 1750, units = "px", res = 200, background = "white")
 print(fig)
 grDevices::dev.off()
 

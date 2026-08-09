@@ -15,10 +15,10 @@ probability, random-effect scale, and residual correlation.
 
 > Status: early / experimental (version 0.5.0). See [Status](#status).
 
-![One figure in two halves. Left: a component-labelled DAG of the canonical temperature, habitat, size, abundance and survival example, in which black solid arrows target the mean, a green dashed arrow targets sigma, and an orange dotted arrow targets zero inflation. Right: the fitted distribution of size at cool, typical and warm temperatures, drawn as three curves that both slide to the right and grow visibly wider, annotated with a mean rising from -0.57 to 1.06 and a standard deviation rising from 0.40 to 1.36.](man/figures/drmsem-main.png)
+![One figure in two halves. Top: a component-labelled DAG of the canonical temperature, habitat, size, abundance and survival example, in which black solid arrows target the mean, a green dashed arrow targets sigma, and an orange dotted arrow targets zero inflation. Below: the fitted distribution of size at cool, typical and warm temperatures, drawn as three curves that both slide to the right and grow visibly wider, annotated with a mean rising from -0.57 to 1.06 and a standard deviation rising from 0.40 to 1.36.](man/figures/drmsem-main.png)
 
-Both halves are the same model. On the left, `temp` reaches `size` **twice** — a
-solid arrow into its mean and a dashed arrow into its spread. On the right is what
+Both halves are the same model. In the diagram, `temp` reaches `size` **twice** — a
+solid arrow into its mean and a dashed arrow into its spread. Below it is what
 that second arrow actually does: as temperature rises, size does not merely get
 larger, it gets *more variable* (SD 0.40 → 1.36). A mean-only SEM draws the first
 arrow and has no way to express the second.
