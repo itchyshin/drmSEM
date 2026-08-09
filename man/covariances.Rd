@@ -41,6 +41,8 @@ covariances(sem)   # the residual rho12 edge, reported separately from paths()
 \references{
 \insertRef{Shipley2016}{drmSEM}
 
+\insertRef{ShipleyDouma2021}{drmSEM}
+
 \insertRef{Bollen1989}{drmSEM}
 }
 \seealso{

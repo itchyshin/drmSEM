@@ -43,6 +43,8 @@ covary("activity", "boldness", level = "id")
 \references{
 \insertRef{Shipley2016}{drmSEM}
 
+\insertRef{ShipleyDouma2021}{drmSEM}
+
 \insertRef{Bollen1989}{drmSEM}
 }
 \seealso{

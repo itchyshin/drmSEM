@@ -47,6 +47,8 @@ NULL
 #' @references
 #' \insertRef{Shipley2016}{drmSEM}
 #'
+#' \insertRef{ShipleyDouma2021}{drmSEM}
+#'
 #' \insertRef{Bollen1989}{drmSEM}
 #' @examples
 #' # A residual (rho12) covariance edge between two responses:
@@ -213,6 +215,8 @@ drm_covariance_pairs <- function(object) {
 #' @seealso [covary()], [paths()], [basis_set()].
 #' @references
 #' \insertRef{Shipley2016}{drmSEM}
+#'
+#' \insertRef{ShipleyDouma2021}{drmSEM}
 #'
 #' \insertRef{Bollen1989}{drmSEM}
 #' @examples

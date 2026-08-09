@@ -75,7 +75,20 @@ basis_set.drm_sem <- function(object, ...) {
   all_vars <- unique(c(object$endogenous, object$exogenous))
   # A declared covariance edge (residual rho12 / higher-level corpair) is an
   # allowance that y1 and y2 stay associated, so the basis set must NOT claim
-  # y1 _||_ y2 (OQ-14; cf. Shipley's bidirected-edge rule). A declared feedback
+  # y1 _||_ y2 (OQ-14; Shipley's bidirected-edge rule).
+  #
+  # The justification is Shipley & Douma (2021, doi:10.1080/10705511.2020.1871355):
+  # a correlated error between two variables is EQUIVALENT to a latent common
+  # cause of both (Pearl 2009, thm 5.2.3), so dropping the independence claim is
+  # what marginalising over that latent implies. That paper notes piecewiseSEM
+  # already did this "even though no theoretical justification for this was
+  # provided" -- drmSEM inherits the justification, so it cites the source.
+  #
+  # It also generalises: the same argument extends to a full DAG -> MAG
+  # conversion with m-separation replacing d-separation, which would make the
+  # basis set latent-aware without any joint likelihood. Not implemented; the
+  # rule below is the two-variable special case.
+  # A declared feedback
   # motif (drm_cycle(), 0.5) likewise drops independence claims among its nodes:
   # DAG d-separation does not apply across the cycle (sigma-separation is
   # deferred; docs/design/10-cyclic-feedback.md). Keyed unordered.
