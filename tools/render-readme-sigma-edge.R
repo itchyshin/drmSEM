@@ -130,26 +130,32 @@ dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
 # it to a raster and wrap it. It gets roughly half the figure width here, so its
 # two legends stay legible -- the reason an earlier inset attempt was abandoned.
 dag_png <- tempfile(fileext = ".png")
-ragg::agg_png(dag_png, width = 2000, height = 1000, units = "px", res = 200, background = "white")
-graphics::par(mar = c(0.3, 0.3, 1.6, 0.3), family = "sans")
+ragg::agg_png(dag_png, width = 2000, height = 900, units = "px", res = 200, background = "white")
+graphics::par(mar = c(0.2, 0.2, 2.4, 0.2), family = "sans")
 plot(
   sem,
   main = "The model",
   cex.main = 1.15,
-  # Wide, shallow layout: the panel is now full-width and short, so spread the
-  # graph horizontally rather than leaving tall empty margins.
+  # asp = 0 is the whole fix for "the diagram looks too small". plot.igraph
+  # defaults to asp = 1, which confines the graph to a SQUARE inside the device --
+  # on a 2000x950 canvas that is ~45% of the width, centred, with the rest dead.
+  # No amount of layout or xlim fiddling can recover that space; only releasing
+  # the aspect ratio can.
+  asp = 0,
+  # Legends are drawn at fixed top-left and bottom-left corners, so keep both
+  # clear: `temp` sits mid-left rather than top-left.
   layout = rbind(
-    temp = c(-1.5, 0.9), size = c(0.1, 0.9),
-    abundance = c(-0.7, -0.9), habitat = c(1.5, 0.1), survival = c(1.5, -0.9)
+    temp = c(-1.00, 0.10), size = c(-0.05, 0.92),
+    abundance = c(0.00, -1.00), habitat = c(1.00, 0.60), survival = c(1.00, -0.85)
   ),
   # vertex.size raised so the longest label ("abundance") fits inside its circle.
-  vertex.size = 46, vertex.label.cex = 0.85, edge.width = 2.2, edge.arrow.size = 0.7
+  vertex.size = 34, vertex.label.cex = 0.95, edge.width = 2.4, edge.arrow.size = 0.75
 )
 grDevices::dev.off()
 dag <- patchwork::wrap_elements(grid::rasterGrob(png::readPNG(dag_png), interpolate = TRUE))
 
 fig <- (dag / p) +
-  patchwork::plot_layout(heights = c(1, 1.15)) +
+  patchwork::plot_layout(heights = c(1, 1.55)) +
   patchwork::plot_annotation(
     title = "A causal path can target the spread, not just the mean",
     theme = ggplot2::theme(
@@ -158,7 +164,7 @@ fig <- (dag / p) +
   )
 
 out <- file.path(out_dir, "drmsem-main.png")
-ragg::agg_png(out, width = 2000, height = 1750, units = "px", res = 200, background = "white")
+ragg::agg_png(out, width = 2000, height = 1500, units = "px", res = 200, background = "white")
 print(fig)
 grDevices::dev.off()
 
