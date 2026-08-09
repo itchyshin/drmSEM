@@ -15,26 +15,20 @@ probability, random-effect scale, and residual correlation.
 
 > Status: early / experimental (version 0.5.0). See [Status](#status).
 
-![Component-labelled DAG for the canonical size, abundance, and survival example. Black solid arrows target the mean, green dashed arrows target sigma, and orange dotted arrows target zero inflation.](man/figures/drmsem-hero-dag.png)
+![One figure in two halves. Left: a component-labelled DAG of the canonical temperature, habitat, size, abundance and survival example, in which black solid arrows target the mean, a green dashed arrow targets sigma, and an orange dotted arrow targets zero inflation. Right: the fitted distribution of size at cool, typical and warm temperatures, drawn as three curves that both slide to the right and grow visibly wider, annotated with a mean rising from -0.57 to 1.06 and a standard deviation rising from 0.40 to 1.36.](man/figures/drmsem-main.png)
 
-The diagram above says *which* component each path targets. **A second and
-completely separate example** — different variables, different system — shows why
-that matters.
+Both halves are the same model. On the left, `temp` reaches `size` **twice** — a
+solid arrow into its mean and a dashed arrow into its spread. On the right is what
+that second arrow actually does: as temperature rises, size does not merely get
+larger, it gets *more variable* (SD 0.40 → 1.36). A mean-only SEM draws the first
+arrow and has no way to express the second.
 
-Three groups produce the same *average* reproductive output and differ only in
-how variable it is. Recruitment rises with output but saturates, so the good half
-of that variation gains less than the bad half loses: two units above average
-raises recruitment probability by 0.14, while two units below lowers it by 0.38.
-Being variable therefore drags mean recruitment down even though mean output is
-unchanged. A mean-only SEM has nothing to find here — the mean channel is
-0.004 [-0.011, 0.019] — while the distribution-mediated channel carries the whole
-effect, -0.028 [-0.035, -0.023].
-
-The example is simulated, and the saturating response is built into the
-simulation rather than discovered in it; reproduce it with
-`Rscript tools/render-readme-variance.R`.
-
-![Three panels from a simulated example in which variability, not the average, drives the outcome. Left: the fitted distribution of reproductive output for three groups, drawn as stacked curves that share a centre but grow visibly wider from consistent (SD 0.70) to intermediate (SD 1.23) to variable (SD 2.05). Middle: the fitted variability of output for each group, shown as tapered 95% compatibility eyes with hollow point estimates, rising from left to right. Right: the effect of group on recruitment split into two channels, showing that the mean channel's interval covers zero while the spread channel's interval lies entirely below zero.](man/figures/drmsem-caused-variance.png)
+That is the whole idea. A path may target `sigma`, `nu`, `zi`, `hu`, a random-effect
+scale, or a residual correlation, and `paths()` labels every edge by the component
+it targets. From there `dsep()` tests independence on *any* component, and
+`indirect_effects()` separates the part of an effect carried by a mediator's mean
+from the part carried by its distribution. Reproduce the figure with
+`Rscript tools/render-readme-sigma-edge.R`.
 
 ## Installation
 
