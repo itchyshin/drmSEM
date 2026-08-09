@@ -6,7 +6,7 @@
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 <!-- badges: end -->
 
-📖 **Documentation & articles:** <https://itchyshin.github.io/drmSEM>
+📖 **Documentation & articles:** <https://itchyshin.github.io/drmSEM/>
 
 The `drmSEM` package is a distributional piecewise SEM framework built on
 [`drmTMB`](https://github.com/itchyshin/drmTMB), where causal paths can target
@@ -16,6 +16,18 @@ probability, random-effect scale, and residual correlation.
 > Status: early / experimental (version 0.5.0). See [Status](#status).
 
 ![Component-labelled DAG for the canonical size, abundance, and survival example. Black solid arrows target the mean, green dashed arrows target sigma, and orange dotted arrows target zero inflation.](man/figures/drmsem-hero-dag.png)
+
+The diagram above says *which* component each path targets. The figure below
+shows why that matters. Three reproductive strategies have identical mean
+reproductive output and differ only in how variable it is; because recruitment
+saturates, that spread alone moves the outcome. A mean-only SEM has nothing to
+find here — the mean channel is 0.004 [-0.011, 0.019] — while the
+distribution-mediated channel carries the whole effect, -0.028 [-0.035, -0.023].
+The example is simulated, and the saturating response is built into the
+simulation rather than discovered in it; reproduce it with
+`Rscript tools/render-readme-variance.R`.
+
+![Three panels from a simulated bet-hedging example. Left: the fitted distribution of reproductive output under three strategies, drawn as stacked curves that share a centre but grow visibly wider from conservative (SD 0.70) to mixed (SD 1.23) to diversified (SD 2.05). Middle: the fitted variability of output for each strategy, shown as tapered 95% compatibility eyes with hollow point estimates, rising from left to right. Right: the effect of strategy on recruitment split into two channels, showing that the mean channel's interval covers zero while the spread channel's interval lies entirely below zero.](man/figures/drmsem-caused-variance.png)
 
 ## Installation
 

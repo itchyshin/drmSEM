@@ -250,3 +250,100 @@ test_that("plot.drm_sem draws composite measurement edges", {
   expect_s3_class(plot(sem), "drm_sem") # draws measurement arcs
   expect_s3_class(plot(sem, show = "paths"), "drm_sem") # omits them, no error
 })
+
+# Confidence Eye contract for the forest style. The contract requires a pale
+# tapered compatibility region with a darker outline and a HOLLOW estimate
+# marker, and prohibits filled points and horizontal interval bars. This branch
+# shipped with geom_point() + geom_pointrange() (both prohibited) until
+# 2026-08-09, so these are regression guards, not decoration.
+
+test_that("plot.drm_effect forest style meets the Confidence Eye contract", {
+  skip_if_not_installed("ggplot2")
+
+  eff <- data.frame(
+    from = "temp",
+    to = "fitness",
+    quantity = c("total_path", "mean_mediated", "distribution_mediated"),
+    estimate = c(0.40, 0.18, 0.12),
+    conf.low = c(0.20, 0.05, 0.01),
+    conf.high = c(0.60, 0.31, 0.23),
+    stringsAsFactors = FALSE
+  )
+  class(eff) <- c("drm_effect", "data.frame")
+
+  p <- plot(eff)
+  geoms <- vapply(p$layers, function(l) class(l$geom)[[1L]], character(1))
+
+  # Prohibited: a horizontal interval bar through the estimate.
+  expect_false("GeomPointrange" %in% geoms)
+  expect_false("GeomErrorbarh" %in% geoms)
+  # Required: the tapered compatibility region.
+  expect_true("GeomPolygon" %in% geoms)
+
+  # Required: a hollow estimate marker (shape 21 is the open circle whose fill
+  # is set separately; a filled point is prohibited).
+  pt <- p$layers[[which(geoms == "GeomPoint")[[1L]]]]
+  expect_equal(pt$aes_params$shape, 21)
+  expect_equal(pt$aes_params$fill, "white")
+})
+
+test_that("drm_confidence_eyes puts the widest point on the estimate", {
+  # An asymmetric interval must keep its waist on the estimate, not drift to the
+  # interval's midpoint -- otherwise the lens silently misreports the estimate.
+  df <- data.frame(
+    estimate = 0.05,
+    conf.low = 0,
+    conf.high = 0.80,
+    quantity = "skewed",
+    .channel = "direct / total",
+    .y = 1,
+    stringsAsFactors = FALSE
+  )
+  eye <- drmSEM:::drm_confidence_eyes(df)
+  widest <- eye$x[which.max(eye$y)]
+  expect_equal(widest, 0.05, tolerance = 1e-6)
+  # and it closes to a point at both endpoints
+  expect_equal(range(eye$x), c(0, 0.80), tolerance = 1e-6)
+})
+
+test_that("drm_confidence_eyes drops rows with no usable interval", {
+  df <- data.frame(
+    estimate = c(0.2, 0.0, 0.3),
+    conf.low = c(NA_real_, 0.0, 0.1),
+    conf.high = c(NA_real_, 0.0, 0.5),
+    quantity = c("missing", "degenerate", "fine"),
+    .channel = "direct / total",
+    .y = 1:3,
+    stringsAsFactors = FALSE
+  )
+  eye <- drmSEM:::drm_confidence_eyes(df)
+  # only the third row yields a polygon; the other two still get their marker
+  # from the unconditional geom_point layer.
+  expect_equal(unique(eye$.group), "fine")
+})
+
+test_that("forest eye fills stay matched to their channel outlines", {
+  skip_if_not_installed("ggplot2")
+  # Regression: the pale fills are derived from the outline colours with
+  # paste0(), which DROPS names. An unnamed vector makes scale_fill_manual()
+  # assign colours positionally in alphabetical level order, pairing the
+  # mean-mediated outline with the distribution-mediated fill. The plot still
+  # builds and every other assertion still passes -- only the render shows it.
+  eff <- data.frame(
+    from = "temp",
+    to = "fitness",
+    quantity = c("total_path", "mean_mediated", "distribution_mediated"),
+    estimate = c(0.40, 0.18, 0.12),
+    conf.low = c(0.20, 0.05, 0.01),
+    conf.high = c(0.60, 0.31, 0.23),
+    stringsAsFactors = FALSE
+  )
+  class(eff) <- c("drm_effect", "data.frame")
+
+  p <- plot(eff)
+  built <- ggplot2::ggplot_build(p)
+  geoms <- vapply(p$layers, function(l) class(l$geom)[[1L]], character(1))
+  poly <- built$data[[which(geoms == "GeomPolygon")[[1L]]]]
+  # every polygon's fill is its own outline colour plus an alpha suffix
+  expect_equal(toupper(substr(poly$fill, 1L, 7L)), toupper(poly$colour))
+})

@@ -284,6 +284,56 @@ plot.drm_sem <- function(x, show = c("all", "paths"), ...) {
   invisible(x)
 }
 
+# Build the tapered "Confidence Eye" polygons for a forest plot: one lens per row
+# whose HORIZONTAL width is the reported compatibility interval, widest at the
+# estimate and closing to a point at each endpoint.
+#
+# The taper is a visual compatibility cue and nothing more. It is deliberately a
+# geometric shape (a half-sine in the endpoint-to-estimate coordinate) rather
+# than a density curve, because reading the silhouette as a likelihood, sampling
+# density, or posterior is exactly the misreading the house figure contract
+# rules out. Each side is scaled independently, so an asymmetric interval stays
+# honest: the widest point sits on the estimate, not at the interval's midpoint.
+#
+# Rows with a missing or degenerate (zero-width) interval yield no polygon --
+# their estimate is still drawn by the unconditional hollow marker.
+drm_confidence_eyes <- function(df, height = 0.3, n = 80L) {
+  ok <- which(
+    is.finite(df$conf.low) & is.finite(df$conf.high) &
+      is.finite(df$estimate) & df$conf.high > df$conf.low
+  )
+  if (length(ok) == 0L) {
+    return(
+      data.frame(
+        x = numeric(0), y = numeric(0),
+        .group = character(0), .channel = character(0),
+        stringsAsFactors = FALSE
+      )
+    )
+  }
+  parts <- lapply(ok, function(i) {
+    lo <- df$conf.low[[i]]
+    hi <- df$conf.high[[i]]
+    est <- min(max(df$estimate[[i]], lo), hi)
+    left <- seq(lo, est, length.out = n)
+    right <- seq(est, hi, length.out = n)
+    # s runs 0 -> 0.5 -> 1 across lo -> estimate -> hi; sin(pi * s) is 0 at both
+    # endpoints and 1 at the estimate.
+    s_left <- if (est > lo) 0.5 * (left - lo) / (est - lo) else rep(0.5, n)
+    s_right <- if (hi > est) 0.5 + 0.5 * (right - est) / (hi - est) else rep(0.5, n)
+    xs <- c(left, right)
+    half <- height * sin(pi * c(s_left, s_right))
+    data.frame(
+      x = c(xs, rev(xs)),
+      y = df$.y[[i]] + c(half, rev(-half)),
+      .group = as.character(df$quantity[[i]]),
+      .channel = df$.channel[[i]],
+      stringsAsFactors = FALSE
+    )
+  })
+  do.call(rbind, parts)
+}
+
 #' Plot an effect decomposition as a forest plot
 #'
 #' Visualizes the output of [indirect_effects()] (or [direct_effects()] /
@@ -393,23 +443,59 @@ plot.drm_effect <- function(x, style = c("forest", "stacked"), ...) {
       "direct / total"
     )
   )
-  ggplot2::ggplot(df, ggplot2::aes(x = estimate, y = quantity)) +
-    ggplot2::geom_vline(xintercept = 0, linetype = 2, colour = "grey55") +
-    # geom_point always draws the estimate, so a row with no MC interval
-    # (e.g. a draw = FALSE direct effect) still shows.
-    ggplot2::geom_point(ggplot2::aes(colour = .channel)) +
-    ggplot2::geom_pointrange(
-      ggplot2::aes(xmin = conf.low, xmax = conf.high, colour = .channel),
-      na.rm = TRUE
+  # The interval is the horizontal WIDTH of a tapered eye, not a bar. `.y` makes
+  # the row position numeric so the eye polygons share the estimates' scale;
+  # `df` itself is untouched, so the plot's data stays one row per quantity.
+  df$.y <- as.integer(df$quantity)
+  # Hex (not "black") so the pale eye fills can be DERIVED from these by
+  # appending an alpha suffix -- one source of truth, so an outline colour and
+  # its fill cannot drift apart. Avoiding grDevices::adjustcolor() here also
+  # keeps the package from gaining an undeclared grDevices dependency.
+  channel_cols <- c(
+    "direct / total" = "#000000",
+    "mean-mediated" = "#1f78b4",
+    "distribution-mediated" = "#d95f02"
+  )
+  # setNames is load-bearing: paste0() DROPS names, and an unnamed vector makes
+  # scale_fill_manual() assign colours POSITIONALLY in alphabetical level order,
+  # which silently pairs the mean-mediated outline with the
+  # distribution-mediated fill. Caught only by looking at the render.
+  channel_fills <- stats::setNames(
+    paste0(channel_cols, "38"), # ~22% alpha
+    names(channel_cols)
+  )
+  eyes <- drm_confidence_eyes(df)
+
+  p <- ggplot2::ggplot(df, ggplot2::aes(x = estimate, y = .y)) +
+    # Zero is scientifically meaningful for an effect, so the reference is drawn
+    # -- dotted, as a reference only. It is not the interval.
+    ggplot2::geom_vline(xintercept = 0, linetype = 3, colour = "grey45")
+  if (nrow(eyes) > 0L) {
+    p <- p +
+      ggplot2::geom_polygon(
+        data = eyes,
+        ggplot2::aes(x = x, y = y, group = .group, fill = .channel, colour = .channel),
+        linewidth = 0.45,
+        show.legend = FALSE
+      )
+  }
+  p +
+    # Drawn unconditionally and LAST, so a row with no Monte-Carlo interval
+    # (e.g. a draw = FALSE direct effect) still shows its estimate, and the
+    # marker always sits above its own eye. Hollow, per the Confidence Eye
+    # contract: a filled point is prohibited.
+    ggplot2::geom_point(
+      ggplot2::aes(colour = .channel),
+      shape = 21, fill = "white", size = 3.1, stroke = 1
     ) +
-    ggplot2::scale_colour_manual(
-      values = c(
-        "direct / total" = "black",
-        "mean-mediated" = "#1f78b4",
-        "distribution-mediated" = "#d95f02"
-      ),
-      name = NULL
+    ggplot2::scale_colour_manual(values = channel_cols, name = NULL) +
+    ggplot2::scale_fill_manual(values = channel_fills, guide = "none") +
+    ggplot2::scale_y_continuous(
+      breaks = seq_along(levels(df$quantity)),
+      labels = levels(df$quantity)
     ) +
     ggplot2::labs(x = xlab, y = NULL) +
-    ggplot2::theme_minimal()
+    ggplot2::theme_minimal() +
+    # No row guide lines through the eyes (contract).
+    ggplot2::theme(panel.grid.major.y = ggplot2::element_blank())
 }
