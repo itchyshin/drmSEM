@@ -161,7 +161,7 @@ grDevices::dev.off()
 dag <- patchwork::wrap_elements(grid::rasterGrob(png::readPNG(dag_png), interpolate = TRUE))
 
 fig <- (dag / p) +
-  patchwork::plot_layout(heights = c(1.25, 1.3)) +
+  patchwork::plot_layout(heights = c(1.5, 1.25)) +
   patchwork::plot_annotation(
     title = "A causal path can target the spread, not just the mean",
     theme = ggplot2::theme(
@@ -170,7 +170,14 @@ fig <- (dag / p) +
   )
 
 out <- file.path(out_dir, "drmsem-main.png")
-ragg::agg_png(out, width = 2000, height = 1700, units = "px", res = 200, background = "white")
+# NARROW figure, deliberately. asp = 1 forces the DAG into a SQUARE, so the wider
+# the figure, the smaller a fraction of it that square can occupy -- at 2000px
+# wide the graph could only ever fill ~42% of the panel, with dead margins either
+# side, no matter how large its nodes and text were. Narrowing the figure is the
+# only thing that makes the square itself bigger. pkgdown scales to column width
+# regardless, so a narrower source is also scaled DOWN less, which makes every
+# label larger at the size a reader actually sees.
+ragg::agg_png(out, width = 1250, height = 1500, units = "px", res = 200, background = "white")
 print(fig)
 grDevices::dev.off()
 
