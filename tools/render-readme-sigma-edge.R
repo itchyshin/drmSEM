@@ -135,11 +135,11 @@ dag_png <- tempfile(fileext = ".png")
 # canvas: text is fixed in POINTS, so shrinking the device makes every label a
 # larger fraction of it, and patchwork then scales the whole raster up to panel
 # width. Node labels ride along, which is why vertex.size rises to match.
-ragg::agg_png(dag_png, width = 1050, height = 820, units = "px", res = 200, background = "white")
+ragg::agg_png(dag_png, width = 1500, height = 1150, units = "px", res = 200, background = "white")
 graphics::par(mar = c(0.2, 0.2, 2.4, 0.2), family = "sans")
 plot(
   sem,
-  main = "The model",
+  main = "temp reaches size twice",
   cex.main = 1.15,
   # asp = 1 (igraph's default) is RESTORED. Setting asp = 0 to reclaim canvas
   # width broke two things Florence caught by pixel inspection: six of the eight
@@ -155,32 +155,23 @@ plot(
     abundance = c(0.00, -1.00), habitat = c(1.00, 0.60), survival = c(1.00, -0.85)
   ),
   # vertex.size raised so the longest label ("abundance") fits inside its circle.
-  vertex.size = 50, vertex.label.cex = 0.90, edge.width = 1.7, edge.arrow.size = 0.55
+  vertex.size = 46, vertex.label.cex = 1.05, edge.width = 2.0, edge.arrow.size = 0.7
 )
 grDevices::dev.off()
-dag <- patchwork::wrap_elements(grid::rasterGrob(png::readPNG(dag_png), interpolate = TRUE))
+# --- DAG as its OWN image -------------------------------------------------
+# It is rendered near-square and written directly, NOT wrapped into a composite:
+# pkgdown scales each image to the column width, so a square sharing a composite
+# with a wide panel can only ever use a fraction of it. Alone, it fills the column.
+dag_out <- file.path(out_dir, "drmsem-dag.png")
+file.copy(dag_png, dag_out, overwrite = TRUE)
 
-fig <- (dag / p) +
-  patchwork::plot_layout(heights = c(1.5, 1.25)) +
-  patchwork::plot_annotation(
-    title = "A causal path can target the spread, not just the mean",
-    theme = ggplot2::theme(
-      plot.title = ggplot2::element_text(face = "bold", size = 15)
-    )
-  )
-
-out <- file.path(out_dir, "drmsem-main.png")
-# NARROW figure, deliberately. asp = 1 forces the DAG into a SQUARE, so the wider
-# the figure, the smaller a fraction of it that square can occupy -- at 2000px
-# wide the graph could only ever fill ~42% of the panel, with dead margins either
-# side, no matter how large its nodes and text were. Narrowing the figure is the
-# only thing that makes the square itself bigger. pkgdown scales to column width
-# regardless, so a narrower source is also scaled DOWN less, which makes every
-# label larger at the size a reader actually sees.
-ragg::agg_png(out, width = 1250, height = 1500, units = "px", res = 200, background = "white")
-print(fig)
+# --- The decode as its own image ------------------------------------------
+spread_out <- file.path(out_dir, "drmsem-spread.png")
+ragg::agg_png(spread_out, width = 1500, height = 780, units = "px", res = 200, background = "white")
+print(p)
 grDevices::dev.off()
 
 message("\n--- the two temp -> size edges this figure decodes ---")
 print(as.data.frame(paths(sem))[1:3, c("from", "to", "component", "estimate", "std.error")])
-message("Wrote ", normalizePath(out))
+message("Wrote ", normalizePath(dag_out))
+message("Wrote ", normalizePath(spread_out))

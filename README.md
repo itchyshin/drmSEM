@@ -15,19 +15,22 @@ probability, random-effect scale, and residual correlation.
 
 > Status: early / experimental (version 0.5.0). See [Status](#status).
 
-![One figure in two halves. Top: a component-labelled DAG of the canonical temperature, habitat, size, abundance and survival example, in which black solid arrows target the mean, a green dashed arrow targets sigma, and an orange dotted arrow targets zero inflation. Below: the fitted distribution of size at cool, typical and warm temperatures, drawn as three curves that both slide to the right and grow visibly wider, annotated with a mean rising from -0.57 to 1.06 and a standard deviation rising from 0.40 to 1.36.](man/figures/drmsem-main.png)
+![Component-labelled DAG of the canonical temperature, habitat, size, abundance and survival example, titled "temp reaches size twice". Black solid arrows target the mean, a green dashed arrow from temp to size targets sigma, and an orange dotted arrow from habitat to abundance targets zero inflation.](man/figures/drmsem-dag.png)
 
-Both halves are the same model. In the diagram, `temp` reaches `size` **twice** — a
-solid arrow into its mean and a dashed arrow into its spread. Below it is what
-that second arrow actually does: as temperature rises, size does not merely get
-larger, it gets *more variable* (SD 0.40 → 1.36). A mean-only SEM draws the first
-arrow and has no way to express the second.
+`temp` reaches `size` **twice** — a solid arrow into its mean, and a dashed arrow
+into its spread. Here is what that second arrow actually does:
+
+![The fitted distribution of size at cool, typical and warm temperatures, drawn as three curves that both slide to the right and grow visibly wider, annotated with a mean rising from -0.57 to 1.06 and a standard deviation rising from 0.40 to 1.36.](man/figures/drmsem-spread.png)
+
+As temperature rises, size does not merely get larger — it gets *more variable*
+(SD 0.40 → 1.36). A mean-only SEM draws the first arrow and has no way to express
+the second. Both figures are the same fitted model.
 
 That is the whole idea. A path may target `sigma`, `nu`, `zi`, `hu`, a random-effect
 scale, or a residual correlation, and `paths()` labels every edge by the component
 it targets. From there `dsep()` tests independence on *any* component, and
 `indirect_effects()` separates the part of an effect carried by a mediator's mean
-from the part carried by its distribution. Reproduce the figure with
+from the part carried by its distribution. Reproduce both with
 `Rscript tools/render-readme-sigma-edge.R`.
 
 ## Installation
