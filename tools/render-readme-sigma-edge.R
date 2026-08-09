@@ -130,18 +130,19 @@ dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
 # it to a raster and wrap it. It gets roughly half the figure width here, so its
 # two legends stay legible -- the reason an earlier inset attempt was abandoned.
 dag_png <- tempfile(fileext = ".png")
-ragg::agg_png(dag_png, width = 2000, height = 900, units = "px", res = 200, background = "white")
+ragg::agg_png(dag_png, width = 1600, height = 1250, units = "px", res = 200, background = "white")
 graphics::par(mar = c(0.2, 0.2, 2.4, 0.2), family = "sans")
 plot(
   sem,
   main = "The model",
   cex.main = 1.15,
-  # asp = 0 is the whole fix for "the diagram looks too small". plot.igraph
-  # defaults to asp = 1, which confines the graph to a SQUARE inside the device --
-  # on a 2000x950 canvas that is ~45% of the width, centred, with the rest dead.
-  # No amount of layout or xlim fiddling can recover that space; only releasing
-  # the aspect ratio can.
-  asp = 0,
+  # asp = 1 (igraph's default) is RESTORED. Setting asp = 0 to reclaim canvas
+  # width broke two things Florence caught by pixel inspection: six of the eight
+  # edges lost their arrowheads (they meet the node tangentially and igraph's
+  # arrow geometry assumes asp = 1), and two of five nodes rendered as ellipses.
+  # A causal diagram whose arrows have no heads is a correctness failure, not a
+  # polish issue. The real fix for the wasted width is a NEAR-SQUARE canvas, so
+  # the square plot region asp = 1 enforces fills most of it.
   # Legends are drawn at fixed top-left and bottom-left corners, so keep both
   # clear: `temp` sits mid-left rather than top-left.
   layout = rbind(
@@ -155,7 +156,7 @@ grDevices::dev.off()
 dag <- patchwork::wrap_elements(grid::rasterGrob(png::readPNG(dag_png), interpolate = TRUE))
 
 fig <- (dag / p) +
-  patchwork::plot_layout(heights = c(1, 1.55)) +
+  patchwork::plot_layout(heights = c(1.25, 1.3)) +
   patchwork::plot_annotation(
     title = "A causal path can target the spread, not just the mean",
     theme = ggplot2::theme(
@@ -164,7 +165,7 @@ fig <- (dag / p) +
   )
 
 out <- file.path(out_dir, "drmsem-main.png")
-ragg::agg_png(out, width = 2000, height = 1500, units = "px", res = 200, background = "white")
+ragg::agg_png(out, width = 2000, height = 1700, units = "px", res = 200, background = "white")
 print(fig)
 grDevices::dev.off()
 
