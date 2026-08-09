@@ -130,7 +130,12 @@ dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
 # it to a raster and wrap it. It gets roughly half the figure width here, so its
 # two legends stay legible -- the reason an earlier inset attempt was abandoned.
 dag_png <- tempfile(fileext = ".png")
-ragg::agg_png(dag_png, width = 1600, height = 1250, units = "px", res = 200, background = "white")
+# SMALLER canvas at the SAME resolution. plot.drm_sem() hardcodes both legends at
+# cex = 0.8 with no argument to override, so the only lever on their size is the
+# canvas: text is fixed in POINTS, so shrinking the device makes every label a
+# larger fraction of it, and patchwork then scales the whole raster up to panel
+# width. Node labels ride along, which is why vertex.size rises to match.
+ragg::agg_png(dag_png, width = 1050, height = 820, units = "px", res = 200, background = "white")
 graphics::par(mar = c(0.2, 0.2, 2.4, 0.2), family = "sans")
 plot(
   sem,
@@ -150,7 +155,7 @@ plot(
     abundance = c(0.00, -1.00), habitat = c(1.00, 0.60), survival = c(1.00, -0.85)
   ),
   # vertex.size raised so the longest label ("abundance") fits inside its circle.
-  vertex.size = 34, vertex.label.cex = 0.95, edge.width = 2.4, edge.arrow.size = 0.75
+  vertex.size = 50, vertex.label.cex = 0.90, edge.width = 1.7, edge.arrow.size = 0.55
 )
 grDevices::dev.off()
 dag <- patchwork::wrap_elements(grid::rasterGrob(png::readPNG(dag_png), interpolate = TRUE))
