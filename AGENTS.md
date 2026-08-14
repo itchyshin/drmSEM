@@ -168,3 +168,6 @@ validation-policy changes need a normal task, evidence, and review.
 The pkgdown site is a first-class artifact. User-facing features should include
 reference documentation and, when substantial, an article. Keep `_pkgdown.yml`
 synchronized with exported functions and vignettes.
+
+<!-- shinichi-hub -->
+> Read first — personal operating contract & second brain (house rules, memory, agents): /Users/z3437171/Dropbox/Github Local/Shinichi/AGENTS.md  (repo rules override the hub where they differ)
