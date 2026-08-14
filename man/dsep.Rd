@@ -16,7 +16,13 @@ dsep(object, ...)
 }
 \value{
 A data frame of claims with \code{df}, \code{LR}, and \code{p.value}, carrying a
-\code{fisher_c} attribute (see \code{\link[=fisher_c]{fisher_c()}}).
+\code{fisher_c} attribute (see \code{\link[=fisher_c]{fisher_c()}}). A \code{status} column records why a
+claim was not tested: \code{"no_data_column"} (the claim's variable is not a
+column), \code{"refit_failed"}, \code{"n_mismatch"} (the augmented refit used a
+different number of observations than the base fit, usually because the
+added variable has missing values, so the likelihood ratio would compare two
+different samples), or \code{"degenerate"} (non-nested or non-finite). Only
+\code{"ok"} claims enter Fisher's C.
 }
 \description{
 For each claim X \emph{||} Y in \code{\link[=basis_set]{basis_set()}}, \code{dsep()} refits node Y with X added

@@ -4,7 +4,14 @@
 \alias{drm_sem}
 \title{Fit and assemble a distributional piecewise SEM}
 \usage{
-drm_sem(..., data, covariances = NULL, composites = NULL, feedback = NULL)
+drm_sem(
+  ...,
+  data,
+  covariances = NULL,
+  composites = NULL,
+  feedback = NULL,
+  na_action = c("warn", "common", "fail")
+)
 }
 \arguments{
 \item{...}{Named \code{\link[=drm_node]{drm_node()}} specifications, one per endogenous node.}
@@ -25,6 +32,19 @@ reported by \code{\link[=loadings]{loadings()}}.}
 stays an error). Node-wise ML of a declared cycle is inconsistent under
 simultaneity (a warning is emitted); equilibrium effects use the fixed-point
 propagator. See \code{docs/design/10-cyclic-feedback.md}.}
+
+\item{na_action}{What to do when incomplete rows mean the nodes would not all
+be fitted on the same rows. \code{"warn"} (default) fits anyway but reports which
+nodes used how many rows; \code{"common"} fits every node on the shared
+complete-case set, so the piecewise SEM describes one sample; \code{"fail"} makes
+it an error. Each node's realized row count is recorded in
+\code{attr(x, "alignment_issues")} and in \code{\link[=check_sem]{check_sem()}}.
+
+A piecewise SEM whose nodes are fitted on different samples is not the model
+the user asked for: path coefficients come from different row sets and the
+d-separation basis set is tested against yet another. The default warns
+rather than aborting so existing models keep fitting, but it never stays
+silent.}
 }
 \value{
 A \code{drm_sem} object.

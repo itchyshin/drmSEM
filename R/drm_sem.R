@@ -186,6 +186,18 @@ drm_psem <- function(
 #'   stays an error). Node-wise ML of a declared cycle is inconsistent under
 #'   simultaneity (a warning is emitted); equilibrium effects use the fixed-point
 #'   propagator. See `docs/design/10-cyclic-feedback.md`.
+#' @param na_action What to do when incomplete rows mean the nodes would not all
+#'   be fitted on the same rows. `"warn"` (default) fits anyway but reports which
+#'   nodes used how many rows; `"common"` fits every node on the shared
+#'   complete-case set, so the piecewise SEM describes one sample; `"fail"` makes
+#'   it an error. Each node's realized row count is recorded in
+#'   `attr(x, "alignment_issues")` and in [check_sem()].
+#'
+#'   A piecewise SEM whose nodes are fitted on different samples is not the model
+#'   the user asked for: path coefficients come from different row sets and the
+#'   d-separation basis set is tested against yet another. The default warns
+#'   rather than aborting so existing models keep fitting, but it never stays
+#'   silent.
 #'
 #' @return A `drm_sem` object.
 #' @seealso [drm_psem()], [paths()], [dsep()], [indirect_effects()].
@@ -221,8 +233,10 @@ drm_sem <- function(
   data,
   covariances = NULL,
   composites = NULL,
-  feedback = NULL
+  feedback = NULL,
+  na_action = c("warn", "common", "fail")
 ) {
+  na_action <- match.arg(na_action)
   specs <- list(...)
   if (missing(data)) {
     cli::cli_abort("{.arg data} is required for {.fn drm_sem}.")
@@ -244,13 +258,17 @@ drm_sem <- function(
   # when composites is NULL).
   data <- drm_apply_composites(data, composites)
   nms <- names(specs)
+  # Resolve the missing-data policy BEFORE fitting: nodes silently fitted on
+  # different row sets are not the model the user asked for.
+  aln <- drm_alignment_issues(specs, data)
+  data <- drm_resolve_alignment(aln, data, na_action, specs)
   fits <- vector("list", length(specs))
   for (i in seq_along(specs)) {
     cli::cli_progress_step("Fitting node {.val {nms[[i]]}}")
     fits[[i]] <- drm_fit_node(specs[[i]], data = data, name = nms[[i]])
   }
   names(fits) <- nms
-  new_drm_sem(
+  out <- new_drm_sem(
     fits,
     data,
     match.call(),
@@ -259,6 +277,92 @@ drm_sem <- function(
     composites = composites,
     feedback = feedback
   )
+  # After "common" the frame is complete, so re-derive rather than reporting
+  # the pre-alignment finding.
+  attr(out, "alignment_issues") <- if (identical(na_action, "common")) {
+    drm_alignment_issues(specs, data)
+  } else {
+    aln
+  }
+  out
+}
+
+#' Per-node realized row counts, and whether they agree.
+#'
+#' Mirrors the `drm_effect_draw_issues()` contract: always a typed data frame,
+#' zero rows when there is nothing to report, machine-readable issue codes rather
+#' than sentences.
+#' @return `data.frame(node, n, issue)`.
+#' @keywords internal
+#' @noRd
+drm_alignment_issues <- function(specs, data) {
+  empty <- data.frame(
+    node = character(0),
+    n = integer(0),
+    issue = character(0),
+    stringsAsFactors = FALSE
+  )
+  n_total <- nrow(as.data.frame(data))
+  rows <- lapply(specs, drm_node_rows, data = data)
+  counts <- vapply(rows, sum, integer(1))
+  if (!length(counts) || all(counts == n_total)) {
+    return(empty)
+  }
+  # Two distinct findings. Rows dropped at all is a completeness note; row sets
+  # that DISAGREE is the correctness problem, because those nodes' coefficients
+  # come from different samples.
+  issue <- if (length(unique(counts)) > 1L) "row_set_mismatch" else "rows_dropped"
+  data.frame(
+    node = names(specs),
+    n = as.integer(counts),
+    issue = issue,
+    stringsAsFactors = FALSE
+  )
+}
+
+#' Apply the declared `na_action` to the fitting frame.
+#' @keywords internal
+#' @noRd
+drm_resolve_alignment <- function(aln, data, na_action, specs) {
+  if (!nrow(aln)) {
+    return(data)
+  }
+  mismatch <- any(aln$issue == "row_set_mismatch")
+  detail <- paste0(aln$node, " = ", aln$n, collapse = ", ")
+  n_total <- nrow(as.data.frame(data))
+  headline <- if (mismatch) {
+    "Nodes would be fitted on different row sets."
+  } else {
+    "Incomplete rows will be dropped from every node."
+  }
+  if (identical(na_action, "fail")) {
+    cli::cli_abort(c(
+      headline,
+      "x" = "Rows used of {n_total}: {detail}.",
+      "i" = "Use {.code na_action = \"common\"} to fit every node on the shared
+             complete-case set, or {.code \"warn\"} to proceed as-is."
+    ))
+  }
+  if (identical(na_action, "common")) {
+    # Intersect the per-node row sets, not complete.cases() over the whole
+    # frame: `data` may carry columns no node models, and dropping rows for
+    # those would discard usable observations.
+    keep <- Reduce(`&`, lapply(specs, drm_node_rows, data = data))
+    cli::cli_inform(c(
+      "i" = "Fitting every node on the shared complete-case set:
+             {sum(keep)} of {n_total} row{?s}."
+    ))
+    return(as.data.frame(data)[keep, , drop = FALSE])
+  }
+  # na_action = "warn": proceed, but never silently.
+  cli::cli_warn(c(
+    headline,
+    "!" = "Rows used of {n_total}: {detail}.",
+    "i" = "See {.code attr(x, \"alignment_issues\")}. Use
+           {.code na_action = \"common\"} to fit every node on the shared
+           complete-case set, or {.code \"fail\"} to make this an error."
+  ))
+  data
 }
 
 #' @export
@@ -268,6 +372,7 @@ print.drm_sem <- function(x, ...) {
     "{length(x$endogenous)} endogenous node{?s}, {length(x$exogenous)} exogenous variable{?s}"
   )
   cli::cli_text("Topological order: {.val {x$order}}")
+  aln <- attr(x, "alignment_issues", exact = TRUE)
   for (nm in x$order) {
     rec <- x$records[[nm]]
     conv <- drm_fit_converged(rec$fit)
@@ -278,8 +383,17 @@ print.drm_sem <- function(x, ...) {
     } else {
       " (NOT converged)"
     }
+    if (!is.null(aln) && nrow(aln) > 0L && nm %in% aln$node) {
+      flag <- paste0(flag, " (", aln$n[match(nm, aln$node)], " rows)")
+    }
     cli::cli_text(
       "{.strong {nm}} [{rec$family}] -> components {.val {rec$components}}{flag}"
+    )
+  }
+  if (!is.null(aln) && nrow(aln) > 0L) {
+    cli::cli_text(
+      "Row alignment: {.val {unique(aln$issue)}}. See
+       {.code attr(x, \"alignment_issues\")}."
     )
   }
   ne <- nrow(x$edges)

@@ -62,6 +62,7 @@ check_sem.drm_sem <- function(object, ...) {
       node = nm,
       family = rec$family,
       components = paste(rec$components, collapse = ", "),
+      nobs = drm_fit_nobs(rec$fit),
       converged = conv,
       vcov_available = !is.null(V),
       sampler = rec$family %in% drm_supported_sampler_families(),
@@ -97,6 +98,14 @@ print.drm_diagnostics <- function(x, ...) {
   if (any(!x$sampler)) {
     cli::cli_inform(c(
       "i" = "Some node families have no realized-value sampler; their distribution-mediated effects fall back to mean propagation."
+    ))
+  }
+  if (length(unique(stats::na.omit(x$nobs))) > 1L) {
+    cli::cli_warn(c(
+      "Nodes were fitted on different numbers of observations.",
+      "i" = "Path coefficients then come from different samples. Refit with
+             {.code na_action = \"common\"} in {.fn drm_sem} to use one shared
+             complete-case set."
     ))
   }
   invisible(x)

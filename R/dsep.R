@@ -178,7 +178,13 @@ drm_add_column <- function(v, object) {
 #' @param object A `drm_sem` object.
 #' @param ... Unused.
 #' @return A data frame of claims with `df`, `LR`, and `p.value`, carrying a
-#'   `fisher_c` attribute (see [fisher_c()]).
+#'   `fisher_c` attribute (see [fisher_c()]). A `status` column records why a
+#'   claim was not tested: `"no_data_column"` (the claim's variable is not a
+#'   column), `"refit_failed"`, `"n_mismatch"` (the augmented refit used a
+#'   different number of observations than the base fit, usually because the
+#'   added variable has missing values, so the likelihood ratio would compare two
+#'   different samples), or `"degenerate"` (non-nested or non-finite). Only
+#'   `"ok"` claims enter Fisher's C.
 #' @references
 #' \insertRef{Shipley2000}{drmSEM}
 #'
@@ -240,6 +246,17 @@ dsep.drm_sem <- function(object, ...) {
     aug_fit <- drm_refit_augmented(fit, add_var, env = refit_env)
     if (is.null(aug_fit)) {
       bs$status[[i]] <- "refit_failed"
+      next
+    }
+    # A likelihood-ratio test is only meaningful when both fits saw the same
+    # observations. If `add_var` carries NAs the augmented refit silently drops
+    # those rows, and 2*(aug - base) then compares two different samples --
+    # producing a WRONG number rather than an error, which the df_diff guard
+    # below cannot catch because the df are still nested.
+    n_base <- drm_fit_nobs(fit)
+    n_aug <- drm_fit_nobs(aug_fit)
+    if (!is.na(n_base) && !is.na(n_aug) && n_base != n_aug) {
+      bs$status[[i]] <- "n_mismatch"
       next
     }
     aug <- drm_fit_logLik(aug_fit)

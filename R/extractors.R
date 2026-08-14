@@ -82,6 +82,52 @@ drm_fit_data <- function(fit) {
   fit$data
 }
 
+#' Number of observations a fitted node actually used.
+#' @return A single integer, or `NA_integer_` if the engine will not say.
+#' @keywords internal
+#' @noRd
+drm_fit_nobs <- function(fit) {
+  n <- tryCatch(stats::nobs(fit), error = function(e) NA_integer_)
+  if (length(n) != 1L || !is.finite(n)) {
+    return(NA_integer_)
+  }
+  as.integer(n)
+}
+
+#' Every data column a node reads: response variables plus fixed predictors of
+#' every modelled component.
+#'
+#' Duck-typed on `$formula`/`$family`, so this works on an unfitted `drm_node`
+#' spec as well as on a fitted drmTMB object.
+#' @keywords internal
+#' @noRd
+drm_node_vars <- function(fit) {
+  resp <- drm_fit_response(fit)
+  vars <- resp$vars
+  for (cc in drm_fit_components(fit)) {
+    vars <- c(vars, drm_fit_component_predictors(fit, cc))
+  }
+  unique(stats::na.omit(vars))
+}
+
+#' Rows of `data` a node will actually be fitted on.
+#'
+#' drmTMB drops rows with a missing value in any model variable, so a node's
+#' realized sample is the complete-case set over `drm_node_vars()`. This is the
+#' one place that assumption lives. Columns the node names but `data` does not
+#' carry are ignored here -- fitting reports that far better than we can.
+#' @return A logical vector of length `nrow(data)`.
+#' @keywords internal
+#' @noRd
+drm_node_rows <- function(fit, data) {
+  data <- as.data.frame(data)
+  vars <- intersect(drm_node_vars(fit), names(data))
+  if (!length(vars)) {
+    return(rep(TRUE, nrow(data)))
+  }
+  stats::complete.cases(data[, vars, drop = FALSE])
+}
+
 #' The response label (deparsed mu LHS) and bare response variables of a node
 #' @keywords internal
 #' @noRd
@@ -407,8 +453,23 @@ drm_fixed_design <- function(fit, component, newdata) {
   form <- stats::as.formula(
     paste0("~ ", rhs_text, if (has_intercept) "" else " - 1")
   )
+  # na.action = na.pass is load-bearing, not defensive. model.matrix() otherwise
+  # honours getOption("na.action") (na.omit), so a single NA in any predictor
+  # returns FEWER rows than newdata. The assignment below then either errors
+  # ("number of items to replace is not a multiple of replacement length") or --
+  # when the counts happen to divide evenly -- RECYCLES SILENTLY and returns a
+  # scrambled design matrix. Passing NAs through keeps the row contract this
+  # function documents, and lets incomplete rows surface as NA predictions
+  # instead of wrong numbers.
   mm <- tryCatch(
-    stats::model.matrix(form, data = as.data.frame(newdata)),
+    {
+      mf <- stats::model.frame(
+        form,
+        data = as.data.frame(newdata),
+        na.action = stats::na.pass
+      )
+      stats::model.matrix(form, data = mf)
+    },
     error = function(e) NULL
   )
   out <- matrix(
@@ -418,6 +479,14 @@ drm_fixed_design <- function(fit, component, newdata) {
     dimnames = list(NULL, coef_names)
   )
   if (!is.null(mm)) {
+    if (nrow(mm) != nrow(newdata)) {
+      cli::cli_abort(c(
+        "Design matrix for component {.val {component}} has {nrow(mm)} row{?s} but
+         {nrow(newdata)} row{?s} were supplied.",
+        "i" = "This should be unreachable now that the model frame passes {.code NA}s
+               through; it means a term dropped rows by another route."
+      ))
+    }
     shared <- intersect(colnames(mm), coef_names)
     out[, shared] <- mm[, shared, drop = FALSE]
   }
