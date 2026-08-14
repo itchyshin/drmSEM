@@ -86,7 +86,8 @@ deprecation warning.}
 \item{...}{Unused.}
 }
 \value{
-A one-row \code{drm_effect} data frame.
+A one-row \code{drm_effect} data frame. See \code{\link[=direct_effects]{direct_effects()}} for the
+diagnostic attributes attached when parametric uncertainty is partial.
 }
 \description{
 Propagates a do()-style change in \code{from} through the whole DAG (all mediators

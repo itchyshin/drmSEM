@@ -81,7 +81,10 @@ deprecation warning.}
 }
 \value{
 A one-row data frame (\code{from}, \code{to}, \code{scale}, \code{target}, \code{estimate},
-\code{conf.low}, \code{conf.high}) with a \code{coefficients} attribute.
+\code{conf.low}, \code{conf.high}) with a \code{coefficients} attribute. Effect results
+also carry \code{uncertainty_issues} and \code{value_issues} attributes when a fitted
+node cannot contribute full parametric uncertainty or when non-finite
+effect draws had to be excluded from the summary.
 }
 \description{
 The controlled direct effect holds all mediators at their observed values and

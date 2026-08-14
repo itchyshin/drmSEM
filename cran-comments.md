@@ -30,6 +30,10 @@ Note: a full `R CMD check --as-cran` will additionally NOTE the `Remotes:` field
 text is kept in the repo but excluded from the build tarball via `.Rbuildignore`,
 consistent with `License: GPL (>= 3)`.
 
+CRAN-prep hygiene completed on the development branch: `Authors@R` includes the
+copyright-holder role (`cph`), exported help topics have return and example
+sections, and package-site URLs use the non-redirecting trailing slash.
+
 ## Notes
 
 - The fitting engine drmTMB is currently distributed from GitHub

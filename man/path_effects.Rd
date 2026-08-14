@@ -85,6 +85,9 @@ A \code{drm_effect} data frame with columns \code{from}, \code{to}, \code{throug
 \code{total_indirect}, \code{mean_channel}, \verb{<component>_channel} (one per non-mean
 component), and \code{component_remainder}. The frame also carries an
 \code{identified} column (\code{NA} for controlled rows; logical for natural rows).
+Diagnostic attributes \code{uncertainty_issues} and \code{value_issues} are attached
+when parametric uncertainty is partial or non-finite effect draws were
+excluded from summaries.
 }
 \description{
 Splits the indirect effect of \code{from} on \code{to} into a contribution for each

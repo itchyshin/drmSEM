@@ -231,6 +231,9 @@ drm_recanting_witness <- function(object, from, mj, meds) {
 #'   `total_indirect`, `mean_channel`, `<component>_channel` (one per non-mean
 #'   component), and `component_remainder`. The frame also carries an
 #'   `identified` column (`NA` for controlled rows; logical for natural rows).
+#'   Diagnostic attributes `uncertainty_issues` and `value_issues` are attached
+#'   when parametric uncertainty is partial or non-finite effect draws were
+#'   excluded from summaries.
 #' @param effect `"controlled"` (default) gives the model-based per-mediator /
 #'   per-component decomposition above. `"natural"` instead reports each
 #'   mediator's cross-world **natural indirect effect** (the `nie` leg when only
@@ -299,7 +302,9 @@ path_effects <- function(
     )
   }
 
+  value_sets <- list()
   add_row <- function(rows, med, estimand, v, identified = NA) {
+    value_sets[[length(value_sets) + 1L]] <<- v
     rows[[length(rows) + 1L]] <- cbind(
       data.frame(mediator = med, estimand = estimand, stringsAsFactors = FALSE),
       drm_summ(v, level),
@@ -400,6 +405,7 @@ path_effects <- function(
     do.call(rbind, rows)
   )
   rownames(out) <- NULL
+  out <- drm_finalize_effect(out, engines, ctl$draw, value_sets)
   class(out) <- c("drm_effect", "data.frame")
   out
 }

@@ -182,31 +182,26 @@ the ledger names a live-fit gate.
    `drmTMB::simulate()` and pass locally on a live engine. Remaining sampler
    extensions are separate: `zero_one_beta` boundary inflation, `tweedie`
    mean-fallback, `student` nu, and beta_binomial trials.
-12. **Validation wave 2 — coverage & calibration** (`docs/design/12-coverage-calibration.md`).
-    `inst/validation/generate.R` is authored (C-1 effect-CI coverage vs closed-form
-    truth; C-3 model-selection recovery) with a `validation.Rmd` report that renders
-    with or without the cache. **Action:** run it at full replicate counts, commit
-    the cached `inst/validation/validation-results.rds` (like the calibration
-    cache), render the report, and promote C-1..C-4 in the ledger.
-    (the biggest unmeasured property — known-effect linear-Gaussian DGP), C-2 d-sep
-    Type-I/power beyond the OQ-6 grid, C-3 model-selection recovery rate, C-4 the
-    sampler-dispersion close-out (C-4 == item 7). Full replicate counts run in the
-    live lane; the spec, DGPs, estimands, and acceptance criteria are in the design
-    doc.
-8. **OQ-7** — root-cause the `sdreport` NaN on the canonical n=300 DGP (recondition
-   or confirm a drmTMB robustness gap; file upstream). `docs/memory/DRMTMB_ISSUES.md`.
-8b. **Effect-interval honesty (from the 2026-06-06 decomposition audit).** Two
-    secondary engine-review findings, not decomposition-specific, need a live fit
-    to fix/validate: (i) `drm_draw_beta()` silently falls back to the point
-    estimate for a node whose `vcov` is non-PD / `NULL` (or non-convergent per
-    `drm_fit_converged()`, which the effect path never consults), so that node
-    contributes **zero** parameter uncertainty and the reported interval is too
-    narrow with **no flag** — surface a `drm_warn_once`/attribute. (ii) `log`-link
-    `drm_inv_link` can overflow to `Inf` on an extreme MVN draw; the resulting NA
-    is dropped by `na.rm` in `drm_effect_contrast`, biasing the average over a
-    shrinking row set — clamp `eta` or count/flag dropped rows. The pairing bug
-    and the framing/over-claims from that audit are already fixed in the Claude
-    lane (`drm_decomp_legs()`, V-36..V-41).
+12. **DONE 2026-06-11 — validation wave 2 cache read/promoted.**
+    `inst/validation/validation-results.rds` is present and was re-read. C-1
+    effect-CI coverage passed for direct, indirect, and total effects at `n = 300`
+    and `n = 1000`; C-3 CBIC passed true-DAG recovery; CICc remains scoped as
+    support rather than a consistent selector. Provenance is mixed and explicit:
+    C-1 coverage was retained from the previous cache because the full rerun
+    exceeded live-lane wall time, while C-3 was regenerated from source version
+    `0.5.0`. Remaining validation expansion: C-2 beyond the OQ-6 d-sep grid and
+    future sampler-extension drift checks.
+8. **PARTIAL 2026-06-11 — OQ-7 root cause localized; DGP still needs follow-up.**
+   Separate node fits show the canonical warning comes from the `survival`
+   `beta_binomial` node, which does not converge and lacks a positive-definite
+   fixed-effect covariance. Recondition the canonical DGP or file the upstream
+   drmTMB robustness issue if that node should be identifiable.
+8b. **DONE 2026-06-11 — effect-interval honesty hardening.** Effect calls now
+    warn and attach `uncertainty_issues` when a node is non-converged or a
+    component lacks a usable covariance block, so fallback to point estimates is
+    no longer silent. Non-finite effect draws are counted in `value_issues`, and
+    log-link inverse predictions are clamped below floating-point overflow. Tests:
+    `test-effect-kernels.R`, `test-integration.R`.
 9. **`plot.drm_sem` visual polish** (needs rendering): standardized-coefficient
    edge labels + significance encoding without colliding with the component
    linetype; CI smoke test (`pdf(NULL); plot(sem); dev.off()`). `R/plotting.R`.

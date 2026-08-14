@@ -4,8 +4,44 @@
 test_that("inverse links are correct", {
   expect_equal(drm_inv_link("identity", 2), 2)
   expect_equal(drm_inv_link("log", 0), 1)
+  expect_true(is.finite(drm_inv_link("log", 1000)))
   expect_equal(drm_inv_link("logit", 0), 0.5)
   expect_equal(drm_inv_link("tanh", 0), 0)
+})
+
+test_that("coefficient-draw diagnostics catch invalid covariance blocks", {
+  eng <- list(
+    y = list(
+      name = "y",
+      identifier = "y",
+      family = "gaussian",
+      components = "mu",
+      coef = list(mu = c("(Intercept)" = 1, x = 2)),
+      vcov = matrix(
+        c(0.01, NA_real_, NA_real_, 0.04),
+        nrow = 2,
+        dimnames = list(
+          c("mu:(Intercept)", "mu:x"),
+          c("mu:(Intercept)", "mu:x")
+        )
+      ),
+      converged = FALSE,
+      predict = function(scenario, beta = NULL) data.frame(mu = scenario$x)
+    )
+  )
+
+  issues <- drm_effect_draw_issues(eng, draw = TRUE)
+  expect_setequal(issues$issue, c("not_converged", "vcov_nonfinite"))
+
+  draw <- drm_draw_beta(eng$y, draw = TRUE)
+  expect_equal(draw$mu, eng$y$coef$mu)
+})
+
+test_that("effect summaries report all-NA draws as unavailable", {
+  out <- drm_summ(c(NA_real_, NaN, Inf), level = 0.95)
+  expect_equal(out$estimate, NA_real_)
+  expect_equal(out$conf.low, NA_real_)
+  expect_equal(out$conf.high, NA_real_)
 })
 
 test_that("family samplers recover their target moments", {

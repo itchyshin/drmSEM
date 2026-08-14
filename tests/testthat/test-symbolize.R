@@ -4,8 +4,10 @@
 
 test_that("symbolize.drm_sem errors when symbolizer is not installed", {
   skip_if(requireNamespace("symbolizer", quietly = TRUE))
-  fake <- structure(list(records = list(), order = character(0), edges = NULL),
-                    class = "drm_sem")
+  fake <- structure(
+    list(records = list(), order = character(0), edges = NULL),
+    class = "drm_sem"
+  )
   expect_error(symbolize.drm_sem(fake), "symbolizer")
 })
 
@@ -31,7 +33,9 @@ test_that("symbolize.drm_sem dispatches per node and returns a typed object", {
   expect_s3_class(sym, "symbolized_model_set")
   expect_setequal(names(sym$parts), c("size", "abundance"))
   expect_equal(sym$order, c("size", "abundance"))
-  for (p in sym$parts) expect_s3_class(p, "symbolized_model")
+  for (p in sym$parts) {
+    expect_s3_class(p, "symbolized_model")
+  }
 })
 
 test_that("renderers collate per-node output", {
@@ -55,7 +59,7 @@ test_that("renderers collate per-node output", {
   tex <- symbolizer::as_latex(sym)
   expect_type(tex, "character")
   # Each node should appear as a labelled block in the collated output.
-  expect_match(tex, "Node: size",      fixed = TRUE)
+  expect_match(tex, "Node: size", fixed = TRUE)
   expect_match(tex, "Node: abundance", fixed = TRUE)
 
   eq <- symbolizer::equations(sym)

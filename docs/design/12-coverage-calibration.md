@@ -13,7 +13,7 @@ engine without re-deriving the DGPs or the acceptance criteria.
 
 ## Studies
 
-### C-1 — Effect-interval coverage (the biggest open property)
+### C-1 — Effect-interval coverage (validated for the cached Gaussian grid)
 **Question:** does `uncertainty = "parametric"` produce intervals that cover the
 true effect at the nominal rate?
 
@@ -28,9 +28,14 @@ true effect at the nominal rate?
 - **Metric:** empirical coverage per quantity. **Acceptance:** coverage within
   Monte-Carlo bounds of nominal (e.g. 0.95 ± 2·SE for `R` reps). Report a coverage
   table. Also report mean interval width (efficiency) as a secondary diagnostic.
-- **Why it matters:** every `drm_effect` row ships a CI; none of its *coverage* is
-  currently measured. A pairing/var bug (cf. the #22 decomposition fix) would
-  surface here.
+- **Current evidence:** `inst/validation/validation-results.rds` carries the
+  cached C-1 grid (`R = 300`, `n = 300, 1000`, `B = 400`) and all direct,
+  indirect, and total coverage cells pass the nominal +/- 2 SE acceptance band.
+  The cache provenance records that this C-1 block was retained from the previous
+  live run when the later C-3-only regeneration was merged in.
+- **Why it matters:** every `drm_effect` row ships a CI. This grid measures the
+  baseline known-effect Gaussian case; new families, links, and weakly identified
+  nodes still need their own calibration before broader coverage claims.
 
 ### C-2 — d-separation Type-I / power (beyond the OQ-6 grid)
 **Question:** does the any-component d-sep test hold its size and have power
@@ -69,17 +74,19 @@ for nbinom2, beta, Gamma, and lognormal parameterizations.
 
 ## Output schema (cached `.rds`)
 
-`inst/validation/validation-results.rds` — a list with one element per study
-(`coverage`, `dsep_power`, `model_selection`, `sampler_dispersion`), each a tidy
-data frame + an `acceptance` logical vector, plus provenance (`drmTMB` version,
-git SHA, `R`, seed, n-grid). A `vignettes/validation.Rmd` reads the cache and
-tabulates it (built only when the cache is present, like `calibration.Rmd`).
+`inst/validation/validation-results.rds` — currently a list with `coverage`,
+`model_selection`, `acceptance`, replicate-level C-1/C-3 frames, and provenance
+(`drmTMB` version, git SHA, `R`, seed, n-grid, plus per-block mixed-provenance
+fields). Future C-2 / sampler-extension blocks should extend this schema rather
+than replacing it. A `vignettes/validation.Rmd` reads the cache and tabulates it
+(built only when the cache is present, like `calibration.Rmd`).
 
 ## Lanes
 
 - **Claude / CI lane:** this spec; the sampler-dispersion probe; and a *bounded*
   CI smoke that checks the coverage/selection **logic** on a tiny deterministic
   case (no heavy fitting, no flaky coverage assertion).
-- **Live / Codex lane:** run `generate.R` at full replicate counts, commit the
-  cached `.rds`, render the report, and promote the C-1..C-4 claims in the ledger.
-  Tracked in `../memory/CODEX_HANDOFF.md`.
+- **Live / Codex lane:** extend the cached `.rds` when a new validation block is
+  actually affected, render the report, and promote only the scoped claims in the
+  ledger. Do not rerun the expensive full C-1 block for a criterion-only C-3
+  change; retain mixed provenance explicitly.

@@ -362,11 +362,10 @@ per-component (`mean`/`sigma`/`zi`) split ship and are kernel-verified. The
 `drm_natural_target` kernel) with an `identified` flag set `FALSE` under a
 **recanting witness** (a mediator that is both a descendant of the exposure and an
 ancestor of the target mediator; Avin, Shpitser & Pearl 2005), detected by pure
-graph logic (`drm_recanting_witness()`, kernel-verified). Open: `NA` handling for
-unconfirmed-sampler families and a live-fit integration test (the attribution is
-exact for hand-built engines; real-family sampler accuracy and the natural
-identification under strong nonlinearity need the engine) before any "validated"
-wording.
+graph logic (`drm_recanting_witness()`, kernel-verified). The exported wrapper now
+also has live-fit coverage for per-mediator and per-component attribution on a
+fitted Gaussian-to-Poisson SEM. Open: `NA` handling for unconfirmed-sampler
+families where distributional attribution is not defensible.
 
 ## References
 

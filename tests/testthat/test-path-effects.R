@@ -320,3 +320,51 @@ test_that("recanting-witness detection flags sequential mediators (OQ-5 natural)
     c("m1", "m2")
   ))
 })
+
+test_that("path_effects() runs on live fitted SEMs", {
+  skip_if_not_installed("drmTMB")
+  set.seed(19)
+  n <- 700
+  x <- stats::rnorm(n)
+  m <- stats::rnorm(n, mean = 0.45 * x, sd = exp(-0.2 + 0.35 * x))
+  y <- stats::rpois(n, lambda = exp(0.1 + 0.35 * m))
+  dat <- data.frame(x, m, y)
+
+  sem <- drm_sem(
+    m = drm_node(drmTMB::bf(m ~ x, sigma ~ x), family = stats::gaussian()),
+    y = drm_node(drmTMB::bf(y ~ m), family = stats::poisson()),
+    data = dat
+  )
+
+  med <- path_effects(
+    sem,
+    from = "x",
+    to = "y",
+    by = "mediator",
+    uncertainty = "none",
+    nsim = 80,
+    seed = 19
+  )
+  expect_s3_class(med, "drm_effect")
+  expect_setequal(
+    med$estimand,
+    c("total_indirect", "inclusion", "exclusion", "interaction_remainder")
+  )
+  expect_true(all(is.finite(med$estimate)))
+
+  comp <- path_effects(
+    sem,
+    from = "x",
+    to = "y",
+    by = "component",
+    uncertainty = "none",
+    nsim = 120,
+    seed = 19
+  )
+  expect_s3_class(comp, "drm_effect")
+  expect_true("mean_channel" %in% comp$estimand)
+  expect_true("sigma_channel" %in% comp$estimand)
+  expect_true("component_remainder" %in% comp$estimand)
+  expect_true(all(is.finite(comp$estimate)))
+  expect_identical(nrow(attr(comp, "uncertainty_issues")), 0L)
+})

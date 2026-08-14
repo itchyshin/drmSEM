@@ -1,4 +1,4 @@
-url: https://itchyshin.github.io/drmSEM
+url: https://itchyshin.github.io/drmSEM/
 
 # Build into a dedicated dir, not docs/, which holds design + memory docs.
 destination: pkgdown-site

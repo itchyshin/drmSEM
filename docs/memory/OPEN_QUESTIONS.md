@@ -102,7 +102,15 @@ Bollen). Open:
 - Should standardized effects be reported on the link scale only, or also
   back-transformed?
 
-## OQ-5 — Expose path-specific effects beyond a mediator set?  [PARTIAL 2026-06-06, see D-17/D-19]
+## OQ-5 — Expose path-specific effects beyond a mediator set?  [PARTIAL 2026-06-11, see D-17/D-19]
+
+**Update 2026-06-11.** The live-fit wrapper evidence gap is now closed for the
+supported sampler families: `test-path-effects.R` fits a real `drm_sem()` with a
+Gaussian mediator (`sigma ~ x`) feeding a log-link Poisson outcome, then asserts
+that `path_effects(by = "mediator")` and `path_effects(by = "component")` return
+finite exported `drm_effect` objects including `mean_channel`, `sigma_channel`,
+and `component_remainder`. Remaining open item: `NA` handling for
+unconfirmed-sampler families where distributional attribution is not defensible.
 
 **Partial.** `path_effects(object, from, to, through=)` ships the **per-mediator**
 decomposition (D-17, V-32): `inclusion(Mj) = T({Mj}) - direct` and
@@ -117,8 +125,8 @@ ships the **per-component** split — `mean_channel` + `sigma_channel`/`zi_chann
 `component_remainder` for the non-separable part — kernel-verified against the
 lognormal closed forms (V-34). **Still open:** the cross-world natural variant with
 a recanting-witness guard; the `identified` flag is kernel-verified (V-35).
-**Still open:** `NA` handling for unconfirmed-sampler families and a live-fit
-integration test (real-family sampler accuracy) before broad promotion.
+**Still open:** `NA` handling for unconfirmed-sampler families before broad
+promotion.
 Original note below.
 
 `indirect_effects(..., through = )` routes through a *set* of mediator nodes. We
@@ -168,6 +176,18 @@ OQ-6 grid; do not generalize beyond these DGP families without a new calibration
 study.
 
 ## OQ-7 — `TMB::sdreport` returns NaN standard errors on the canonical test DGP
+
+**Update 2026-06-11.** The warning source has been localized. Fitting the three
+canonical nodes separately showed `size` and `abundance` converged with finite
+fixed-effect covariance matrices; the `survival` `beta_binomial` node is the one
+that emits `NaNs produced`, does not converge, and has no positive-definite
+fixed-effect covariance. The effect path is now hardened: `drm_draw_beta()`
+checks each component covariance block before drawing; effect outputs warn and
+carry `uncertainty_issues` rows for `not_converged`, `vcov_unavailable`,
+`vcov_nonfinite`, and related cases; and log-link predictions are clamped below
+overflow so extreme draws do not become silently dropped `Inf` values. Open:
+recondition or replace the canonical beta-binomial DGP, or file the underlying
+drmTMB robustness issue if the model should be identifiable.
 
 CI run 26981892600 fit the integration DGP and drmTMB warned `NaNs produced`
 from `TMB::sdreport` for the `size -> abundance -> survival` nodes (3 warnings,
@@ -351,6 +371,13 @@ Needs a **live bivariate drmTMB fit** to validate (cannot be tested in the dev
 container).
 
 ## OQ-15 — Composite-construct follow-ups (0.3)
+
+**Update 2026-06-11.** The live composite fitting path is already covered:
+`test-composite.R` fits a materialized PCA composite as both a predictor and a
+response, checks that `loadings()` reports the indicators, and verifies live
+effect flow for the composite path. This item is no longer an engine-evidence
+gap. Remaining items are product/design extensions, not maturity blockers for
+the current composite surface.
 
 The 0.3 first increment ships composite (formative) constructs (`drm_composite()`,
 `loadings()`, `composites=` on `drm_sem()`/`drm_psem()`; D-16, V-31). Open items:

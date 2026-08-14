@@ -85,7 +85,9 @@ A \code{drm_effect} data frame. For \code{effect = "controlled"}, rows
 \code{total_path}, \code{direct}, \code{indirect}, \code{mean_mediated}, \code{distribution_mediated}
 and a \code{target} column naming the reported functional. For
 \code{effect = "natural"}, rows \code{total_path}, \code{natural_direct},
-\code{natural_indirect}, \code{mediated_interaction}.
+\code{natural_indirect}, \code{mediated_interaction}. The returned object carries
+\code{uncertainty_issues} and \code{value_issues} attributes when interval evidence is
+partial.
 }
 \description{
 The indirect effect is the simulation-based total path effect (mediators in

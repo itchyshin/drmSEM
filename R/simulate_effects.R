@@ -21,7 +21,7 @@ drm_inv_link <- function(link, eta) {
   switch(
     link,
     identity = eta,
-    log = exp(eta),
+    log = exp(pmin(eta, log(.Machine$double.xmax) - 1)),
     logit = stats::plogis(eta),
     tanh = tanh(eta),
     eta
@@ -210,11 +210,76 @@ drm_engines_from_sem <- function(object) {
         links = links_l,
         coef = coef_l,
         vcov = V,
+        converged = drm_fit_converged(fit_l),
         predict = predict_fn
       )
     })
   }
   engines
+}
+
+drm_vcov_block_status <- function(V, keys) {
+  if (is.null(V)) {
+    return("vcov_unavailable")
+  }
+  rn <- rownames(V)
+  cn <- colnames(V)
+  if (is.null(rn) || is.null(cn) || !all(keys %in% rn) || !all(keys %in% cn)) {
+    return("vcov_missing_component")
+  }
+  Vb <- V[keys, keys, drop = FALSE]
+  if (!all(is.finite(Vb))) {
+    return("vcov_nonfinite")
+  }
+  if (!isTRUE(all.equal(Vb, t(Vb), tolerance = 1e-8))) {
+    return("vcov_not_symmetric")
+  }
+  ev <- tryCatch(
+    eigen(Vb, symmetric = TRUE, only.values = TRUE)$values,
+    error = function(e) NA_real_
+  )
+  if (any(!is.finite(ev)) || min(ev) < -1e-8) {
+    return("vcov_not_psd")
+  }
+  "ok"
+}
+
+drm_effect_draw_issues <- function(engines, draw = TRUE) {
+  rows <- list()
+  add <- function(node, component, issue) {
+    rows[[length(rows) + 1L]] <<- data.frame(
+      node = node,
+      component = component,
+      issue = issue,
+      stringsAsFactors = FALSE
+    )
+  }
+  for (eng in engines) {
+    if (!isTRUE(eng$converged)) {
+      add(eng$name, NA_character_, "not_converged")
+    }
+    if (!isTRUE(draw)) {
+      next
+    }
+    for (cc in eng$components) {
+      co <- eng$coef[[cc]]
+      if (length(co) == 0L) {
+        next
+      }
+      status <- drm_vcov_block_status(eng$vcov, paste0(cc, ":", names(co)))
+      if (!identical(status, "ok")) {
+        add(eng$name, cc, status)
+      }
+    }
+  }
+  if (!length(rows)) {
+    return(data.frame(
+      node = character(0),
+      component = character(0),
+      issue = character(0)
+    ))
+  }
+  unique(do.call(rbind, rows))
 }
 
 # Draw a coefficient set per component from MVN(coef, vcov); MLE if draw=FALSE
@@ -231,18 +296,12 @@ drm_draw_beta <- function(engine, draw = TRUE) {
       next
     }
     keys <- paste0(cc, ":", names(co))
-    if (all(keys %in% rownames(V))) {
+    if (identical(drm_vcov_block_status(V, keys), "ok")) {
       Vb <- V[keys, keys, drop = FALSE]
-      # A node whose Hessian was not positive-definite yields NaN/Inf standard
-      # errors (drmTMB warns "NaNs produced" from TMB::sdreport). Drawing from
-      # such a covariance would poison the effect with NaNs, so for that
-      # component fall back to the point estimate (already in `out[[cc]]`).
-      if (all(is.finite(Vb))) {
-        out[[cc]] <- stats::setNames(
-          as.numeric(MASS::mvrnorm(1, mu = co, Sigma = Vb)),
-          names(co)
-        )
-      }
+      out[[cc]] <- stats::setNames(
+        as.numeric(MASS::mvrnorm(1, mu = co, Sigma = Vb)),
+        names(co)
+      )
     }
   }
   out

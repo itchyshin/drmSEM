@@ -1238,3 +1238,20 @@ generated `reference/figures/` directory, producing a harmless but noisy
 source-controlled pkgdown asset at that rewritten path so the paper image exists
 before the home/paper pages are rendered, while leaving the manuscript-facing
 `paper.md` link to `man/figures/drmsem-hero-dag.png` unchanged.
+
+## 2026-06-11 — Codex maturity-blocker pass
+
+Worked through the maturity blockers from the status audit. Localized the
+canonical `sdreport` warning to the `survival` beta-binomial node (non-converged,
+no positive-definite fixed-effect covariance), then hardened effect uncertainty:
+`drm_draw_beta()` checks covariance blocks before drawing; `direct_effects()`,
+`total_effects()`, `indirect_effects()`, and `path_effects()` warn and attach
+`uncertainty_issues` / `value_issues`; log-link inverse predictions are clamped
+below floating-point overflow. Re-read the wave-2 validation cache and recorded
+that C-1 coverage and CBIC C-3 recovery are already validated for their cached
+grids, while CICc remains a support ranking. Added a live fitted-SEM
+`path_effects()` integration test for per-mediator and per-component attribution.
+Reduced CRAN hygiene blockers by adding `cph` to `Authors@R` and switching
+pkgdown URLs to non-redirecting trailing-slash forms; `Remotes:` remains the
+external CRAN blocker until `drmTMB` and `symbolizer` are CRAN-acceptable or the
+dependency strategy changes.

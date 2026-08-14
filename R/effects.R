@@ -171,20 +171,53 @@ drm_decomp_legs <- function(
 
 drm_summ <- function(vals, level = 0.95) {
   a <- (1 - level) / 2
+  finite <- vals[is.finite(vals)]
   data.frame(
-    estimate = mean(vals, na.rm = TRUE),
-    conf.low = if (length(vals) > 1L) {
-      stats::quantile(vals, a, na.rm = TRUE, names = FALSE)
+    estimate = if (length(finite)) mean(finite) else NA_real_,
+    conf.low = if (length(finite) > 1L) {
+      stats::quantile(finite, a, names = FALSE)
     } else {
       NA_real_
     },
-    conf.high = if (length(vals) > 1L) {
-      stats::quantile(vals, 1 - a, na.rm = TRUE, names = FALSE)
+    conf.high = if (length(finite) > 1L) {
+      stats::quantile(finite, 1 - a, names = FALSE)
     } else {
       NA_real_
     },
     stringsAsFactors = FALSE
   )
+}
+
+drm_value_issues <- function(values) {
+  flat <- unlist(values, use.names = FALSE)
+  if (!length(flat)) {
+    return(data.frame(issue = character(0), n = integer(0)))
+  }
+  nonfinite <- sum(!is.finite(flat))
+  if (!nonfinite) {
+    return(data.frame(issue = character(0), n = integer(0)))
+  }
+  data.frame(issue = "nonfinite_effect_draws", n = nonfinite)
+}
+
+drm_finalize_effect <- function(out, engines, draw, values = list()) {
+  draw_issues <- drm_effect_draw_issues(engines, draw)
+  value_issues <- drm_value_issues(values)
+  attr(out, "uncertainty_issues") <- draw_issues
+  attr(out, "value_issues") <- value_issues
+  if (nrow(draw_issues) > 0L) {
+    cli::cli_warn(c(
+      "Effect evidence is partial for one or more nodes.",
+      "i" = "See {.code attr(x, \"uncertainty_issues\")} for the affected node/component. Non-converged fits are flagged; components with unavailable or invalid covariance use their fitted point estimate in parametric draws."
+    ))
+  }
+  if (nrow(value_issues) > 0L) {
+    cli::cli_warn(c(
+      "Some effect draws were non-finite and were excluded from the summary.",
+      "i" = "See {.code attr(x, \"value_issues\")} for the number of excluded draws."
+    ))
+  }
+  out
 }
 
 drm_validate_effect_args <- function(object, from, to) {
@@ -295,7 +328,10 @@ drm_analytic_or_abort <- function(
 #'   deprecation warning.
 #' @param ... Unused.
 #' @return A one-row data frame (`from`, `to`, `scale`, `target`, `estimate`,
-#'   `conf.low`, `conf.high`) with a `coefficients` attribute.
+#'   `conf.low`, `conf.high`) with a `coefficients` attribute. Effect results
+#'   also carry `uncertainty_issues` and `value_issues` attributes when a fitted
+#'   node cannot contribute full parametric uncertainty or when non-finite
+#'   effect draws had to be excluded from the summary.
 #' @references
 #' \insertRef{Robins1992}{drmSEM}
 #'
@@ -410,6 +446,7 @@ direct_effects <- function(
     ptab <- ptab[ptab$component %in% component, , drop = FALSE]
   }
   attr(out, "coefficients") <- ptab
+  out <- drm_finalize_effect(out, engines, ctl$draw, list(vals))
   class(out) <- c("drm_effect", "data.frame")
   out
 }
@@ -448,7 +485,8 @@ direct_effects <- function(
 #' @param prob Probability for `target = "quantile"` (default `0.5`, the median).
 #' @param mediation Deprecated alias for `method` (`"mean"` maps to `"gcomp"`,
 #'   `"distribution"` to `"simulate"`); supplying it emits a deprecation warning.
-#' @return A one-row `drm_effect` data frame.
+#' @return A one-row `drm_effect` data frame. See [direct_effects()] for the
+#'   diagnostic attributes attached when parametric uncertainty is partial.
 #' @references
 #' \insertRef{Pearl2001}{drmSEM}
 #'
@@ -541,6 +579,7 @@ total_effects <- function(
       summ
     )
     attr(out, "converged") <- eq$converged
+    out <- drm_finalize_effect(out, engines, ctl$draw, list(eq$vals))
     class(out) <- c("drm_effect", "data.frame")
     return(out)
   }
@@ -610,6 +649,7 @@ total_effects <- function(
     ),
     drm_summ(vals, level)
   )
+  out <- drm_finalize_effect(out, engines, ctl$draw, list(vals))
   class(out) <- c("drm_effect", "data.frame")
   out
 }
@@ -663,7 +703,9 @@ total_effects <- function(
 #'   `total_path`, `direct`, `indirect`, `mean_mediated`, `distribution_mediated`
 #'   and a `target` column naming the reported functional. For
 #'   `effect = "natural"`, rows `total_path`, `natural_direct`,
-#'   `natural_indirect`, `mediated_interaction`.
+#'   `natural_indirect`, `mediated_interaction`. The returned object carries
+#'   `uncertainty_issues` and `value_issues` attributes when interval evidence is
+#'   partial.
 #' @references
 #' \insertRef{Robins1992}{drmSEM}
 #'
@@ -793,6 +835,7 @@ indirect_effects <- function(
       rows
     )
     rownames(out) <- NULL
+    out <- drm_finalize_effect(out, engines, ctl$draw, list(mat))
     class(out) <- c("drm_effect", "data.frame")
     return(out)
   }
@@ -842,6 +885,7 @@ indirect_effects <- function(
     rows
   )
   rownames(out) <- NULL
+  out <- drm_finalize_effect(out, engines, ctl$draw, list(legs))
   class(out) <- c("drm_effect", "data.frame")
   out
 }
@@ -863,6 +907,16 @@ print.drm_effect <- function(x, ...) {
   if (!is.null(co) && nrow(co) > 0L) {
     cli::cli_text("Direct fitted coefficients:")
     print(co)
+  }
+  ui <- attr(x, "uncertainty_issues", exact = TRUE)
+  if (!is.null(ui) && nrow(ui) > 0L) {
+    cli::cli_text("Uncertainty notes:")
+    print(ui, row.names = FALSE)
+  }
+  vi <- attr(x, "value_issues", exact = TRUE)
+  if (!is.null(vi) && nrow(vi) > 0L) {
+    cli::cli_text("Effect-draw notes:")
+    print(vi, row.names = FALSE)
   }
   invisible(x)
 }

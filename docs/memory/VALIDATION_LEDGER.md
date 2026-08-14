@@ -552,3 +552,39 @@ same seed scheme as `inst/validation/generate.R`.
 Status: C-3 true-DAG recovery is **validated for CBIC** on this grid; CBIC is now
 the default comparison criterion. CICc remains available explicitly and is
 **not** the recovery claim.
+
+## 2026-06-11 — Maturity hardening: interval honesty, path-effects live fit, CRAN hygiene
+
+Blocked-maturity review closed three local gaps and reduced one release-hygiene
+gap.
+
+- **Effect-interval honesty:** the canonical integration DGP was bisected node by
+  node. `size` (Gaussian `mu + sigma`) and `abundance` (`nbinom2` with `zi`)
+  converged and returned finite fixed-effect covariance matrices; `survival`
+  (`beta_binomial`) emitted `TMB::sdreport()` `NaNs produced`, did not converge,
+  and `vcov()` reported no positive-definite Hessian. Effect calls now warn and
+  attach `attr(x, "uncertainty_issues")` with node/component/issue rows
+  (`not_converged`, `vcov_unavailable`, `vcov_nonfinite`, etc.) instead of
+  silently treating those components as point estimates. Non-finite effect draws
+  are counted in `attr(x, "value_issues")`, summaries return `NA` when all draws
+  are unusable, and log-link inverse links are clamped below floating-point
+  overflow. Evidence: `test-effect-kernels.R` and `test-integration.R` assert the
+  diagnostics and finite-effect behavior.
+- **Wave-2 validation status:** `inst/validation/validation-results.rds` was
+  re-read, not regenerated. C-1 effect-interval coverage passed for direct,
+  indirect, and total effects at `n = 300` and `n = 1000` (coverage range
+  `0.9433` to `0.9633`, all inside the stored nominal +/- 2 SE bands). C-3 CBIC
+  remains validated on the cached grid (`0.9267` and `0.9733` truth selection;
+  missing-edge rate `0`); CICc remains explicitly scoped as support, not the
+  true-DAG recovery claim. Cache provenance remains mixed: C-1 retained from the
+  previous cache, C-3 regenerated from source version `0.5.0`.
+- **OQ-5 live wrapper evidence:** `path_effects()` now has a live `drmTMB`
+  integration test for both `by = "mediator"` and `by = "component"` on a fitted
+  Gaussian mediator with `sigma ~ x` feeding a log-link Poisson outcome. This
+  closes the live-fit wrapper evidence gap for the supported sampler families;
+  unconfirmed-sampler `NA` policy remains separate.
+- **CRAN hygiene:** `Authors@R` now includes the copyright-holder role (`cph`) and
+  package-site URLs use the non-redirecting trailing slash. Remaining CRAN
+  blocker is external/dependency policy: `DESCRIPTION` still needs `Remotes:` for
+  GitHub-only `drmTMB` and `symbolizer`, so CRAN submission waits until those
+  dependencies are CRAN-acceptable or the dependency strategy changes.

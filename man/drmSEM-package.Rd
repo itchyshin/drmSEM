@@ -93,17 +93,17 @@ are flagged as such in their respective help pages and vignettes.
 Useful links:
 \itemize{
   \item \url{https://github.com/itchyshin/drmSEM}
-  \item \url{https://itchyshin.github.io/drmSEM}
+  \item \url{https://itchyshin.github.io/drmSEM/}
   \item Report bugs at \url{https://github.com/itchyshin/drmSEM/issues}
 }
 
 }
 \author{
-\strong{Maintainer}: Shinichi Nakagawa \email{itchyshin@gmail.com}
+\strong{Maintainer}: Shinichi Nakagawa \email{itchyshin@gmail.com} [copyright holder]
 
 Authors:
 \itemize{
-  \item Shinichi Nakagawa \email{itchyshin@gmail.com}
+  \item Shinichi Nakagawa \email{itchyshin@gmail.com} [copyright holder]
 }
 
 }

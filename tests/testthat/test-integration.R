@@ -62,12 +62,30 @@ test_that("d-separation flags a true omitted edge and Fisher's C runs", {
 
 test_that("effects run and total decomposes into direct + indirect", {
   sem <- make_sem()
-  de <- direct_effects(sem, from = "temp", to = "survival", B = 50)
+  expect_warning(
+    de <- direct_effects(sem, from = "temp", to = "survival", B = 50),
+    "Effect evidence is partial"
+  )
   expect_s3_class(de, "drm_effect")
   # Effects must stay finite even when a node's sdreport returned NaN SEs:
   # drm_draw_beta() falls back to the point estimate for non-finite vcov blocks.
   expect_true(is.finite(de$estimate))
-  ie <- indirect_effects(sem, from = "temp", to = "survival", B = 40, nsim = 20)
+  issues <- attr(de, "uncertainty_issues")
+  expect_true(any(issues$node == "survival" & issues$issue == "not_converged"))
+  expect_true(any(
+    issues$node == "survival" & issues$issue == "vcov_unavailable"
+  ))
+
+  expect_warning(
+    ie <- indirect_effects(
+      sem,
+      from = "temp",
+      to = "survival",
+      B = 40,
+      nsim = 20
+    ),
+    "Effect evidence is partial"
+  )
   expect_true(all(
     c("total_path", "direct", "indirect", "distribution_mediated") %in%
       ie$quantity

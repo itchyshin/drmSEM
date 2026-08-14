@@ -1,5 +1,11 @@
 # drmSEM (development version)
 
+## Maturity hardening
+
+* Effect objects now expose partial-uncertainty diagnostics. Parametric effect calls warn and attach `attr(x, "uncertainty_issues")` when a node is non-converged or lacks a usable fixed-effect covariance, so the canonical beta-binomial `survival` node no longer contributes zero parameter uncertainty silently. Non-finite effect draws are counted in `attr(x, "value_issues")`, summaries return `NA` rather than `NaN` when every draw is unusable, and log-link predictions are clamped below floating-point overflow instead of creating `Inf` values that are later dropped.
+* `path_effects()` now has a live fitted-SEM integration test covering both per-mediator and per-component attribution through a fitted Gaussian mediator with `sigma ~ x` into a log-link Poisson outcome.
+* CRAN-prep hygiene now includes a copyright-holder role in `Authors@R` and redirect-free pkgdown URLs. `drmSEM` is still not CRAN-submittable while `drmTMB` and `symbolizer` are GitHub `Remotes`; that remains an explicit external release blocker.
+
 ## symbolizer integration (`Suggests`)
 
 * `symbolize.drm_sem()` walks a fitted `drm_sem` in topological order, calls
