@@ -562,7 +562,12 @@ gap.
   node. `size` (Gaussian `mu + sigma`) and `abundance` (`nbinom2` with `zi`)
   converged and returned finite fixed-effect covariance matrices; `survival`
   (`beta_binomial`) emitted `TMB::sdreport()` `NaNs produced`, did not converge,
-  and `vcov()` reported no positive-definite Hessian. Effect calls now warn and
+  and `vcov()` reported no positive-definite Hessian. **Platform-dependent, as of
+  2026-08-14:** that covariance failure reproduces on macOS and Linux but NOT on
+  Windows, where the same node is still flagged `not_converged` yet returns a
+  usable covariance. Non-convergence is the portable finding; the covariance
+  failure is an optimizer outcome and must not be asserted cross-platform (it
+  turned CI red twice before this was understood). Effect calls now warn and
   attach `attr(x, "uncertainty_issues")` with node/component/issue rows
   (`not_converged`, `vcov_unavailable`, `vcov_nonfinite`, etc.) instead of
   silently treating those components as point estimates. Non-finite effect draws

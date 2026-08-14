@@ -180,7 +180,8 @@ study.
 **Update 2026-06-11.** The warning source has been localized. Fitting the three
 canonical nodes separately showed `size` and `abundance` converged with finite
 fixed-effect covariance matrices; the `survival` `beta_binomial` node is the one
-that emits `NaNs produced`, does not converge, and has no positive-definite
+that emits `NaNs produced`, does not converge, and (on macOS/Linux; NOT on
+Windows, see the 2026-08-14 ledger entry) has no positive-definite
 fixed-effect covariance. The effect path is now hardened: `drm_draw_beta()`
 checks each component covariance block before drawing; effect outputs warn and
 carry `uncertainty_issues` rows for `not_converged`, `vcov_unavailable`,
