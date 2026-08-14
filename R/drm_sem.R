@@ -198,6 +198,24 @@ drm_psem <- function(
 #'   d-separation basis set is tested against yet another. The default warns
 #'   rather than aborting so existing models keep fitting, but it never stays
 #'   silent.
+#' @param impute Whether to derive missing-predictor imputation models from the
+#'   graph. `"none"` (default) leaves missing data to the row-alignment policy
+#'   above. `"auto"` derives, for each node with an incomplete **endogenous**
+#'   parent, an imputation model equal to that parent's own node formula and
+#'   family, and passes it to the engine as `mi()` + `impute_model()`. The user
+#'   never writes an `impute_model()`: the causal graph specifies it, so the
+#'   conditioning set is derived rather than guessed, and imputer and analysis
+#'   model come from one graph.
+#'
+#'   Opt-in by design: imputation asserts a missing-at-random assumption, which
+#'   is the user's call to make, not a silent default.
+#'
+#'   Because the SEM is piecewise, the downstream node **re-estimates** the
+#'   parent's model inside its own likelihood rather than sharing the parent
+#'   node's estimates. Imputation uncertainty is propagated within a node but
+#'   **not across nodes**; this is a principled imputation, not full-information
+#'   maximum likelihood across the SEM. Inspect what was derived with
+#'   [imputation()].
 #'
 #' @return A `drm_sem` object.
 #' @seealso [drm_psem()], [paths()], [dsep()], [indirect_effects()].
@@ -234,9 +252,11 @@ drm_sem <- function(
   covariances = NULL,
   composites = NULL,
   feedback = NULL,
-  na_action = c("warn", "common", "fail")
+  na_action = c("warn", "common", "fail"),
+  impute = c("none", "auto")
 ) {
   na_action <- match.arg(na_action)
+  impute <- match.arg(impute)
   specs <- list(...)
   if (missing(data)) {
     cli::cli_abort("{.arg data} is required for {.fn drm_sem}.")
@@ -260,8 +280,18 @@ drm_sem <- function(
   nms <- names(specs)
   # Resolve the missing-data policy BEFORE fitting: nodes silently fitted on
   # different row sets are not the model the user asked for.
-  aln <- drm_alignment_issues(specs, data)
-  data <- drm_resolve_alignment(aln, data, na_action, specs)
+  # Derive imputation models from the graph BEFORE the alignment check: an
+  # imputed parent no longer costs its node any rows, so imputing can turn a
+  # misaligned SEM into an aligned one, and reporting the pre-imputation
+  # divergence would be a stale finding.
+  plan <- if (identical(impute, "auto")) {
+    drm_imputation_plan(specs, data)
+  } else {
+    list()
+  }
+  specs <- drm_apply_imputation(specs, data, impute)
+  aln <- drm_alignment_issues(specs, data, plan)
+  data <- drm_resolve_alignment(aln, data, na_action, specs, plan)
   fits <- vector("list", length(specs))
   for (i in seq_along(specs)) {
     cli::cli_progress_step("Fitting node {.val {nms[[i]]}}")
@@ -280,10 +310,11 @@ drm_sem <- function(
   # After "common" the frame is complete, so re-derive rather than reporting
   # the pre-alignment finding.
   attr(out, "alignment_issues") <- if (identical(na_action, "common")) {
-    drm_alignment_issues(specs, data)
+    drm_alignment_issues(specs, data, plan)
   } else {
     aln
   }
+  attr(out, "imputation") <- plan
   out
 }
 
@@ -295,7 +326,7 @@ drm_sem <- function(
 #' @return `data.frame(node, n, issue)`.
 #' @keywords internal
 #' @noRd
-drm_alignment_issues <- function(specs, data) {
+drm_alignment_issues <- function(specs, data, plan = list()) {
   empty <- data.frame(
     node = character(0),
     n = integer(0),
@@ -303,7 +334,7 @@ drm_alignment_issues <- function(specs, data) {
     stringsAsFactors = FALSE
   )
   n_total <- nrow(as.data.frame(data))
-  rows <- lapply(specs, drm_node_rows, data = data)
+  rows <- drm_node_row_sets(specs, data, plan)
   counts <- vapply(rows, sum, integer(1))
   if (!length(counts) || all(counts == n_total)) {
     return(empty)
@@ -320,10 +351,22 @@ drm_alignment_issues <- function(specs, data) {
   )
 }
 
+# Per-node logical row sets, honouring any imputed (mi()) variables, which keep
+# their rows instead of dropping them.
+drm_node_row_sets <- function(specs, data, plan = list()) {
+  out <- vector("list", length(specs))
+  names(out) <- names(specs)
+  for (nm in names(specs)) {
+    imputed <- if (is.null(plan[[nm]])) character(0) else plan[[nm]]$variable
+    out[[nm]] <- drm_node_rows(specs[[nm]], data = data, exclude = imputed)
+  }
+  out
+}
+
 #' Apply the declared `na_action` to the fitting frame.
 #' @keywords internal
 #' @noRd
-drm_resolve_alignment <- function(aln, data, na_action, specs) {
+drm_resolve_alignment <- function(aln, data, na_action, specs, plan = list()) {
   if (!nrow(aln)) {
     return(data)
   }
@@ -347,7 +390,7 @@ drm_resolve_alignment <- function(aln, data, na_action, specs) {
     # Intersect the per-node row sets, not complete.cases() over the whole
     # frame: `data` may carry columns no node models, and dropping rows for
     # those would discard usable observations.
-    keep <- Reduce(`&`, lapply(specs, drm_node_rows, data = data))
+    keep <- Reduce(`&`, drm_node_row_sets(specs, data, plan))
     cli::cli_inform(c(
       "i" = "Fitting every node on the shared complete-case set:
              {sum(keep)} of {n_total} row{?s}."
@@ -355,9 +398,17 @@ drm_resolve_alignment <- function(aln, data, na_action, specs) {
     return(as.data.frame(data)[keep, , drop = FALSE])
   }
   # na_action = "warn": proceed, but never silently.
+  imputed_note <- if (length(plan)) {
+    c("i" = "Imputed nodes keep their rows; a node whose own RESPONSE is
+             incomplete still loses them, which is usually the difference you
+             see above.")
+  } else {
+    NULL
+  }
   cli::cli_warn(c(
     headline,
     "!" = "Rows used of {n_total}: {detail}.",
+    imputed_note,
     "i" = "See {.code attr(x, \"alignment_issues\")}. Use
            {.code na_action = \"common\"} to fit every node on the shared
            complete-case set, or {.code \"fail\"} to make this an error."

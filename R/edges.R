@@ -66,6 +66,22 @@ drm_build_node_records <- function(fits) {
   records
 }
 
+# Build the same node metadata records from UNFITTED drm_node specs.
+#
+# Every drm_fit_* extractor this touches is duck-typed on $formula and $family --
+# exactly the two fields a drm_node spec carries -- so the fitted-object builder
+# already works before anything is fitted. Named separately because the call site
+# matters: drm_sem() fits nodes in ARGUMENT order, not topological order, so any
+# feature that needs a node's parents while deciding how to fit it (imputation
+# derivation) cannot wait for the fits to exist.
+#
+# The `$fit` slot then holds the spec. That is enough for drm_build_edges(),
+# drm_collapse_edges() and drm_parents(); anything needing coefficients or a
+# covariance must wait for the real fit.
+drm_build_spec_records <- function(specs) {
+  drm_build_node_records(specs)
+}
+
 # Map a predictor token to a node name (or NA if exogenous), excluding `self`.
 drm_match_node <- function(token, records, self) {
   for (nm in names(records)) {

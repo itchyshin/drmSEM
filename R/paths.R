@@ -5,7 +5,16 @@ NULL
 # Map a fitted coefficient name (e.g. "habitatB", "temp:habitatB") back to the
 # structural predictor variable it belongs to, given the component's predictor
 # variable names. Returns the coefficient name itself if no variable matches.
+#
+# The mi() wrapper is stripped first. Predictor names arrive already unwrapped
+# (drm_fixed_predictors rewrites mi(x) -> x) but drmTMB reports the coefficient
+# as "mi(x)", so prefix matching would otherwise run against the wrapper text:
+# "mi(mass)" starts with "m", so a SEM with a node named `m` and an imputed
+# predictor `mass` resolved the mass path onto node m. Ordinary prefix
+# collisions ("hab" vs "habitat") are already handled by the longest-match rule
+# below; only the wrapper defeats it.
 drm_coef_variable <- function(coef_name, preds) {
+  coef_name <- sub("^mi\\(([^)]*)\\)", "\\1", coef_name)
   hits <- preds[vapply(
     preds,
     function(v) {

@@ -10,7 +10,8 @@ drm_sem(
   covariances = NULL,
   composites = NULL,
   feedback = NULL,
-  na_action = c("warn", "common", "fail")
+  na_action = c("warn", "common", "fail"),
+  impute = c("none", "auto")
 )
 }
 \arguments{
@@ -45,6 +46,25 @@ the user asked for: path coefficients come from different row sets and the
 d-separation basis set is tested against yet another. The default warns
 rather than aborting so existing models keep fitting, but it never stays
 silent.}
+
+\item{impute}{Whether to derive missing-predictor imputation models from the
+graph. \code{"none"} (default) leaves missing data to the row-alignment policy
+above. \code{"auto"} derives, for each node with an incomplete \strong{endogenous}
+parent, an imputation model equal to that parent's own node formula and
+family, and passes it to the engine as \code{mi()} + \code{impute_model()}. The user
+never writes an \code{impute_model()}: the causal graph specifies it, so the
+conditioning set is derived rather than guessed, and imputer and analysis
+model come from one graph.
+
+Opt-in by design: imputation asserts a missing-at-random assumption, which
+is the user's call to make, not a silent default.
+
+Because the SEM is piecewise, the downstream node \strong{re-estimates} the
+parent's model inside its own likelihood rather than sharing the parent
+node's estimates. Imputation uncertainty is propagated within a node but
+\strong{not across nodes}; this is a principled imputation, not full-information
+maximum likelihood across the SEM. Inspect what was derived with
+\code{\link[=imputation]{imputation()}}.}
 }
 \value{
 A \code{drm_sem} object.

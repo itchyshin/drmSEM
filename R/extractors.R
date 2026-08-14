@@ -116,12 +116,16 @@ drm_node_vars <- function(fit) {
 #' realized sample is the complete-case set over `drm_node_vars()`. This is the
 #' one place that assumption lives. Columns the node names but `data` does not
 #' carry are ignored here -- fitting reports that far better than we can.
+#'
+#' `exclude` names variables that are imputed rather than dropped: an `mi()`
+#' predictor keeps its rows, so counting its NAs would understate the node's
+#' realized sample.
 #' @return A logical vector of length `nrow(data)`.
 #' @keywords internal
 #' @noRd
-drm_node_rows <- function(fit, data) {
+drm_node_rows <- function(fit, data, exclude = character(0)) {
   data <- as.data.frame(data)
-  vars <- intersect(drm_node_vars(fit), names(data))
+  vars <- setdiff(intersect(drm_node_vars(fit), names(data)), exclude)
   if (!length(vars)) {
     return(rep(TRUE, nrow(data)))
   }
