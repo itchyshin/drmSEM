@@ -222,9 +222,10 @@ drm_apply_imputation <- function(specs, data, impute = "none") {
     )
     cli::cli_inform(c(
       "i" = "Imputation models derived from the graph: {.val {detail}}.",
-      "i" = "Each is the incomplete parent's own node model. Uncertainty is
-             propagated within a node, not across nodes -- see
-             {.code vignette(\"missing-data\")}."
+      "i" = "Each is the incomplete parent's own node model. The downstream node
+             re-estimates it rather than sharing the parent's estimates, so this
+             is not full-information maximum likelihood across the SEM. See
+             {.file docs/design/13-missing-data.md}."
     ))
   }
   specs

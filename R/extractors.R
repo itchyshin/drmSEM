@@ -82,6 +82,51 @@ drm_fit_data <- function(fit) {
   fit$data
 }
 
+#' Borrow an internal drmTMB draw helper by name.
+#'
+#' Realized-value samplers must match `drmTMB::simulate()` exactly, and the
+#' surest way to match a parameterization is to call the engine's own function
+#' rather than restate it. Restating is how `sigma`-to-dispersion mappings drift.
+#' Isolated here because reaching into drmTMB's namespace is precisely the kind
+#' of assumption this file exists to contain.
+#' @return The function, or `NULL` if this drmTMB build does not export it.
+#' @keywords internal
+#' @noRd
+drm_engine_fun <- function(name) {
+  if (!requireNamespace("drmTMB", quietly = TRUE)) {
+    return(NULL)
+  }
+  ns <- asNamespace("drmTMB")
+  if (!exists(name, envir = ns, inherits = FALSE)) {
+    return(NULL)
+  }
+  f <- get(name, envir = ns)
+  if (is.function(f)) f else NULL
+}
+
+#' Binomial denominator of a fitted node, aligned to `n` rows.
+#'
+#' `binomial` and `beta_binomial` model a PROBABILITY in `mu` but have COUNTS as
+#' the response, so both the realized-value sampler and the expected mean need
+#' the number of trials. drmTMB stores it on the fitted model.
+#' @return A numeric vector of length `n`, or `NULL` when unavailable or of a
+#'   length that cannot be aligned (in which case callers must not guess).
+#' @keywords internal
+#' @noRd
+drm_fit_trials <- function(fit, n) {
+  trials <- tryCatch(fit$model$trials, error = function(e) NULL)
+  if (is.null(trials) || !length(trials) || !is.numeric(trials)) {
+    return(NULL)
+  }
+  if (length(trials) == 1L) {
+    return(rep(as.numeric(trials), n))
+  }
+  if (length(trials) == n) {
+    return(as.numeric(trials))
+  }
+  NULL
+}
+
 #' Number of observations a fitted node actually used.
 #' @return A single integer, or `NA_integer_` if the engine will not say.
 #' @keywords internal

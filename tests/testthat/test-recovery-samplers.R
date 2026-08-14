@@ -33,10 +33,22 @@
 #   V-64  p_gt      total_effects(target="p_gt") on a Poisson node matches a
 #                   large-n drmTMB::simulate() empirical
 #
-# UNCONFIRMED (flagged for the live lane, NOT asserted here against
-# drmTMB::simulate): tweedie (drm_sample_family is a documented mean-fallback;
-# only its mean is checked, never its variance), zero_one_beta zoi/coi inflation,
-# and student nu. See test-oq1-samplers.R for the data-moment OQ-1 checks.
+# V-82..V-86 (added 2026-08-14, S1b) extend the same lane to the families the
+# advisory list had gone stale on:
+#   V-82  tweedie       (phi = sigma^2, via the engine's rtweedie_compound)
+#   V-83  skew_normal   (via the engine's rskew_normal_public)
+#   V-84  binomial      COUNTS, not the probability in mu
+#   V-85  beta_binomial COUNTS, not the probability in mu
+#   V-86  anti-drift lock: every family named in
+#         drm_supported_sampler_families() actually draws, and an unnamed one
+#         warns. That vector is advisory (check_sem()'s `sampler` column); the
+#         load-bearing list is the switch() in drm_sample_family(), and this test
+#         is what stops the two diverging again.
+#
+# STILL UNCONFIRMED (flagged for the live lane, NOT asserted against
+# drmTMB::simulate): zero_one_beta zoi/coi inflation, student nu, and
+# cumulative_logit (which needs an engine-level decision about a non-numeric
+# mediator value). See test-oq1-samplers.R for the data-moment OQ-1 checks.
 
 skip_if_not_installed("drmTMB")
 
@@ -140,6 +152,18 @@ expect_sampler_matches_drmTMB <- function(
   }
   if (!is.null(pr$zi) && length(pr$zi) == N) {
     params$zi <- pr$zi
+  }
+  # binomial/beta_binomial need the denominator: mu is a probability but the
+  # response is a count, so without `trials` the two samplers are not even on
+  # the same scale and the comparison would be meaningless rather than failing.
+  #
+  # `trials` is length nobs while the grid is nobs * rep, so it is replicated
+  # HERE, mirroring exactly how `big` was built. drm_fit_trials() deliberately
+  # refuses to recycle: silently stretching a vector to fit is the same class of
+  # bug as the na.omit design-matrix recycling that S5 fixed.
+  tr0 <- drmSEM:::drm_fit_trials(fit, nrow(dat))
+  if (!is.null(tr0)) {
+    params$trials <- rep(tr0, times = rep)
   }
 
   set.seed(seed)
@@ -482,4 +506,141 @@ test_that("V-64: p_gt on a Poisson node matches a drmTMB::simulate() empirical",
   )
   expect_equal(te$target[[1L]], "p_gt")
   expect_equal(te$estimate, pgt_truth, tolerance = 0.02)
+})
+
+# ---------------------------------------------------------------------------
+# (C) Families admitted 2026-08-14 (S1b). Each one gets a moment test BEFORE it
+# is added to drm_supported_sampler_families() -- widening the vector without
+# evidence is what made that list stale in the first place.
+#
+# The parameterizations are not restated here or in R/: drm_sample_family()
+# calls drmTMB's own generators (rtweedie_compound, rskew_normal_public,
+# drm_beta_shapes), so a mapping cannot drift between the two packages. These
+# tests confirm the wiring, which is the part that CAN break.
+
+test_that("V-82: tweedie sampler mean+var match drmTMB::simulate() (phi=sigma^2)", {
+  skip_on_cran()
+  set.seed(60)
+  n <- 1200
+  x <- stats::rnorm(n)
+  mu <- exp(0.8 + 0.4 * x)
+  # Compound Poisson-Gamma draw at power 1.5, via the engine's own generator.
+  rtw <- drmSEM:::drm_engine_fun("rtweedie_compound")
+  skip_if(is.null(rtw), "drmTMB build has no rtweedie_compound()")
+  y <- rtw(n, mu = mu, phi = 1.2, power = 1.5)
+  fit <- tryCatch(
+    drmTMB::drmTMB(drmTMB::bf(y ~ x), family = drmTMB::tweedie(),
+                   data = data.frame(x = x, y = y)),
+    error = function(e) NULL
+  )
+  skip_if(is.null(fit), "tweedie fit did not converge in this environment")
+  expect_sampler_matches_drmTMB("tweedie", fit, var_rtol = 0.30)
+})
+
+test_that("V-83: skew_normal sampler mean+var match drmTMB::simulate()", {
+  skip_on_cran()
+  set.seed(61)
+  n <- 1500
+  x <- stats::rnorm(n)
+  rsn <- drmSEM:::drm_engine_fun("rskew_normal_public")
+  skip_if(is.null(rsn), "drmTMB build has no rskew_normal_public()")
+  y <- rsn(n, mu = 1 + 0.5 * x, sigma = rep(1, n), nu = rep(2, n))
+  fit <- tryCatch(
+    drmTMB::drmTMB(drmTMB::bf(y ~ x), family = drmTMB::skew_normal(),
+                   data = data.frame(x = x, y = y)),
+    error = function(e) NULL
+  )
+  skip_if(is.null(fit), "skew_normal fit did not converge in this environment")
+  expect_sampler_matches_drmTMB("skew_normal", fit, var_rtol = 0.25)
+})
+
+test_that("V-84: binomial sampler returns COUNTS, matching drmTMB::simulate()", {
+  skip_on_cran()
+  set.seed(62)
+  n <- 1500
+  size <- 10L
+  x <- stats::rnorm(n)
+  y <- stats::rbinom(n, size = size, prob = stats::plogis(0.3 + 0.6 * x))
+  d <- data.frame(x = x, y = y, n_trials = size)
+  fit <- tryCatch(
+    drmTMB::drmTMB(drmTMB::bf(cbind(y, n_trials - y) ~ x),
+                   family = stats::binomial(), data = d),
+    error = function(e) NULL
+  )
+  skip_if(is.null(fit), "binomial fit not available in this environment")
+  # The pre-fix defect: mu is a probability on (0,1) while the response is a
+  # count out of `size`. A mean near 0..1 instead of near size*p is the bug.
+  tr <- drmSEM:::drm_fit_trials(fit, n)
+  skip_if(is.null(tr), "no trials recoverable from this binomial fit")
+  expect_sampler_matches_drmTMB("binomial", fit, var_rtol = 0.25)
+})
+
+test_that("V-85: beta_binomial sampler returns COUNTS, matching drmTMB::simulate()", {
+  skip_on_cran()
+  set.seed(63)
+  n <- 1500
+  size <- 12L
+  x <- stats::rnorm(n)
+  p <- stats::rbeta(n, shape1 = 3, shape2 = 3)
+  y <- stats::rbinom(n, size = size, prob = p)
+  d <- data.frame(x = x, y = y, n_trials = size)
+  fit <- tryCatch(
+    drmTMB::drmTMB(drmTMB::bf(cbind(y, n_trials - y) ~ x),
+                   family = drmTMB::beta_binomial(), data = d),
+    error = function(e) NULL
+  )
+  skip_if(is.null(fit), "beta_binomial fit not available in this environment")
+  skip_if(is.null(drmSEM:::drm_fit_trials(fit, n)), "no trials recoverable")
+  expect_sampler_matches_drmTMB("beta_binomial", fit, var_rtol = 0.30)
+})
+
+# Reset the once-per-session warning sentinel so a test can observe the warning.
+# `drmSEM:::env[[k]] <- NULL` is not a valid assignment target; bind the env first.
+reset_sampler_warning <- function(family) {
+  wenv <- drmSEM:::drm_warn_once_env
+  key <- paste0("family-sampler-", family)
+  if (!is.null(wenv[[key]])) {
+    rm(list = key, envir = wenv)
+  }
+  invisible(NULL)
+}
+
+test_that("V-86: the advisory list cannot drift from the actual samplers", {
+  # drm_supported_sampler_families() is advisory -- its only consumer is
+  # check_sem()'s `sampler` column -- while the load-bearing list is the
+  # switch() in drm_sample_family(). Widening one without the other would make
+  # check_sem() report TRUE for a family that still mean-falls-back. This test
+  # is what makes that impossible.
+  n <- 50L
+  params <- list(
+    mu = rep(0.4, n), sigma = rep(0.5, n), nu = rep(1.5, n),
+    trials = rep(10, n), zoi = NULL
+  )
+  for (fam in drmSEM:::drm_supported_sampler_families()) {
+    reset_sampler_warning(fam)
+    expect_no_warning(
+      drmSEM:::drm_sample_family(fam, params, n),
+      message = paste("family claimed as supported but fell back:", fam)
+    )
+  }
+  # And the converse: a family with no branch must warn rather than silently
+  # returning its mean.
+  reset_sampler_warning("not_a_family")
+  expect_warning(
+    drmSEM:::drm_sample_family("not_a_family", params, n),
+    "No realized-value sampler"
+  )
+})
+
+test_that("V-84b: a binomial mediator without trials warns instead of returning a probability", {
+  n <- 40L
+  params <- list(mu = rep(0.4, n), sigma = rep(0.5, n))
+  reset_sampler_warning("binomial")
+  expect_warning(
+    out <- drmSEM:::drm_sample_family("binomial", params, n),
+    "No realized-value sampler"
+  )
+  # It falls back rather than fabricating counts -- but it must SAY so, which is
+  # the whole point: silence here is the units bug.
+  expect_length(out, n)
 })

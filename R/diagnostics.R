@@ -5,13 +5,23 @@ NULL
 # Families drmSEM has realized-value samplers for (distribution-mediated effects
 # are fully supported only for these). Others fall back to mean propagation.
 drm_supported_sampler_families <- function() {
-  # zero_one_beta is listed: its continuous (beta) part is drmTMB-confirmed and it
-  # degrades to a plain beta draw when zoi/coi are absent (the zoi/coi inflation
-  # mapping is the only unconfirmed piece; see drm_sample_family). tweedie is
-  # deliberately omitted -- it has no realized-value sampler and falls back to mean.
+  # This vector is ADVISORY -- its only consumer is check_sem()'s `sampler`
+  # column. The load-bearing list is the switch() in drm_sample_family(), so
+  # widening this one alone would make check_sem() LIE about a family that still
+  # mean-falls-back. test-recovery-samplers.R locks the two together by asserting
+  # that every family named here actually draws, and that an unnamed one warns.
+  #
+  # zero_one_beta is listed: its continuous (beta) part is drmTMB-confirmed and
+  # it degrades to a plain beta draw when zoi/coi are absent (the zoi/coi
+  # inflation mapping is the only unconfirmed piece; see drm_sample_family).
+  #
+  # binomial and beta_binomial are listed but are conditional: they need
+  # `trials`, and without it drm_sample_family() warns and falls back rather
+  # than returning a probability where a count is required.
   c(
     "gaussian",
     "student",
+    "skew_normal",
     "lognormal",
     "Gamma",
     "gamma",
@@ -19,7 +29,10 @@ drm_supported_sampler_families <- function() {
     "nbinom2",
     "truncated_nbinom2",
     "beta",
-    "zero_one_beta"
+    "zero_one_beta",
+    "tweedie",
+    "binomial",
+    "beta_binomial"
   )
 }
 

@@ -102,17 +102,29 @@ The user never writes an `impute_model()`.
 
 1. **The conditioning set is derived, not guessed.** Choosing the imputation
    model is normally the error-prone step, governed by folklore ("include the
-   outcome", "include everything"). The DAG gives `m`'s parents directly.
-2. **Congeniality becomes checkable.** Imputer and analysis model are derived
-   from one graph, so the usual uncongeniality risk between a separately
-   specified imputer and analyst is structurally reduced.
+   outcome", "include everything"). The DAG gives `m`'s parents directly. This
+   one is mechanical and is what V-77 tests.
+2. **A congeniality argument — argued, not measured.** Imputer and analysis model
+   are derived from one graph, which should reduce the uncongeniality risk
+   between a separately specified imputer and analyst (Meng 1994). **No test in
+   this package measures congeniality and nothing in the code checks it**; it
+   carries no V-number. Treat it as a design rationale, not a validated claim,
+   until someone builds the comparison against a deliberately uncongenial
+   imputer.
 
 ### Honest limits — these ship in the docs
 
 - **Not FIML across the SEM.** Piecewise means node `y` **re-estimates** `m`'s
   model inside its own likelihood; it does not share node `m`'s estimates. The
-  two will not agree exactly. Imputation uncertainty is propagated *within* each
-  node (by drmTMB's joint Hessian) but **not across nodes**.
+  two will not agree exactly. Uncertainty is **not** propagated across nodes —
+  that part is structural and certain.
+
+  The complementary half — that imputation uncertainty *is* propagated **within**
+  a node via drmTMB's joint Hessian — is a statement about the **engine**, and
+  drmSEM has **no test of its own** backing it. It is also version-sensitive:
+  `imputed()$std_error` semantics changed between drmTMB 0.6.0 and 0.7.0 (see
+  the version note below). Treat it as the engine's documented behaviour, not as
+  something this package has verified.
 - **Opt-in.** Imputation asserts a missing-at-random assumption. That is the
   user's call, not a silent default, so `impute = "none"` is the default.
 - **Only endogenous parents.** An incomplete *exogenous* predictor has no node

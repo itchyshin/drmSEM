@@ -1303,6 +1303,57 @@ Incidental find, fixed because S6 makes it reachable: `paths()` resolved
 coefficient names by prefix, and `"mi(mass)"` starts with `"m"`.
 
 Reported, not fixed (out of scope): the `cli_progress_step` success line prints
-the *next* node's name; `check_sem()` still has no test of its own; and
+the *next* node's name; `check_sem()` is now covered only for its `nobs`
+column and the rest of it still has no test; and
 `drm_nominal_link()` silently gives `skew_normal` and the bivariate families
 `"identity"`.
+
+## 2026-08-14 (cont.) — Claude: S1b, the stale sampler list
+
+Closed the item the earlier entry left open. The stale vector in `R/diagnostics.R`
+claimed ten families and asserted "tweedie … has no realized-value sampler".
+
+**The comment was wrong about the engine, not about us.** `simulate.drmTMB` draws
+`rtweedie_compound(n, mu, phi = sigma^2, power = nu)` — the `sigma`-to-phi
+mapping the TODO named as its blocker is written in the engine's own source. The
+answer had been sitting there the whole time; nobody had read it.
+
+**What made this more than a list edit.** The vector is advisory: its only
+consumer is `check_sem()`'s `sampler` column. The load-bearing list is the
+`switch()` in `drm_sample_family()`. Widening the vector alone would have made
+`check_sem()` report `TRUE` for a family that still mean-falls-back — turning a
+visible limitation into an invisible wrong number, which is worse than the bug.
+So V-86 now asserts the two agree in both directions.
+
+**`binomial`/`beta_binomial` turned out to be a units bug**, not a missing
+feature: both put a probability in `mu` while the response is a count, so the
+mean fallback handed downstream nodes a value on (0,1) where they were fitted on
+counts. `drm_family_expected_mean()` had the same defect, so `mediation = "mean"`
+was affected too — the fix was not confined to the distributional path.
+
+**Deliberate choice: borrow, don't restate.** The new branches call drmTMB's own
+generators rather than reimplementing the parameterizations, so a mapping cannot
+drift between the packages. Restating is how these drift; that is the whole
+lesson of the stale comment.
+
+**A near-miss worth recording.** The first run of V-84/V-85 failed with drmSEM's
+mean at 0.57 against the engine's 5.71 — the units bug, still live, because
+`drm_fit_trials()` returned NULL: `trials` has length `nobs` while the test grid
+replicates each row 200 times. The tempting fix was to let the extractor recycle.
+That is *exactly* the silent-recycling class S5 had just fixed, so the extractor
+still refuses to stretch a vector and the replication happens in the test
+harness, mirroring how the grid was built.
+
+Also corrected two claims this arc had made false: `capability-status.md` said
+`check_sem()` had zero test coverage (the `nobs` column is now covered; the rest
+is not), and it repeated the stale sampler list to users. And removed a shipped
+`vignette("missing-data")` pointer from `imputation()`'s runtime message — that
+vignette does not exist; it now points at `docs/design/13-missing-data.md`. The
+suite could not catch it because the tests wrap those fits in `suppressMessages()`.
+
+Two claims were demoted rather than defended: the congeniality argument and the
+"uncertainty is propagated within a node by drmTMB's joint Hessian" statement are
+now labelled as argument and as engine behaviour respectively, because neither
+carries a drmSEM test.
+
+Suite: 818 pass / 0 fail / 3 skip / 10 warn.

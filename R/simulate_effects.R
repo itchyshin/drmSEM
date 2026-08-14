@@ -95,26 +95,66 @@ drm_sample_family <- function(family, params, n) {
       }
       cont
     },
-    # tweedie: a compound Poisson-Gamma draw is well-defined only when the power
-    # 1 < p < 2 AND the dispersion phi are known on the response scale. drmTMB
-    # exposes the power, but the mapping from its SD-like `sigma` to the tweedie
-    # dispersion phi is not yet confirmed against a live fit, so we cannot safely
-    # parameterize the Gamma jumps. Per the "mean-fallback over a guessed
-    # sampler" rule we fall through to the mean below (with drm_warn_once).
-    # TODO(live-drmTMB): confirm phi <-> sigma for tweedie (compound Poisson:
-    #   lambda = mu^(2-p) / (phi*(2-p)); jump ~ Gamma(shape=(2-p)/(p-1),
-    #   scale=phi*(p-1)*mu^(p-1))), then enable a sampler gated on params$power
-    #   (or params$nu) holding 1 < p < 2. Until then, mean fallback.
-    {
-      drm_warn_once(
-        paste0("family-sampler-", family),
-        cli::format_inline(
-          "No realized-value sampler for family {.val {family}}; using its mean."
-        )
-      )
-      mu
-    }
+    # tweedie: the blocker recorded here was the sigma <-> dispersion mapping.
+    # It is answered by the engine itself -- simulate.drmTMB draws
+    # rtweedie_compound(n, mu, phi = sigma^2, power = nu) -- so rather than
+    # restate that mapping (which is how such mappings drift), call the engine's
+    # own generator. If this drmTMB build does not expose it, fall through to the
+    # documented mean fallback rather than guessing.
+    tweedie = {
+      rtw <- drm_engine_fun("rtweedie_compound")
+      power <- params$nu %||% params$power
+      if (is.null(rtw) || is.null(power)) {
+        NULL
+      } else {
+        rtw(n, mu = pmax(mu, 1e-8), phi = pmax(sigma, 1e-8)^2, power = power)
+      }
+    },
+    skew_normal = {
+      rsn <- drm_engine_fun("rskew_normal_public")
+      if (is.null(rsn) || is.null(params$nu)) {
+        NULL
+      } else {
+        rsn(n, mu = mu, sigma = sigma, nu = params$nu)
+      }
+    },
+    # binomial / beta_binomial model a PROBABILITY in mu but have COUNTS as the
+    # response. Returning mu here would hand a downstream node a value on (0,1)
+    # where it was fitted on counts -- off by one to two orders of magnitude. So
+    # these need `trials`, and without it we must NOT draw at all.
+    binomial = {
+      if (is.null(params$trials)) {
+        NULL
+      } else {
+        stats::rbinom(n, size = round(params$trials), prob = pmin(pmax(mu, 0), 1))
+      }
+    },
+    beta_binomial = {
+      shapes <- drm_engine_fun("drm_beta_shapes")
+      if (is.null(params$trials) || is.null(shapes)) {
+        NULL
+      } else {
+        native <- shapes(mu, sigma)
+        p <- stats::rbeta(n, shape1 = native$shape1, shape2 = native$shape2)
+        stats::rbinom(n, size = round(params$trials), prob = p)
+      }
+    },
+    NULL
   )
+  # A NULL here means either "no branch for this family" or "the branch exists
+  # but its required input (trials, power, an engine helper) was unavailable".
+  # Both are the same promise to the user: we did not guess.
+  if (is.null(base)) {
+    drm_warn_once(
+      paste0("family-sampler-", family),
+      cli::format_inline(
+        "No realized-value sampler for family {.val {family}}; using its mean."
+      )
+    )
+    # Deliberately raw `mu`, not drm_family_expected_mean(): that helper applies
+    # the zero-inflation adjustment, which the block below applies again.
+    base <- mu
+  }
   # zero-inflation: with probability zi the structural zero replaces the draw
   if (any(zi > 0)) {
     is_zero <- stats::runif(n) < zi
@@ -135,6 +175,24 @@ drm_family_expected_mean <- function(family, params) {
   out <- switch(
     family,
     lognormal = exp(mu + 0.5 * sigma^2),
+    # binomial / beta_binomial put a PROBABILITY in mu and COUNTS in the
+    # response, so the expected response is trials * mu. Without `trials` we
+    # cannot convert; returning mu would hand a downstream node a value on (0,1)
+    # where it was fitted on counts. This affects mediation = "mean" too, not
+    # just distributional propagation.
+    binomial = ,
+    beta_binomial = if (is.null(params$trials)) {
+      drm_warn_once(
+        paste0("family-mean-trials-", family),
+        cli::format_inline(
+          "No {.field trials} available for family {.val {family}}; its mean is
+           reported as a probability, not a count."
+        )
+      )
+      mu
+    } else {
+      params$trials * mu
+    },
     mu
   )
   if (any(zi > 0)) {
@@ -200,6 +258,14 @@ drm_engines_from_sem <- function(object) {
           out[[cc]] <- drm_inv_link(links_l[[cc]], eta)
         }
         out$.row <- NULL
+        # `trials` is a model constant, not a dpar, but binomial/beta_binomial
+        # samplers and means both need it to return counts rather than
+        # probabilities. Carried alongside the components so the family helpers
+        # see one uniform `params` object.
+        tr <- drm_fit_trials(fit_l, nrow(scenario))
+        if (!is.null(tr)) {
+          out$trials <- tr
+        }
         out
       }
       engines[[nm]] <<- list(

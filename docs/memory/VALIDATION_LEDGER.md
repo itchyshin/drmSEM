@@ -650,3 +650,46 @@ guard firing on a claim whose augmented refit changed the sample size.
 and 2. Cross-node uncertainty propagation: does not exist by construction — the
 downstream node re-estimates the parent's model rather than sharing its
 estimates, so this is a principled imputation, never FIML across the SEM.
+
+## 2026-08-14 — S1b: un-staling the realized-value sampler list
+
+The stale vector at `R/diagnostics.R` claimed ten families and asserted "tweedie
+… has no realized-value sampler". Both halves were wrong, and the second was
+wrong about the ENGINE rather than about drmSEM: `simulate.drmTMB` draws
+`rtweedie_compound(n, mu, phi = sigma^2, power = nu)`, so the `sigma`-to-phi
+mapping the comment named as the blocker was answered in the engine's own source.
+
+**The important structural point:** that vector is ADVISORY — its only consumer
+is `check_sem()`'s `sampler` column. The load-bearing list is the `switch()` in
+`drm_sample_family()`. Widening the vector alone would have made `check_sem()`
+report `TRUE` for a family that still mean-falls-back, i.e. converted a visible
+limitation into an invisible wrong number.
+
+- **V-82 tweedie.** Mean and variance match `drmTMB::simulate()`. **Validated.**
+- **V-83 skew_normal.** Same. **Validated.**
+- **V-84 binomial / V-85 beta_binomial.** Same, and these were a **units bug**
+  rather than a missing feature: `mu` is a probability while the response is a
+  count, so the previous mean fallback returned a value on (0,1) to a downstream
+  node fitted on counts. `drm_family_expected_mean()` had the identical defect,
+  so `mediation = "mean"` was affected too. Both now use the fitted `trials`.
+  **Validated**, conditional on `trials` being recoverable; V-84b asserts that
+  without it drmSEM warns rather than returning a probability.
+- **V-86 anti-drift lock.** Every family named in
+  `drm_supported_sampler_families()` is asserted to actually draw, and an
+  unnamed family to warn. This is what stops the vector going stale again.
+  **Validated** (15 assertions).
+
+**Not restated, deliberately.** The new branches call drmTMB's own generators
+(`rtweedie_compound`, `rskew_normal_public`, `drm_beta_shapes`) rather than
+reimplementing them, so a parameterization cannot drift between the packages.
+The tests confirm the wiring, which is the part that can break.
+
+**Still mean-fallback, declared not hidden:** `cumulative_logit` (needs an
+engine-level decision about a non-numeric mediator value), the bivariate
+families, `zero_one_beta` zoi/coi inflation, and student `nu`. Also unaddressed:
+`hu` is documented in `drm_sample_family()`'s roxygen but never read, so a
+`hurdle_nbinom2` mediator's hurdle zeros are absent while `nbinom2` reports as
+fully supported — drmTMB folds zi/hurdle into `model_type` while drmSEM keys on
+the family NAME, so the list cannot express the distinction at all.
+
+Suite: 818 pass / 0 fail / 3 skip / 10 warn (was 793 / 0 / 3 / 10).
