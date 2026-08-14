@@ -45,6 +45,29 @@ and Fisher's C settings remain claim-scoped until separately calibrated.
 Remaining live-engine work: the standardization `sigma_E` refinement, V-7
 live-fit analytic-effect tier flip, and OQ-14 joint fit.
 
+## Missing data — PARTIAL (row-alignment policy and graph-derived imputation shipped 0.5.x)
+
+Previously absent from this roadmap entirely, which is how drmSEM reached 0.5.0
+with no missing-data policy at all. See `13-missing-data.md`.
+
+- **Shipped:** `drm_sem(na_action = )` (`"warn"` / `"common"` / `"fail"`), so a
+  piecewise SEM describes one sample rather than several silently; `nobs`
+  reporting through `attr(x, "alignment_issues")`, `print()` and `check_sem()`;
+  a `"n_mismatch"` d-separation status so an invalid likelihood ratio cannot
+  enter Fisher's C.
+- **Shipped:** `drm_sem(impute = "auto")` — each incomplete **endogenous**
+  parent's imputation model is derived from its own node formula and family and
+  handed to the engine as `mi()` + `impute_model()`. Reported by `imputation()`.
+- **Open, engine-dependent:** general graphs need drmTMB Issue 2 (more than one
+  `mi()` term per fit) and Issue 1 (widen the response-family gate beyond
+  gaussian/poisson/binomial/nbinom2/beta). Until then a node with two incomplete
+  parents aborts with that reason. See `../memory/DRMTMB_ISSUES.md`.
+- **Open, drmSEM-side:** incomplete **exogenous** predictors have no node model
+  in the graph, so the graph cannot specify their imputation model; they remain
+  governed by `na_action`.
+- **Won't do:** full-information Bayesian imputation inside a joint model. That
+  requires drmSEM to fit its own likelihood, which the charter forbids.
+
 ## 0.3 — Latent variables
 
 - Allow a node to load on a latent construct (composite or reflective), bridging

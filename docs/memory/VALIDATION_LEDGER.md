@@ -588,3 +588,65 @@ gap.
   blocker is external/dependency policy: `DESCRIPTION` still needs `Remotes:` for
   GitHub-only `drmTMB` and `symbolizer`, so CRAN submission waits until those
   dependencies are CRAN-acceptable or the dependency strategy changes.
+
+## 2026-08-14 — Missing data: row alignment (S5) and graph-derived imputation (S6)
+
+Two claims, in dependency order. Design record: `docs/design/13-missing-data.md`.
+Suite went 745 -> 793 passing, 0 failing, 3 skips throughout.
+
+### S5 — row alignment (correctness fix, no V-number: it is a defect closure)
+
+drmSEM had no missing-data policy anywhere in `R/`. Nodes could be fitted on
+different samples silently, and `drm_fixed_design()` built its design with
+`model.matrix()` under `na.action = na.omit`, returning fewer rows than requested.
+
+**The dangerous half was not the error.** When `nrow(newdata)` was an exact
+multiple of the complete-case count (300 against 150), R recycled **silently**
+into a scrambled design matrix — a wrong number with no condition raised. A test
+asserting only "does not error" would have passed against that bug, so
+`test-missing-data.R` asserts the recycling case explicitly: 300 rows in, 300
+rows out, 150 NA.
+
+Status: **validated** for the tested cases — 9 tests / 25 assertions covering all
+three `na_action` values, the unmodelled-column case (columns no node models must
+not cost rows), `check_sem()`'s `nobs` column, the effect engine completing where
+it previously raised a raw subscript error, and the d-separation `"n_mismatch"`
+guard firing on a claim whose augmented refit changed the sample size.
+
+### S6 — imputation models derived from the graph
+
+- **V-77 (load-bearing).** The auto-derived fit is **numerically identical** to
+  the hand-written `impute = list(m = impute_model(m ~ x))` fit, to all printed
+  digits (`-0.00026406 / 0.6432292 / 0.2455947` both ways). Following the house
+  rule, this compares a public output against quantities recomputed from the same
+  fit rather than against a hand formula, so a wrong derivation cannot hide
+  behind good-looking recovery. **Validated.**
+- **V-78.** Bias reduction under **outcome-dependent** missingness, replicated
+  across four seeds (n = 600, ~313 complete rows). Single-seed illustration:
+
+  | | intercept | `m` (truth 0.60) | `x` (truth 0.30) |
+  |---|---|---|---|
+  | complete-case | −0.194 | 0.513 | 0.274 |
+  | graph-derived | 0.000 | 0.643 | 0.246 |
+
+  **Scope of the claim, stated narrowly:** "recovers the intercept and reduces
+  mediator-coefficient bias under outcome-dependent missingness" — *not* "beats
+  complete-case". It is slightly **worse** on `x`, which is reported rather than
+  buried. Also note an MCAR fixture would show nothing at all (complete-case is
+  already unbiased there); the first pre-run test used MCAR and returned
+  0.656/0.263 against complete-case 0.656/0.263, i.e. plumbing evidence only.
+  **Validated for the MAR-on-outcome Gaussian chain**, not generalized.
+- **V-79.** Two incomplete parents abort with the engine's one-`mi()`-per-fit
+  limit named. **Validated.**
+- **V-80.** drmSEM's response allow-list is locked to
+  `drmTMB:::drm_missing_predictor_families()` by an anti-drift test, mirroring
+  drmTMB's own `test-missing-data-capability-gate.R`, so loosening one without
+  the other fails here rather than deep inside the engine. **Validated.**
+- **V-81.** `mi()` coefficient names resolve to the correct node. Pre-fix,
+  `"mi(mass)"` starts with `"m"`, so a SEM with a node named `m` resolved the
+  `mass` path onto it. **Validated** (unit-level).
+
+**Not claimed.** Generality beyond a Gaussian chain: blocked by drmTMB Issues 1
+and 2. Cross-node uncertainty propagation: does not exist by construction — the
+downstream node re-estimates the parent's model rather than sharing its
+estimates, so this is a principled imputation, never FIML across the SEM.

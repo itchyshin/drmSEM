@@ -179,3 +179,46 @@ riding alongside. Items 7–9 are separate asks, not part of that lane.
   tweedie has no sampler. **That is a drmSEM-side staleness, not an engine gap** — no ask.
 - `categorical()` is **not** a fitted response family (see item 8). An earlier drmSEM
   audit note treating it as one was wrong.
+
+## ✎ Evidence update — 2026-08-14 (drmSEM now consumes the subsystem)
+
+`drm_sem(impute = "auto")` shipped: drmSEM derives each incomplete endogenous
+parent's imputation model from the DAG and emits `mi()` + `impute_model()`.
+Items 1, 2 and 3 above now carry a **working prototype plus a precise failure
+point**, which is the evidence they were waiting for.
+
+**Item 2 (more than one `mi()` per fit) — confirmed as the binding constraint.**
+Verified against installed drmTMB 0.6.0: the check is
+`length(mi_calls) != 1L`, a hard `cli_abort`, never take-first, and `impute` must
+additionally be a one-element named list. drmSEM now aborts *before* reaching the
+engine when a node has two incomplete parents, naming the limit — but the abort
+is real user-facing behaviour, not a hypothetical: `y ~ m1 + m2 + x` with both
+mediators incomplete is an ordinary ecological graph. **This is the ask that
+blocks generality; everything else is reachable.**
+
+**Item 1 (widen the response gate) — scoped precisely.** The gate is
+`drm_missing_predictor_families()` = `gaussian, poisson, binomial, nbinom2, beta`
+(in `R/missing-data.R`; the `R/drmTMB.R:325-327` reference in the 2026-08-09
+message is a stale side-branch line number). A second, tighter gate applies: the
+four non-Gaussian responses admit only a **binary** missing predictor. drmSEM
+mirrors both rules and locks its copy to the engine's list with an anti-drift
+test, so promoting a family upstream and forgetting drmSEM will fail loudly on
+our side rather than silently.
+
+**Item 3 (reuse a mediator's node model as its predictor model) — answered in
+practice, option (b).** drmSEM constructs the predictor model from the parent
+node's formula and family. It does **not** share estimates: the downstream node
+re-estimates that model inside its own likelihood. So option (b) is now
+implemented and documented, and the honest cost is stated — imputation
+uncertainty propagates within a node, not across nodes. Option (a) (accepting a
+fitted `drmTMB` object) would remove that re-estimation, and is worth discussing;
+but (c) is no longer the fallback, because (b) demonstrably works.
+
+**Item 4 (`imputed()` standard errors) — the ask has partly landed upstream, and
+this changes what downstreams must do.** On installed 0.6.0 every non-Gaussian
+route returns `std_error = NA`. On `origin/main` 0.7.0 most routes compute a
+posterior SD and only `conditional_modal_category` returns `NA`, with a new sixth
+`uncertainty_status` level `"route_conditional_se_unavailable"`. **Consumers must
+branch on `uncertainty_status`, never on `is.na(std_error)`** — a version-sensitive
+`is.na()` test would silently change meaning across the 0.6/0.7 boundary. Worth
+noting in the issue so other downstreams do not encode the 0.6.0 behaviour.

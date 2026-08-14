@@ -1255,3 +1255,54 @@ Reduced CRAN hygiene blockers by adding `cph` to `Authors@R` and switching
 pkgdown URLs to non-redirecting trailing-slash forms; `Remotes:` remains the
 external CRAN blocker until `drmTMB` and `symbolizer` are CRAN-acceptable or the
 dependency strategy changes.
+
+## 2026-08-14 — Claude: row alignment, then imputation derived from the graph
+
+Resumed the lane from `docs/memory/2026-08-14-claude-handover.md`. Reconciliation
+first: the handover's two "unpushed commits" and its open PR had both resolved
+themselves (a peer session ran `git pull --rebase --autostash` and pushed
+mid-session, and PR #42 merged), and the 23 uncommitted files turned out to be
+identifiable — the `AGENT_LOG` diff self-identified them as the 2026-06-11 Codex
+maturity-blocker pass. Per D-60 a dirty tree here is a PRIOR session's work to be
+reconciled, not a concurrent editor to tiptoe around, so they were landed as two
+commits (the arc, then the unrelated `AGENTS.md` hub pointer) after verifying the
+tree was green.
+
+Then S5 and S6 from `~/.claude/plans/warm-launching-crane.md`.
+
+**S5 mattered more than its description.** The handover framed it as "one frame
+goes to every node", which is true, but the actual defect was one level down in
+`drm_fixed_design()`: `model.matrix()` honours `na.action = na.omit`, so the
+design matrix came back short. The reported crash was the *lucky* case — when the
+row counts divided evenly R recycled silently and returned a scrambled matrix.
+Fixing only the crash would have left the worse bug, so the regression test
+asserts the recycling case directly.
+
+**S6 was chosen over the plan's named flagship (S2, m-separation), on evidence.**
+The vault note `drmSEM vs because — orthogonal extensions of piecewise SEM, not a
+scoop` establishes that `because` already ships m-separation, so S2 is parity on
+a competitor's axis; `because`'s imputation is joint and Bayesian, so the
+imputation model is never a separately identified object and it structurally
+cannot make S6's claim.
+
+**Two things the pre-run test changed before any code was written.** (1) The
+first fixture was MCAR, where complete-case is already unbiased — it showed
+plumbing and nothing else. The recovery test had to be MAR-on-the-outcome. (2)
+The method is slightly *worse* on the `x` coefficient, so the claim was narrowed
+to the intercept and the mediator coefficient rather than "beats complete-case".
+Running the pre-run test cost about two minutes and rewrote the acceptance
+criteria; skipping it would have produced a confident, unconvincing demo.
+
+**What exploration saved.** The `...` passthrough on `drm_node()` already reaches
+`drmTMB()`, so no plumbing was needed; and the `drm_fit_*` extractors are
+duck-typed on `$formula`/`$family`, so they run on unfitted specs. That matters
+because `drm_sem()` fits in argument order, not topological order — the pre-fit
+spec route was the only simple one.
+
+Incidental find, fixed because S6 makes it reachable: `paths()` resolved
+coefficient names by prefix, and `"mi(mass)"` starts with `"m"`.
+
+Reported, not fixed (out of scope): the `cli_progress_step` success line prints
+the *next* node's name; `check_sem()` still has no test of its own; and
+`drm_nominal_link()` silently gives `skew_normal` and the bivariate families
+`"identity"`.
