@@ -82,6 +82,79 @@ drm_fit_data <- function(fit) {
   fit$data
 }
 
+#' Grouping columns within which `var` takes a single value.
+#'
+#' A d-separation claim is tested on the flattened data frame, one row per
+#' observation. When the claim's variable actually varies at a COARSER scale --
+#' a species-level trait repeated down to individuals, say -- the likelihood
+#' ratio sees one row per individual while the variable carries only as much
+#' information as there are groups. The test then rejects a TRUE independence,
+#' because a chance group-level correlation is credited with n = rows of evidence.
+#'
+#' This finds the candidate groupings: factor/character columns of `data`, with
+#' fewer levels than rows, within which `var` is constant.
+#' @return A data frame of `group` and `n_groups`, zero rows when the variable
+#'   varies within every candidate grouping (i.e. it is at row scale).
+#' @keywords internal
+#' @noRd
+drm_coarser_scales <- function(var, data) {
+  empty <- data.frame(
+    group = character(0), n_groups = integer(0), stringsAsFactors = FALSE
+  )
+  data <- as.data.frame(data)
+  if (!var %in% names(data)) {
+    return(empty)
+  }
+  v <- data[[var]]
+  rows <- list()
+  for (nm in setdiff(names(data), var)) {
+    g <- data[[nm]]
+    if (!is.factor(g) && !is.character(g)) {
+      next
+    }
+    lv <- length(unique(g))
+    if (lv <= 1L || lv >= nrow(data)) {
+      next
+    }
+    # constant within every level => the variable lives at this coarser scale
+    per <- tapply(v, g, function(x) length(unique(x[!is.na(x)])))
+    if (all(per <= 1L, na.rm = TRUE)) {
+      rows[[length(rows) + 1L]] <- data.frame(
+        group = nm, n_groups = as.integer(lv), stringsAsFactors = FALSE
+      )
+    }
+  }
+  if (!length(rows)) {
+    return(empty)
+  }
+  do.call(rbind, rows)
+}
+
+#' Grouping factors a fitted node already accounts for, as bare names.
+#' @keywords internal
+#' @noRd
+drm_fit_grouping_vars <- function(fit) {
+  entries <- tryCatch(drm_fit_entries(fit), error = function(e) NULL)
+  if (is.null(entries)) {
+    return(character(0))
+  }
+  out <- character(0)
+  for (e in entries) {
+    rhs <- e$rhs
+    if (is.null(rhs)) {
+      next
+    }
+    txt <- paste(deparse(rhs), collapse = " ")
+    # bar terms: (1 | g), (x | g), relmat(1 | g, ...), phylo(1 | g, ...)
+    m <- gregexpr("\\|[[:space:]]*([A-Za-z._][A-Za-z0-9._]*)", txt)
+    hits <- regmatches(txt, m)[[1]]
+    if (length(hits)) {
+      out <- c(out, sub("^\\|[[:space:]]*", "", hits))
+    }
+  }
+  unique(out)
+}
+
 #' The engine's `model_type` for a fitted node.
 #'
 #' drmTMB folds zero-inflation and the hurdle into `model_type` while leaving

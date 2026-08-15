@@ -185,6 +185,21 @@ drm_add_column <- function(v, object) {
 #'   added variable has missing values, so the likelihood ratio would compare two
 #'   different samples), or `"degenerate"` (non-nested or non-finite). Only
 #'   `"ok"` claims enter Fisher's C.
+#'
+#'   Two further columns report the claim's **scale**. `n_effective` and
+#'   `scale_group` are `NA` when the claim's variable varies row by row. When it is
+#'   constant within a grouping the node does not already model -- a species-level
+#'   trait repeated down to individuals, say -- they name that grouping and its
+#'   number of levels, and `dsep()` warns.
+#'
+#'   That situation matters because the likelihood ratio treats every row as
+#'   independent evidence: a chance group-level association is credited with far
+#'   more support than it has, so the test **rejects TRUE independences** rather
+#'   than missing false ones, and Fisher's C inherits the false rejection. The
+#'   remedy is to add the grouping term to that node so the base and augmented fits
+#'   share it. drmSEM reports rather than corrects, deliberately: adding the term to
+#'   only the augmented fit would compare two different random-effect structures,
+#'   which is not a valid likelihood-ratio test.
 #' @references
 #' \insertRef{Shipley2000}{drmSEM}
 #'
@@ -231,6 +246,10 @@ dsep.drm_sem <- function(object, ...) {
   bs$LR <- NA_real_
   bs$p.value <- NA_real_
   bs$status <- "ok"
+  # Effective sample size for the claim's added variable. NA means row scale.
+  bs$n_effective <- NA_integer_
+  bs$scale_group <- NA_character_
+  scale_notes <- list()
   # Evaluate augmented refits where the SEM was specified, so a node's
   # structured-effect objects (e.g. a phylo `tree`) resolve (OQ-13).
   refit_env <- if (is.null(object$fit_env)) globalenv() else object$fit_env
@@ -253,6 +272,25 @@ dsep.drm_sem <- function(object, ...) {
     # those rows, and 2*(aug - base) then compares two different samples --
     # producing a WRONG number rather than an error, which the df_diff guard
     # below cannot catch because the df are still nested.
+    # Scale check BEFORE the test: if the added variable is constant within a
+    # grouping the node does not already model, the LRT sees one row per
+    # observation while the variable carries only n_groups' worth of information,
+    # and a chance group-level correlation is credited with far more evidence
+    # than it has. That rejects TRUE independences.
+    coarse <- drm_coarser_scales(add_var, object$data)
+    if (nrow(coarse)) {
+      already <- drm_fit_grouping_vars(fit)
+      coarse <- coarse[!coarse$group %in% already, , drop = FALSE]
+    }
+    if (nrow(coarse)) {
+      k <- which.min(coarse$n_groups)
+      bs$n_effective[[i]] <- coarse$n_groups[[k]]
+      bs$scale_group[[i]] <- coarse$group[[k]]
+      scale_notes[[length(scale_notes) + 1L]] <- sprintf(
+        "%s (varies at the scale of %s: %d groups, not %d rows)",
+        add_var, coarse$group[[k]], coarse$n_groups[[k]], nrow(as.data.frame(object$data))
+      )
+    }
     n_base <- drm_fit_nobs(fit)
     n_aug <- drm_fit_nobs(aug_fit)
     if (!is.na(n_base) && !is.na(n_aug) && n_base != n_aug) {
@@ -269,6 +307,18 @@ dsep.drm_sem <- function(object, ...) {
     bs$df[[i]] <- as.integer(df_diff)
     bs$LR[[i]] <- lr
     bs$p.value[[i]] <- stats::pchisq(lr, df = df_diff, lower.tail = FALSE)
+  }
+  if (length(scale_notes)) {
+    cli::cli_warn(c(
+      "{length(scale_notes)} d-separation claim{?s} {?is/are} tested at the wrong scale.",
+      "!" = "{.val {unlist(scale_notes)}}",
+      "i" = "The likelihood ratio treats every row as independent evidence, so a
+             chance group-level association is credited with far more support than it
+             has -- this REJECTS TRUE independences rather than missing false ones.",
+      "i" = "Add the grouping term to that node (e.g. {.code (1 | group)}) so both the
+             base and augmented fits share it, then re-run. See
+             {.code attr(x, 'n_effective')} columns."
+    ))
   }
   fc <- drm_fisher_c_from_p(bs$p.value[bs$status == "ok" & !is.na(bs$p.value)])
   attr(bs, "fisher_c") <- fc

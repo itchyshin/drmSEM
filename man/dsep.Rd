@@ -23,6 +23,21 @@ different number of observations than the base fit, usually because the
 added variable has missing values, so the likelihood ratio would compare two
 different samples), or \code{"degenerate"} (non-nested or non-finite). Only
 \code{"ok"} claims enter Fisher's C.
+
+Two further columns report the claim's \strong{scale}. \code{n_effective} and
+\code{scale_group} are \code{NA} when the claim's variable varies row by row. When it is
+constant within a grouping the node does not already model -- a species-level
+trait repeated down to individuals, say -- they name that grouping and its
+number of levels, and \code{dsep()} warns.
+
+That situation matters because the likelihood ratio treats every row as
+independent evidence: a chance group-level association is credited with far
+more support than it has, so the test \strong{rejects TRUE independences} rather
+than missing false ones, and Fisher's C inherits the false rejection. The
+remedy is to add the grouping term to that node so the base and augmented fits
+share it. drmSEM reports rather than corrects, deliberately: adding the term to
+only the augmented fit would compare two different random-effect structures,
+which is not a valid likelihood-ratio test.
 }
 \description{
 For each claim X \emph{||} Y in \code{\link[=basis_set]{basis_set()}}, \code{dsep()} refits node Y with X added

@@ -980,3 +980,53 @@ Recorded because it nearly shipped: an attempt to muffle knitr's expected stderr
 `capture.output()` swallowed `purl()`'s side effect, produced no file, and left a guard
 that could not fire while looking tidier. Reverted; stderr is redirected at the call
 site. Cleverness that breaks a guard is worse than noise.
+
+## 2026-08-15 — S3: scale-aware d-separation (detection; correction deliberately NOT done)
+
+**The defect, demonstrated before anything was written.** A d-separation claim is
+tested on the flattened data frame, one row per observation. When the claim's variable
+varies at a coarser scale — a species-level trait repeated down to individuals — the
+likelihood ratio sees one row per individual while the variable carries only as much
+information as there are groups.
+
+Measured on a 12-species × 40-individual fixture where `trait` is species-level and `z`
+is species-structured but **independent of trait**, so `trait ⊥ z | {y}` is TRUE:
+
+| model | p-value for a TRUE independence |
+|---|---|
+| flattened (as drmSEM tested it) | **0.004** — rejects |
+| with `(1 \| sp)` on node `z` | **≫ 0.05** — correct |
+
+Fisher's C inherited the false rejection (C p = 0.004), so the entire model was
+condemned on the strength of a chance group-level correlation credited with 480 rows of
+evidence instead of 12 groups'.
+
+**Direction matters and is stated in the warning:** this **rejects TRUE independences**.
+A reader who assumes the usual "underpowered test misses things" has the error backwards.
+
+**Why this REPORTS rather than CORRECTS.** The remedy is to give both the base and the
+augmented fit the grouping term. Adding it only to the augmented fit compares two
+different random-effect structures, which is not a valid likelihood ratio — so a silent
+fix is not available. Correcting it automatically would change what is tested, i.e. the
+estimand. drmSEM therefore makes the mis-scaled claim loud and names the remedy. That
+scope line is deliberate, not an omission.
+
+- **V-109 / V-109b.** The claim is detected; `dsep()` gains `n_effective` (12) and
+  `scale_group` (`sp`) columns and warns. The warning names the grouping, the honest
+  sample size, the remedy `(1 | group)`, and the direction of the error — "this p-value
+  is untrustworthy" is not actionable without them. **Validated.**
+- **V-110 / V-110b.** No false alarms: a node that already models `(1 | sp)` is silent
+  with `n_effective` `NA` and its true independence is no longer rejected; plain
+  row-scale data is never flagged. **Validated.**
+- **V-111 / V-111b.** The detector is exact: a variable that varies within groups yields
+  nothing; a grouping with one level per row (a row id) is excluded, since otherwise
+  every variable would report a spurious "scale"; a non-column is not an error; and a
+  grouping the node already models via a bar term is not re-reported. **Validated.**
+
+`tests/testthat/test-scale.R`, 6 tests / 21 assertions, 0 skips.
+
+Still open (design, not defect): evaluating each claim at its own scale rather than
+reporting the mismatch, and skipping claims between variables in orthogonal hierarchies.
+Both change which claims are tested and are gated as estimand changes.
+
+Suite: 969 pass / 0 fail / 3 skip / 10 warn (was 948).
