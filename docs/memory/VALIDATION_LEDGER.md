@@ -766,3 +766,28 @@ a fixed exponential with a heuristic, non-estimated range and whose `mesh=` argu
 aborts as unimplemented. Documenting `spatial()` as the spatial route would mislead.
 
 Suite: 856 pass / 0 fail / 3 skip / 10 warn (was 817).
+
+## 2026-08-15 — A4: the nominal link table
+
+`drm_nominal_link()` (`R/edges.R`) labels each (family, component) pair for display in
+`paths()` and for `standardize()`. It never alters a drmTMB computation, but a wrong
+label misinforms the reader silently.
+
+`skew_normal`, `biv_gaussian`, `biv_lognormal` and `biv_student` were reaching the
+`"identity"` fallback rather than being named. For those four `"identity"` is the
+CORRECT label, so **no output changes** — which is precisely why it survived
+unnoticed. A right answer for the wrong reason is invisible until a family arrives
+for which the fallback is wrong.
+
+- **V-95.** All 18 family labels asserted explicitly, plus a lock that every family in
+  `drm_supported_sampler_families()` appears in the table — so admitting a sampler
+  without a link label now fails a test instead of printing a fallback. **Validated.**
+- **V-96.** Component-driven links (`sigma`/`nu`/`sd_*` → log, `zi`/`hu`/`zoi`/`coi` →
+  logit, `rho12` → tanh) override the family, and the fallback still answers for a
+  genuinely unknown family. **Validated.**
+
+`tests/testthat/test-nominal-link.R`, 2 tests / 28 assertions. Pure lookup — no engine,
+deterministic on every platform, deliberately so: this lane's Windows CI failure came
+from testing a mechanism against a live optimizer instead of where it is deterministic.
+
+Suite: 884 pass / 0 fail / 3 skip / 10 warn (was 856).

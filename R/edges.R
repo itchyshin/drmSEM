@@ -40,6 +40,17 @@ drm_nominal_link <- function(family_name, component) {
     zero_one_beta = "logit",
     binomial = "logit",
     cumulative_logit = "logit",
+    # skew_normal and the bivariate families were reaching the fallback below and
+    # being labelled "identity" by accident rather than by decision. For these four
+    # that happens to be the CORRECT label -- all model their location on the
+    # identity scale -- so naming them explicitly changes no output. It changes what
+    # the fallback MEANS: it is now reserved for genuinely unrecognised families,
+    # instead of silently absorbing known ones and giving a right answer for the
+    # wrong reason.
+    skew_normal = "identity",
+    biv_gaussian = "identity",
+    biv_lognormal = "identity",
+    biv_student = "identity",
     "identity"
   )
 }
