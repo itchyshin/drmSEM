@@ -68,6 +68,27 @@ with no missing-data policy at all. See `13-missing-data.md`.
 - **Won't do:** full-information Bayesian imputation inside a joint model. That
   requires drmSEM to fit its own likelihood, which the charter forbids.
 
+## m-separation (DESIGN ONLY — `14-m-separation.md`)
+
+Reaches the latent problem from the side the charter allows: m-separation is a **graph**
+operation, so it needs no joint likelihood. Changes only which independence claims are
+generated — the any-component LRT (D-2) and `fisher_c()` are untouched.
+
+- **Designed, not implemented.** Nothing in `R/` does this.
+- **v1 is marginalised latents only.** A *conditioned* (selection) latent must abort, not
+  be approximated: treating one as marginalised produces silently WRONG independence
+  claims, because conditioning on a collider opens a path that marginalising leaves shut.
+- **GATED on a source.** The DAG → MAG orientation rules must be read from Richardson &
+  Spirtes (2002), which is not in `inst/REFERENCES.bib` and not held locally. A wrong
+  orientation rule yields a plausible-and-wrong basis set that no test written from the
+  same wrong memory would catch.
+- **Acceptance is a printed claim set**, not "the code runs": reproduce the m-separation
+  claims Shipley & Douma (2021) print for their `A → X ← L → Y → B` example.
+- **Honest positioning:** this is parity with `because`, not differentiation — drmSEM's
+  distinguishing feature is the non-mean component path, which m-separation does not
+  extend. It is worth doing because unmeasured confounding is a real review question and
+  the architecture cost is low, not because it is novel.
+
 ## 0.3 — Latent variables
 
 - Allow a node to load on a latent construct (composite or reflective), bridging
