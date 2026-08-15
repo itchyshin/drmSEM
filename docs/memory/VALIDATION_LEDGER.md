@@ -828,3 +828,40 @@ earlier the same day.
   wrong bar — the bar is that no *problem* message fires.
 
 Suite: 910 pass / 0 fail / 3 skip / 10 warn (was 884).
+
+## 2026-08-15 — A5: the hurdle gap, PINNED not fixed
+
+A defect recorded as a test rather than closed, because closing it is a semantics
+change. `tests/testthat/test-hurdle-gap.R`, 3 tests / 8 assertions.
+
+**Mechanism, verified live against drmTMB 0.6.0.** A hurdle node has
+`model_type = "hurdle_nbinom2"` but `family$family = "truncated_nbinom2"`. drmSEM
+keys on the family NAME (`drm_family_name()` -> `fit$family$family`), and
+`truncated_nbinom2` **is** in `drm_supported_sampler_families()`. So:
+
+1. `check_sem()` reports `sampler = TRUE` for a hurdle mediator;
+2. `drm_sample_family()` draws a plain truncated NB2 and never consults `hu`;
+3. the hurdle zeros silently do not appear in the propagated distribution.
+
+drmSEM tells the user the mediator is fully supported, then propagates a
+distribution missing its entire zero component.
+
+- **V-103.** `hu = 0.9` produces **bit-identical** draws to no `hu` at all
+  (`expect_identical`), while `zi = 0.9` correctly yields >80% zeros. The contrast is
+  the point: `zi` is honoured, so `hu`'s silence is a defect and not a documented
+  scope boundary. **Gap confirmed.**
+- **V-104 / V-104b.** A live hurdle fit is asserted to present `model_type =
+  hurdle_nbinom2` while `drm_family_name()` returns `truncated_nbinom2`, and that
+  name is on the supported list. `hu` **is** a modelled component of the fit — the
+  information is there; drmSEM simply never routes it to the sampler. **Confirmed.**
+
+Also corrected: `drm_sample_family()`'s roxygen listed `hu` among the parameters it
+accepts. Nothing in the body ever read it — documentation ahead of code. The false
+promise is removed and replaced with a statement of the gap.
+
+**Why this is GATED rather than fixed.** The family name cannot express the
+distinction, so the fix means keying on `model_type` instead. That changes what a
+mediator propagates — a semantics change, and this lane's gate list stops at exactly
+that line. Not a drmTMB ask: the engine exposes everything needed.
+
+Suite: 918 pass / 0 fail / 3 skip / 10 warn (was 910).

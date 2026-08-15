@@ -31,8 +31,21 @@ drm_inv_link <- function(link, eta) {
 #' Draw realized values from a node's family given response-scale parameters
 #'
 #' `params` is a data frame/list with at least `mu`; optional `sigma`, `nu`,
-#' `zi`, `hu`, `trials`. Implemented for the common drmTMB families; unsupported
+#' `zi`, `trials`. Implemented for the common drmTMB families; unsupported
 #' families fall back to the mean (with a single warning per call).
+#'
+#' **`hu` is NOT read.** It was listed here as accepted, but nothing in the body
+#' ever consulted it -- documentation ahead of code. Removed from the list rather
+#' than left as a false promise.
+#'
+#' The consequence is a live gap, pinned by V-103 in `test-hurdle-gap.R`. drmTMB
+#' folds the hurdle into `model_type` (`hurdle_nbinom2`) while leaving
+#' `family$family` as `truncated_nbinom2` -- which drmSEM keys on, and which IS in
+#' `drm_supported_sampler_families()`. So a hurdle mediator reports
+#' `sampler = TRUE` in `check_sem()` and is then sampled as a plain truncated
+#' NB2, silently dropping its hurdle zeros. The family NAME cannot express the
+#' distinction; fixing it means keying on `model_type`, which changes what a
+#' mediator propagates and is therefore a semantics change, not a bug fix.
 #' @keywords internal
 #' @noRd
 drm_sample_family <- function(family, params, n) {
