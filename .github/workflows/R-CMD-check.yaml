@@ -33,11 +33,13 @@ jobs:
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       R_KEEP_PKG_SOURCE: yes
-      # Run the vignette code-tangling step. It defaults to skipped whenever check
-      # re-builds vignettes, which is why six vignettes silently executed engine
-      # code under `R CMD check` for months while CI stayed green -- CI structurally
-      # could not see it. Setting this false is what makes that class of regression
-      # catchable here rather than only in a local `devtools::check()`.
+      # Asks R CMD check to run its vignette code-tangling step, which it skips by
+      # default whenever check re-builds vignettes. Kept because it is the documented
+      # lever and costs nothing -- but it was MEASURED not to work here: with this set
+      # and visibly propagated, "checking running R code from vignettes" still did not
+      # appear in the check output on any of the three platforms. The real guard is
+      # the explicit step below; this line alone would be a guard that cannot be shown
+      # to fire.
       _R_CHECK_VIGNETTES_SKIP_RUN_MAYBE_: false
 
     steps:
@@ -65,6 +67,18 @@ jobs:
       # sync with the roxygen comments for every export.
       - name: Document (roxygen2)
         run: Rscript -e 'roxygen2::roxygenise()'
+        shell: bash
+
+      # Guards the defect class R CMD check cannot see here. knitr's tangler never
+      # EXECUTES chunks, so `opts_chunk$set(eval = has_engine)` in a setup chunk has
+      # not run when purl decides what to emit -- any chunk whose OWN header lacks
+      # `eval` inherits TRUE and is emitted, then executed by check's tangle-run step.
+      # Six vignettes were doing exactly that while CI stayed green, because that step
+      # is skipped whenever check re-builds vignettes. `_R_CHECK_VIGNETTES_SKIP_RUN_MAYBE_`
+      # was measured NOT to re-enable it, so the property is asserted directly.
+      # Verified to FAIL, not merely to pass: reverting one header makes it exit 1.
+      - name: Vignettes must tangle to engine-free code
+        run: Rscript tools/check-vignette-tangling.R 2>/dev/null
         shell: bash
 
       - uses: r-lib/actions/check-r-package@v2
