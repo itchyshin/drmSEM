@@ -1,50 +1,60 @@
-GOAL: see LOOP/GOAL.md.  STATE: A1 landed and pushed; awaiting CI. A2 next.
+GOAL: see LOOP/GOAL.md.  STATE: A1-A5 all landed. Lane substantively complete;
+RECONCILE (Melissa) is the only remaining planned step.
 
-ARCS DONE (verified):
-- RECON — two Explore sizings. Verified by their findings changing the plan: one
-  REFUTED a premise (spatial already has evidence at test-phylo-cov.R:199-243), the
-  other found the knitr tangle root cause. Both corroborated independently before use.
-- A1 — vignette tangling. Verified FOUR ways, not by exit code:
-  (1) independent header audit reproduced the agent's count exactly (35 missing; 0 in
-      every passing vignette);
-  (2) tangled all 13 vignettes in memory -> ZERO engine calls emitted;
-  (3) R CMD check 1 ERROR/0W/3N -> 0 ERROR/0W/2N, both remaining notes pre-existing;
-  (4) suite unchanged 817/0/3/10.
-  Pushed as 8ffccea.
+ARCS DONE (verified by log/artifact, never by exit code):
+- A1 vignette tangling — 35 headers given explicit `eval`; 2 authoring bugs fixed.
+  Verified 4 ways: independent header audit reproduced the count (35 missing, 0 in
+  every passing vignette); tangling all 13 vignettes emits ZERO engine calls;
+  R CMD check 1 ERROR/3N -> 0 ERROR/2N; suite unchanged. CI green 3/3 @5b15fef.
+- A2 ordinal + spatial — test-ordinal.R (8 tests/28 assertions), test-spatial.R
+  (2/11). Recovery x->m 0.5009 vs 0.500, m->y 0.9330 vs 0.900, seed 101 fixed.
+  Two limitations PINNED (V-90 latent mu; V-91 p_gt degenerates to exactly 0).
+  Corrected a half-wrong premise: spatial DID have evidence, under a phylo label.
+  CI green 3/3 @94b3073.
+- A4 nominal link — 4 families named that were reaching the fallback; the label was
+  already correct, so no output changed. V-95 locks the table to the sampler list.
+  CI green 3/3 @94b3073.
+- A3 check_sem — test-diagnostics.R (8 tests/26 assertions). Row content live; every
+  warning branch against HAND-BUILT objects (the Windows lesson). PUSHED, CI pending.
+- A5 hurdle gap — PINNED not fixed (semantics gate). V-103: hu=0.9 gives BIT-IDENTICAL
+  draws to no hu; zi=0.9 gives >80% zeros. A hurdle mediator reports sampler=TRUE and
+  drops its zeros. False `hu` promise removed from the roxygen. PUSHED, CI pending.
 
-ARC IN PROGRESS: none. (A1's CI run is the outstanding check — see OPEN GATES.)
+ARC IN PROGRESS: none.
 
-NEXT: A2 — ordinal evidence + spatial relabel.
-  New tests/testthat/test-ordinal.R (~150 lines): paths() component/link labelling,
-  cutpoints not leaked into `from`, dsep()/Fisher's C, latent-scale recovery with a
-  FIXED SEED. Plus ~40 lines near test-phylo-cov.R:199 for a distance-kernel relmat()
-  case carrying dsep() + effects.
-  MUST pin as known limitations (both are silent-wrong-answer, same class as the lane):
-   - cumulative_logit `mu` is the LATENT linear predictor, not E[category]; measured
-     ≈(-1.7,1.6) against categories 1-4. target="mean" reports latent scale, NO warning.
-   - target="p_gt" returns 0.0000 for EVERY quantity (mean fallback collapses both
-     scenarios). The sampler warning fires; the RESULT is a degenerate zero.
-  Do NOT quote the old audit's 0.518/0.875 — irreproducible; an independent run gave
-  0.4877 vs true 0.5. Fix a seed, pin fresh numbers.
-  Engine constraint to record: cumulative_logit accepts only a `mu` formula, so an
-  ordinal node cannot be distributional.
+NEXT: RECONCILE — dispatch Melissa (Sonnet, medium) to diff plan vs actual across the
+  six axes (scope · evidence · model routing · safety gates · public claims · handoff)
+  -> docs/dev-log/plan-actual/2026-08-15-defect-lane.md. Then close the lane.
 
 OPEN GATES (need human):
-1. WORKFLOW CI GATE — cannot push `.github/workflows/`: this lane's OAuth token lacks
-   `workflow` scope (remote rejected). The 6-line change is saved at
-   LOOP/workflow-ci-gate.patch. Apply with:
-       git apply LOOP/workflow-ci-gate.patch && git add .github/workflows/R-CMD-check.yaml
-   It sets `_R_CHECK_VIGNETTES_SKIP_RUN_MAYBE_: false` so CI can catch A1's defect class.
-   WITHOUT IT, A1 IS FIXED BUT UNGUARDED — CI still cannot see a regression.
-   NOT a blocker for A2-A5; the loop continues.
-2. `.uinit/` deletion — permission layer blocks `rm` from this lane. Now .Rbuildignore'd
-   so it no longer causes a check NOTE, but the directory is still on disk.
+1. WORKFLOW CI GATE — unchanged. `git apply LOOP/workflow-ci-gate.patch`. This lane's
+   token lacks OAuth `workflow` scope. WITHOUT IT A1 IS FIXED BUT UNGUARDED.
+2. CAPABILITY CLAIM for ordinal/spatial — evidence now exists (39 assertions) but
+   adding a "covered" row to capability-status.md/NEWS is a new public capability
+   claim, which this lane gates. Proposed wording, for approval:
+     | Ordinal (`cumulative_logit`) nodes | covered | `drm_node(family =
+     drmTMB::cumulative_logit())` | paths() labels mu/logit and hides the cutpoints;
+     dsep()/Fisher's C test the claim; effects close additively; latent-scale recovery
+     0.5009/0.9330 vs true 0.500/0.900 (test-ordinal.R, V-87..V-89b, seed 101).
+     **Does not cover:** `mu` is the LATENT predictor not E[category] and
+     target="mean" reports latent scale with no warning (V-90); a non-mean target
+     returns exactly 0 (V-91); an ordinal node cannot be distributional (V-92). |
+     | Spatially-structured nodes | covered | `relmat(1 | site, K = <matrix>)` |
+     V-93/V-94; strictly more flexible than drmTMB's `spatial()` marker, whose only
+     kernel is a fixed exponential with a heuristic range and whose mesh= is
+     unimplemented. |
+3. HURDLE FIX — keying on `model_type` instead of family name. Semantics change.
+4. `.uinit/` — permission layer blocks `rm` from this lane. Now .Rbuildignore'd so it
+   causes no check NOTE; directory still on disk.
 
-TRUTH LIVES IN: origin/main @ 8ffccea (pushed). LOOP/{GOAL,arcs,ultra-plan,checkpoint}.md
-  committed. Baseline to beat: 817 pass / 0 fail / 3 skip / 10 warn; check 0E/0W/2N.
-  drmTMB pinned at INSTALLED 0.6.0 — two drmTMB lanes are live elsewhere; re-check each arc.
+TRUTH LIVES IN: origin/main. Suite 918 pass / 0 fail / 3 skip / 10 warn (from 817).
+  R CMD check 0E / 0W / 2N (from 1E / 0W / 3N). Both remaining notes pre-existing
+  (ggplot NSE bindings; symbolizer not installed). drmTMB pinned INSTALLED 0.6.0.
+
+LESSON APPLIED MID-LANE: pushing code and checkpoint as two pushes cancelled the
+  first CI run (the handover's "rapid successive pushes race"). One push per arc since.
 
 RESUME: Read LOOP/GOAL.md, then this file, then LOOP/ultra-plan.md. Re-run
-  `bash ~/shinichi-brain/tools/lane_preflight.sh` (expect FOREIGN LANE ACTIVE — verify it
-  against live peer sessions before believing it; on 2026-08-15 it was a false positive
-  caused by this lane's own direct-to-main commits). Then execute A2 above.
+  lane_preflight.sh (expect FOREIGN LANE ACTIVE — on 2026-08-15 that was a FALSE
+  POSITIVE from this lane's own direct-to-main commits; verify against live peer
+  sessions). Then run RECONCILE and close.
