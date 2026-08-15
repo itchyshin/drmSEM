@@ -698,3 +698,71 @@ fully supported — drmTMB folds zi/hurdle into `model_type` while drmSEM keys o
 the family NAME, so the list cannot express the distinction at all.
 
 Suite: 818 pass / 0 fail / 3 skip / 10 warn (was 793 / 0 / 3 / 10).
+
+## 2026-08-15 — A2: ordinal evidence, spatial relabel, and two pinned limitations
+
+drmSEM imposes **no family whitelist** (verified across `R/drm_node.R`, `R/drm_sem.R`,
+`R/edges.R`, `R/extractors.R`), and `cumulative_logit` has had its link label at
+`R/edges.R:42` all along. So an ordinal node has worked end-to-end for some time —
+and nothing tested it. Untested capability is worse than absent capability, because
+the surface advertises it while nothing holds it up.
+
+**A prior claim was half wrong and is corrected here.** The roadmap note said ordinal
+*and* spatial "carry no retained evidence". Spatial did:
+`tests/testthat/test-phylo-cov.R:199-243` already live-fits `relmat(1 | species, K = K)`
+and asserts marker stripping. The real defect was **findability** — that evidence sits
+under a phylogenetic label, so anyone asking "does drmSEM do spatial?" greps for
+`spatial`, finds only drmTMB's weaker marker, and concludes no.
+
+### Ordinal — `tests/testthat/test-ordinal.R` (8 tests / 28 assertions, 0 skips)
+
+Fixture: `x -> m -> y`, gaussian mediator into a 4-category `cumulative_logit`
+outcome, n = 800, **seed fixed at 101**. Fit takes ~0.7 s.
+
+- **V-87.** `paths()` labels the edge `component = mu`, `link = logit`, and the
+  cutpoints never appear as an edge source or coefficient term. **Validated.**
+- **V-88.** Latent-scale recovery: `x→m` **0.5009** against true 0.500; `m→y`
+  **0.9330** against true 0.900. **Validated.**
+  *Note:* the earlier audit's 0.518 / 0.875 figures are **not** reproducible without
+  their seed (an independent run gave 0.4877) and are superseded by these.
+- **V-89.** `dsep()` tests the single claim `x ⫫ y | {m}` with `status = "ok"`
+  (LR 2.4e-06, p = 0.999) and Fisher's C is finite — the true DAG is not rejected,
+  and the claim is genuinely tested rather than skipped for want of a sampler.
+  **Validated.**
+- **V-89b.** Effects decompose through an ordinal outcome and `total_path = direct +
+  indirect` closes to 1e-8, recomputed from the same object. **Validated.**
+
+### Two pinned LIMITATIONS — deliberately not fixed
+
+Both are silent-wrong-answer shaped, which is this lane's whole subject. They are
+pinned so the suite makes them loud, rather than a user discovering them.
+
+- **V-90 — `mu` is the LATENT linear predictor, not `E[category]`.** Measured range
+  **(−3.218, 3.160)** against categories 1–4. An effect reported with
+  `target = "mean"` on an ordinal node is therefore a latent-scale effect, and
+  **nothing warns**. Recovery in V-88 is stated on the latent scale for this reason.
+- **V-91 — a non-mean target degenerates to exactly zero.** `target = "p_gt"` returns
+  `estimate == 0` for **every** quantity, with `NA` intervals: `cumulative_logit` has
+  no realized-value sampler, so propagation falls back to a deterministic mean and
+  both scenarios collapse. The sampler warning does fire (asserted), but a reader who
+  sees only the number sees a confident "no effect".
+  **Returning `NA` instead would be a semantics change and is GATED, not done here.**
+- **V-92 — an ordinal node cannot be distributional.** `cumulative_logit` declares
+  `dpars = "mu"` only and the fitter rejects any second formula, so no causal path can
+  ever target an ordinal node's scale. This is the one family class where drmSEM's
+  headline capability is structurally unavailable. Engine-side ask, already recorded
+  as `DRMTMB_ISSUES.md` item 7.
+
+### Spatial — `tests/testthat/test-spatial.R` (2 tests / 11 assertions, 0 skips)
+
+- **V-93/V-94.** A distance-kernel `relmat(1 | site, K = exp(-d/range))` node forms a
+  valid SEM with `site`/`K`/`relmat` stripped from `paths()`, and `dsep()` +
+  `indirect_effects()` both run over it (the augmented refit resolves `K` from the
+  SEM's environment — the same OQ-13 path a phylo node uses). **Validated.**
+
+Recorded substantively: `relmat(K = <any PSD matrix>)` is **strictly more flexible for
+spatial work** than drmTMB's own `spatial()` marker, whose only implemented kernel is
+a fixed exponential with a heuristic, non-estimated range and whose `mesh=` argument
+aborts as unimplemented. Documenting `spatial()` as the spatial route would mislead.
+
+Suite: 856 pass / 0 fail / 3 skip / 10 warn (was 817).
