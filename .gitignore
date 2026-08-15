@@ -54,3 +54,9 @@ rsconnect/
 # pkgdown built site (built in CI, deployed to gh-pages)
 pkgdown-site/
 .claude/worktrees/
+
+# PROTECTED: abandoned thermal example, kept on disk for its reviewed biology
+# corrections but deliberately NOT part of the package. Ignored so a directory-wide
+# `git add man/` cannot sweep it in again (it did, in 4c863de).
+man/figures/drmsem-thermal-*.png
+tools/render-readme-thermal.R
