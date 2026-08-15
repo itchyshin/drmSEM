@@ -32,7 +32,13 @@ described in §5.
 |---|---|---|
 | `main` | **LANDED** | `376f187` (test + ledgers), `1a53855` (after-task report) |
 | `man/figures/drmsem-thermal-*.png`, `tools/render-readme-thermal.R` | **PROTECTED** | never delete, never commit; gitignored at `.gitignore:61-62`. Verified present and ignored |
-| `chore/worktree-house-rule`, `codex/issue-2-hero-dag`, `claude/status-check-v0.5-OjpdI`, `codex/live-drmtmb-closeout`, `codex/oq1-sampler-fix` | **CARRIED-OVER, STALE** | untouched by this session. Independently re-confirmed stale: their `VALIDATION_LEDGER.md` tops out at **V-76 or lower** against main's V-116 |
+| `chore/worktree-house-rule` (**1 unpushed:** `e9a7f2f`) | **CARRIED-OVER** | pre-existing; untouched by this session. Local-only, so invisible to origin and to Codex. Resume: `git log origin/main..chore/worktree-house-rule` |
+| `codex/issue-2-hero-dag` (**1 unpushed:** `9b5c3f5`) | **CARRIED-OVER** | as above; its `origin/` tracking branch is gone. Resume: `git log origin/main..codex/issue-2-hero-dag` |
+| `claude/status-check-v0.5-OjpdI`, `codex/live-drmtmb-closeout`, `codex/oq1-sampler-fix` | **CARRIED-OVER, STALE** | untouched by this session; pushed, nothing local-only. Independently re-confirmed stale: their `VALIDATION_LEDGER.md` tops out at **V-76 or lower** against main's V-116 |
+
+`tools/handoff_gate.sh` reports **GATE FAIL** on the two unpushed commits above. That is
+expected and declared, not hidden: they are another lane's work and this session had no
+mandate to push them. Everything **this** session authored is committed and pushed.
 | `LOOP/` | **CLOSED** | `checkpoint.md` rewritten to current truth; no arc in progress |
 
 ## 2. What this session did
