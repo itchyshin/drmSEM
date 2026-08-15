@@ -13,7 +13,8 @@ Mechanical verification and reconciliation fan out.
 | A3 | check_sem() coverage beyond nobs | Curie | Opus · medium | inline | 1:00 | tests/testthat/test-diagnostics.R (new) | — | pending |
 | A4 | drm_nominal_link() gaps (skew_normal + 3 bivariates) | Noether | Opus · low | inline | 0:30 | R/edges.R, tests | — | pending |
 | A5 | hu documented-but-unread: document + test the gap | Fisher | Opus · medium | inline | 1:00 | R/simulate_effects.R roxygen, docs | — | pending (FIX is GATED) |
-| MECH-VERIFY | per-arc: suite counts, artifact landed, links resolve, CI per-platform | — | Haiku · low | Agent | 0:10 ea | — | each arc | recurring |
+| MECH-VERIFY | suite counts, artifact landed, links resolve, CI per-platform | — | Haiku · low | Agent | 0:10 | — | each arc | **NOT run per-arc as planned — routing drift, caught by RECONCILE. Dispatched once at close-out, and even then against a tree being concurrently edited, so three of its 'failures' were snapshot artifacts. Recorded, not papered over.** |
+| A6 | ADDED ARC — drm_psem() had zero tests | Emmy | Opus · medium | inline | 0:45 | tests/testthat/test-psem.R (new) | — | DONE |
 | RECONCILE | Melissa: plan vs actual across the 6 axes | Melissa | Sonnet · medium | Agent | 0:15 | docs/dev-log/plan-actual/ | all | pending |
 
 FAN-OUT BUDGET: checkpoint=`defect-lane` · new children ≤6 · scout 1 (MECH-VERIFY, Haiku) ·

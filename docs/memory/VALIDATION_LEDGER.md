@@ -865,3 +865,45 @@ mediator propagates — a semantics change, and this lane's gate list stops at e
 that line. Not a drmTMB ask: the engine exposes everything needed.
 
 Suite: 918 pass / 0 fail / 3 skip / 10 warn (was 910).
+
+## 2026-08-15 — A6 (added arc): drm_psem() had no test at all
+
+Not in the original A1–A5 list. Added because it is the same defect class the lane
+exists to close — a capability the surface advertises with nothing checking it — and
+because adding tests is ungated. Declared as an addition rather than slipped in.
+
+`drm_psem()` is one of the package's two documented interfaces, named in `DESCRIPTION`
+and the charter, exported and documented, and **referenced by zero tests**. Every SEM
+in the suite was built through `drm_sem()`, so the shared internals (`new_drm_sem()`)
+were heavily exercised while `drm_psem`'s own path — input validation and the default
+`data` branch — was not.
+
+`tests/testthat/test-psem.R`, 4 tests / 21 assertions, 0 skips.
+
+- **V-105.** The two interfaces are documented as producing the same object, so the
+  assertion is against a `drm_sem()` built from the same data rather than against a
+  hand-written expectation: same topological order, same node set, same path table,
+  and the **coefficients agree to 1e-6**. Shape alone would not have caught a wrong
+  assembly. **Validated.**
+- **V-105b.** The assembled object carries the downstream surface — `dsep()`,
+  `fisher_c()`, `indirect_effects()` (closing additively), `check_sem()` with correct
+  `nobs`. **Validated.** Also pinned: a **saturated** DAG (`y ~ m + x`) yields an
+  **empty basis set** and warns "fully saturated". That is correct — every pair is
+  connected, so there is nothing to test — but "dsep returned nothing" is easy to
+  misread as breakage, so both the empty result and the warning are asserted.
+- **V-106.** Non-`drmTMB` input is rejected, and the message names `drm_sem()`. A
+  `drm_node()` spec is the obvious mistake, since it is exactly what the *other*
+  interface wants; an error that does not say where to go next is half an error.
+  **Validated.**
+- **V-107.** The default-`data` branch — `drm_psem(data = NULL)` reaching into fit 1
+  via `drm_fit_data()` — had no coverage anywhere. Asserted to recover the right frame
+  and to agree with the explicit-data form to 1e-10. If it had silently produced an
+  empty or wrong frame, every downstream scenario would have been built on it.
+  **Validated.**
+
+One warning was leaked and then fixed rather than suppressed: the saturated-basis-set
+warning pushed the suite's WARN count 10 -> 11. Wrapping it in `expect_warning()`
+restores the count **and** strengthens the test, which is the better of the two ways
+to make a warning go away.
+
+Suite: 939 pass / 0 fail / 3 skip / 10 warn (was 918).
