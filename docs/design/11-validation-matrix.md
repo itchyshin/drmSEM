@@ -92,3 +92,30 @@ metrics, acceptance criteria, and output schema — is `12-coverage-calibration.
 (C-1 coverage, C-2 d-sep Type-I/power, C-3 model-selection recovery, C-4 the
 sampler-dispersion close-out). Tracked alongside the live-engine items in
 `../memory/CODEX_HANDOFF.md`.
+
+## 2026-08-15 — V-87..V-104 (defect-and-evidence lane)
+
+Added by the lane that closed the silent-wrong-answer class. Tier is **live-fit**
+unless marked *kernel* (no engine, deterministic on every platform — used wherever a
+mechanism must not depend on an optimizer's platform-specific outcome).
+
+| V | claim | tier | file |
+|---|---|---|---|
+| V-87 | `paths()` labels an ordinal node `mu`/`logit` and hides its cutpoints | live | `test-ordinal.R` |
+| V-88 | gaussian → ordinal chain recovers its latent coefficients (seed 101) | live | `test-ordinal.R` |
+| V-89 / V-89b | `dsep()`/Fisher's C hold over an ordinal node; effects close additively | live | `test-ordinal.R` |
+| **V-90** | **LIMITATION** — ordinal `mu` is the LATENT predictor, not `E[category]`; `target="mean"` reports latent scale with no warning | live | `test-ordinal.R` |
+| **V-91** | **LIMITATION** — `target="p_gt"` on an ordinal node returns exactly 0 for every quantity | live | `test-ordinal.R` |
+| V-91b | `check_sem()` reports the ordinal node as `sampler = FALSE` but otherwise healthy | live | `test-ordinal.R` |
+| **V-92** | **LIMITATION** — an ordinal node cannot be distributional (engine: `dpars = "mu"` only) | live | `test-ordinal.R` |
+| V-93 / V-94 | a distance-kernel `relmat()` node forms a valid SEM, strips its markers, and carries `dsep()` + effects | live | `test-spatial.R` |
+| V-95 / V-96 | the nominal link table is explicit for all 18 families and locked to the sampler list; component links override the family | *kernel* | `test-nominal-link.R` |
+| V-97 | `check_sem()` row content on a live SEM, in topological order | live | `test-diagnostics.R` |
+| V-98..V-102 | every `print.drm_diagnostics` warning branch, on hand-built objects | *kernel* | `test-diagnostics.R` |
+| **V-103** | **PINNED GAP** — `hu` is accepted and ignored; draws are bit-identical with and without it | *kernel* | `test-hurdle-gap.R` |
+| **V-104 / V-104b** | **PINNED GAP** — the family name cannot express hurdle vs truncated, so a hurdle mediator reports `sampler = TRUE` and drops its zeros | live | `test-hurdle-gap.R` |
+
+Rows in bold are **defects or limitations recorded as tests**, not capabilities. They
+exist so the suite makes them loud rather than leaving a user to discover a
+plausible-looking wrong number. Fixing V-91 or V-103 changes an estimand's meaning and
+is gated accordingly.

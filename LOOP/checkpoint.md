@@ -24,7 +24,7 @@ ARC IN PROGRESS: none.
 
 NEXT: RECONCILE — dispatch Melissa (Sonnet, medium) to diff plan vs actual across the
   six axes (scope · evidence · model routing · safety gates · public claims · handoff)
-  -> docs/dev-log/plan-actual/2026-08-15-defect-lane.md. Then close the lane.
+  -> docs/memory/PLAN-ACTUAL-2026-08-15-defect-lane.md. Then close the lane.
 
 OPEN GATES (need human):
 1. WORKFLOW CI GATE — unchanged. `git apply LOOP/workflow-ci-gate.patch`. This lane's
@@ -44,12 +44,28 @@ OPEN GATES (need human):
      kernel is a fixed exponential with a heuristic range and whose mesh= is
      unimplemented. |
 3. HURDLE FIX — keying on `model_type` instead of family name. Semantics change.
-4. `.uinit/` — permission layer blocks `rm` from this lane. Now .Rbuildignore'd so it
+4. CONFIRM A3/A5 CI — `a1b68cf` (test-diagnostics + test-hurdle-gap) was still
+   `in_progress` when the lane closed out. pkgdown is green; R-CMD-check unconfirmed.
+   Check `gh run list --limit 2` before treating A3/A5 as closed. Added because the
+   reconciliation found the narrative said "CI pending" while OPEN GATES did not.
+5. `.uinit/` — permission layer blocks `rm` from this lane. Now .Rbuildignore'd so it
    causes no check NOTE; directory still on disk.
 
 TRUTH LIVES IN: origin/main. Suite 918 pass / 0 fail / 3 skip / 10 warn (from 817).
   R CMD check 0E / 0W / 2N (from 1E / 0W / 3N). Both remaining notes pre-existing
   (ggplot NSE bindings; symbolizer not installed). drmTMB pinned INSTALLED 0.6.0.
+
+RECONCILED: docs/memory/PLAN-ACTUAL-2026-08-15-defect-lane.md (adaptive 7 / drift 4 /
+  unclear 1). Drifts owned and closed: the planned Haiku MECH-VERIFY was never
+  dispatched (remediated after the fact, and the reason it went unnoticed is that
+  arcs.md carried the budget line as if spent); capability-status' evidence anchor was
+  stale at "205 blocks / 2026-07-19" despite the file being edited twice this lane; and
+  11-validation-matrix.md had no V-87..V-104 rows. All three fixed at close-out.
+  One reconciler finding was PARTLY REFUTED on review: it inferred from commit
+  timestamps that no CI wait occurred between arcs. Commits are not pushes -- the lane
+  made four pushes and each awaited green. The residual real finding (A3/A5) is gate 4.
+  Recorded lesson: a verification claim should carry the run SHA and its per-platform
+  conclusion, not be left to be re-inferred from commit cadence.
 
 LESSON APPLIED MID-LANE: pushing code and checkpoint as two pushes cancelled the
   first CI run (the handover's "rapid successive pushes race"). One push per arc since.
