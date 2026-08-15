@@ -791,3 +791,40 @@ deterministic on every platform, deliberately so: this lane's Windows CI failure
 from testing a mechanism against a live optimizer instead of where it is deterministic.
 
 Suite: 884 pass / 0 fail / 3 skip / 10 warn (was 856).
+
+## 2026-08-15 — A3: check_sem() coverage
+
+`check_sem()` is exported and documented and had, until today, exactly **one**
+assertion anywhere in the suite — the `nobs` column, added with the row-alignment
+work. Its convergence, covariance and sampler columns, its `print` method, and every
+warning branch were untested. The capability surface said so in as many words:
+*"existence and a plausible-looking implementation are not evidence it reports
+correctly."*
+
+`tests/testthat/test-diagnostics.R`, 8 tests / 26 assertions, 0 skips.
+
+**Split by determinism, deliberately.** Row content is checked against a live SEM;
+every warning branch is checked against a **hand-built** `drm_diagnostics` object.
+Asking a live optimizer to produce a non-converged node on demand is precisely the
+test that passes on macOS and fails on Windows — this lane paid for that lesson
+earlier the same day.
+
+- **V-97.** Live SEM: column set, **topological** row order (not argument order),
+  `nobs`, `converged`, `vcov_available`, `sampler`, and the `exogenous` attribute.
+  **Validated.**
+- **V-98 / V-98b.** `print()` warns on non-convergence, and treats `NA` convergence
+  as not-converged — silence about convergence is not evidence of it. **Validated.**
+- **V-99.** Warns on a missing covariance **and** the message names the `se = TRUE`
+  remedy: a diagnostic that does not say what to do next is half a diagnostic.
+  **Validated.**
+- **V-100.** A missing sampler `inform`s rather than `warn`s. Asserted in both
+  directions, because mean fallback is a documented degradation and escalating it to
+  a warning would be wrong. **Validated.**
+- **V-101 / V-101b.** Warns on mismatched `nobs` and names `na_action`; does **not**
+  fire on equal counts, nor when an engine declines to report `nobs` (an unknown must
+  not be manufactured into a mismatch). **Validated.**
+- **V-102.** A healthy object emits none of the problem messages and returns its input
+  invisibly. Note the cli header is itself a message, so "no messages at all" is the
+  wrong bar — the bar is that no *problem* message fires.
+
+Suite: 910 pass / 0 fail / 3 skip / 10 warn (was 884).
