@@ -130,7 +130,7 @@ The only change relative to a non-phylogenetic SEM is the
 else -- families, distributional sub-formulas, the chain structure -- is
 ordinary `drmSEM`.
 
-```{r build}
+```{r build, eval = has_engine}
 sem <- drm_sem(
   size = drm_node(
     drmTMB::bf(
@@ -163,7 +163,7 @@ shows only the structural, fixed-effect coefficients -- one row per modelled
 component. The phylogenetic intercepts are present in every node's fit but
 absent from the path table, which is exactly what you want for causal reasoning.
 
-```{r paths}
+```{r paths, eval = has_engine}
 paths(sem)
 #> Note: no `species` or tree rows appear here. Each `temp` path into `size`
 #> still appears twice -- once on `mu`, once on `sigma` -- and the
@@ -174,7 +174,7 @@ paths(sem)
 `plot()` draws the same fixed-effect DAG with component-labelled edges. Phylogeny
 is *not* drawn as a node or an arrow; it is a property of the fits.
 
-```{r plot, fig.alt = "Directed acyclic graph of the size, abundance and fitness nodes with component-labelled edges; phylogeny is a per-node random effect and is not drawn as an edge."}
+```{r plot, eval = has_engine, fig.alt = "Directed acyclic graph of the size, abundance and fitness nodes with component-labelled edges; phylogeny is a per-node random effect and is not drawn as an edge."}
 plot(sem)
 ```
 
@@ -186,11 +186,11 @@ random effect, so the tests are phylogenetically corrected. A missing arrow
 `X -> Y` asserts that `X` has no effect on *any* modelled component of `Y` *after*
 accounting for shared ancestry.
 
-```{r dsep}
+```{r dsep, eval = has_engine}
 dsep(sem)
 ```
 
-```{r fisherc}
+```{r fisherc, eval = has_engine}
 fisher_c(sem)
 ```
 
@@ -207,7 +207,7 @@ mediator's `sigma`, `zi`, or shape are included -- and because every node's
 draws come from a phylogenetically-corrected fit, the decomposition is a
 **phylogenetic distributional** decomposition.
 
-```{r indirect}
+```{r indirect, eval = has_engine}
 indirect_effects(sem, from = "temp", to = "fitness")
 #> total_path             -- full simulated temp -> fitness effect
 #> direct                 -- controlled direct effect

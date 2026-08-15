@@ -75,7 +75,7 @@ and family samplers.
 
 There are two ways in, producing the identical object:
 
-```{r build}
+```{r build, eval = has_engine}
 # Declarative: one drm_node() per endogenous response, a shared data frame.
 sem <- drm_sem(
   size      = drm_node(drmTMB::bf(size ~ temp + habitat, sigma ~ temp),
@@ -135,7 +135,7 @@ joint bivariate *fit* that reads a fitted `rho12` / `corpair` correlation back (
 non-`NA` estimate) remains a roadmap item (see
 `docs/design/07-bivariate-covariance-edges.md`).
 
-```{r paths}
+```{r paths, eval = has_engine}
 paths(sem)   # component-labelled path table
 plot(sem)    # the DAG, with sigma / zi edges drawn distinctly from mu edges
 ```
@@ -185,7 +185,7 @@ decomposition — `natural_direct`, `natural_indirect`, and
 `mediated_interaction` [@Pearl2001; @Imai2010; @VanderWeele2014] — validated
 against the linear-Gaussian recovery case.
 
-```{r effects}
+```{r effects, eval = has_engine}
 direct_effects(sem,   from = "temp", to = "survival")
 total_effects(sem,    from = "temp", to = "survival", method = "simulate")
 indirect_effects(sem, from = "temp", to = "survival")  # the five-row decomposition
@@ -207,7 +207,7 @@ uncertainty is propagated by drawing each node's coefficients from
 `MVN(coef, vcov)` and repeating the whole propagation. See
 `effect-decomposition.Rmd` for the full treatment.
 
-```{r functionals}
+```{r functionals, eval = has_engine}
 total_effects(sem, from = "temp", to = "survival", target = "p_gt", threshold = 0)
 total_effects(sem, from = "temp", to = "survival", target = "p_zero")
 total_effects(sem, from = "temp", to = "survival", target = "var")
@@ -232,7 +232,7 @@ coefficients. `fisher_c()` combines the claim p-values into Fisher's C,
 @Shipley2009]; a small p-value flags a missing path — including a missing path
 into a *non-mean* component, which a mean-only tool could never detect.
 
-```{r dsep}
+```{r dsep, eval = has_engine}
 basis_set(sem)   # the implied independence claims
 dsep(sem)        # any-component LRT per claim
 fisher_c(sem)    # combined goodness-of-fit
@@ -255,7 +255,7 @@ and `drmSEM` recognises them as markers: they are stripped from the causal edge
 set, so a node can carry a phylogenetic random effect *today* while `paths()`,
 `dsep()`, `fisher_c()`, and the effect engine operate on the fixed-effect DAG.
 
-```{r phylo}
+```{r phylo, eval = has_engine}
 sem_phylo <- drm_sem(
   y1 = drm_node(drmTMB::bf(y1 ~ x + phylo(1 | species, tree = phy)),
                 family = stats::gaussian()),

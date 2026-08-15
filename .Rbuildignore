@@ -18,3 +18,5 @@
 ^paper\.md$
 ^paper\.bib$
 ^tools$
+^LOOP$
+^\.uinit$

@@ -142,7 +142,7 @@ the SEM to recover and propagate.
 `data` frame. Each `drm_node()` wraps a `drmTMB::bf()` formula (which can carry
 component sub-formulas like `sigma ~ temp` or `zi ~ habitat`) and a family.
 
-```{r build}
+```{r build, eval = has_engine}
 sem <- drm_sem(
   size      = drm_node(drmTMB::bf(size ~ temp + habitat, sigma ~ temp),
                        family = stats::gaussian()),
@@ -166,7 +166,7 @@ This is where the distributional structure becomes legible: the `temp` path into
 `size` appears twice -- once on `mu`, once on `sigma` -- and they are not the
 same claim.
 
-```{r paths}
+```{r paths, eval = has_engine}
 paths(sem)
 ```
 
@@ -204,7 +204,7 @@ convergence, whether a fixed-effect covariance is available (needed for
 d-separation and effect intervals), and whether a realized-value sampler exists
 (needed for fully distribution-mediated effects).
 
-```{r check}
+```{r check, eval = has_engine}
 check_sem(sem)
 ```
 
@@ -214,7 +214,7 @@ check_sem(sem)
 arrow is visually distinct from a `mu` arrow rather than collapsed into a generic
 "effect".
 
-```{r plot, fig.alt = "Directed acyclic graph of the size, abundance and survival nodes with component-labelled edges."}
+```{r plot, eval = has_engine, fig.alt = "Directed acyclic graph of the size, abundance and survival nodes with component-labelled edges."}
 plot(sem)
 ```
 
@@ -225,7 +225,7 @@ implies [@Pearl2009; @Shipley2000; @Shipley2009]: every pair of non-adjacent
 nodes should be conditionally independent given their parents. `basis_set()`
 lists those claims.
 
-```{r basis}
+```{r basis, eval = has_engine}
 basis_set(sem)
 ```
 
@@ -239,7 +239,7 @@ distributed (asymptotically) as chi-squared with degrees of freedom equal to the
 number of added coefficients across components. `dsep()` runs this for every
 claim in the basis set.
 
-```{r dsep}
+```{r dsep, eval = has_engine}
 dsep(sem)
 ```
 
@@ -248,7 +248,7 @@ dsep(sem)
 p-value flags a missing path -- including a missing path into a *non-mean*
 component, which a mean-only SEM tool could never detect.
 
-```{r fisherc}
+```{r fisherc, eval = has_engine}
 fisher_c(sem)
 ```
 
@@ -265,7 +265,7 @@ the mean of the target.
 **Direct (controlled) effect.** Hold all mediators at their observed values;
 move only `temp`. Only the arrows that go *directly* into `survival` operate.
 
-```{r direct}
+```{r direct, eval = has_engine}
 direct_effects(sem, from = "temp", to = "survival")
 ```
 
@@ -274,7 +274,7 @@ direct_effects(sem, from = "temp", to = "survival")
 families, so effects flowing through a mediator's `sigma`, `zi`, or `nu` are
 included. With `method = "gcomp"` (the default), only mediator means propagate.
 
-```{r total}
+```{r total, eval = has_engine}
 total_effects(sem, from = "temp", to = "survival", method = "simulate")
 ```
 
@@ -289,7 +289,7 @@ the package. `indirect_effects()` reports five quantities:
   pass realized draws, i.e. the part flowing through scale, zero-inflation, or
   shape (`total under distribution` minus `total under mean`).
 
-```{r indirect}
+```{r indirect, eval = has_engine}
 indirect_effects(sem, from = "temp", to = "survival")
 ```
 
@@ -333,7 +333,7 @@ coefficient by the standard deviation of its predictor; `method = "latent"`
 additionally divides by the fitted standard deviation of the response, giving
 fully standardized coefficients.
 
-```{r standardize}
+```{r standardize, eval = has_engine}
 standardize(sem)                      # adds std.estimate (sd_x scaling)
 standardize(sem, method = "latent")   # fully standardized
 ```

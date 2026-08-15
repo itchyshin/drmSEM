@@ -74,7 +74,7 @@ Suppose the scientific question is whether temperature acts on fitness directly
 or through body size. The candidate set might contain a direct model, a mediated
 model, and a deliberately over-fitted model with both routes.
 
-```{r candidate-set}
+```{r candidate-set, eval = FALSE}
 models <- drm_model_set(
   direct = drm_dag(
     size ~ temp,
@@ -102,7 +102,7 @@ the competing biological explanations.
 combines the independence-claim p-values into Fisher's C, and adds both CBIC and
 CICc scores.
 
-```{r compare}
+```{r compare, eval = FALSE}
 cmp <- compare(
   models,
   data = dat,
@@ -125,7 +125,7 @@ The printed table contains both criteria:
 
 The top model is the row with the lowest CBIC. `best()` returns that fitted SEM.
 
-```{r best-average}
+```{r best-average, eval = FALSE}
 top <- best(cmp)
 paths(top)
 
@@ -142,7 +142,7 @@ candidates is averaged conditionally over the models that contain it, with
 
 CICc remains available:
 
-```{r cicc}
+```{r cicc, eval = FALSE}
 cmp_cicc <- compare(
   models,
   data = dat,

@@ -34,6 +34,8 @@ builds it; the helper is pure R and runs without the engine:
 dat <- data.frame(
   bill = rnorm(200), tarsus = rnorm(200), mass = rnorm(200), x = rnorm(200)
 )
+# the response the SEM below regresses on the construct
+dat$fitness <- 0.6 * rowMeans(dat[c("bill", "tarsus", "mass")]) + 0.3 * dat$x + rnorm(200)
 # equal-weighted index of three size indicators:
 size <- drm_composite("size", c("bill", "tarsus", "mass"), data = dat)
 size
@@ -43,7 +45,7 @@ Pass it to `drm_sem(..., composites = )`; the column is materialized before
 fitting, so a node formula can use `size` like any observed predictor, and
 `loadings()` reports the indicator weights (kept separate from `paths()`):
 
-```{r formative-sem}
+```{r formative-sem, eval = has_engine}
 sem <- drm_sem(
   fitness = drm_node(drmTMB::bf(fitness ~ size + x), family = stats::gaussian()),
   data = dat,
@@ -84,7 +86,7 @@ criterion when indicators are causes.)
 Because the construct is just a column, a node can also be fit *on* it — e.g. to
 ask what predicts `size`:
 
-```{r response}
+```{r response, eval = has_engine}
 sem2 <- drm_sem(
   size    = drm_node(drmTMB::bf(size ~ x), family = stats::gaussian()),
   fitness = drm_node(drmTMB::bf(fitness ~ size), family = stats::gaussian()),

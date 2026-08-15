@@ -49,7 +49,7 @@ the SEM in topological order, symbolize each node's `drmTMB` fit, and collate.
 
 ## A two-node example
 
-```{r build}
+```{r build, eval = has_engine}
 sem <- drm_sem(
   size      = drm_node(drmTMB::bf(size ~ temp + habitat, sigma ~ temp),
                        family = stats::gaussian()),
@@ -61,7 +61,7 @@ sem <- drm_sem(
 
 ## Render
 
-```{r symbolize}
+```{r symbolize, eval = has_engine}
 sym <- symbolizer::symbolize(sem) # walks sem$records, symbolizes each node
 sym                          # prints a summary header
 

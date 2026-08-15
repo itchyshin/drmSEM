@@ -60,7 +60,7 @@ directed-only — and they make `basis_set()` / `dsep()` drop the
 `activity _||_ boldness` independence claim (Shipley's bidirected-edge rule),
 because the model explicitly allowed the two to stay coupled.
 
-```{r covariances}
+```{r covariances, eval = has_engine}
 sem <- drm_sem(
   activity = drm_node(drmTMB::bf(activity ~ temp), family = stats::gaussian()),
   boldness = drm_node(drmTMB::bf(boldness ~ temp), family = stats::gaussian()),
@@ -96,7 +96,7 @@ Pass composites to `drm_sem()` via `composites =`; the construct column is built
 before fitting, and `loadings()` reports the indicator weights (kept separate from
 the structural `paths()`):
 
-```{r composite-sem}
+```{r composite-sem, eval = has_engine}
 sem2 <- drm_sem(
   fitness = drm_node(drmTMB::bf(fitness ~ body_size + temp),
                      family = stats::gaussian()),
@@ -123,7 +123,22 @@ others), plus an explicit `interaction_remainder` — the pieces sum to the tota
 only when the mediators act additively, and the remainder is reported rather than
 hidden:
 
-```{r path-mediator}
+The examples below use the canonical three-node system (`temp` drives `size` and
+`abundance`, which in turn drive `survival`), because path attribution needs two
+mediators to attribute *between*:
+
+```{r path-sem, eval = has_engine}
+sem3 <- drm_sem(
+  size      = drm_node(drmTMB::bf(size ~ temp, sigma ~ temp),
+                       family = stats::gaussian()),
+  abundance = drm_node(drmTMB::bf(abundance ~ temp), family = drmTMB::nbinom2()),
+  survival  = drm_node(drmTMB::bf(survival ~ size + abundance + temp),
+                       family = stats::binomial()),
+  data = dat
+)
+```
+
+```{r path-mediator, eval = has_engine}
 path_effects(sem3, from = "temp", to = "survival")
 ```
 
@@ -134,7 +149,7 @@ reference value — and a `component_remainder` for the part that does not separ
 cleanly (under a nonlinear outcome the channels are not an exact partition, so the
 remainder is reported rather than hidden):
 
-```{r path-component}
+```{r path-component, eval = has_engine}
 path_effects(sem3, from = "temp", to = "survival", by = "component")
 ```
 
