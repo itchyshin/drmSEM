@@ -70,6 +70,9 @@ LESSONS THIS LANE PAID FOR, worth carrying:
 - Test a mechanism where it is DETERMINISTIC (hand-built objects) and only the
   CONTRACT live. The Windows failure came from asserting an optimizer's failure mode.
 
+HANDOVER: docs/memory/2026-08-15-claude-handover.md is the authoritative entry point for a
+  FRESH session (this checkpoint is the lane's internal state; the handover is the doorway).
+
 RESUME: Read LOOP/GOAL.md, then this file. Re-run lane_preflight.sh and expect FOREIGN
   LANE ACTIVE — on 2026-08-15 that was a FALSE POSITIVE caused by this lane's own
   direct-to-main commits; verify against live peer sessions before believing it.
