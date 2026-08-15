@@ -1,5 +1,4 @@
-GOAL: see LOOP/GOAL.md.  STATE: A1-A5 all landed. Lane substantively complete;
-RECONCILE (Melissa) is the only remaining planned step.
+GOAL: see LOOP/GOAL.md.  STATE: LANE COMPLETE. A1-A5 landed, all CI-green, reconciled, drifts closed.
 
 ARCS DONE (verified by log/artifact, never by exit code):
 - A1 vignette tangling — 35 headers given explicit `eval`; 2 authoring bugs fixed.
@@ -44,10 +43,11 @@ OPEN GATES (need human):
      kernel is a fixed exponential with a heuristic range and whose mesh= is
      unimplemented. |
 3. HURDLE FIX — keying on `model_type` instead of family name. Semantics change.
-4. CONFIRM A3/A5 CI — `a1b68cf` (test-diagnostics + test-hurdle-gap) was still
-   `in_progress` when the lane closed out. pkgdown is green; R-CMD-check unconfirmed.
-   Check `gh run list --limit 2` before treating A3/A5 as closed. Added because the
-   reconciliation found the narrative said "CI pending" while OPEN GATES did not.
+4. CLOSED — A3/A5 CI confirmed green: `a1b68cf` R-CMD-check success, pkgdown success.
+   All five arcs are therefore CI-verified: 5b15fef(A1) 94b3073(A2,A4) a1b68cf(A3,A5),
+   each green on windows + ubuntu + macos. Kept here rather than deleted so the record
+   shows the gate was raised and then discharged with its run SHA -- which is the
+   lesson the reconciliation drew.
 5. `.uinit/` — permission layer blocks `rm` from this lane. Now .Rbuildignore'd so it
    causes no check NOTE; directory still on disk.
 
