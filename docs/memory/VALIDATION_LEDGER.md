@@ -946,3 +946,37 @@ understates it.
 guarding a fix. The history is kept in the file header because it explains the shape.
 
 Suite: 948 pass / 0 fail / 3 skip / 10 warn (was 939).
+
+## 2026-08-15 — A8: the vignette-tangling guard (and a false claim corrected)
+
+A1 fixed the tangling defect. This closes the second half — making it *stay* fixed —
+and corrects a claim made in between.
+
+**The false claim.** `_R_CHECK_VIGNETTES_SKIP_RUN_MAYBE_: false` was landed and
+announced as "CI now runs the vignette code-tangling step, so A1 is guarded". **It
+does not.** The variable is set and visibly propagated into the job environment, yet
+`checking running R code from vignettes` appears on **no** platform: the step list runs
+straight from `checking package vignettes` to `checking re-building of vignette
+outputs`. The lane had announced a guard that did not exist — the same defect class it
+was created to close.
+
+**The real guard.** `tools/check-vignette-tangling.R` purls all 13 vignettes and fails
+if any emits a call into the fitting engine, wired in as its own workflow step so it
+cannot be silently skipped the way the check step was.
+
+Two-sided verification, which is the standard `FLAGGED-TERMS.tsv` set here:
+- **Fails on a regression.** Reverting one header (`{r formative-sem, eval =
+  has_engine}` → `{r formative-sem}`) gives exit 1, naming `latent-variables.Rmd` and
+  printing the offending `drm_sem(` line.
+- **Passes clean, and demonstrably RUNS in CI.** `OK: all 13 vignettes tangle to
+  engine-free code` appears in the ubuntu, windows *and* macos logs of run `7daebc1`.
+  That last check is precisely what the first attempt lacked: green CI was mistaken for
+  a green *step*.
+
+The env var is retained with a comment recording that it was measured not to work, so
+it is not re-added later in the belief that it is the guard.
+
+Recorded because it nearly shipped: an attempt to muffle knitr's expected stderr with
+`capture.output()` swallowed `purl()`'s side effect, produced no file, and left a guard
+that could not fire while looking tidier. Reverted; stderr is redirected at the call
+site. Cleverness that breaks a guard is worse than noise.
