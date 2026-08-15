@@ -1,5 +1,13 @@
 # drmSEM Agent Instructions
 
+## LOAD-FIRST manifest
+<!-- Brain dossier manifest (refresh: python3 ~/shinichi-brain/tools/route.py drmSEM). Top = salience; drift-checked by route.py. -->
+- Compute is a default condition — before any effect-recovery/calibration run ask *"Totoro or DRAC?"* (fast CPU ≤150 cores → Totoro; replicated multi-seed / GPU → DRAC arrays); scale out, never laptop-scale. Playbook: [[COMPUTE-PLAYBOOK]].
+- Trust recovery-to-truth and test the null/control path before interpreting second-order diagnostics.
+- Diff main before building; write symbolic alignment for every new causal estimand.
+- Load `r-package-engineer`, `validation-harness`, and the repo's own `AGENTS.md`.
+- Preserve the engine/layer boundary: drmSEM delegates fitting to drmTMB and owns SEM semantics.
+
 `drmSEM` is an R package that adds a **distributional piecewise structural
 equation modelling (SEM)** layer on top of the `drmTMB` fitting engine. The
 project, paper, and R package use the name **drmSEM**.
