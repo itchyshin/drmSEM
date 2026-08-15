@@ -152,6 +152,24 @@ drm_sample_family <- function(family, params, n) {
         stats::rbinom(n, size = round(params$trials), prob = p)
       }
     },
+    # Reached only via drm_effective_family(): a hurdle node's family NAME is
+    # `truncated_nbinom2`, so without the model_type key this branch is unreachable
+    # and the node is drawn as a plain truncated NB2 with its hurdle zeros missing.
+    # Borrows the engine's own helpers so the parameterization cannot drift.
+    hurdle_nbinom2 = {
+      nb_size <- drm_engine_fun("drm_nbinom2_size")
+      p0_fun <- drm_engine_fun("truncated_nbinom2_p0")
+      hu <- params$hu
+      if (is.null(nb_size) || is.null(p0_fun) || is.null(hu)) {
+        NULL
+      } else {
+        size <- nb_size(sigma)
+        p0 <- p0_fun(mu, sigma)
+        hurdle_zero <- stats::runif(n) < hu
+        u <- p0 + pmax(stats::runif(n), .Machine$double.eps) * (1 - p0)
+        ifelse(hurdle_zero, 0L, stats::qnbinom(u, size = size, mu = mu))
+      }
+    },
     NULL
   )
   # A NULL here means either "no branch for this family" or "the branch exists
@@ -178,6 +196,26 @@ drm_sample_family <- function(family, params, n) {
 
 `%||%` <- function(a, b) if (is.null(a)) b else a
 
+# model_types that get their OWN sampler branch, keyed ahead of the family name.
+#
+# Deliberately a short allow-list rather than "always prefer model_type". Most
+# model_types (zi_poisson, zi_nbinom2, ...) have no branch of their own and are
+# handled correctly by the base family plus generic zi post-processing; keying on
+# model_type wholesale would send those to the mean fallback -- fixing one silent
+# degradation by introducing several.
+drm_model_type_samplers <- function() {
+  c("hurdle_nbinom2")
+}
+
+# The key drm_sample_family() should dispatch on: the model_type when it has its own
+# branch, otherwise the family name.
+drm_effective_family <- function(family, model_type = NA_character_) {
+  if (!is.na(model_type) && model_type %in% drm_model_type_samplers()) {
+    return(model_type)
+  }
+  family
+}
+
 # Expected response value for a node's fitted family at response-scale dpars.
 # Most drmTMB families expose `mu` as the response mean. lognormal is the
 # important exception in current drmTMB: `mu` is meanlog and `sigma` is sdlog.
@@ -188,6 +226,19 @@ drm_family_expected_mean <- function(family, params) {
   out <- switch(
     family,
     lognormal = exp(mu + 0.5 * sigma^2),
+    # Hurdle NB2: with probability hu the value is a structural zero; otherwise it is
+    # a ZERO-TRUNCATED NB2, whose mean is mu/(1 - p0), not mu. Using mu here would
+    # understate the conditional mean and ignore the hurdle entirely.
+    hurdle_nbinom2 = {
+      p0_fun <- drm_engine_fun("truncated_nbinom2_p0")
+      hu <- params$hu
+      if (is.null(p0_fun) || is.null(hu)) {
+        mu
+      } else {
+        p0 <- p0_fun(mu, sigma)
+        (1 - hu) * mu / pmax(1 - p0, .Machine$double.eps)
+      }
+    },
     # binomial / beta_binomial put a PROBABILITY in mu and COUNTS in the
     # response, so the expected response is trials * mu. Without `trials` we
     # cannot convert; returning mu would hand a downstream node a value on (0,1)
@@ -232,6 +283,8 @@ drm_engines_from_sem <- function(object) {
     rec <- object$records[[nm]]
     fit <- rec$fit
     family <- rec$family
+    # The hurdle/zi distinction lives here, not in the family name.
+    model_type <- drm_fit_model_type(fit)
     comps <- drm_fit_prediction_components(fit)
     coef_list <- stats::setNames(
       lapply(comps, function(cc) drm_fit_coef(fit, cc)),
@@ -285,6 +338,7 @@ drm_engines_from_sem <- function(object) {
         name = nm,
         identifier = ident,
         family = family,
+        model_type = model_type,
         components = comps_l,
         links = links_l,
         coef = coef_l,
@@ -401,11 +455,12 @@ drm_propagate <- function(
   node_mean <- list()
   for (eng in engines) {
     preds <- eng$predict(work, beta = beta_list[[eng$name]])
-    expected <- drm_family_expected_mean(eng$family, preds)
+    eff_family <- drm_effective_family(eng$family, eng$model_type %||% NA_character_)
+    expected <- drm_family_expected_mean(eff_family, preds)
     node_mean[[eng$name]] <- expected
     if (eng$name %in% active) {
       val <- if (identical(mediation, "distribution")) {
-        drm_sample_family(eng$family, preds, n = nrow(work))
+        drm_sample_family(eff_family, preds, n = nrow(work))
       } else {
         expected
       }
@@ -556,7 +611,10 @@ drm_functional_target <- function(
   for (s in seq_len(reps)) {
     work <- drm_propagate(engines, scenario, active, mediation, beta_list)$work
     preds <- eng_to$predict(work, beta = beta_list[[to]])
-    y <- drm_sample_family(eng_to$family, preds, n = nrow(scenario))
+    y <- drm_sample_family(
+      drm_effective_family(eng_to$family, eng_to$model_type %||% NA_character_),
+      preds, n = nrow(scenario)
+    )
     acc <- acc + drm_outcome_functional(y, target, threshold, prob)
   }
   acc / reps

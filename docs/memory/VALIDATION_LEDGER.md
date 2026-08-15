@@ -907,3 +907,42 @@ restores the count **and** strengthens the test, which is the better of the two 
 to make a warning go away.
 
 Suite: 939 pass / 0 fail / 3 skip / 10 warn (was 918).
+
+## 2026-08-15 — A7: the hurdle gap FIXED (was pinned as A5)
+
+A5 pinned this as a defect and gated the fix as a semantics change. Approved and done.
+
+**What was wrong.** drmTMB folds the hurdle into `model_type` (`hurdle_nbinom2`) while
+leaving `family$family` at `truncated_nbinom2`. drmSEM keyed its sampler on the family
+NAME, so a hurdle mediator reported `sampler = TRUE`, was drawn as a plain truncated
+NB2, and lost its **entire zero component** silently.
+
+**The fix is deliberately narrow.** `drm_effective_family()` prefers `model_type` only
+for model_types on an explicit allow-list, `drm_model_type_samplers()` (currently just
+`hurdle_nbinom2`). Keying on `model_type` wholesale would have routed `zi_poisson`,
+`zi_nbinom2` and friends — handled correctly today by the base family plus generic `zi`
+post-processing — to the mean fallback, i.e. fixed one silent degradation by creating
+several. V-104 asserts that non-regression explicitly.
+
+Parameterization is **borrowed, not restated**: the branch calls the engine's own
+`drm_nbinom2_size()` and `truncated_nbinom2_p0()`, matching `simulate.drmTMB`'s hurdle
+branch term for term. `drm_family_expected_mean()` gained the matching mean,
+`(1 - hu) * mu / (1 - p0)` — the non-zero part is zero-truncated, so plain `mu`
+understates it.
+
+- **V-103.** The BASE family still ignores `hu`, asserted bit-identically. The hurdle is
+  reached through `model_type`, never by smuggling a parameter into `truncated_nbinom2`.
+- **V-104 / V-104b.** Routing resolves `hurdle_nbinom2` to its own sampler and leaves
+  `zi_*` and plain `truncated_nbinom2` untouched; `hu = 0.6` now produces ~60% zeros and
+  the non-zero part is genuinely zero-truncated. Without `hu` the branch refuses to draw
+  and warns rather than guessing.
+- **V-108.** Moments against `drmTMB::simulate()` on a live hurdle fit: **zero fraction
+  0.4444 vs 0.4446**, mean within 0.4%, variance within 2.7%. The zero fraction is the
+  claim — pre-fix drmSEM produced essentially none.
+- **V-108b.** `check_sem()` reports the node as sampled, now for the right reason: the
+  column is computed from the effective family, not the bare name.
+
+`test-hurdle-gap.R` renamed to `test-hurdle.R`, rewritten from pinning a defect to
+guarding a fix. The history is kept in the file header because it explains the shape.
+
+Suite: 948 pass / 0 fail / 3 skip / 10 warn (was 939).

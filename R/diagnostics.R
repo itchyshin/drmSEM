@@ -78,7 +78,12 @@ check_sem.drm_sem <- function(object, ...) {
       nobs = drm_fit_nobs(rec$fit),
       converged = conv,
       vcov_available = !is.null(V),
-      sampler = rec$family %in% drm_supported_sampler_families(),
+      # Report against the EFFECTIVE family: a hurdle node's family name is
+      # truncated_nbinom2, but it is drawn by its own model_type branch. Keying the
+      # column on the bare name would have reported TRUE for the wrong reason before
+      # the hurdle branch existed, and would report it for the wrong reason still.
+      sampler = drm_effective_family(rec$family, drm_fit_model_type(rec$fit)) %in%
+        c(drm_supported_sampler_families(), drm_model_type_samplers()),
       stringsAsFactors = FALSE
     )
   }

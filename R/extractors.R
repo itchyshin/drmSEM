@@ -82,6 +82,24 @@ drm_fit_data <- function(fit) {
   fit$data
 }
 
+#' The engine's `model_type` for a fitted node.
+#'
+#' drmTMB folds zero-inflation and the hurdle into `model_type` while leaving
+#' `family$family` at the base family: a hurdle node is `model_type =
+#' "hurdle_nbinom2"` but `family$family = "truncated_nbinom2"`. drmSEM keys on the
+#' family NAME almost everywhere, which is correct for labelling — but a sampler
+#' that needs to know about the hurdle cannot get it from the name.
+#' @return A single string, or `NA_character_` when the engine does not say.
+#' @keywords internal
+#' @noRd
+drm_fit_model_type <- function(fit) {
+  mt <- tryCatch(fit$model$model_type, error = function(e) NULL)
+  if (is.null(mt) || length(mt) != 1L || !is.character(mt)) {
+    return(NA_character_)
+  }
+  mt
+}
+
 #' Borrow an internal drmTMB draw helper by name.
 #'
 #' Realized-value samplers must match `drmTMB::simulate()` exactly, and the
