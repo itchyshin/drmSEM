@@ -3,9 +3,44 @@
 You are Claude, picking up the drmSEM lane. You inherit **no chat context**; this document plus
 `AGENTS.md` is authoritative. Read both before acting.
 
-**Repo:** `/Users/z3437171/Dropbox/Github Local/drmSEM` · branch `main` · **2 commits unpushed**
+**Repo:** `/Users/z3437171/Dropbox/Github Local/drmSEM` · branch `main` · ~~2 commits unpushed~~ **all pushed**
 **Author of this handover:** Claude Code · **Supersedes:** nothing; *extends*
 `docs/memory/HANDOVER-2026-08-09.md` (still valid for the arc it describes)
+
+---
+
+## ⚠️ STATUS UPDATE — 2026-08-14, later the same day (read before §0; §0 is now partly STALE)
+
+**The recipient is still correct: the drmSEM lane is CLAUDE**, confirmed by Shinichi. If you are a
+Claude session, this document is yours. What changed is the *state*, not the ownership — and two of the
+three blockers §0 raises are now **resolved**. Do not re-triage them.
+
+| §0 item | State now | Evidence |
+|---|---|---|
+| 23 uncommitted tracked files on `main` | ✅ **LANDED** | the *maturity hardening* arc (`0db2591`), then `3e799ef docs(agents): commit the LOAD-FIRST brain manifest` |
+| 2 unpushed Shannon commits | ✅ **LANDED and PUSHED** | `e75d810`, `2401d9e` are on `origin/main`; `main` is 0 ahead / 0 behind |
+| 5 branches with unpushed commits | ⏳ **still open** | `claude/status-check-v0.5-OjpdI` (9), `codex/oq1-sampler-fix` (3), `chore/worktree-house-rule` (1), `codex/issue-2-hero-dag` (1), `codex/live-drmtmb-closeout` (1) |
+
+**The SHAs in §0 are dead.** It names `085c175` and `b249396`; those objects still exist but are
+unreachable — a rebase-on-push rewrote them to **`e75d810`** and **`2401d9e`**. Do not `git show` the old
+ones and conclude the work went missing.
+
+**Provenance of those two commits, since §0 flagged them as an unidentified lane:** a Claude session
+installing `.claude/agents/shannon.md` + `.codex/agents/shannon-coordinator.toml` across the 14 repos
+that carry an agent roster. `tools/lane_preflight.sh` cleared that session, wrongly — drmSEM's lane
+commits **straight to `main` under Shinichi's own git identity**, so there is no branch, no PR and no
+distinguishable author for any foreign-lane signal to catch. **That blind spot is now fixed:** the
+pre-flight treats sustained non-merge commits to `main` plus a dirty tree as a live lane regardless of
+authorship, and reads the newest handover to report who it hands to. Re-run it — drmSEM now returns
+`FOREIGN LANE ACTIVE (direct-to-main)` instead of all-clear.
+
+**Working tree right now:** no modified tracked files. Untracked only — `.uinit/`,
+`man/figures/drmsem-thermal-{dag,2x2}.png`, `tools/render-readme-thermal.R` (a README thermal example in
+progress). Leave those unless they are yours.
+
+**Caution that has NOT changed:** this repo has **no coordination board**, so this document is the
+channel — and a handover records who was handed the lane *then*, never who holds it *now*. Re-run
+`tools/lane_preflight.sh` before claiming anything.
 
 ---
 
