@@ -1357,3 +1357,40 @@ now labelled as argument and as engine behaviour respectively, because neither
 carries a drmSEM test.
 
 Suite: 818 pass / 0 fail / 3 skip / 10 warn.
+
+---
+
+## 2026-08-15 — Step 4 close: `average(method = "latent")`, and two corrections to the handover
+
+**Claude Code**, resuming from `docs/memory/2026-08-15-claude-handover.md` §6. Scope was
+explicitly limited to the OWED steps; Steps 1–3 were left fenced (Step 1 is Shinichi's
+judgement call on m-separation completeness, Step 2 changes the estimand, Step 3 belongs
+to the drmTMB lane).
+
+**Correction 1 — the handover's §6 Step 4 is stale.** It lists four gaps; three were
+already covered when it was written, and a future session should not re-do them:
+
+- `rho12()` / `corpairs()` NA-by-construction — `test-pair.R:101,109,185,189`
+- `population = "marginal"` aborts — `test-effect-api.R:174` (names OQ-9)
+- `uncertainty = "bootstrap"` aborts — `test-effect-api.R:173` (names OQ-10)
+
+Only `average(method = "latent")` was genuinely untested. Per Shinichi's call this
+correction lives here, in the log; the dated handover is left as the historical record.
+
+**Correction 2 — the real gap was the argument, not the scaling.** `standardize()`'s
+latent branch is already validated live (V-44, V-65). What nothing checked was that
+`average()` forwards `method` to it. See V-116 — including the red-then-green check, since
+the failure mode here is a well-formed object carrying the wrong numbers.
+
+**Environment drift, re-checked as §7 instructed.** The installed `drmTMB` has moved
+**0.6.0 → 0.7.0** since the handover was written. The full suite on 0.7.0 reproduces the
+handover's 0.6.0 baseline exactly (982 pass / 0 fail / 3 skip / 10 warn, 2m05s), so the
+drift is real but benign for drmSEM. `symbolizer` is still not installed (2 of the 3 skips).
+Anything reading `imputed()$std_error` must still branch on `uncertainty_status`, never on
+`is.na(std_error)` — that semantic differs between the two versions.
+
+**State of the lane.** With Step 4 closed there is no unblocked OWED work left in drmSEM.
+What remains is gated: Steps 1 and 2 on Shinichi's judgement; the long tail (joint
+bivariate fits behind `rho12()`, multi-`mi()` imputation, `cumulative_logit` mediator
+values, OQ-9/OQ-10) on the drmTMB engine or on 0.x scope; and CRAN submission on `drmTMB`
+and `symbolizer` still being GitHub `Remotes:`.

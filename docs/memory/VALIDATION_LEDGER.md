@@ -1072,3 +1072,48 @@ wired into `basis_set()` or `dsep()`. Selection/conditioned latents: explicit NO
 `tests/testthat/test-mag.R`, 6 tests / 13 assertions, pure graph logic, no engine.
 
 Suite: 982 pass / 0 fail / 3 skip / 10 warn (was 969).
+
+---
+
+## 2026-08-15 — V-116: `average(method = "latent")`, the argument nobody checked was forwarded
+
+The last unblocked gap named in `capability-status.md`: `average(method = "latent")` was
+implemented but no test exercised that branch.
+
+**The gap was narrower than it looked, and worse in shape.** `standardize()`'s own latent
+scaling is already validated, including live — V-44 (the theoretical link-variance term
+for logit/probit/cloglog) and V-65 (a live logit-link GLM). So the untested surface was
+never the latent standardization. It was `average.drm_compare()` **forwarding** `method`
+to `standardize()` and weighting the values it gets back (`R/model_set.R:592,610`).
+
+That is the silent-wrong-answer shape, not a missing-feature shape. Had the forwarding
+broken, `average(cmp, method = "latent")` would still have returned a well-formed
+`drm_average` with the right columns, the right paths, and the right `weight_sum` — and
+`"sd_x"` numbers inside it. Nothing in the package or the suite would have objected.
+
+- **V-116.** The CBIC-weighted mean is rebuilt by hand from `attr(cmp, "fits")` using
+  `standardize(fit, method = "latent")` and `cmp$weight`, keyed exactly as
+  `average.drm_compare()` keys it (`from \r to \r component`), and asserted equal to
+  `average(cmp, method = "latent")$std.estimate`. Two supporting assertions: the `"latent"`
+  and `"sd_x"` results must actually **differ** (the latent divisor is `sd(eta)` for the
+  fixture's identity- and log-link nodes, so equality would mean the argument was dropped),
+  and the path-key set and `weight_sum` must **agree** across methods, since which paths
+  exist and how much model weight carries each are properties of the graph, not of the
+  standardization. **Validated.**
+
+**Seen red before it was believed.** With `method` hard-coded to `"sd_x"` inside
+`average.drm_compare()`, the block fails 2 assertions (the reconstruction and the
+differ-check); reverted, it passes. A test never observed failing is not evidence — this
+is the same discipline V-115b was added under.
+
+**What V-116 does NOT establish.** It checks *forwarding and weighted-averaging
+arithmetic*, not that latent standardization is the right scaling for model averaging —
+that convention is D-15 / OQ-4, and the log-link families' mean-dependent latent variance
+remains deferred there. Conditional (not full) averaging is unchanged and untested here.
+
+`tests/testthat/test-model-set.R`, 1 test / 5 assertions, live fit. The `mediated`
+candidate is saturated for its two nodes, so `compare()` emits the documented empty-basis-set
+notice; it is consumed in this test rather than left to inflate the suite's warning count.
+
+Suite: 987 pass / 0 fail / 3 skip / 10 warn (was 982). Warning count held, which is the
+point of consuming that notice rather than letting it drift the tracked figure.

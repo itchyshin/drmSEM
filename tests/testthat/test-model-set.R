@@ -244,3 +244,84 @@ test_that("compare() fits a model set and ranks candidates by CBIC", {
     c("from", "to", "component", "std.estimate", "weight_sum") %in% names(avg)
   ))
 })
+
+# average(method = "latent") forwards `method` to standardize() (V-116).
+# standardize()'s own latent scaling is already validated (V-44, V-65); what was
+# untested is that average() PASSES the argument through and weights the latent
+# values. A dropped `method` returns a perfectly well-formed drm_average that
+# silently carries the sd_x numbers -- a wrong number, no error.
+test_that("average(method = 'latent') averages latent-standardized paths", {
+  dat <- simulate_drmsem_dgp(n = 300, seed = 11)
+
+  models <- drm_model_set(
+    mediated = drm_model_set_dag_mediated(),
+    direct = drm_model_set_dag_direct()
+  )
+
+  # `mediated` is saturated for these two nodes, so its basis set is empty and
+  # dsep() says so. That notice is documented, expected behaviour (asserted
+  # elsewhere, in test-psem.R); it is not this test's subject, so it is consumed
+  # here rather than left to inflate the suite's warning count.
+  cmp <- suppressWarnings(compare(
+    models,
+    data = dat,
+    family = list(
+      size = stats::gaussian(),
+      abundance = drmTMB::nbinom2()
+    )
+  ))
+
+  avg_latent <- average(cmp, method = "latent")
+  avg_sdx <- average(cmp, method = "sd_x")
+  expect_s3_class(avg_latent, "drm_average")
+
+  path_key <- function(x) paste(x$from, x$to, x$component, sep = "\r")
+
+  # Which paths exist, and how much model weight carries each, are properties of
+  # the graph -- the standardization cannot change either.
+  expect_setequal(path_key(avg_latent), path_key(avg_sdx))
+  expect_equal(
+    avg_latent$weight_sum[order(path_key(avg_latent))],
+    avg_sdx$weight_sum[order(path_key(avg_sdx))]
+  )
+
+  # Load-bearing: rebuild the weighted mean by hand from the fits, standardized
+  # with method = "latent", keyed exactly as average.drm_compare() keys it.
+  fits <- attr(cmp, "fits")
+  weights <- stats::setNames(cmp$weight, cmp$model)
+  wsum <- list()
+  wxsum <- list()
+  for (nm in cmp$model) {
+    w <- weights[[nm]]
+    if (!is.finite(w) || w <= 0) {
+      next
+    }
+    std <- standardize(fits[[nm]], method = "latent")
+    for (j in seq_len(nrow(std))) {
+      key <- paste(std$from[[j]], std$to[[j]], std$component[[j]], sep = "\r")
+      val <- std$std.estimate[[j]]
+      if (!is.finite(val)) {
+        next
+      }
+      prev_w <- if (is.null(wsum[[key]])) 0 else wsum[[key]]
+      prev_x <- if (is.null(wxsum[[key]])) 0 else wxsum[[key]]
+      wsum[[key]] <- prev_w + w
+      wxsum[[key]] <- prev_x + w * val
+    }
+  }
+  expected <- vapply(
+    path_key(avg_latent),
+    function(key) wxsum[[key]] / wsum[[key]],
+    numeric(1)
+  )
+  expect_equal(avg_latent$std.estimate, unname(expected), tolerance = 1e-8)
+
+  # The two methods must actually differ: the latent divisor is sd(eta) for
+  # these identity- and log-link nodes, which is not 1 on fitted data. If
+  # `method` were dropped on the way to standardize(), these would be identical
+  # and every assertion above would still pass.
+  expect_false(isTRUE(all.equal(
+    avg_latent$std.estimate[order(path_key(avg_latent))],
+    avg_sdx$std.estimate[order(path_key(avg_sdx))]
+  )))
+})
