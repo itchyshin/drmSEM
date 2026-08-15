@@ -1,9 +1,9 @@
-# 14 — m-separation and latent variables (DESIGN ONLY — not implemented)
+# 14 — m-separation and latent variables
 
-**Status: design, not code.** Nothing in `R/` implements any of this. The file exists so
-the drmSEM-side integration can be reviewed independently of the graph theory, and so
-the one part that must not be written from memory is visible as a gate rather than
-discovered halfway through an implementation.
+**Status (updated 2026-08-15): the DAG → MAG conversion IS implemented** (`R/mag.R`,
+`drm_dag_to_mag()`), verified against Shipley & Douma's printed MAGs. The **basis set
+and the `dsep()` wiring are NOT**, and are gated below on a proof that was not found.
+The gate that blocked the whole slice — sourcing the orientation rules — is discharged.
 
 ## Why this is worth doing at all
 
@@ -36,8 +36,9 @@ it were marginalised produces **silently wrong independence claims** — a confi
 "these are independent" that is the opposite of the truth.
 
 That is this package's defining failure mode and the whole subject of the 2026-08-15
-defect lane. So v1 accepts `latent = c(...)` meaning marginalised, and **aborts** on any
-attempt to declare a conditioned latent, rather than approximating it.
+defect lane. `drm_dag_to_mag()` takes only `latent =`, meaning marginalised: there is no
+selection argument, so a conditioned latent is **structurally unrepresentable** rather
+than merely discouraged. That is stronger than an abort — there is nothing to mis-call.
 
 ## The drmSEM-side integration (specifiable now, from the codebase)
 
@@ -61,24 +62,52 @@ declared covariance drops the `y1 ⊥ y2` claim, OQ-14) is the same idea in mini
 MAG layer generalises it, and whether `covary()` should be *reimplemented* on top of the
 MAG rather than kept parallel is an open design question — not a v1 requirement.
 
-## The part that is GATED on a source
+## Sourcing: DISCHARGED (2026-08-15)
 
-**DAG → MAG conversion, and specifically the edge-orientation rules.**
+Three independent readings of the primary sources, then adversarial review of each,
+then synthesis of only what they agreed on. Sources obtained: Richardson & Spirtes via
+**UW Dept. of Statistics TR 375** (the tech-report version — Project Euclid is
+paywalled, so citations are by section/theorem, not page) and Shipley & Douma (2021).
 
-The candidate construction — stated so a reviewer can check it, **not** as a spec to
-implement from — is the classical one for the marginalised-only case: for observed
-variables `A`, `B`, adjacency in the MAG iff there is an inducing path between them in
-the DAG relative to the latents; orientation from the ancestor relation, `A → B` when
-`A` is an ancestor of `B`, `A ↔ B` when neither is an ancestor of the other.
+**Confirmed and implemented** (R&S §4.2.1 orientation; §4.2.3 / Thm 4.2(ii) adjacency;
+Prop. 4.13 edge types; Thm 4.12 / Cor. 4.19 output class):
 
-**That must be verified against Richardson & Spirtes (2002), *Ancestral graph Markov
-models*, before any implementation.** It is not in `inst/REFERENCES.bib` and there is no
-local copy. Writing it from memory is exactly the failure this design exists to prevent:
-an orientation rule that is subtly wrong yields a basis set that is *plausible and
-wrong*, and every downstream Fisher's C inherits it without any test noticing — because
-the tests would be written from the same wrong memory.
+- **Adjacency.** `α, β` observed are adjacent iff an *inducing path* joins them: every
+  collider on it is an ancestor of `{α, β}`, every non-collider is latent.
+- **Orientation.** Arrowhead at `α` iff `α ∉ an(β)`; tail otherwise. On a DAG with no
+  selection only `→`, `←`, `↔` can arise — `—` needs mutual ancestry.
+- **Ancestors are taken in the ORIGINAL DAG, latents present.** For `α → u → β` with
+  `u` latent the answer is `α → β`; delete latents first and you get `α ↔ β` — a valid
+  MAG, the wrong one, wrong claims downstream, nothing to catch it.
 
-Two acceptance conditions follow, and neither is optional:
+**Two findings that changed the design, both from the review rather than the reading:**
+
+1. **Shipley & Douma's published orientation rules are defective as a general recipe.**
+   They drop R&S's `∪ S`, and they attribute the rule to R&S Lemma 3.9, which is about
+   *reading* an existing ancestral graph and contains no `S`; the construction is
+   §4.2.1. For `S = ∅` their rules (i)–(iii) coincide with R&S exactly and rule (iv)
+   cannot fire. **So the marginalised-only restriction is now justified by the source,
+   not by caution** — it is the case where the published recipe happens to be right.
+2. **The parent-based basis set is unproven.** S&D condition on observed *parents*.
+   What R&S actually prove (Cor. 5.3) conditions on **anteriors in the MAG**. No
+   marginalised-only counterexample was found, but no proof either — and separately,
+   pairwise ⇒ global was never established, which is what a basis set needs.
+
+## What remains GATED, and why
+
+**The basis set over a MAG.** Cor. 5.3 gives soundness for each pairwise claim, but a
+d-separation test needs the *collection* of claims to imply every other independence in
+the graph, and that step was not located in the source. Implementing a basis set on the
+strength of "each claim is individually true" would be precisely the plausible-and-wrong
+failure this design exists to prevent. `drm_dag_to_mag()` therefore converts graphs and
+stops; nothing is wired into `basis_set()` or `dsep()`.
+
+**Any selection / conditioned latent.** The verdict was an explicit NO: the only worked
+example obtained for that case is a negative control, and the published recipe is
+demonstrably wrong there. There is no selection argument, so it is structurally
+unrepresentable rather than merely discouraged.
+
+Two acceptance conditions were set before implementation. **The first is met** (V-112 / V-113); the second belongs with the `dsep()` wiring, which is not done:
 
 1. **Reproduce a printed claim set.** Shipley & Douma (2021) work the
    `A → X ← L → Y → B` example and print **both** its d-separation and m-separation
@@ -101,8 +130,10 @@ Until that lands, this file is the design and there is deliberately no implement
 ## References
 
 Richardson, T. & Spirtes, P. (2002). Ancestral graph Markov models. *Annals of
-Statistics* 30(4), 962–1030. **Not yet in `inst/REFERENCES.bib` — add it with the
-implementation.**
+Statistics* 30(4), 962–1030. Read via UW Dept. of Statistics **Technical Report 375**
+(Project Euclid is paywalled), so citations here are by section/theorem rather than
+page. **Still to add to `inst/REFERENCES.bib` when this reaches a user-facing surface;
+`R/mag.R` is internal, so nothing exported cites it yet.**
 
 Shipley, B. & Douma, J. C. (2021). Testing piecewise structural equations models in the
 presence of latent variables and including correlated errors. *Structural Equation

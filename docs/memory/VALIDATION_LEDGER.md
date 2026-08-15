@@ -1030,3 +1030,45 @@ reporting the mismatch, and skipping claims between variables in orthogonal hier
 Both change which claims are tested and are gated as estimand changes.
 
 Suite: 969 pass / 0 fail / 3 skip / 10 warn (was 948).
+
+## 2026-08-15 — S2 (partial): DAG → MAG conversion, sourced then implemented
+
+The gate that blocked this slice was **sourcing**, not authorisation. Discharged by
+three independent readings of the primary sources, adversarial review of each, and
+synthesis of only what they agreed on. Richardson & Spirtes obtained via UW TR 375
+(Project Euclid paywalled — citations by section/theorem, not page).
+
+**Implemented** (`R/mag.R`): adjacency by inducing path (R&S §4.2.3 / Thm 4.2(ii)),
+orientation by ancestry (§4.2.1), edge types per Prop. 4.13.
+
+- **V-112.** Shipley & Douma Fig 1 DAG (I), `A → X ← L → Y → B` with `L` marginalised,
+  reproduces the **printed** MAG `A → X ↔ Y → B` exactly. **Validated.**
+- **V-113.** Their DAG (III) reproduces the printed saturated MAG — complete on
+  `{A,X,Y,B}`, six edges, with `X → B` and `A → B` added and *oriented*. **Validated.**
+- **V-114.** The latent-chain trap: `A → u → B` with `u` latent gives `A → B`, not
+  `A ↔ B`. Ancestors must be read in the ORIGINAL DAG; deleting latents first yields a
+  valid MAG that is the wrong one, with nothing downstream to catch it. **Validated.**
+- **V-115b.** A name-collision guard, added because it actually happened — see below.
+
+**NOT implemented, and why:** the basis set. Cor. 5.3 proves each pairwise claim
+(conditioning on **anteriors**, not the parents Shipley & Douma use), but pairwise ⇒
+global was never located, and that is exactly what a basis set needs. Nothing here is
+wired into `basis_set()` or `dsep()`. Selection/conditioned latents: explicit NO.
+
+**Two things the process caught that the code would not have.**
+
+1. **S&D's published orientation rules are defective in general** — they drop R&S's
+   `∪ S` and mis-cite Lemma 3.9 (which is about *reading* an ancestral graph, not
+   constructing one). They coincide with R&S only when `S = ∅`. The marginalised-only
+   restriction is therefore justified **by the source**, not by caution.
+2. **A silent name collision.** The first draft named its path helper
+   `drm_simple_paths()` — already defined in `R/utils.R`, directed, and used by
+   `path_effects()`. R redefines without a word; collation decided the winner; the MAG
+   code silently received the DIRECTED version and returned a graph missing most of its
+   edges. Nothing errored. **The printed acceptance example is what caught it** — a test
+   asserting only "returns a data frame" would have passed. V-115b now pins the two
+   apart.
+
+`tests/testthat/test-mag.R`, 6 tests / 13 assertions, pure graph logic, no engine.
+
+Suite: 982 pass / 0 fail / 3 skip / 10 warn (was 969).
