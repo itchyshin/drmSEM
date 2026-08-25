@@ -138,3 +138,61 @@ page. **Still to add to `inst/REFERENCES.bib` when this reaches a user-facing su
 Shipley, B. & Douma, J. C. (2021). Testing piecewise structural equations models in the
 presence of latent variables and including correlated errors. *Structural Equation
 Modeling* 28(4). Already cited (`inst/REFERENCES.bib:413`).
+
+---
+
+## Addendum — m-separation completeness decision packet (A4, 2026-08-25)
+
+Lane: `claude/lane-mag-completeness` (worktree
+`~/local-scratch/lanes/drmSEM-mag-completeness`). Evidence:
+`LOOP/notes/A1-proposition.md`, `A2-findings.md`, `A3-verdicts.md`.
+**No** `R/` or `tests/` edits; **no** wire into `basis_set()` / `dsep()` (G1).
+
+### Formal proposition (from A1)
+
+Let \(G\) be a MAG on observed \(V\) (drmSEM v1: \(S=\emptyset\)). Let \(\mathcal{B}(G)\) be
+all pairwise Cor. 5.3 claims
+\(\{\alpha\}\perp\!\!\!\perp\{\beta\}\mid\operatorname{ant}_G(\{\alpha,\beta\})\setminus\{\alpha,\beta\}\)
+for nonadjacent \(\alpha,\beta\). **(P):** does \(\mathcal{B}(G)\) imply every m-separation in
+\(\operatorname{Im}(G)\) (pairwise ⇒ global)?
+
+### Per-source verdicts (cite §/thm; UNVERIFIED marked)
+
+| Source | Verdict for (P) | Cite |
+|---|---|---|
+| R&S (UW TR 375 / *Ann. Statist.* 2002) | Global Markov via m-separation **stated**; Cor. 5.3 pairwise with **anteriors** **stated**; pairwise ⇒ global **silent**. Thm 7.6 is a different “completeness.” | §2.1.1, §3.4, §3.7, Cor. 5.3, §7.4.1 Thm 7.6 |
+| Zhang 2008 AIJ / JMLR 2008a | **Silent** on (P); “completeness” = FCI orientation rules | JMLR Def. 2; AIJ title (OA PDF unavailable — Unpaywall) |
+| Ali, Richardson & Spirtes 2009 | Global Markov **stated**; maximality / equivalence — **not** (P) | Def. 2.3; Thm 3.7 / Cor. 3.28 |
+| Shipley & Douma 2021 | Union basis as independence model (**weaker**); conditioning = **observed parents** (+ \(L_C\)), not anteriors; no proof of (P); \(\cup S\) dropped in orientation | m-sep test section; orientation (i)–(iv) |
+| Sadeghi & Lauritzen 2014 (*Bernoulli*) | **States (P)** under hypotheses: maximal ribbonless + **compositional graphoid** ⇒ pairwise ⇔ global; conditioning = anteriors (matches Cor. 5.3). G0 lead; **primary-checked** (no longer UNVERIFIED). | §6.1; **Thm 3** §6.2; Cor. 2; §2 compositionality gap |
+| Lauritzen & Sadeghi 2018 (*Ann. Statist.*) | **States (P)** for maximal CMGs (includes AGs): pairwise (P) with \(\operatorname{ant}(\{i,j\})\) ⇔ global under compositional graphoid. G0 lead; **primary-checked**. | §5.1; **Thm 4** §5.2; Cor. 5; §5.3 Ex. 1 (wrong separators ≠ basis) |
+
+NotebookLM interrogation used only as corroboration; all load-bearing cites above are
+primary-checked except Zhang AIJ full text (closed OA).
+
+### Recommendation
+
+**(a)** — the completeness result exists: Sadeghi & Lauritzen (2014) **Theorem 3** and
+Lauritzen & Sadeghi (2018) **Theorem 4** prove that, for a MAG (as maximal ribbonless /
+maximal CMG), a compositional-graphoid independence model satisfies the Cor. 5.3
+anterior pairwise Markov property if and only if it satisfies the global Markov property
+(m-separation). **Cost of wiring (still Shinichi’s G1 call, not this lane):** implement
+`basis_set()` / `dsep()` on **anteriors** (not S&D parents), keep \(S=\emptyset\), plus
+docs/tests. **Residual gap Y:** compositionality is an assumption, not free — positive
+density alone does not imply a compositional graphoid (S&L 2014 §2; L&S 2018 §3.4);
+drmSEM’s any-component LRT / Fisher’s \(C\) regime is not shown to induce one. Parent-based
+S&D claims remain unlicensed (L&S §5.3 Ex. 1). This lane does **not** implement (b) or
+wire anything.
+
+### Searches that returned nothing
+
+1. R&S text: theorem equating pairwise Markov to full \(\operatorname{Im}(G)\) — none.
+2. Ali et al. 2009: anterior pairwise ⇒ global — none.
+3. Zhang JMLR/AIJ: basis-set pairwise ⇒ global — none (orientation completeness only).
+4. Shipley & Douma 2021: proof parent-basis ⇒ all m-separations — none.
+5. Live UW TR 375 URL — 404; Annals/CMU PDF used (theorem numbers aligned).
+6. Zhang AIJ 2008 OA via Unpaywall — no OA location.
+7. Crossref `pairwise global Markov maximal ancestral graph` — did not itself surface
+   S&L; those arrived as G0 leads + Bernoulli/arXiv/AOS search.
+
+**STOP.** G1: no `basis_set()`/`dsep()` wire. G2: no push.
