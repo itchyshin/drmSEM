@@ -70,6 +70,10 @@ basis_set <- function(object, ...) {
 #' @rdname basis_set
 #' @export
 basis_set.drm_sem <- function(object, ...) {
+  if (length(object$latents)) {
+    drm_mag_compositionality_inform(object)
+    return(basis_set_mag(object))
+  }
   edges <- object$edges
   ord <- drm_order_index(object)
   all_vars <- unique(c(object$endogenous, object$exogenous))
@@ -133,6 +137,70 @@ basis_set.drm_sem <- function(object, ...) {
       stringsAsFactors = FALSE
     )
     return(out)
+  }
+  out <- do.call(rbind, rows)
+  out <- cbind(
+    claim = paste0(out$x, " _||_ ", out$y, " | {", out$given, "}"),
+    out
+  )
+  rownames(out) <- NULL
+  out
+}
+
+#' MAG basis set: Cor. 5.3 pairwise claims with anterior conditioning sets.
+#' @keywords internal
+#' @noRd
+basis_set_mag <- function(object) {
+  mag <- object$mag
+  if (is.null(mag) || !nrow(mag)) {
+    out <- data.frame(
+      claim = character(0),
+      x = character(0),
+      y = character(0),
+      given = character(0),
+      stringsAsFactors = FALSE
+    )
+    return(out)
+  }
+  ord <- drm_order_index(object)
+  all_vars <- unique(c(object$endogenous, object$exogenous))
+  cov_pairs <- unique(c(
+    drm_covariance_pairs(object),
+    drm_feedback_pairs(object)
+  ))
+  rows <- list()
+  for (y in object$order) {
+    yi <- ord(y)
+    for (x in all_vars) {
+      if (identical(x, y)) {
+        next
+      }
+      if (ord(x) > yi) {
+        next
+      }
+      if (drm_mag_is_adjacent(mag, x, y)) {
+        next
+      }
+      if (paste(pmin(x, y), pmax(x, y), sep = "\r") %in% cov_pairs) {
+        next
+      }
+      given <- drm_mag_anteriors(mag, x, y)
+      rows[[length(rows) + 1L]] <- data.frame(
+        x = x,
+        y = y,
+        given = paste(sort(given), collapse = ", "),
+        stringsAsFactors = FALSE
+      )
+    }
+  }
+  if (length(rows) == 0L) {
+    return(data.frame(
+      claim = character(0),
+      x = character(0),
+      y = character(0),
+      given = character(0),
+      stringsAsFactors = FALSE
+    ))
   }
   out <- do.call(rbind, rows)
   out <- cbind(

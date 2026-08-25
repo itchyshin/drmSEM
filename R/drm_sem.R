@@ -14,7 +14,8 @@ new_drm_sem <- function(
   fit_env = parent.frame(),
   covariances = NULL,
   composites = NULL,
-  feedback = NULL
+  feedback = NULL,
+  latents = NULL
 ) {
   if (length(fits) == 0L) {
     cli::cli_abort("A drmSEM model needs at least one endogenous node.")
@@ -31,6 +32,9 @@ new_drm_sem <- function(
   vedges <- drm_collapse_edges(edges)
   covs <- drm_build_covariances(covariances, records)
   comps <- drm_build_composites(composites)
+  dag_vertices <- unique(c(vedges$from, vedges$to))
+  lats <- drm_build_latents(latents, dag_vertices)
+  mag <- drm_build_mag(vedges, lats)
   # NB: a composite name MAY coincide with a node name -- that is the
   # construct-as-response pattern (a node models the materialized composite). The
   # dangerous case (a composite overwriting a real data column) is caught earlier
@@ -74,6 +78,8 @@ new_drm_sem <- function(
       covariances = covs,
       composites = comps,
       feedback = fb,
+      latents = lats,
+      mag = mag,
       endogenous = node_names,
       exogenous = exo,
       order = topo$order,
@@ -112,6 +118,10 @@ new_drm_sem <- function(
 #'   the topological-order requirement and is reported by [cycles()]. Node-wise
 #'   fitting of a declared cycle is inconsistent under simultaneity (a warning is
 #'   emitted); see `docs/design/10-cyclic-feedback.md`.
+#' @param latent Character vector of **marginalised** latent vertex names (`L_M`).
+#'   When supplied, [basis_set()] generates m-separation claims on the implied MAG
+#'   (Cor. 5.3 anterior conditioning; `S = \\emptyset` only). Conditioned /
+#'   selection latents are not supported. See `docs/design/14-m-separation.md`.
 #'
 #' @return A `drm_sem` object.
 #' @seealso [drm_sem()] for the declarative interface that fits nodes for you.
@@ -141,7 +151,8 @@ drm_psem <- function(
   data = NULL,
   covariances = NULL,
   composites = NULL,
-  feedback = NULL
+  feedback = NULL,
+  latent = NULL
 ) {
   fits <- list(...)
   if (!all(vapply(fits, is_drmTMB_fit, logical(1)))) {
@@ -160,7 +171,8 @@ drm_psem <- function(
     fit_env = parent.frame(),
     covariances = covariances,
     composites = composites,
-    feedback = feedback
+    feedback = feedback,
+    latents = latent
   )
 }
 
@@ -186,6 +198,8 @@ drm_psem <- function(
 #'   stays an error). Node-wise ML of a declared cycle is inconsistent under
 #'   simultaneity (a warning is emitted); equilibrium effects use the fixed-point
 #'   propagator. See `docs/design/10-cyclic-feedback.md`.
+#' @param latent Character vector of marginalised latent names for MAG
+#'   m-separation in [basis_set()] / [dsep()]. Selection latents are not supported.
 #' @param na_action What to do when incomplete rows mean the nodes would not all
 #'   be fitted on the same rows. `"warn"` (default) fits anyway but reports which
 #'   nodes used how many rows; `"common"` fits every node on the shared
@@ -252,6 +266,7 @@ drm_sem <- function(
   covariances = NULL,
   composites = NULL,
   feedback = NULL,
+  latent = NULL,
   na_action = c("warn", "common", "fail"),
   impute = c("none", "auto")
 ) {
@@ -305,7 +320,8 @@ drm_sem <- function(
     fit_env = parent.frame(),
     covariances = covariances,
     composites = composites,
-    feedback = feedback
+    feedback = feedback,
+    latents = latent
   )
   # After "common" the frame is complete, so re-derive rather than reporting
   # the pre-alignment finding.
@@ -467,6 +483,12 @@ print.drm_sem <- function(x, ...) {
   if (nf > 0L) {
     cli::cli_text(
       "{nf} declared feedback motif{?s} (cyclic). Use {.fn cycles} to list them."
+    )
+  }
+  nl <- length(x$latents)
+  if (nl > 0L) {
+    cli::cli_text(
+      "{nl} marginalised latent{?s} {.val {x$latents}}; basis set uses MAG m-separation."
     )
   }
   invisible(x)

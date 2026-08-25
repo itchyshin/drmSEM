@@ -189,3 +189,77 @@ drm_dag_to_mag <- function(edges, latent = character(0)) {
   rownames(out) <- NULL
   out
 }
+
+#' Is `a` adjacent to `b` in a MAG edge table?
+#' @keywords internal
+#' @noRd
+drm_mag_is_adjacent <- function(mag, a, b) {
+  if (!nrow(mag)) {
+    return(FALSE)
+  }
+  a <- as.character(a)
+  b <- as.character(b)
+  any(
+    (mag$from == a & mag$to == b) | (mag$from == b & mag$to == a),
+    na.rm = TRUE
+  )
+}
+
+#' Anterior set of `v` in a MAG (reflexive).
+#'
+#' Follows directed tails into `v` and spouses across bidirected edges, then
+#' closes transitively. Matches R&S anterior on ancestral graphs for MAGs built
+#' with `S = \emptyset`.
+#' @keywords internal
+#' @noRd
+drm_mag_anterior_of <- function(v, mag) {
+  v <- as.character(v)
+  seen <- v
+  if (!nrow(mag)) {
+    return(seen)
+  }
+  repeat {
+    add <- character(0)
+  # Directed predecessors (tails at the parent).
+    idx <- mag$type == "-->" & mag$to %in% seen
+    if (any(idx)) {
+      add <- c(add, mag$from[idx])
+    }
+  # Spouses across bidirected edges.
+    idx <- mag$type == "<->" & (mag$from %in% seen | mag$to %in% seen)
+    if (any(idx)) {
+      add <- c(add, mag$from[idx], mag$to[idx])
+    }
+    new <- setdiff(unique(add), seen)
+    if (!length(new)) {
+      break
+    }
+    seen <- c(seen, new)
+  }
+  seen
+}
+
+#' Conditioning set for a Cor. 5.3 pairwise claim: ant({alpha, beta}) \\ {alpha, beta}.
+#' @keywords internal
+#' @noRd
+drm_mag_anteriors <- function(mag, alpha, beta) {
+  alpha <- as.character(alpha)
+  beta <- as.character(beta)
+  ant <- unique(c(
+    drm_mag_anterior_of(alpha, mag),
+    drm_mag_anterior_of(beta, mag)
+  ))
+  setdiff(ant, c(alpha, beta))
+}
+
+#' Build a MAG from collapsed DAG edges and marginalised latent names.
+#' @keywords internal
+#' @noRd
+drm_build_mag <- function(dag_edges, latents) {
+  latents <- as.character(latents)
+  if (!length(latents)) {
+    return(NULL)
+  }
+  edges <- as.data.frame(dag_edges)[, c("from", "to"), drop = FALSE]
+  drm_dag_to_mag(edges, latent = latents)
+}
