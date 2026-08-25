@@ -6,7 +6,7 @@ Dependency-ordered. Re-read `LOOP/GOAL.md` before each.
 | # | arc | status | gate? |
 |---|-----|--------|-------|
 | A1 | State the proposition, then assemble the corpus | **DONE** (verified: same gap as `docs/design/14-m-separation.md` "NOT implemented" / basis-set gate) | — |
-| A2 | Interrogate the corpus with narrow, cited questions | TODO | after G0 |
+| A2 | Interrogate the corpus with narrow, cited questions | **DONE** (verified: per-source verdicts with §/thm cites in `LOOP/notes/A2-findings.md`) | after G0 |
 | A3 | Adversarially verify the near-misses | TODO | after A2 |
 | A4 | Write the decision packet (addendum to `docs/design/14-m-separation.md`) | TODO | after A3 |
 
@@ -23,20 +23,14 @@ Dependency-ordered. Re-read `LOOP/GOAL.md` before each.
 
 ---
 
-## A2 — Interrogate the corpus with narrow, cited questions  ·  ~70 min  ·  TODO
+## A2 — Interrogate the corpus with narrow, cited questions  ·  ~70 min  ·  DONE
 
 **In:** A1's proposition + corpus.  **Out:** `LOOP/notes/A2-findings.md`.
 
-Run the `/notebook` loop (Ranga) over the corpus. Ask NARROW questions, one proposition at a
-time — "does <source> state a global Markov property for MAGs, and under which conditioning
-set?" — not "is there a completeness result?".
-
-**Guard:** exclude drmSEM's own docs from the corpus (GOAL invariant 5).
-
 **Done when:** each corpus item has a verdict: states it / states something weaker / silent.
 **Verify:** every verdict carries a section or theorem number. No bare "yes".
-**Risk branch:** if nothing is located by ~70 min, STOP searching and go to A3 with the
-strongest available result — do not keep hunting. The honest negative IS a deliverable.
+**Evidence:** `LOOP/notes/A2-findings.md` — R&S silent on (P); S&L 2014 Thm 3 strongest hit;
+Zhang/Ali/S&D weaker or silent; NotebookLM UNVERIFIED only.
 
 ---
 
