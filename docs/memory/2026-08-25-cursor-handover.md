@@ -19,6 +19,16 @@ m-separation claims imply GLOBAL m-separation for a MAG, and write the decision 
 Shinichi can pick among (a)/(b)/(c). **You gather evidence; you do not decide, and you do not
 implement.**
 
+## 0b. LOOP/ collision — read before touching LOOP/ (added 2026-08-25, post-commit)
+
+`LOOP/` in this checkout is **not yours and not empty**: it holds the CLOSED 2026-08-15 Claude
+lane's kit (its `checkpoint.md` says "LANE COMPLETE AND CLOSED … no unblocked work left").
+That checkpoint describes the *previous* lane, not yours — do **not** read it as your state,
+and do not conclude from it that there is nothing to do. Before seeding your own kit:
+`mv LOOP LOOP-archive-2026-08-15` (it is gitignored/local-only, so this touches no git state),
+then build yours fresh from the arc doc. The archived kit's `workflow-ci-gate.patch` is that
+old lane's parked, **unapplied** CI artifact — leave it archived; applying anything is G1.
+
 ## 1. Rehydrate (do these in order, before any work)
 
 1. Read the repo's `AGENTS.md`.
