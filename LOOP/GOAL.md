@@ -1,39 +1,20 @@
-# GOAL — drmSEM defect-and-evidence lane (IMMUTABLE — re-read at the top of EVERY arc)
+# GOAL — <one sentence: what "done" looks like>
 
-Read this first, every cycle. Auto-compact eats messages, not this file. Unsure after a
-compaction? Re-read THIS, then checkpoint.md, then ultra-plan.md, then continue.
-
-## Mission
-Close the **silent-wrong-answer class** in drmSEM: every place the package returns a
-plausible-looking number, or advertises a capability, with nothing verifying it. Five arcs
-(A1..A5). Done when each is fixed or explicitly documented as a known limitation, with a test,
-and CI is green on all three platforms.
-
-## Headline
-If only one thing ships: **A1** — six vignettes execute code under `R CMD check` that their
-authors believed was disabled. CI structurally cannot see it.
-
-## Invariants (never violated, even after compaction)
-- ONE lane: `drmSEM defect-and-evidence`, on `main`. Re-run `lane_preflight.sh` each arc.
-  Note: it reports FOREIGN LANE ACTIVE from our OWN direct-to-main commits — verify against
-  live peer sessions before believing it.
-- Verify in this order, no shortcuts: full suite -> R CMD check -> push -> CI green on
-  Windows+Ubuntu+macOS. **Read the log, not the exit code.**
-- Explicit paths on every `git add`. NEVER `git add -A`.
-- NEVER delete or commit `man/figures/drmsem-thermal-*.png` or `tools/render-readme-thermal.R`
-  (PROTECTED — they carry reviewed biology corrections and were never committed).
-- Pin drmTMB: tests run against the INSTALLED build. Record its version each arc; two drmTMB
-  sessions are live in other lanes.
-- A claim with no test is a limitation to document, not a capability to advertise.
-
-## Authoritative WHAT
-`LOOP/ultra-plan.md` (detail wins there). This file wins on "what must never be lost".
+**IMMUTABLE for this run.** Re-read this file at the top of EVERY arc, before anything else.
 
 ## Definition of done
-A1 vignettes tangle-safe + CI able to see regressions · A2 ordinal evidence exists and the two
-silent-wrong-answer findings are pinned · A3 check_sem covered beyond nobs · A4 nominal_link
-gaps closed · A5 hu gap documented (fix gated) · every arc pushed and CI-green · ledgers updated.
+- [ ] <the observable end state, not the activity>
 
-## Gates (STOP and wait for the human)
-new public capability claim · estimand/semantics/charter change · anything destructive ·
-a surprise that invalidates the plan.
+## Invariants (never violate, even to finish faster)
+- Never push, merge, or publish — those are HUMAN GATES. Land work on this branch only.
+- Verification means reading the LOG and inspecting the ARTEFACT, never the exit code.
+- A narrow or negative search is not proof. "No X exists" usually means the query missed X.
+- Destructive or irreversible ⇒ STOP and surface, even if it feels urgent.
+
+## Pre-authorisation (copied from approved ultra-plan)
+- Routine scoped edits, local commands, tests, builds, checkpoints, local commits, and listed checks: CONTINUE.
+- Optional remote authority: <none | push named branch | create named draft PR; never merge or release>.
+- Must stop: merge/release/public message or claim; credentials/security changes; destructive work outside this worktree; new compute/cost beyond the estimate; scope-changing evidence.
+
+## Out of scope (the fence — do NOT drift here)
+- <...>
