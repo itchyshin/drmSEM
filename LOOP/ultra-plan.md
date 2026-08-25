@@ -1,174 +1,151 @@
-```
-🎯 GOAL — drmSEM defect-and-evidence lane (~10 h, semi-autonomous)
-Solo platform: Claude Code (this session)
-Deliverable:   The latent defects this session surfaced are fixed and evidenced, and the
-               capability surface stops claiming things no test backs.
-HEADLINE:      Close the silent-wrong-answer class. Every arc here is a case where drmSEM
-               returns a plausible number, or claims a capability, with nothing checking it.
-IN SCOPE:      A1 vignette tangling · A2 ordinal evidence + spatial relabel · A3 check_sem
-               coverage · A4 drm_nominal_link gaps · A5 hu / model_type keying
-DEFER (fenced): S2 m-separation · S3 scale-aware d-sep · the 9 drmTMB engine issues ·
-               anything needing a new estimand or a charter change
-DISCIPLINE:    verify = full suite + R CMD check locally, THEN push, THEN CI green on all
-               three platforms before the next arc starts · compute = local · gates below
-```
+# Next arc (designed, NOT started) — m-separation completeness
 
-**Run mode:** L2 arc-loop. Re-read this file at the top of every arc; overwrite `LOOP/checkpoint.md`
-after each; pause only at a gate.
+Status: **READY, needs its own plan gate.** Designed 2026-08-15 during the Step-4 close,
+at Shinichi's request, then parked when he stopped the lane. Nothing here has been run.
 
----
+This arc is READ-ONLY evidence gathering. It exists so Shinichi can decide handover
+Step 1. It does **not** implement option (b), and must not be allowed to drift into it.
 
-## Context
+## GOAL (would become `LOOP/GOAL.md`)
 
-Nine commits landed today (maturity pass, S5 row alignment, S6 graph-derived imputation, S1b
-samplers, two CI fixes, the manifest, a peer handover update). `origin/main` is at `5b4f322`,
-CI green on Windows/Ubuntu/macOS.
+Read this first, every cycle. Auto-compact eats messages, not this file. Unsure after a
+compaction? Re-read THIS, then `LOOP/checkpoint.md`, then continue.
 
-That work surfaced a consistent defect class, and this lane closes it: **places where drmSEM
-returns a plausible-looking number, or advertises a capability, with nothing verifying it.**
-The silent-recycling design matrix (S5) and the probability-where-counts-belong sampler (S1b)
-were both instances. The arcs below are the remaining known ones.
+## Mission
 
-Two sizing agents found root causes that changed this plan, including one refuted premise —
-recorded per arc rather than discovered mid-run.
+Answer one question with citations, so Shinichi can decide drmSEM handover §6 Step 1:
 
----
+> **Is there a published result that pairwise m-separation claims imply GLOBAL
+> m-separation for a MAG — i.e. the completeness a basis set actually needs?**
 
-## Arcs
+`drm_dag_to_mag()` already works and is verified against Shipley & Douma's printed MAGs
+(V-112/V-113/V-114). It is deliberately **not** wired into `basis_set()`/`dsep()` because
+Richardson & Spirtes Cor. 5.3 proves each *pairwise* claim is sound (conditioning on
+**anteriors**, not the parents S&D use), while **pairwise ⇒ global was never located**.
 
-### A1 — Vignette code-tangling (6 files) · ~1.5 h · no gate
+The deliverable is a **decision packet**: an addendum to `docs/design/14-m-separation.md`
+that states what the literature does and does not license, with citations by
+section/theorem, and a one-paragraph recommendation among:
+(a) the completeness result exists — here it is;
+(b) it does not appear to exist — implementing on Cor. 5.3 would cost X and carry gap Y;
+(c) leave it.
 
-**Root cause, verified against knitr 1.51 source and a live in-memory tangle.**
-`knitr:::tangle_block` never executes chunks, so `knitr::opts_chunk$set(eval = has_engine)` —
-which lives *inside* the setup chunk — **has not run** when purl decides what to emit. Only a
-**per-header** `eval` is consulted:
+## Headline
 
-| header form | tangle result |
-|---|---|
-| `eval = has_engine` | `eval_lang` errors → `purl = FALSE` → chunk **dropped** |
-| literal `eval = FALSE` | kept, but commented out |
-| **no `eval` in the header** | inherits default `TRUE` → **emitted and executed** |
+Find the theorem, or **prove honestly that it is not there**. A confident "not found" that
+is really "my search missed it" is the failure mode this arc exists to avoid — which is why
+adversarial verification is its own arc, not a step.
 
-So the passing vignettes pass because every chunk carries an explicit `eval`; the failing ones
-have chunks that carry none.
+## Invariants (never violated, even after compaction)
 
-**Why CI is green and `devtools::check()` is not:** `_R_CHECK_VIGNETTES_SKIP_RUN_MAYBE_` defaults
-to `TRUE`, and CI re-builds vignettes, so the tangle-run step is skipped there. Not a CI
-misconfiguration — a real latent defect that CI simply cannot see.
+1. **READ-ONLY with respect to package code.** No edits to `R/mag.R`, `R/dsep.R`,
+   `R/model_set.R`, or anything under `R/`. No edits to `tests/`. The ONLY file this lane
+   writes in the package is `docs/design/14-m-separation.md` (an appended addendum) plus
+   the `LOOP/` kit.
+2. **Do NOT implement option (b).** The handover forbids picking it silently. Producing the
+   evidence for a decision is the job; making the decision is not.
+3. **Cite by section/theorem, never by page** — Richardson & Spirtes is read via UW TR 375;
+   Project Euclid is paywalled. A claim without a locatable citation is not a finding.
+4. **A negative search result is not a finding** until a second, differently-shaped search
+   agrees. State the query that returned nothing.
+5. **NotebookLM self-citation guard**: exclude drmSEM's own vignettes/design docs from any
+   corpus, or the sweep will cite us back to ourselves and report the idea already settled.
+6. Treat every NotebookLM/web finding as **UNVERIFIED** until checked against the primary
+   source. Mark it so in the addendum.
+7. One lane only. Do not touch `main` in the parent checkout.
 
-**Fix:** add an explicit `eval = has_engine` to the 24 headers that lack one, across
-`covariance-edges-and-composites.Rmd` (4), `drmSEM-overview.Rmd` (6),
-`equations-via-symbolizer.Rmd` (2), `latent-variables.Rmd` (2), `model-selection.Rmd` (4, which
-has no `has_engine` — use literal `eval = FALSE`, matching calibration/validation),
-`phylogenetic-sem.Rmd` (6). Do **not** touch setup chunks: they must stay purled and runnable.
+## Authoritative WHAT
 
-Two genuine authoring bugs to fix while there, both currently hidden by the tangling failure:
-`latent-variables.Rmd` uses a `fitness` column its `dat` never defines, and
-`covariance-edges-and-composites.Rmd:126,137` reference an undefined `sem3`.
+`LOOP/ultra-plan.md` holds the binding detail. This file wins on "what must never be lost."
 
-**Adjacent risk, in scope because it is the same defect:** `drmSEM.Rmd` has **11** unguarded
-chunks that tangle *and* run real TMB fits inside check. It passes only because `dat` happens to
-be defined by an `eval = TRUE` chunk and `drmTMB` happens to be installed. On any machine without
-`drmTMB` — a GitHub `Remotes` entry, not on CRAN — it fails. +11 headers.
+## Definition of done
 
-**Then make CI able to see it:** add `_R_CHECK_VIGNETTES_SKIP_RUN_MAYBE_: false` to the workflow
-`env:`. Order matters — fix first, verify locally, enable the gate last, confirm green.
+`docs/design/14-m-separation.md` carries an addendum that a reader can act on:
+- the exact proposition a basis set needs, stated formally;
+- what R&S / Zhang / Ali-Richardson / successors do and do not prove about it;
+- every claim cited by section or theorem, UNVERIFIED ones marked;
+- a recommendation among (a)/(b)/(c) with its cost and residual gap;
+- an explicit list of what was searched and what returned nothing.
 
-### A2 — Ordinal evidence, and correcting the spatial claim · ~2 h · no gate
-
-**A premise was refuted, so the arc is rescoped.** The prior plan said ordinal *and* spatial
-"carry no retained evidence". Half wrong: `tests/testthat/test-phylo-cov.R:199-243` already
-live-fits `relmat(1 | species, K = K)` and asserts marker stripping and finite estimates. Spatial
-needs a **relabel and extend**, not a build.
-
-Measured live, so this is cheap: an ordinal SEM (gaussian mediator → `cumulative_logit` outcome,
-n = 800) fits in **0.73 s**; `dsep()` + `fisher_c()` in 0.045 s. No family whitelist exists
-anywhere, and `cumulative_logit` already has its link label at `R/edges.R:42`.
-
-New `tests/testthat/test-ordinal.R` (~150 lines): `paths()` component/link labelling, cutpoints
-not leaked into `from`, `dsep()`/Fisher's C, and latent-scale recovery. Plus ~40 lines near
-`test-phylo-cov.R:199` for a distance-kernel `relmat()` case carrying `dsep()` and effects.
-
-**Two silent-wrong-answer findings this arc must pin as tests — same class as the rest of the lane:**
-1. For `cumulative_logit`, `mu` is the **latent linear predictor, not `E[category]`**. Measured
-   values sat in ≈(−1.7, 1.6) while the response categories were 1–4. `target = "mean"` therefore
-   reports a latent-scale effect **with no warning**. Recovery assertions must be stated on the
-   latent scale, and that must be said out loud.
-2. `target = "p_gt"` on an ordinal node returns **0.0000 for every quantity** — the mean fallback
-   hands it a deterministic latent value so both scenarios collapse. The sampler warning does
-   fire, but the *result* is a degenerate zero.
-
-Pin both as known limitations. **Changing either to return `NA` instead is a semantics change →
-gate, not this arc.**
-
-Also record the engine constraint: `cumulative_logit` accepts only a `mu` formula, so an ordinal
-node cannot be distributional — no ordinal `sigma` path is possible.
-
-**Do not quote the prior audit's 0.518 / 0.875 figures.** They are not reproducible without the
-original seed; an independent run gave 0.4877 against a true 0.5. Fix a seed and pin fresh numbers.
-
-### A3 — `check_sem()` test coverage · ~1 h · no gate
-
-Only its `nobs` column is covered (by today's `test-missing-data.R`). `converged`,
-`vcov_available`, `sampler`, the `print` method and every warning branch are untested, on an
-exported function. Build engines by hand where the mechanism must be deterministic — the lesson
-from today's Windows failure, where a live optimizer produced a different covariance outcome per
-platform.
-
-### A4 — `drm_nominal_link()` gaps · ~0.5 h · no gate
-
-`R/edges.R:26-43` silently returns `"identity"` for `skew_normal` and the three bivariate
-families. Display-only, but a wrong link label in `paths()` misinforms. Add them; test the table.
-
-### A5 — `hu` is documented but never read · ~1 h · **GATE if it changes propagation**
-
-`drm_sample_family()`'s roxygen promises `hu`; the body never uses it, so a `hurdle_nbinom2`
-mediator's hurdle zeros vanish while `nbinom2` reports as fully supported. Root cause is
-structural: drmTMB folds zi/hurdle into `model_type` while drmSEM keys on the family **name**, so
-the list cannot express the distinction.
-
-**Documenting the gap is ungated. Actually honouring `hu` changes what a mediator propagates —
-that is a semantics change, so it stops for review.** Default: document + test the gap, gate the fix.
+**Then STOP.** Wiring anything into `basis_set()` is Shinichi's call, not this lane's.
 
 ---
 
-## Gates (stop and wait)
+## ARCS (would become LOOP/arcs.md)
 
-Per your instruction, only the genuinely irreversible:
-- a **new public capability claim** in README/NEWS/capability-status;
-- a change to an **estimand's meaning**, d-separation/effect semantics, or the charter;
-- anything **destructive**;
-- a **surprise that invalidates this plan** — bring it back here, do not improvise around it.
+Status: `TODO` / `DOING` / `DONE (verified: <how>)` / `BLOCKED`.
+Dependency-ordered. Re-read `GOAL.md` before each.
 
-Everything else proceeds. Every judgement call is recorded in the checkpoint.
+---
 
-## Per-arc verification (all four, in order — no shortcuts)
+## A1 — State the proposition, then assemble the corpus  ·  ~40 min  ·  TODO
 
-```bash
-NOT_CRAN=true Rscript -e 'devtools::test()'                 # 0 fail; count must rise
-NOT_CRAN=true Rscript -e 'devtools::check(error_on="never")' # compare E/W/N to the arc's baseline
-git push origin main
-gh run list --limit 2                                        # green on all three platforms
-```
+**In:** `docs/design/14-m-separation.md`, `docs/memory/VALIDATION_LEDGER.md` (V-112…V-115b).
+**Out:** `LOOP/notes/A1-proposition.md` — the exact formal statement a basis set needs, and
+the corpus list with how each source is reachable.
 
-Baseline entering the lane: **817 pass / 0 fail / 3 skip / 10 warn**; `R CMD check` **1 ERROR
-(pre-existing vignette tangling — A1 should clear it), 0 warnings, 3 notes**. `.uinit/` produces
-one of those notes and is yours to delete.
+Write the proposition FIRST, before reading anything new. A search for "the completeness
+result" without a written target is how a near-miss theorem gets accepted. Name explicitly
+what the conditioning set must be (anteriors vs parents) and where `∪ S` enters.
 
-**Read the log, not the exit code.** Today a green `devtools::test()` hid a Windows-only CI
-failure, and my first fix for it was a guess that failed again.
+Corpus: Richardson & Spirtes *Ancestral Graph Markov Models* (UW TR 375); Zhang 2008 (on
+completeness of FCI / augmented rules); Ali & Richardson (Markov equivalence of ancestral
+graphs); Shipley & Douma; plus anything they cite forward for a global Markov property.
 
-## LOOP/ kit
+**Done when:** the proposition is written and every corpus item has a reachable route.
+**Verify:** re-read the proposition against `14-m-separation.md`'s own "NOT implemented" note
+— they must describe the same gap.
 
-`LOOP/{GOAL.md,arcs.md,checkpoint.md,ultra-plan.md}` committed in the repo, `checkpoint.md`
-overwritten every arc so a fresh session can resume without this conversation.
+---
 
-**Two declared deviations from arc-loop doctrine, with reasons:**
-1. **No isolated worktree lane.** Doctrine scaffolds `lane_launch.sh` with `git push` denied — which
-   directly contradicts your "push each arc once green". Running in this checkout on `main` instead.
-2. **Same session, not a fresh one.** Doctrine wants a lane in its own session; you asked this one
-   to continue. The on-disk kit is what makes that survivable.
+## A2 — Interrogate the corpus with narrow, cited questions  ·  ~70 min  ·  TODO
 
-**Known risk from (1):** this is a shared checkout — a peer lane committed `5b4f322` mid-session
-today. Mitigation: re-check `git status` and the remote SHA at the top of every arc, and never
-`git add -A`.
+**In:** A1's proposition + corpus.  **Out:** `LOOP/notes/A2-findings.md`.
+
+Run the `/notebook` loop (Ranga) over the corpus. Ask NARROW questions, one proposition at a
+time — "does <source> state a global Markov property for MAGs, and under which conditioning
+set?" — not "is there a completeness result?".
+
+**Guard:** exclude drmSEM's own docs from the corpus (GOAL invariant 5).
+
+**Done when:** each corpus item has a verdict: states it / states something weaker / silent.
+**Verify:** every verdict carries a section or theorem number. No bare "yes".
+**Risk branch:** if nothing is located by ~70 min, STOP searching and go to A3 with the
+strongest available result — do not keep hunting. The honest negative IS a deliverable.
+
+---
+
+## A3 — Adversarially verify the near-misses  ·  ~35 min  ·  TODO
+
+**In:** A2's findings.  **Out:** `LOOP/notes/A3-verdicts.md`.
+
+For every candidate that looks like the result, try to REFUTE it. Default to refuted. The
+specific trap already paid for once in this repo: S&D's printed rules drop R&S's `∪ S` and
+coincide only when `S = ∅`. So for each candidate ask: what is the conditioning set, does it
+cover selection, and does it hold for ALL pairs simultaneously or only pairwise?
+
+**Done when:** each candidate is CONFIRMED or REFUTED with the reason.
+**Verify:** read the primary source for any candidate still standing — a NotebookLM summary
+is UNVERIFIED and cannot be the last word (GOAL invariant 6).
+
+---
+
+## A4 — Write the decision packet  ·  ~35 min  ·  TODO  ·  writes to the package
+
+**In:** A1–A3.  **Out:** appended addendum in `docs/design/14-m-separation.md`.
+
+State the proposition, the verdicts, the recommendation among (a)/(b)/(c) with cost and
+residual gap, and — required — the list of what was searched that returned nothing.
+
+**Done when:** a reader who knows nothing of this lane can act on it.
+**Verify:** re-read against GOAL "Definition of done", item by item.
+
+---
+
+## GATES (loop STOPS here)
+
+- **G1 — implementing anything.** Wiring MAG into `basis_set()`/`dsep()` is Shinichi's
+  call. The loop never crosses this, whatever A3 concludes.
+- **G2 — `git push`.** Denied by lane settings. Commit locally; surface for approval.
+- **G3 — a genuine surprise that invalidates the plan** (e.g. the conversion in `R/mag.R`
+  turns out to be wrong, not just incomplete). Stop, do not improvise, bring it back to G0.
