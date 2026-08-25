@@ -71,11 +71,9 @@ ancestral graphs, and under which conditioning set? Does it prove pairwise ⇒ g
 
 ---
 
-### 5. Forward cite (added in A2) — Sadeghi & Lauritzen (2014)
+### 5. Sadeghi & Lauritzen (2014) — *Bernoulli* (G0 lead; was #6 in A1)
 
-**Primary:** arXiv `1109.5909` → *Bernoulli* 20(2):676–696. DOI `10.3150/12-BEJ502`.
-
-Located by second-shaped search: “pairwise Markov” + MAG / maximal ancestral + global Markov equivalent.
+**G0 flag:** AGENT-INFERRED / UNVERIFIED lead → **primary-checked below** (arXiv PDF `1109.5909` = Bernoulli 20(2):676–696, DOI `10.3150/12-BEJ502`).
 
 | Question | Verdict | Cite |
 |---|---|---|
@@ -83,17 +81,31 @@ Located by second-shaped search: “pairwise Markov” + MAG / maximal ancestral
 | Pairwise with anteriors? | **States it** — \(i\not\sim j \Rightarrow \langle i,j\mid(\operatorname{ant}(i)\cup\operatorname{ant}(j))\setminus\{i,j\}\rangle\in\mathcal{J}\) | §6.1 (same anteriors as R&S Cor. 5.3) |
 | Pairwise ⇔ global? | **States it** (under hypotheses) | **Theorem 3** (§6.2): for **maximal ribbonless** \(G\), if \(\mathcal{J}\) is a **compositional graphoid**, then pairwise iff global. Ancestral graphs / MAGs are a subclass (§1, §4.3; authors note R&S defined both properties “without considering conditions under which they are equivalent”) |
 | Probabilistic specialisation? | **States something weaker** — Cor. 2: probabilistic \(\mathcal{J}\) with intersection + composition | Cor. 2 (§6.2) |
-| Compositionality automatic? | **States gap** — positive density ⇒ graphoid, **not** always compositional; Gaussian / some binary are | §2 (probabilistic independence models paragraph); §6.3 necessity |
+| Compositionality automatic? | **States gap** — positive density ⇒ graphoid, **not** always compositional; Gaussian / some binary are | §2; §6.3 necessity |
 
-**This is the strongest hit for (P).** Residual: compositional-graphoid hypothesis (and whether drmSEM’s any-component LRT “independence model” is one).
+**Primary status:** VERIFIED against arXiv/Bernoulli text (no longer UNVERIFIED).
 
-**NotebookLM:** UNVERIFIED corroboration of Theorem 3 + anterior conditioning + compositional graphoid requirement — **matches primary.**
+**NotebookLM:** UNVERIFIED session corroboration of Theorem 3 — **matches primary.**
 
 ---
 
-### Related forward (not elevated to candidate for (P) alone)
+### 6. Lauritzen & Sadeghi (2018) — *Ann. Statist.* (G0 lead; was #7 in A1)
 
-- **Lauritzen & Sadeghi (2018?) / AOS “Unifying Markov properties”** — pairwise ⇔ global for compositional graphoids on maximal CMGs (broader class). Web/Euclid summary **UNVERIFIED** until needed; S&L 2014 Thm 3 already covers MAGs.
+**G0 flag:** AGENT-INFERRED / UNVERIFIED lead → **primary-checked below** (arXiv `1608.05810`; UCL OA PDF; DOI `10.1214/17-AOS1618`).
+
+| Question | Verdict | Cite |
+|---|---|---|
+| Global Markov? | **States it** — separation ⇒ membership in \(\mathcal{J}\) | §3.4 |
+| Pairwise with anteriors? | **States it** — pairwise (P): \(\langle i,j\mid\operatorname{ant}(\{i,j\})\rangle\in\mathcal{J}\) for nonadjacent \(i,j\), where \(\operatorname{ant}(\{i,j\})=\operatorname{ant}(i)\cup\operatorname{ant}(j)\setminus\{i,j\}\) | §5.1; ant-set def §2 |
+| Specialises to AGs / R&S? | **States it** — for SGs and AGs, (P) “specializes to those in [29] and [26]” (S&L 2014 and R&S) | §5.1 |
+| Pairwise ⇔ global? | **States it** (under hypotheses) | **Theorem 4** (§5.2): for **maximal CMG**, compositional graphoid \(\mathcal{J}\) ⇒ pairwise (P) iff global. Ancestral graphs are covered as CMG subclass (§2.2 / abstract) |
+| Probabilistic specialisation? | **States something weaker** — Cor. 5: intersection + composition | Cor. 5 (§5.2) |
+| Compositionality automatic? | **States gap** — same as S&L 2014: positive density not generally compositional; Gaussian is | §3.4 |
+| Alternative separators = basis? | **States something weaker / caution** — not every separator system \(C(i,j)\) generates the full model (Ex. 1) | §5.3 |
+
+**Primary status:** VERIFIED against arXiv + UCL OA text (no longer UNVERIFIED).
+
+**Relation to (P):** same mathematical content as S&L 2014 Thm 3, generalised to CMGs; for MAGs the conditioning set again matches Cor. 5.3.
 
 ---
 
@@ -103,9 +115,9 @@ Located by second-shaped search: “pairwise Markov” + MAG / maximal ancestral
 2. Within Ali et al. 2009: pairwise (anteriors) ⇒ global — **none**.
 3. Within Zhang JMLR 2008a / AIJ 2008 metadata: basis-set pairwise⇒global — **none** (orientation-rule completeness only).
 4. Within Shipley & Douma 2021: proof that parent-conditioned union basis implies all m-separations — **none**.
-5. UW TR 375 live URL `stat.washington.edu/.../tr375.pdf` — **404** (2026-08-25); Annals/CMU PDF used instead.
+5. UW TR 375 live URL `stat.washington.edu/.../tr375.pdf` — **404** (2026-08-25); Annals/CMU PDF used instead (theorem numbers aligned).
 6. Zhang AIJ 2008 OA PDF via Unpaywall — **no OA location**.
-7. Crossref query `pairwise global Markov maximal ancestral graph` — returned R&S and related titles; did **not** surface a third independent proof beyond S&L-type results (S&L found via Bernoulli / arXiv search, not this Crossref hit list).
+7. Crossref query `pairwise global Markov maximal ancestral graph` — returned R&S and related titles; S&L-family found via Bernoulli/arXiv/AOS search (G0 leads), not this Crossref hit list.
 
 ---
 
@@ -113,4 +125,6 @@ Located by second-shaped search: “pairwise Markov” + MAG / maximal ancestral
 
 **Candidate C1:** Sadeghi & Lauritzen (2014) **Theorem 3** — pairwise (anteriors) ⇔ global for compositional graphoids on maximal ribbonless graphs (includes MAGs).
 
-Default in A3: try to REFUTE (conditioning set mismatch? selection? only pairwise existence vs simultaneous collection? compositionality?).
+**Candidate C2:** Lauritzen & Sadeghi (2018) **Theorem 4** — pairwise (P) with \(\operatorname{ant}(\{i,j\})\) ⇔ global for compositional graphoids on maximal CMGs (includes ancestral graphs / MAGs).
+
+Default in A3: try to REFUTE (conditioning set mismatch vs Cor. 5.3? selection / \(\cup S\)? compositionality for drmSEM? only pairwise existence vs simultaneous collection?).
