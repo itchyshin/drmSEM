@@ -1,23 +1,33 @@
 # Checkpoint — OVERWRITTEN every arc
 
-GOAL: see LOOP/GOAL.md. STATE: Step 2 S1–S7 landed on `claude/lane-s3-grouping`. Not pushed.
+GOAL: see LOOP/GOAL.md. STATE: S0 planning kickoff landed locally; awaiting G0.
 
 ARCS DONE (verified):
-- S0: PR #43 MERGED @ 04307eeb33abfcaa7a7894861361fca7e73443f3; MAG-wire on origin/main.
-- S1: `03-dsep.md` scale rule; D-21; OQ-17.
-- S2: `R/dsep.R` sets `status = "wrong_scale"`; C filter unchanged (`ok` only); roxygen + `man/dsep.Rd`.
-- S3: V-109c in `test-scale.R` (27 pass / 0 fail).
-- S4: VALIDATION_LEDGER V-109c; AGENT_LOG; capability-status sentence.
-- S5: `devtools::document()`; suite **1032 pass / 0 fail / 3 skip / 10 warn**.
-- S6: Fisher + Rose in PLAN-ACTUAL (C membership honest; do not call the SEM "fixed").
-- S7: `docs/memory/PLAN-ACTUAL-2026-08-26-s3-grouping.md`.
+- S0 / A0 in progress until this commit is on `cursor/lane-s6-imputation`:
+  fresh LOOP kit (not the inherited Step 2 S3-grouping kit), arc charter,
+  D-22 draft, AGENT_LOG entry. No drmSEM `R/` edits.
 
-ARC IN PROGRESS: none
+ARC IN PROGRESS: none (planning closed pending G0)
 
-NEXT: human gate — review this branch; optional push/PR. Do not merge without Shinichi.
+NEXT: Shinichi G0 approval (checklist in LOOP/ultra-plan.md). After G0,
+A1 engine-contract draft in this lane (docs only). No drmSEM `R/`.
+Phase 1 engine work is a **separate drmTMB lane** from `origin/main`.
 
-OPEN GATES (need human): push / PR / merge
+OPEN GATES (need human):
+- **G0** — plan approval (required before A1 / Phase 1)
+- Push / PR / merge — denied; surface if wanted later
+- **G1** — before any drmSEM `R/`
+- **G2** — before merge / public claim
 
-TRUTH LIVES IN: `claude/lane-s3-grouping` @ this worktree (`~/local-scratch/lanes/drmSEM-s3-grouping`); parent `main` @ 04307ee
+TRUTH LIVES IN:
+- Lane `cursor/lane-s6-imputation` @ `~/local-scratch/lanes/drmSEM-s6-imputation`
+- Parent `main` @ `0852f9f` (untouched by this lane's `R/`)
+- Charter: `docs/memory/2026-08-26-next-arc-s6-imputation.md`
+- Plan: `LOOP/ultra-plan.md`
+- Order lock: D-22 in `docs/memory/DECISIONS.md`
+- MAG-completeness worktree: **do not touch**
 
-RESUME: read LOOP/GOAL.md → LOOP/checkpoint.md → LOOP/ultra-plan.md. Goal is complete pending human remote gate. Do not redo S1–S7.
+RESUME: read LOOP/GOAL.md → LOOP/checkpoint.md → LOOP/ultra-plan.md.
+Continue from NEXT. Do not start drmSEM `R/`. Do not push.
+
+HUMAN GATE: G0. No push/merge from this kickoff.

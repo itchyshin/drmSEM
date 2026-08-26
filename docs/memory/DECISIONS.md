@@ -464,3 +464,33 @@ out of scope (OQ-17).
 
 Validation: V-109 / V-109b (detection), V-109c (C exclusion), V-110 / V-110b
 (no false alarms). Design: `docs/design/03-dsep.md`.
+
+## [2026-08-26] D-22 — S6 generality order: engine 2+5, then 1, then consumer
+
+**Decision (planning lock; G0 confirms).** The S6 *generality* programme
+is a two-repo sequence, not a drmSEM-only feature:
+
+1. **drmTMB items 2 + 5 together** — k ≥ 2 **independent** `mi()` terms
+   per fit (#963) plus a `missing_predictor` ledger axis (item 5).
+2. **Then drmTMB item 1** — per-family C++ `has_mi` wiring (#962), not a
+   whitelist edit.
+3. **Then the drmSEM consumer** — lift the one-parent abort, derive
+   multiple `mi()` + `impute_model()` from the DAG.
+
+**Consumer contract.** drmSEM emits one `impute_model()` per incomplete
+**endogenous** parent (option b). It does **not** emit `impute_joint`.
+The stale `drmTMB-joint-mi` clone is recon input only.
+
+**G1.** No drmSEM `R/` until that engine contract exists and item 2 is
+available on an engine this suite can see.
+
+**Honest limits unchanged.** Not FIML; within-node uncertainty only;
+incomplete exogenous → `na_action`; `impute = "none"` remains default.
+
+**Rationale.** Handover §6 Step 3 and `DRMTMB_ISSUES.md` already named
+this order. The S6 prototype (V-77–V-81) is the evidence to attach to
+#963. Claiming D-22 now so a later lane cannot invert the order or
+treat `impute_joint` as the SEM emit shape without a new decision.
+
+Charter: `docs/memory/2026-08-26-next-arc-s6-imputation.md`.
+Plan: `LOOP/ultra-plan.md`.

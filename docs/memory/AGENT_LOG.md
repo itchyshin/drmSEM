@@ -1447,3 +1447,30 @@ memory + reconcile follow. Did not redo `679b615` or `66a80e9`.
 (OQ-17); Step 3 drmTMB; push/PR.
 
 **Verify.** `test-scale.R` 27 pass / 0 fail. Full suite **1032 / 0 / 3 / 10**.
+
+## 2026-08-26 — S6 generality planning kickoff (D-22; no R/)
+
+**Cursor / Grok**, new lane `cursor/lane-s6-imputation` at
+`~/local-scratch/lanes/drmSEM-s6-imputation`, from `main` @ `0852f9f`.
+Shinichi authorised **planning only**. Foreign Claude lanes
+(MAG-completeness, merged MAG-wire, merged S3-grouping) were left
+untouched. Lease: `cursor:drmSEM-s6-imputation` on `docs/memory/,LOOP/`.
+
+**What shipped (docs + LOOP only).**
+- Charter: `docs/memory/2026-08-26-next-arc-s6-imputation.md`.
+- Fresh LOOP kit (replaced the inherited Step 2 S3-grouping kit):
+  `LOOP/GOAL.md`, `LOOP/ultra-plan.md`, `LOOP/arcs.md`,
+  `LOOP/checkpoint.md`.
+- D-22: engine items 2+5 → item 1 → drmSEM consumer; independent
+  `impute_model()` per parent; G1 before drmSEM `R/`.
+
+**Sweep that changed the plan.** drmTMB issues #963 / #962 / #964
+already exist. #962 is C++ `has_mi` work, not a gate edit. A sister
+clone `drmTMB-joint-mi` (`codex/joint-mi-two-predictor`, 207 behind
+`origin/main`) implements `impute_joint` (correlated pair) — a
+different estimand from S6's option-(b) emit shape. Primary drmTMB
+checkout is on a foreign ledger branch; Phase 1 must start a **new**
+engine lane from `origin/main`.
+
+**Not done.** No drmSEM `R/`. No push. No engine implementation.
+Awaiting G0 (checklist in `LOOP/ultra-plan.md`).
