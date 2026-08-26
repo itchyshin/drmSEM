@@ -153,7 +153,7 @@ This is not multiple imputation, not Rubin's rules, not MCMC.
 
 | Response | Predictor 1 | Predictor 2 | Estimand | Ledger |
 |---|---|---|---|---|
-| `gaussian()` | `gaussian()` `impute_model()` | `gaussian()` `impute_model()` | independent | new `missing_predictor` row, honest tier |
+| `gaussian()` | `gaussian()` `impute_model()` | `gaussian()` `impute_model()` | independent | new row on the existing axis, e.g. `mp-gaussian-gaussian-k2-indep` |
 
 **Still refused after Phase 1** (fail loud with the engine reason):
 
@@ -171,10 +171,12 @@ Item 1 (A7) is **per-family C++ observed-data likelihood**, not
 editing `drm_missing_predictor_families()`. Promoting a family without
 `has_mi` wiring is the #962 failure mode.
 
-Item 5 (A5) pairs with A4: add a `missing_predictor` ledger axis and
-one honest-tier row for the Gaussian × two-independent-Gaussian cell
-that actually ships. Do not invent rows for cells that were not
-recovered.
+Item 5 (A5) pairs with A4. The `missing_predictor` **axis already
+exists** on drmTMB `origin/main` (`cells.tsv`: 17 verified one-parent
+rows, e.g. `mp-gaussian-gaussian`). A5 adds **one honest-tier row**
+for the Gaussian × two-independent-Gaussian cell that actually ships
+(suggested id `mp-gaussian-gaussian-k2-indep`). Do not invent a second
+axis. Do not invent rows for cells that were not recovered.
 
 ---
 
@@ -213,15 +215,16 @@ Until G1, the drmSEM one-parent abort in `R/imputation.R:74-81` is
 **Does.** New worktree from drmTMB `origin/main` (currently
 `fc8ee77a6`). Parser + setup accept \(k \ge 2\) independent
 `impute_model()` entries. First cell = two Gaussian `mi()` terms.
-Recovery + sentinel-invariance (A6). `missing_predictor` ledger axis
-(A5).
+Recovery + sentinel-invariance (A6). One new `missing_predictor`
+ledger **row** for the k=2 independent cell (A5; axis already exists).
 
 **Does not.** Edit the dirty primary checkout
 (`claude/ledger-biv-gaussian-residual-covered`). Rebase
 `drmTMB-joint-mi` (`codex/joint-mi-two-predictor`, 3 ahead / **207
 behind**). Implement item 1 C++ family wiring. Touch MAG-completeness.
-Comment on GitHub #963/#962 until Shinichi allows a public write
-(A2 paused).
+Wait for G1 before drmSEM `R/`. A2 comments posted
+2026-08-26 (#963 `#issuecomment-5429119689`, #962
+`#issuecomment-5429120815`).
 
 ---
 

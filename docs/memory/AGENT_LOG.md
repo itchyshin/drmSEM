@@ -1522,3 +1522,15 @@ new drmTMB lane. Sibling worker `03ba571d` had **not** committed A1/A3
 
 **Not done.** A2 GitHub comments; drmSEM draft PR; drmTMB Phase 1
 implementation (A4–A6). Still no drmSEM `R/`.
+
+## 2026-08-26 — S6 A2: evidence comments on drmTMB #963 / #962
+
+Standing approval covered public issue writes.
+
+- #963: https://github.com/itchyshin/drmTMB/issues/963#issuecomment-5429119689
+  — S6 prototype (V-77/V-78/V-80), emit shape, independence, joint-mi
+  is a different estimand, first cell two Gaussian `mi()`.
+- #962: https://github.com/itchyshin/drmTMB/issues/962#issuecomment-5429120815
+  — item 1 stays after #963; gate is accurate; not FIML.
+
+**Not done.** drmSEM draft PR; drmTMB A4–A6. Still no drmSEM `R/`.
