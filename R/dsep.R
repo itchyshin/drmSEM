@@ -275,23 +275,29 @@ drm_add_column <- function(v, object) {
 #'   column), `"refit_failed"`, `"n_mismatch"` (the augmented refit used a
 #'   different number of observations than the base fit, usually because the
 #'   added variable has missing values, so the likelihood ratio would compare two
-#'   different samples), or `"degenerate"` (non-nested or non-finite). Only
-#'   `"ok"` claims enter Fisher's C.
+#'   different samples), `"degenerate"` (non-nested or non-finite), or
+#'   `"wrong_scale"` (the added variable is constant within a grouping the node
+#'   does not already model, so the LRT would credit one row per observation
+#'   while the variable carries only as many independent pieces of information
+#'   as there are groups). Only `"ok"` claims enter Fisher's C.
 #'
 #'   Two further columns report the claim's **scale**. `n_effective` and
 #'   `scale_group` are `NA` when the claim's variable varies row by row. When it is
 #'   constant within a grouping the node does not already model -- a species-level
 #'   trait repeated down to individuals, say -- they name that grouping and its
-#'   number of levels, and `dsep()` warns.
+#'   number of levels, `status` is `"wrong_scale"`, and `dsep()` warns.
 #'
 #'   That situation matters because the likelihood ratio treats every row as
 #'   independent evidence: a chance group-level association is credited with far
 #'   more support than it has, so the test **rejects TRUE independences** rather
-#'   than missing false ones, and Fisher's C inherits the false rejection. The
-#'   remedy is to add the grouping term to that node so the base and augmented fits
-#'   share it. drmSEM reports rather than corrects, deliberately: adding the term to
-#'   only the augmented fit would compare two different random-effect structures,
-#'   which is not a valid likelihood-ratio test.
+#'   than missing false ones. Fisher's C therefore excludes these p-values
+#'   rather than inheriting the false rejection (D-21). The flattened p-value
+#'   stays in the table so the mismatch is inspectable. The remedy is to add the
+#'   grouping term to that node so the base and augmented fits share it, then
+#'   re-run. drmSEM does not auto-add `(1 | group)`: that would test a different
+#'   SEM than the one in [paths()]. Adding the term to only the augmented fit
+#'   would compare two different random-effect structures, which is not a valid
+#'   likelihood-ratio test.
 #' @references
 #' \insertRef{Shipley2000}{drmSEM}
 #'
@@ -378,6 +384,7 @@ dsep.drm_sem <- function(object, ...) {
       k <- which.min(coarse$n_groups)
       bs$n_effective[[i]] <- coarse$n_groups[[k]]
       bs$scale_group[[i]] <- coarse$group[[k]]
+      bs$status[[i]] <- "wrong_scale"
       scale_notes[[length(scale_notes) + 1L]] <- sprintf(
         "%s (varies at the scale of %s: %d groups, not %d rows)",
         add_var, coarse$group[[k]], coarse$n_groups[[k]], nrow(as.data.frame(object$data))
@@ -407,9 +414,10 @@ dsep.drm_sem <- function(object, ...) {
       "i" = "The likelihood ratio treats every row as independent evidence, so a
              chance group-level association is credited with far more support than it
              has -- this REJECTS TRUE independences rather than missing false ones.",
-      "i" = "Add the grouping term to that node (e.g. {.code (1 | group)}) so both the
-             base and augmented fits share it, then re-run. See
-             {.code attr(x, 'n_effective')} columns."
+      "i" = "These claims are excluded from Fisher's C (status {.val wrong_scale}).
+             Add the grouping term to that node (e.g. {.code (1 | group)}) so both
+             the base and augmented fits share it, then re-run. See the
+             {.code n_effective} / {.code scale_group} columns."
     ))
   }
   fc <- drm_fisher_c_from_p(bs$p.value[bs$status == "ok" & !is.na(bs$p.value)])
@@ -453,7 +461,9 @@ drm_fisher_c_from_p <- function(p) {
 #' multilevel models by Shipley (2009); `piecewiseSEM` (Lefcheck 2016) is the
 #' established R implementation. The construction itself is unchanged here; what
 #' differs is that the p-values being combined are the any-component
-#' likelihood-ratio claims of [dsep()] rather than mean-only claims.
+#' likelihood-ratio claims of [dsep()] rather than mean-only claims. Only
+#' `"ok"` claims enter C; `"wrong_scale"` and other non-`"ok"` statuses are
+#' excluded (D-21).
 #'
 #' @param object A `drm_sem` object or the result of [dsep()].
 #' @param ... Unused.

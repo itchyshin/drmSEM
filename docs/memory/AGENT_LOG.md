@@ -1428,3 +1428,22 @@ gated). Residual gap Y is OQ-16.
 
 **Commits this closeout.** `df2ea9f` S2 tests; `587d08a` S4 docs/roxygen;
 memory + reconcile follow. Did not redo `679b615` or `66a80e9`.
+
+## 2026-08-26 — Step 2 S3 grouping: exclude wrong_scale from Fisher's C (D-21)
+
+**Cursor**, `claude/lane-s3-grouping` at
+`~/local-scratch/lanes/drmSEM-s3-grouping`, after MAG-wire PR #43 merged
+(`04307ee`). G0 locked estimand A + Q3 (C on remaining claims).
+
+**What shipped.**
+- `docs/design/03-dsep.md` scale rule: invalid LRs do not enter C.
+- D-21 claimed; OQ-17 records orthogonal-hierarchy skipping as still gated.
+- `R/dsep.R` scale block: `status = "wrong_scale"`; existing `status == "ok"`
+  filter excludes those p-values. Warning names the C exclusion. MAG
+  `basis_set_mag()` untouched. No auto-refit.
+- V-109c in `tests/testthat/test-scale.R`.
+
+**Not done.** Auto-refit both sides (estimand B); orthogonal-hierarchy skip
+(OQ-17); Step 3 drmTMB; push/PR.
+
+**Verify.** `test-scale.R` 27 pass / 0 fail. Full suite **1032 / 0 / 3 / 10**.

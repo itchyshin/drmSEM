@@ -32,7 +32,9 @@ for path models on directed acyclic graphs and extended to generalized
 multilevel models by Shipley (2009); \code{piecewiseSEM} (Lefcheck 2016) is the
 established R implementation. The construction itself is unchanged here; what
 differs is that the p-values being combined are the any-component
-likelihood-ratio claims of \code{\link[=dsep]{dsep()}} rather than mean-only claims.
+likelihood-ratio claims of \code{\link[=dsep]{dsep()}} rather than mean-only claims. Only
+\code{"ok"} claims enter C; \code{"wrong_scale"} and other non-\code{"ok"} statuses are
+excluded (D-21).
 }
 \examples{
 \dontrun{

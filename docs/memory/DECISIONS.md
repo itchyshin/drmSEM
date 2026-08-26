@@ -438,3 +438,29 @@ drmSEM's any-component LRT / Fisher's C *induces* a compositional graphoid
 
 Validation: V-117 (printed Cor. 5.3 claim set), V-118 / V-119 (DAG d-sep
 wrong, MAG m-sep right). Design: `docs/design/14-m-separation.md`.
+
+## [2026-08-26] D-21 — Mis-scaled d-sep claims are excluded from Fisher's C
+
+**Decision.** When a d-separation claim's added variable is constant within a
+grouping the node does not already model, `dsep()` sets `status = "wrong_scale"`.
+Those p-values do **not** enter Fisher's C. Detection columns (`n_effective`,
+`scale_group`) and the warning stay. The flattened p-value remains in the
+table. drmSEM does **not** auto-refit both sides with `(1 | group)` inside
+`dsep()`.
+
+**Rationale.** The flattened LRT credits one row per observation while the
+variable carries only n_groups of information, so it **rejects TRUE
+independences** (V-109). Auto-adding the grouping to both fits would test a
+different SEM than the node in `paths()`; adding it only to the augmented fit
+is not a valid LR. Excluding the invalid LR from C is the same pattern as
+`n_mismatch` / `degenerate`. The user tests at the right scale by adding
+`(1 | g)` to the node (V-110).
+
+**Q3.** `model_set()` / CICc inherit C computed on the remaining `"ok"`
+claims. A candidate is not refused solely because it has a `wrong_scale` row.
+
+The any-component LRT (D-2) is unchanged. Orthogonal-hierarchy skipping is
+out of scope (OQ-17).
+
+Validation: V-109 / V-109b (detection), V-109c (C exclusion), V-110 / V-110b
+(no false alarms). Design: `docs/design/03-dsep.md`.

@@ -1025,11 +1025,36 @@ scope line is deliberate, not an omission.
 
 `tests/testthat/test-scale.R`, 6 tests / 21 assertions, 0 skips.
 
-Still open (design, not defect): evaluating each claim at its own scale rather than
-reporting the mismatch, and skipping claims between variables in orthogonal hierarchies.
-Both change which claims are tested and are gated as estimand changes.
+Still open at the time (design, not defect): evaluating each claim at its own
+scale rather than reporting the mismatch, and skipping claims between variables
+in orthogonal hierarchies. Both change which claims are tested and were gated.
+**C-membership is now D-21 / V-109c** (2026-08-26): `wrong_scale` p-values do
+not enter Fisher's C. Auto-refit of both sides remains out of scope.
+Orthogonal-hierarchy skipping remains OQ-17.
 
 Suite: 969 pass / 0 fail / 3 skip / 10 warn (was 948).
+
+## 2026-08-26 — S3 grouping: wrong_scale excluded from Fisher's C (D-21)
+
+Detection shipped 2026-08-15 (V-109). The flattened LRT on the 12×40 fixture
+rejected a TRUE independence (p = 0.004) and Fisher's C inherited that
+rejection. Auto-refitting both sides with `(1 | sp)` would test a different
+SEM than `paths()`. D-21 therefore marks the claim `wrong_scale` and drops
+its p-value from C. `model_set()` / CICc inherit C on the remaining `"ok"`
+claims (Q3).
+
+- **V-109c.** On the V-109 fixture, `trait _||_ z` has `status = "wrong_scale"`;
+  `fisher_c()$n_claims` equals the count of `"ok"` claims; C does **not**
+  reject the true independence (`p` is not `< 0.05`; typically `k = 0` and
+  `p = NA`). Detection columns and the warning stay. **Validated.**
+- V-109 / V-109b (detection + warning text) and V-110 / V-110b (no false
+  alarms when the node already models `(1 | sp)`, or on row-scale data)
+  remain in force.
+
+`tests/testthat/test-scale.R`. The any-component LRT (D-2) is unchanged.
+
+Suite: **1032 pass / 0 fail / 3 skip / 10 warn** (was 1026). Warning/skip
+counts held. The +6 assertions are V-109c.
 
 ## 2026-08-15 — S2 (partial): DAG → MAG conversion, sourced then implemented
 

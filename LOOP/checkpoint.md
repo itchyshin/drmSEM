@@ -1,13 +1,23 @@
-# Checkpoint
+# Checkpoint — OVERWRITTEN every arc
 
-- DONE: S0 setup (worktree, lease, docs cherry-pick, .unlazy)
-- DONE: S1 core (`86564c3`) + anterior-spouse fix (`66a80e9`) + checkpoint (`0130b83`)
-- DONE: S3 live DGP recovery (`679b615` `test-mag-dsep.R`; do not redo)
-- DONE: S2 V-117 basis claims (`df2ea9f` `test-mag-basis.R`)
-- DONE: S4 docs/roxygen/bib (`587d08a`)
-- DONE: S5 memory (D-20, OQ-16, V-117..V-119, AGENT_LOG)
-- DONE: S6 `devtools::test()` — **1026 pass / 0 fail / 3 skip / 10 warn**
-- DONE: S7 Melissa reconcile (`docs/memory/PLAN-ACTUAL-2026-08-26-mag-wire.md`)
-- OPEN GATE: none (G0 approved). Push/merge still Shinichi's call.
-- WHERE TRUTH LIVES: `~/local-scratch/lanes/drmSEM-mag-wire` branch `claude/lane-mag-wire`
-- RESUME: **GOAL COMPLETE.** No remaining MAG-wire steps. Do not push. Next action is Shinichi's: review + optional merge to main. Residual follow-up is OQ-16 (compositionality of the any-component LRT), not this lane.
+GOAL: see LOOP/GOAL.md. STATE: Step 2 S1–S7 landed on `claude/lane-s3-grouping`. Not pushed.
+
+ARCS DONE (verified):
+- S0: PR #43 MERGED @ 04307eeb33abfcaa7a7894861361fca7e73443f3; MAG-wire on origin/main.
+- S1: `03-dsep.md` scale rule; D-21; OQ-17.
+- S2: `R/dsep.R` sets `status = "wrong_scale"`; C filter unchanged (`ok` only); roxygen + `man/dsep.Rd`.
+- S3: V-109c in `test-scale.R` (27 pass / 0 fail).
+- S4: VALIDATION_LEDGER V-109c; AGENT_LOG; capability-status sentence.
+- S5: `devtools::document()`; suite **1032 pass / 0 fail / 3 skip / 10 warn**.
+- S6: Fisher + Rose in PLAN-ACTUAL (C membership honest; do not call the SEM "fixed").
+- S7: `docs/memory/PLAN-ACTUAL-2026-08-26-s3-grouping.md`.
+
+ARC IN PROGRESS: none
+
+NEXT: human gate — review this branch; optional push/PR. Do not merge without Shinichi.
+
+OPEN GATES (need human): push / PR / merge
+
+TRUTH LIVES IN: `claude/lane-s3-grouping` @ this worktree (`~/local-scratch/lanes/drmSEM-s3-grouping`); parent `main` @ 04307ee
+
+RESUME: read LOOP/GOAL.md → LOOP/checkpoint.md → LOOP/ultra-plan.md. Goal is complete pending human remote gate. Do not redo S1–S7.

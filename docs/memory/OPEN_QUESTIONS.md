@@ -419,3 +419,12 @@ composition per fit — that is not decidable from a fitted object.
 
 Not a v1 blocker. Selection latents and parent-based S&D separators remain
 out of scope, not this OQ.
+
+## OQ-17 — Skip d-sep claims between variables in orthogonal hierarchies?
+
+D-21 excludes a mis-scaled claim from Fisher's C (`wrong_scale`) but still
+emits the claim. A further estimand would *skip* independence claims between
+variables that live in orthogonal grouping hierarchies (e.g. species-level
+vs site-level) rather than test-and-drop them. That changes which claims are
+generated, not only which p-values enter C. Gated; not implemented. See
+`docs/design/03-dsep.md` (Scale of a claim) and VALIDATION_LEDGER V-109.

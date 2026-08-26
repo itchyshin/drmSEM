@@ -1,15 +1,14 @@
-# Arcs — MAG wire (`latent=` → basis_set / dsep)
+# Arcs — Step 2 S3 grouping (G0 approved: estimand A, Q3 = C on remaining)
 
 | # | arc | status | gate? |
 |---|-----|--------|-------|
-| S0 | setup, lease, LOOP kit | done | — |
-| S1 | core MAG wire + anterior-spouse fix | done | — |
-| S2 | V-117 S&D Fig 1 MAG basis claims | done | — |
-| S3 | V-118/V-119 DAG vs MAG d-sep DGP | done | — |
-| S4 | docs/roxygen/bib + Rd regen | done | — |
-| S5 | memory ledgers (D-20, OQ-16, V-117..119) | done | — |
-| S6 | full `devtools::test()` | done | — |
-| S7 | Melissa reconcile | done | — |
+| S0 | Recon: MAG-wire merged to main @ 04307ee | done | — |
+| S1 | Scale rule in `03-dsep.md` + D-21 (+ OQ-17) | done | — |
+| S2 | `R/dsep.R` scale/status block: `wrong_scale` excluded from C | done | — |
+| S3 | `test-scale.R` V-109c (C-exclusion on V-109 fixture) | done | — |
+| S4 | Ledgers: VALIDATION_LEDGER, AGENT_LOG, capability-status | done | — |
+| S5 | MECHANICAL-VERIFY: document + test | done | — |
+| S6 | Review: Fisher/Rose critique of C membership | done | — |
+| S7 | Reconcile PLAN-ACTUAL + checkpoint | done | — |
 
-Status: todo / doing / done / paused / blocked. `paused` = awaiting Shinichi's named decision;
-`blocked` = external dependency. Ordinary repair work remains `doing`.
+Status: todo / doing / done / paused / blocked.

@@ -50,9 +50,36 @@ augmented refit:
    `p = P(chi^2_df > LR)`.
 
 A small p-value means X carries information about *some* component of Y beyond
-Y's parents — evidence for a missing arrow. Claims whose refit cannot be formed
-are flagged (`status` in {`no_data_column`, `refit_failed`, `degenerate`}) and
-dropped from Fisher's C rather than silently scored.
+Y's parents — evidence for a missing arrow. Claims whose refit cannot be formed,
+or whose likelihood ratio is not valid, are flagged (`status` in
+{`no_data_column`, `refit_failed`, `n_mismatch`, `degenerate`, `wrong_scale`})
+and dropped from Fisher's C rather than silently scored.
+
+## Scale of a claim (D-21)
+
+A d-separation claim is tested on the flattened data frame, one row per
+observation. When the added variable X is constant within a grouping the node
+does not already model — a species-level trait repeated down to individuals —
+the LRT credits one row per observation while X carries only as many
+independent pieces of information as there are groups. That **rejects TRUE
+independences** (anti-conservative), the opposite of the usual "underpowered
+test misses things" reading.
+
+`dsep()` detects this (`n_effective`, `scale_group`) and warns. Detection is
+not a correction of the user's SEM: auto-adding `(1 | group)` to both the
+base and augmented fits would test a different random structure than the
+node stored in `paths()`. Adding it only to the augmented fit is not a valid
+likelihood ratio.
+
+**Estimand A (locked).** Those claims receive `status = "wrong_scale"`. Their
+p-values do **not** enter Fisher's C. The flattened p-value remains in the
+table so the mismatch is inspectable. To test the claim at the right scale,
+add the grouping term to that node (the V-110 path) and re-run. `model_set()`
+/ CICc inherit C computed on the remaining `"ok"` claims; a candidate is not
+refused solely because it has a `wrong_scale` row.
+
+Skipping claims between variables in orthogonal hierarchies is a second
+estimand and is not implemented.
 
 ## Fisher's C
 
@@ -62,10 +89,11 @@ The claim p-values are combined into Fisher's C:
 C = -2 * sum(log p),   df = 2k,   p = P(chi^2_{2k} > C)
 ```
 
-for the k well-formed claims (`drm_fisher_c_from_p`). A small overall p-value
-indicates the DAG omits at least one needed path. `fisher_c()` returns
+for the k well-formed `"ok"` claims (`drm_fisher_c_from_p`). A small overall
+p-value indicates the DAG omits at least one needed path. `fisher_c()` returns
 `fisher_c`, `df`, `n_claims`, `p.value`; it accepts either a `drm_sem` (runs
-`dsep()` first) or a `drm_dsep` result.
+`dsep()` first) or a `drm_dsep` result. If every claim is excluded, `k = 0`
+and the C p-value is `NA` — incomplete but honest, not a silent pass.
 
 ## Honest note: this is an open research choice
 
@@ -89,6 +117,9 @@ validation ledger.
   (e.g. a single-level factor in a subset) yields a degenerate or failed refit;
   those claims are reported with a `status` and excluded from C rather than
   contributing a misleading p-value.
+- **Wrong scale.** A claim whose added variable lives at a coarser grouping
+  the node does not model is `wrong_scale` and is excluded from C (D-21).
+  drmSEM does not rewrite the user's node.
 - **df counting.** `df` is read from the augmented vs base fit, so it correctly
   counts factor-expansion terms, but it assumes the base and augmented nodes
   differ *only* by the added predictor.

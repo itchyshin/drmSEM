@@ -21,23 +21,29 @@ claim was not tested: \code{"no_data_column"} (the claim's variable is not a
 column), \code{"refit_failed"}, \code{"n_mismatch"} (the augmented refit used a
 different number of observations than the base fit, usually because the
 added variable has missing values, so the likelihood ratio would compare two
-different samples), or \code{"degenerate"} (non-nested or non-finite). Only
-\code{"ok"} claims enter Fisher's C.
+different samples), \code{"degenerate"} (non-nested or non-finite), or
+\code{"wrong_scale"} (the added variable is constant within a grouping the node
+does not already model, so the LRT would credit one row per observation
+while the variable carries only as many independent pieces of information
+as there are groups). Only \code{"ok"} claims enter Fisher's C.
 
 Two further columns report the claim's \strong{scale}. \code{n_effective} and
 \code{scale_group} are \code{NA} when the claim's variable varies row by row. When it is
 constant within a grouping the node does not already model -- a species-level
 trait repeated down to individuals, say -- they name that grouping and its
-number of levels, and \code{dsep()} warns.
+number of levels, \code{status} is \code{"wrong_scale"}, and \code{dsep()} warns.
 
 That situation matters because the likelihood ratio treats every row as
 independent evidence: a chance group-level association is credited with far
 more support than it has, so the test \strong{rejects TRUE independences} rather
-than missing false ones, and Fisher's C inherits the false rejection. The
-remedy is to add the grouping term to that node so the base and augmented fits
-share it. drmSEM reports rather than corrects, deliberately: adding the term to
-only the augmented fit would compare two different random-effect structures,
-which is not a valid likelihood-ratio test.
+than missing false ones. Fisher's C therefore excludes these p-values
+rather than inheriting the false rejection (D-21). The flattened p-value
+stays in the table so the mismatch is inspectable. The remedy is to add the
+grouping term to that node so the base and augmented fits share it, then
+re-run. drmSEM does not auto-add \code{(1 | group)}: that would test a different
+SEM than the one in \code{\link[=paths]{paths()}}. Adding the term to only the augmented fit
+would compare two different random-effect structures, which is not a valid
+likelihood-ratio test.
 }
 \description{
 For each claim X \emph{||} Y in \code{\link[=basis_set]{basis_set()}}, \code{dsep()} refits node Y with X added
