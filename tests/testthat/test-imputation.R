@@ -2,14 +2,35 @@
 #
 # V-77  auto-derived fit is numerically identical to the hand-written one
 # V-78  the derivation reduces bias under outcome-dependent missingness
-# V-79  >1 incomplete parent fails loud (drmTMB models one mi() at a time)
+# V-79  two incomplete Gaussian parents emit independent mi() (A8; was abort)
+# V-79b k > 2 still fails loud (engine limit)
+# V-79c k = 2 on a non-Gaussian response fails loud (engine Phase 1 cell)
 # V-80  the response/predictor family gate matches the engine's own rule
 # V-81  mi() coefficient names resolve to the right node in paths()
+# V-82  two-parent auto fit matches the hand-written emit shape (needs k=2 engine)
+# V-120 two-parent MAR recovery-to-truth (needs k=2 engine)
+# V-121 imputation()/imputed() branch on uncertainty_status, never is.na(std_error)
 #
 # The load-bearing assertion is V-77, per this package's convention of comparing
 # a public output against quantities recomputed from the SAME fit rather than
 # against a hand formula: if the derived call ever stops matching the explicit
 # one, the derivation is wrong no matter how good the recovery looks.
+
+# V-121 kernel: no drmTMB needed. NA std_error is not a failure by itself.
+test_that("V-121: std_error usability branches on uncertainty_status", {
+  usable <- drmSEM:::drm_imputed_std_error_usable
+  # Observed + ok + NA: not usable, and not a failure.
+  expect_false(usable("ok", NA_real_, TRUE))
+  # Missing + ok + finite: usable.
+  expect_true(usable("ok", 0.12, FALSE))
+  # Missing + ok + NA (se = FALSE request): not usable, not a failure.
+  expect_false(usable("ok", NA_real_, FALSE))
+  # Missing + failed + NA: not usable because of status.
+  expect_false(usable("sdreport_failed", NA_real_, FALSE))
+  # A finite SE is still unusable when status is not ok.
+  expect_false(usable("sdreport_failed", 0.12, FALSE))
+  expect_false(usable("route_conditional_se_unavailable", 0.12, FALSE))
+})
 
 skip_if_not_installed("drmTMB")
 
@@ -64,6 +85,9 @@ test_that("imputation() reports what was derived, and nothing when unused", {
   expect_identical(imp$variable, "m")
   expect_identical(imp$family, "gaussian")
   expect_match(imp$model, "^m ~ x$")
+  expect_gt(imp$n_missing, 0L)
+  expect_identical(imp$uncertainty_status, "ok")
+  expect_true(imp$std_error_usable)
 
   # Complete data: nothing to derive.
   clean <- suppressWarnings(suppressMessages(drm_sem(
@@ -110,19 +134,188 @@ test_that("V-78: derivation reduces bias under outcome-dependent missingness", {
   expect_lt(mean(abs(b_auto - 0.6)), mean(abs(b_cc - 0.6)))
 })
 
-test_that("V-79: more than one incomplete parent fails loud", {
-  d <- chain_dat()
-  d$m2 <- 0.5 * d$x + stats::rnorm(nrow(d))
-  d$m2[1:50] <- NA
-  expect_error(
-    suppressMessages(drm_sem(
-      m = drm_node(drmTMB::bf(m ~ x)),
-      m2 = drm_node(drmTMB::bf(m2 ~ x)),
-      y = drm_node(drmTMB::bf(y ~ m + m2 + x)),
-      data = d, impute = "auto"
-    )),
-    "one at a time"
+two_parent_dat <- function(n = 400, seed = 11, mar = TRUE) {
+  set.seed(seed)
+  x <- stats::rnorm(n)
+  m1 <- 0.7 * x + stats::rnorm(n, sd = 0.5)
+  m2 <- 0.5 * x + stats::rnorm(n, sd = 0.5)
+  y <- 0.5 * m1 + 0.4 * m2 + 0.3 * x + stats::rnorm(n, sd = 0.5)
+  d <- data.frame(x = x, m1 = m1, m2 = m2, y = y)
+  drop1 <- if (mar) {
+    stats::runif(n) < stats::plogis(1.2 * as.numeric(scale(y)) - 1.2)
+  } else {
+    seq_len(n) %in% sample(n, floor(0.15 * n))
+  }
+  drop2 <- if (mar) {
+    stats::runif(n) < stats::plogis(1.0 * as.numeric(scale(y)) - 1.4)
+  } else {
+    seq_len(n) %in% sample(n, floor(0.15 * n))
+  }
+  d$m1[drop1] <- NA
+  d$m2[drop2] <- NA
+  d
+}
+
+two_parent_specs <- function() {
+  list(
+    m1 = drm_node(drmTMB::bf(m1 ~ x)),
+    m2 = drm_node(drmTMB::bf(m2 ~ x)),
+    y = drm_node(drmTMB::bf(y ~ m1 + m2 + x))
   )
+}
+
+engine_accepts_k2 <- function() {
+  if (!requireNamespace("drmTMB", quietly = TRUE)) {
+    return(FALSE)
+  }
+  ns <- asNamespace("drmTMB")
+  # Unique to the #1086 / 0.7.0 two-independent-Gaussian slice. The older
+  # one-mi() helper is also named drm_prepare_gaussian_mi_setup.
+  exists(
+    "drm_prepare_two_independent_gaussian_mi_setup",
+    envir = ns,
+    inherits = FALSE
+  )
+}
+
+test_that("V-79: two incomplete Gaussian parents are planned, not aborted", {
+  d <- two_parent_dat()
+  plan <- drmSEM:::drm_imputation_plan(two_parent_specs(), d)
+  expect_identical(sort(plan$y$variable), c("m1", "m2"))
+  expect_length(plan$y$parents, 2L)
+  expect_identical(
+    sort(vapply(plan$y$parents, function(p) p$variable, character(1))),
+    c("m1", "m2")
+  )
+})
+
+test_that("V-79b: k > 2 incomplete parents still fails loud", {
+  d <- two_parent_dat()
+  d$m3 <- 0.4 * d$x + stats::rnorm(nrow(d))
+  d$m3[1:40] <- NA
+  specs <- two_parent_specs()
+  specs$m3 <- drm_node(drmTMB::bf(m3 ~ x))
+  specs$y <- drm_node(drmTMB::bf(y ~ m1 + m2 + m3 + x))
+  expect_error(
+    drmSEM:::drm_imputation_plan(specs, d),
+    "k > 2"
+  )
+})
+
+test_that("V-79c: two parents on a non-Gaussian response fail loud", {
+  d <- two_parent_dat()
+  d$cnt <- stats::rpois(nrow(d), lambda = 2)
+  specs <- two_parent_specs()
+  specs$cnt <- drm_node(
+    drmTMB::bf(cnt ~ m1 + m2 + x),
+    family = stats::poisson()
+  )
+  expect_error(
+    drmSEM:::drm_imputation_plan(specs, d),
+    "two independent Gaussian"
+  )
+})
+
+test_that("V-82: two-parent auto fit matches the hand-written emit shape", {
+  skip_if_not(engine_accepts_k2(), "engine does not accept two mi() terms")
+  d <- two_parent_dat()
+  auto <- suppressWarnings(suppressMessages(drm_sem(
+    m1 = drm_node(drmTMB::bf(m1 ~ x)),
+    m2 = drm_node(drmTMB::bf(m2 ~ x)),
+    y = drm_node(drmTMB::bf(y ~ m1 + m2 + x)),
+    data = d, impute = "auto"
+  )))
+  hand <- suppressWarnings(suppressMessages(drm_sem(
+    m1 = drm_node(drmTMB::bf(m1 ~ x)),
+    m2 = drm_node(drmTMB::bf(m2 ~ x)),
+    y = drm_node(
+      drmTMB::bf(y ~ mi(m1) + mi(m2) + x),
+      impute = list(
+        m1 = drmTMB::impute_model(m1 ~ x, family = stats::gaussian()),
+        m2 = drmTMB::impute_model(m2 ~ x, family = stats::gaussian())
+      ),
+      missing = drmTMB::miss_control(predictor = "model")
+    ),
+    data = d
+  )))
+  expect_equal(
+    unlist(auto$nodes$y$coefficients$mu),
+    unlist(hand$nodes$y$coefficients$mu)
+  )
+  imp <- imputation(auto)
+  expect_identical(nrow(imp), 2L)
+  expect_identical(sort(imp$variable), c("m1", "m2"))
+  expect_true(all(imp$node == "y"))
+  expect_true(all(imp$uncertainty_status == "ok"))
+  expect_true(all(imp$std_error_usable))
+})
+
+test_that("V-120: two-parent auto recovers known MAR coefficients", {
+  skip_if_not(engine_accepts_k2(), "engine does not accept two mi() terms")
+  seeds <- c(11L, 21L, 34L)
+  b1 <- b2 <- numeric(length(seeds))
+  for (k in seq_along(seeds)) {
+    d <- two_parent_dat(n = 400, seed = seeds[[k]])
+    fit <- suppressWarnings(suppressMessages(drm_sem(
+      m1 = drm_node(drmTMB::bf(m1 ~ x)),
+      m2 = drm_node(drmTMB::bf(m2 ~ x)),
+      y = drm_node(drmTMB::bf(y ~ m1 + m2 + x)),
+      data = d, impute = "auto"
+    )))$nodes$y$coefficients$mu
+    coefs <- unlist(fit)
+    b1[[k]] <- coefs[[2L]]
+    b2[[k]] <- coefs[[3L]]
+  }
+  # Truth: m1 0.5, m2 0.4. Recovery-to-truth, not a complete-case contest.
+  expect_lt(mean(abs(b1 - 0.5)), 0.15)
+  expect_lt(mean(abs(b2 - 0.4)), 0.15)
+})
+
+test_that("V-121b: imputed() stacks parents and never silent-first", {
+  d <- chain_dat()
+  sem <- auto_sem(d)
+  miss <- imputed(sem)
+  expect_true(all(miss$node == "y"))
+  expect_true(all(miss$variable == "m"))
+  expect_true(all(!miss$observed))
+  expect_true(all(miss$uncertainty_status == "ok"))
+  expect_true(all(is.finite(miss$std_error)))
+  expect_true(all(drmSEM:::drm_imputed_std_error_usable(
+    miss$uncertainty_status, miss$std_error, miss$observed
+  )))
+
+  all_rows <- imputed(sem, rows = "all")
+  obs <- all_rows[all_rows$observed, , drop = FALSE]
+  expect_gt(nrow(obs), 0L)
+  expect_true(all(obs$uncertainty_status == "ok"))
+  expect_true(all(is.na(obs$std_error)))
+  expect_false(any(drmSEM:::drm_imputed_std_error_usable(
+    obs$uncertainty_status, obs$std_error, obs$observed
+  )))
+
+  quiet <- imputed(sem, se = FALSE)
+  expect_true(all(quiet$uncertainty_status == "ok"))
+  expect_true(all(is.na(quiet$std_error)))
+  expect_false(any(drmSEM:::drm_imputed_std_error_usable(
+    quiet$uncertainty_status, quiet$std_error, quiet$observed
+  )))
+})
+
+test_that("V-121c: two-parent imputed() is stacked, never first-only", {
+  skip_if_not(engine_accepts_k2(), "engine does not accept two mi() terms")
+  d <- two_parent_dat()
+  sem <- suppressWarnings(suppressMessages(drm_sem(
+    m1 = drm_node(drmTMB::bf(m1 ~ x)),
+    m2 = drm_node(drmTMB::bf(m2 ~ x)),
+    y = drm_node(drmTMB::bf(y ~ m1 + m2 + x)),
+    data = d, impute = "auto"
+  )))
+  stacked <- imputed(sem)
+  expect_identical(sort(unique(stacked$variable)), c("m1", "m2"))
+  expect_true(all(stacked$node == "y"))
+  m1_only <- imputed(sem, variable = "m1")
+  expect_true(all(m1_only$variable == "m1"))
+  expect_error(imputed(sem, variable = "nope"), "Unknown modelled missing")
 })
 
 test_that("V-80: the family gate matches the engine's own allow-list", {

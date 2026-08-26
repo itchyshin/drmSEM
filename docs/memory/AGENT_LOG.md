@@ -1529,3 +1529,78 @@ Standing approval covered public issue writes.
 
 **G1 still closed** (engine not on drmTMB `main` / not installed for
 the drmSEM suite). capability-status stays `partial`. No drmSEM `R/`.
+
+## 2026-08-26 — S6 follow-up: #45 merged; A8 started
+
+Standing approval: merge when CI green, continue autonomously.
+
+**Merges.**
+- drmSEM **#45** merge commit `ec5692aa302f201891ba1b8ce19299cff6953aa2`
+  (docs/LOOP only). Parent `main` fast-forwarded.
+- drmTMB **#1086** not yet merged. CI failed first on a stale C17/C14
+  receipt (`R/drmTMB.R` / `src/drmTMB.cpp` blobs moved; model-15
+  fingerprint unchanged). Cheap-mode refresh on
+  `cursor/lane-s6-multi-mi` @ `24bcef4c1`: runner bit-identical
+  (`0.0990017646754622` / `0.166085237666842` / `0.0613064198360253`);
+  `source_fingerprint` left alone. Ledger step passed on the re-run;
+  R CMD check still in flight at A8 start.
+
+**G1.** Opening as *installable* from the engine worktree
+(`~/local-scratch/lanes/drmTMB-s6-multi-mi` @ `24bcef4c1`). Not yet
+on drmTMB `main`.
+
+**A8 (drmSEM `R/imputation.R` only).** Lifted the one-parent abort.
+k = 2 Gaussian × two Gaussian parents emits independent `mi()` + a
+named `impute` list. k > 2 and non-Gaussian k = 2 still fail loud
+with the engine reason. `plan$variable` stays a character vector so
+`drm_sem.R` alignment (`drm_node_rows(exclude = )`) is unchanged.
+MAG `basis_set` not touched. Not FIML. No `impute_joint`.
+capability-status not edited.
+
+**A10.** V-77 kept. V-79 is now the plan-level two-parent emit.
+V-79b k > 2 abort; V-79c non-Gaussian k = 2 abort. V-82 two-parent
+auto ≡ hand-written (skipped unless the engine exposes `allow_k2`).
+Against the #1086 worktree: **31 / 0 / 0**. Installed CRAN-ish
+engine: **27 / 0 / 1 skip**.
+
+Branch: `cursor/lane-s6-a8` from `main` @ `ec5692aa`.
+A8 PR: https://github.com/itchyshin/drmSEM/pull/46 @ `cb5e287` (CI green).
+
+## 2026-08-26 — S6 follow-up close: both PRs merged; G1 open
+
+**Merge shas.**
+- drmSEM **#45** `ec5692aa302f201891ba1b8ce19299cff6953aa2`
+- drmTMB **#1086** `1cc1985cd87303d2300b0f311cb0ca91f4d06c34`
+  (drmTMB **0.7.0** on `main`). Engine commits on that PR:
+  `0781008b3` (k=2 mi), `24bcef4c1` (C17 cheap-mode receipt),
+  `7f792508a` (phylo `has_mi2` fixture).
+
+**G1.** OPEN. Item 2 is on drmTMB `main` @ `1cc1985cd`.
+
+**A8.** Implemented on `R/imputation.R` only. PR
+https://github.com/itchyshin/drmSEM/pull/46 CI green. Do **not**
+merge #46 here — G2 is the public-claim / consumer-merge gate.
+capability-status stays `partial`. Not FIML. No `impute_joint`.
+
+## 2026-08-26 — S6 A9–A11: `uncertainty_status` tiers + two-parent recovery
+
+Same lane `cursor/lane-s6-a8` / `~/local-scratch/lanes/drmSEM-s6-imputation`.
+Standing approval. Foreign Claude MAG/S3 lanes untouched. A7 (drmTMB
+item 1 C++) not started.
+
+**A9.** `imputed.drm_sem` stacks every graph-derived parent (never
+silent first-`mi()` only). `imputation()` gains `n_missing`,
+`uncertainty_status`, `std_error_usable`. Both branch on
+`uncertainty_status`, never `is.na(std_error)`. Engine call isolated
+in `R/extractors.R` (`drm_fit_imputed()`).
+
+**A10.** V-77 kept. V-120 two-parent MAR recovery-to-truth. V-121
+status-tier kernel + live `imputed()` stack. `engine_accepts_k2()`
+now keys on `drm_prepare_two_independent_gaussian_mi_setup` (the
+pre-#1086 helper shares the old name).
+
+**A11.** `13-missing-data.md` updated: two Gaussian parents, not
+FIML. capability-status stays `partial`. Ledger V-79/79b/79c, V-82
+(k=2 identity), V-120, V-121.
+
+G2 remains a human gate for a public capability claim.

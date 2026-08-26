@@ -632,3 +632,54 @@ drm_fixed_design <- function(fit, component, newdata) {
   }
   out
 }
+
+# ---------------------------------------------------------------------------
+# Missing-predictor summaries (A1 / A9).
+#
+# drmTMB::imputed() return shape lives here. Consumers must branch on
+# uncertainty_status, never on is.na(std_error): observed rows and se = FALSE
+# requests report NA standard errors with status "ok".
+# ---------------------------------------------------------------------------
+
+#' Engine `uncertainty_status` levels (drmTMB 0.7.0).
+#' @keywords internal
+#' @noRd
+drm_imputed_status_levels <- function() {
+  c(
+    "ok",
+    "sdreport_skipped",
+    "sdreport_failed",
+    "sdreport_non_pd_hessian",
+    "sdreport_unavailable",
+    "route_conditional_se_unavailable"
+  )
+}
+
+#' Whether a row's `std_error` is usable.
+#'
+#' Inspect `uncertainty_status` first. A missing `std_error` with status
+#' `"ok"` is an observed row or an `se = FALSE` request, not a failure.
+#' @keywords internal
+#' @noRd
+drm_imputed_std_error_usable <- function(
+  uncertainty_status,
+  std_error,
+  observed
+) {
+  (uncertainty_status == "ok") & !observed & is.finite(std_error)
+}
+
+#' Fitted missing-predictor table from one drmTMB node.
+#' @keywords internal
+#' @noRd
+drm_fit_imputed <- function(fit, variable = NULL, rows = "missing", se = TRUE) {
+  drm_require_drmTMB()
+  ns <- asNamespace("drmTMB")
+  if (!exists("imputed", envir = ns, inherits = FALSE)) {
+    cli::cli_abort(c(
+      "{.pkg drmTMB} does not export {.fn imputed}.",
+      "i" = "Install drmTMB >= 0.6.0."
+    ))
+  }
+  drmTMB::imputed(fit, variable = variable, rows = rows, se = se)
+}

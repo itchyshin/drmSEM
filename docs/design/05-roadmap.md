@@ -58,10 +58,10 @@ with no missing-data policy at all. See `13-missing-data.md`.
 - **Shipped:** `drm_sem(impute = "auto")` — each incomplete **endogenous**
   parent's imputation model is derived from its own node formula and family and
   handed to the engine as `mi()` + `impute_model()`. Reported by `imputation()`.
-- **Open, engine-dependent:** general graphs need drmTMB Issue 2 (more than one
-  `mi()` term per fit) and Issue 1 (widen the response-family gate beyond
-  gaussian/poisson/binomial/nbinom2/beta). Until then a node with two incomplete
-  parents aborts with that reason. See `../memory/DRMTMB_ISSUES.md`.
+- **Open, engine-dependent:** drmTMB 0.7.0 (#1086) accepts **two independent
+  Gaussian** `mi()` terms. `k > 2` and non-Gaussian `k = 2` still abort.
+  Issue 1 (per-family C++ `has_mi`, not a whitelist edit) is still open.
+  See `../memory/DRMTMB_ISSUES.md`. Capability stays `partial`.
 - **Open, drmSEM-side:** incomplete **exogenous** predictors have no node model
   in the graph, so the graph cannot specify their imputation model; they remain
   governed by `na_action`.

@@ -1,7 +1,8 @@
 # Checkpoint — OVERWRITTEN every arc
 
-GOAL: see LOOP/GOAL.md. STATE: G0 approved; A0–A6 landed tonight.
-**IN PROGRESS** only for CI on the engine PR. G1 still closed.
+GOAL: see LOOP/GOAL.md. STATE: G0 approved; A0–A11 landed on #46.
+**G1 OPEN.** **G2 partial** until Shinichi reviews the public claim.
+capability-status stays `partial`.
 
 ARCS DONE (verified):
 - A0 / G0 — planning kit + standing approval.
@@ -9,28 +10,37 @@ ARCS DONE (verified):
 - **A2** — #963 https://github.com/itchyshin/drmTMB/issues/963#issuecomment-5429119689
   #962 https://github.com/itchyshin/drmTMB/issues/962#issuecomment-5429120815
 - **A3** — `LOOP/notes/A3-joint-mi-verdict.md` (leave `impute_joint`).
-- **A4+A5+A6** — drmTMB PR https://github.com/itchyshin/drmTMB/pull/1086
-  (`cursor/lane-s6-multi-mi` @ `0781008b3`). Local: 20 + 109 + 24 pass;
-  ledger `--check` OK. Cell `mp-gaussian-gaussian-k2-indep`.
+- **A4+A5+A6** — drmTMB **#1086 MERGED**
+  `1cc1985cd87303d2300b0f311cb0ca91f4d06c34` (drmTMB 0.7.0).
+  Cell `mp-gaussian-gaussian-k2-indep`.
+- drmSEM docs **#45 MERGED** `ec5692aa302f201891ba1b8ce19299cff6953aa2`.
+- **A8** — lift one-parent abort; two Gaussian `mi()` from the DAG.
+- **A9** — `imputation()` / `imputed()` branch on `uncertainty_status`.
+- **A10** — V-77 kept; V-79/79b/79c; V-82 identity; V-120 recovery;
+  V-121 tiers.
+- **A11** — `13-missing-data.md` (no FIML); ledger; capability stays
+  `partial`.
 
-ARC IN PROGRESS: wait for drmTMB #1086 CI. No drmSEM `R/`.
+ARC IN PROGRESS: none on this slice. Next is **A12** (review) / G2
+public-claim review. Do not start A7 (drmTMB item 1 C++).
 
-NEXT: After #1086 is mergeable / installed, assess **G1**. Then A8
-(lift abort) on this drmSEM lane. Do not start A8 tonight.
+NEXT: merge #46 when CI green (standing approval). Then pull parent
+`main`. G2 stays partial until Shinichi reviews the public claim.
 
 OPEN GATES:
-- **G1** — engine item 2 on an engine this suite can see (PR not yet
-  merged to drmTMB `main`)
-- **G2** — drmSEM merge / public capability claim
+- **G1** — OPEN. Engine item 2 is on drmTMB `main` @ `1cc1985cd`.
+- **G2** — partial: consumer merge authorised; public capability
+  claim waits for Shinichi.
 - **G3** — if independence fails
 
 TRUTH LIVES IN:
-- drmSEM `cursor/lane-s6-imputation` draft PR https://github.com/itchyshin/drmSEM/pull/45
-- drmTMB `cursor/lane-s6-multi-mi` PR https://github.com/itchyshin/drmTMB/pull/1086
+- drmSEM `main` @ `ec5692aa` (#45) until #46 merges
+- drmSEM A8–A11 PR https://github.com/itchyshin/drmSEM/pull/46
+- drmTMB `main` @ `1cc1985cd` (#1086)
 - MAG-completeness: **do not touch**
 
-RESUME: read LOOP/GOAL.md → this file → A1 contract. Continue from
-G1 assessment after #1086 CI. Do not start drmSEM `R/`. Do not emit
-`impute_joint`. capability-status stays `partial`.
+RESUME: read LOOP/GOAL.md → this file → A1 contract. A12 / G2
+review. Do not emit `impute_joint`. capability-status stays
+`partial`. Do not start A7 here.
 
-HUMAN GATE: G1 before drmSEM `R/`.
+HUMAN GATE: G2 before a public capability claim.

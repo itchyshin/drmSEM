@@ -1175,3 +1175,32 @@ S&D separators remain out of scope. Residual compositionality gap: OQ-16.
 
 Suite: **1026 pass / 0 fail / 3 skip / 10 warn** (was 987). Warning count
 held. Skips unchanged (ape-missing guard + 2 symbolizer).
+
+## 2026-08-26 — S6 A8–A11: two Gaussian `mi()` + `uncertainty_status`
+
+A8 lifted the one-parent abort for the Phase 1 cell. A9 makes
+`imputation()` / `imputed()` consume the engine's `uncertainty_status`
+tiers. A10 keeps V-77 and adds two-parent recovery. Capability-status
+stays **`partial`**. Not FIML. No `impute_joint`.
+
+- **V-79.** Two incomplete Gaussian parents are planned (`m1`, `m2`),
+  not aborted. **Validated** (plan-level).
+- **V-79b.** `k > 2` still fails loud. **Validated.**
+- **V-79c.** Non-Gaussian `k = 2` still fails loud. **Validated.**
+- **V-82 (k=2 identity).** Two-parent auto fit is numerically identical
+  to the hand-written emit. Distinct from sampler V-82 tweedie.
+  **Validated** against drmTMB 0.7.0 / #1086.
+- **V-120.** Two-parent MAR recovery-to-truth: `m1` / `m2` recover
+  0.5 / 0.4 within 0.15 across seeds 11, 21, 34 at n = 400.
+  **Validated** for the Gaussian × two-independent-Gaussian cell only.
+- **V-121.** `drm_imputed_std_error_usable()` branches on
+  `uncertainty_status`. Observed rows and `se = FALSE` keep status
+  `"ok"` with `NA` `std_error`; that is not a failure. `imputed(sem)`
+  stacks every parent and never returns the first `mi()` only.
+  **Validated.**
+
+`test-imputation.R` against drmTMB `1cc1985cd`: **61 pass / 0 fail /
+0 skip**.
+
+**Not claimed.** Generality beyond two Gaussian parents. Cross-node
+uncertainty. FIML. `impute_joint`. Capability-status `"covered"`.
