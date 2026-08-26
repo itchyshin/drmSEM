@@ -1,7 +1,9 @@
 # Next arc — S6 generality: multi-`mi()` imputation
 
-Status: **READY, needs G0.** Designed 2026-08-26 on Cursor (Grok). Planning
-only. Nothing under `R/` has been touched.
+Status: **G0 approved 2026-08-26** (all 10 checklist items; standing
+approval to push / PR / issue-comment / new engine lane). Planning docs
+A1+A3 drafted. Nothing under `R/` has been touched; G1 still blocks
+drmSEM `R/`.
 
 This is a **two-repo programme**. drmSEM already ships a working
 single-parent prototype (`drm_sem(impute = "auto")`, V-77–V-81). Generality

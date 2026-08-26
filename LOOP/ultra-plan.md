@@ -1,6 +1,8 @@
 # Ultra-plan — S6 generality: multi-`mi()` imputation
 
-Frozen pending G0 (2026-08-26). Cursor / Grok worker. Structured as Fable
+G0 approved 2026-08-26 (all 10 checklist items; standing approval for
+push / PR / issue comments / new drmTMB lane / Totoro smoke). Frozen
+detail below is still the contract. Cursor / Grok worker. Structured as Fable
 would: destination first, two-repo contract, slice table, gates, reviewers.
 **Not** executed against the Fable API.
 

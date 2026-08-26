@@ -467,7 +467,7 @@ Validation: V-109 / V-109b (detection), V-109c (C exclusion), V-110 / V-110b
 
 ## [2026-08-26] D-22 — S6 generality order: engine 2+5, then 1, then consumer
 
-**Decision (planning lock; G0 confirms).** The S6 *generality* programme
+**Decision (planning lock; G0 confirmed 2026-08-26, all 10 items).** The S6 *generality* programme
 is a two-repo sequence, not a drmSEM-only feature:
 
 1. **drmTMB items 2 + 5 together** — k ≥ 2 **independent** `mi()` terms

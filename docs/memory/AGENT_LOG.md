@@ -1474,3 +1474,51 @@ engine lane from `origin/main`.
 
 **Not done.** No drmSEM `R/`. No push. No engine implementation.
 Awaiting G0 (checklist in `LOOP/ultra-plan.md`).
+
+## 2026-08-26 — S6 G0 approved; A1 contract + A3 joint-mi verdict
+
+**Cursor / Grok**, same lane `cursor/lane-s6-imputation`. Shinichi
+approved G0 with all 10 defaults. Lease refreshed:
+`cursor:drmSEM-s6-imputation` on `LOOP/,docs/memory/`. Foreign Claude
+lanes (MAG-completeness, MAG-wire, S3-grouping) and the dirty drmTMB
+primary checkout were not touched. A2 GitHub comments skipped (G0
+item 8). NotebookLM skipped (G0 item 9).
+
+**What shipped (docs + LOOP only).**
+- G0 stamp: `LOOP/checkpoint.md` STATE = IN PROGRESS;
+  `LOOP/arcs.md` A1/A3 done, A2 paused; `LOOP/ultra-plan.md` frozen
+  at approval; D-22 and the S6 charter marked G0-approved.
+- **A1** `LOOP/notes/A1-engine-contract.md`: independence (option b),
+  emit shape `y ~ mi(m1)+mi(m2)+x` with one `impute_model()` per
+  parent, `imputed()` / `uncertainty_status` tiers, first cell =
+  two independent Gaussian `mi()` terms, G1 acceptance (MCAR+MAR,
+  sentinel-invariance, Totoro smoke, capability stays `partial`).
+- **A3** `LOOP/notes/A3-joint-mi-verdict.md`: read-only recon of
+  `drmTMB-joint-mi` @ `cbbf380bd` (`codex/joint-mi-two-predictor`,
+  3 ahead / 207 behind `origin/main` `fc8ee77a6`). Verdict: leave;
+  `impute_joint` is a correlated-pair estimand, not S6. Do not rebase.
+
+**Not done.** No drmSEM `R/`. No push. No drmTMB engine write. No
+#963/#962 comments. Next is a **new drmTMB Phase 1 lane from
+`origin/main`** for A4+A5, then A6 on Totoro. G1 still closed.
+
+## 2026-08-26 — S6 A1 contract + A3 joint-mi verdict (G0 closed; no R/)
+
+**Cursor / Grok**, same lane `cursor/lane-s6-imputation`. Shinichi G0
+approved all 10 items and authorised push / PR / issue comments / a
+new drmTMB lane. Sibling worker `03ba571d` had **not** committed A1/A3
+(no `LOOP/notes/`; checkpoint still awaited G0).
+
+**What shipped (docs only).**
+- `LOOP/notes/A1-engine-contract.md` — emit shape
+  `y ~ mi(m1)+mi(m2)+x` + independent `impute` list; independence
+  likelihood (no \(\rho\)); first cell two Gaussian `mi()`; C++/R
+  line map. **Ledger correction:** `missing_predictor` axis already
+  exists on `origin/main` (17 G2 rows); A5 adds
+  `mp-gaussian-gaussian-k2-indep`, does not invent the axis.
+- `LOOP/notes/A3-joint-mi-verdict.md` — `drmTMB-joint-mi` @
+  `cbbf380bd` is 207 behind / 3 ahead; `impute_joint` is a correlated
+  pair. Reuse test patterns; do not rebase; do not emit joint.
+
+**Not done.** A2 GitHub comments; drmSEM draft PR; drmTMB Phase 1
+implementation (A4–A6). Still no drmSEM `R/`.

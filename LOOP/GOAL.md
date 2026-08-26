@@ -32,14 +32,15 @@ predictor models (option b), not `impute_joint`, not FIML.
 
 ## Authoritative WHAT
 
-`LOOP/ultra-plan.md` (awaiting G0). Arc charter:
+`LOOP/ultra-plan.md` (G0 approved 2026-08-26). Arc charter:
 `docs/memory/2026-08-26-next-arc-s6-imputation.md`. Order lock: D-22.
 This file wins on "what must never be lost".
 
 ## Definition of done
 
 Planning phase (this kickoff): lane + charter + LOOP kit + D-22 +
-AGENT_LOG committed; G0 checklist waiting on Shinichi.
+AGENT_LOG committed; G0 approved 2026-08-26 (all 10 defaults).
+A1 + A3 drafted; A2 authorised (GitHub issue comments).
 
 Programme done (later, after G0→G1→G2): k ≥ 2 independent `mi()` on
 the engine with recovery + ledger; drmSEM lifts the abort and recovers
