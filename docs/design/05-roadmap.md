@@ -68,26 +68,27 @@ with no missing-data policy at all. See `13-missing-data.md`.
 - **Won't do:** full-information Bayesian imputation inside a joint model. That
   requires drmSEM to fit its own likelihood, which the charter forbids.
 
-## m-separation (DESIGN ONLY — `14-m-separation.md`)
+## m-separation (IMPLEMENTED 2026-08-26 — `14-m-separation.md`)
 
 Reaches the latent problem from the side the charter allows: m-separation is a **graph**
 operation, so it needs no joint likelihood. Changes only which independence claims are
 generated — the any-component LRT (D-2) and `fisher_c()` are untouched.
 
-- **Designed, not implemented.** Nothing in `R/` does this.
-- **v1 is marginalised latents only.** A *conditioned* (selection) latent must abort, not
-  be approximated: treating one as marginalised produces silently WRONG independence
-  claims, because conditioning on a collider opens a path that marginalising leaves shut.
-- **GATED on a source.** The DAG → MAG orientation rules must be read from Richardson &
-  Spirtes (2002), which is not in `inst/REFERENCES.bib` and not held locally. A wrong
-  orientation rule yields a plausible-and-wrong basis set that no test written from the
-  same wrong memory would catch.
-- **Acceptance is a printed claim set**, not "the code runs": reproduce the m-separation
-  claims Shipley & Douma (2021) print for their `A → X ← L → Y → B` example.
-- **Honest positioning:** this is parity with `because`, not differentiation — drmSEM's
-  distinguishing feature is the non-mean component path, which m-separation does not
-  extend. It is worth doing because unmeasured confounding is a real review question and
-  the architecture cost is low, not because it is novel.
+- **Wired.** `latent =` on `drm_sem()` / `drm_psem()` builds the implied MAG;
+  `basis_set()` / `dsep()` condition on Richardson & Spirtes Corollary 5.3
+  anteriors (`S = ∅`). Pairwise ⇒ global is licensed under a compositional
+  graphoid (Sadeghi & Lauritzen 2014 Thm 3; Lauritzen & Sadeghi 2018 Thm 4).
+- **v1 is marginalised latents only.** A *conditioned* (selection) latent is
+  structurally unrepresentable (no selection argument). Treating one as
+  marginalised would produce silently WRONG independence claims.
+- **Acceptance.** V-117 reproduces the S&D Fig 1 DAG (I) Cor. 5.3 claim set,
+  including the collider trap `A _||_ Y | {}` (not `| {X}`). V-118 / V-119 are
+  the DGP where DAG d-sep is wrong and MAG m-sep is right.
+- **Still out of scope:** selection / conditioned latents; parent-based Shipley
+  & Douma separators.
+- **Honest positioning:** this is parity with `because`, not differentiation —
+  drmSEM's distinguishing feature is the non-mean component path, which
+  m-separation does not extend.
 
 ## 0.3 — Latent variables
 

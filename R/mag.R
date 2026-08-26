@@ -15,12 +15,12 @@
 # (2021)'s published orientation rules drop R&S's `∪ S` and are demonstrably wrong
 # when S is non-empty, coinciding with R&S §4.2.1 only in the S = ∅ case.
 #
+# Basis-set wiring lives in R/dsep.R (`basis_set_mag()`): Cor. 5.3 pairwise
+# claims with anterior conditioning. Completeness (pairwise => global) is
+# licensed under a compositional graphoid (S&L 2014 Thm 3; L&S 2018 Thm 4).
+# This file still owns only graph conversion and anterior helpers.
+#
 # NOT IMPLEMENTED HERE, on purpose:
-#   * the basis set over a MAG. R&S Corollary 5.3 proves each pairwise claim
-#     (conditioning on ANTERIORS in the MAG, not parents), but pairwise => global
-#     was not established, and a basis set needs the global property. Shipley &
-#     Douma's parent-based set is unproven on a MAG. So this file converts graphs
-#     and stops; nothing here is wired into basis_set() or dsep().
 #   * anything involving selection/conditioned latents.
 
 #' Ancestors of `v` in a directed edge table, reflexively.
@@ -188,4 +188,81 @@ drm_dag_to_mag <- function(edges, latent = character(0)) {
   out <- do.call(rbind, rows)
   rownames(out) <- NULL
   out
+}
+
+#' Is `a` adjacent to `b` in a MAG edge table?
+#' @keywords internal
+#' @noRd
+drm_mag_is_adjacent <- function(mag, a, b) {
+  if (!nrow(mag)) {
+    return(FALSE)
+  }
+  a <- as.character(a)
+  b <- as.character(b)
+  any(
+    (mag$from == a & mag$to == b) | (mag$from == b & mag$to == a),
+    na.rm = TRUE
+  )
+}
+
+#' Anterior set of `v` in a MAG (reflexive).
+#'
+#' Follows directed tails into `v` and spouses across bidirected edges, then
+#' closes transitively. Matches R&S anterior on ancestral graphs for MAGs built
+#' with `S = \emptyset`.
+#' @keywords internal
+#' @noRd
+drm_mag_anterior_of <- function(v, mag) {
+  # R&S anterior: reflexive closure along --> and undirected --- only.
+  # Bidirected spouses (<->) are NOT anteriors (arrowheads at both ends).
+  # Walking <-> here would emit the false claim A _||_ Y | {X} on A-->X<->Y.
+  v <- as.character(v)
+  seen <- v
+  if (!nrow(mag)) {
+    return(seen)
+  }
+  repeat {
+    add <- character(0)
+    idx <- mag$type == "-->" & mag$to %in% seen
+    if (any(idx)) {
+      add <- c(add, mag$from[idx])
+    }
+    # Undirected edges (---) do not arise from DAG+S=emptyset marginalisation,
+    # but honour them if present so anterior matches R&S on general AGs.
+    idx <- mag$type %in% c("---", "--") & (mag$from %in% seen | mag$to %in% seen)
+    if (any(idx)) {
+      add <- c(add, mag$from[idx], mag$to[idx])
+    }
+    new <- setdiff(unique(add), seen)
+    if (!length(new)) {
+      break
+    }
+    seen <- c(seen, new)
+  }
+  seen
+}
+
+#' Conditioning set for a Cor. 5.3 pairwise claim: ant({alpha, beta}) \\ {alpha, beta}.
+#' @keywords internal
+#' @noRd
+drm_mag_anteriors <- function(mag, alpha, beta) {
+  alpha <- as.character(alpha)
+  beta <- as.character(beta)
+  ant <- unique(c(
+    drm_mag_anterior_of(alpha, mag),
+    drm_mag_anterior_of(beta, mag)
+  ))
+  setdiff(ant, c(alpha, beta))
+}
+
+#' Build a MAG from collapsed DAG edges and marginalised latent names.
+#' @keywords internal
+#' @noRd
+drm_build_mag <- function(dag_edges, latents) {
+  latents <- as.character(latents)
+  if (!length(latents)) {
+    return(NULL)
+  }
+  edges <- as.data.frame(dag_edges)[, c("from", "to"), drop = FALSE]
+  drm_dag_to_mag(edges, latent = latents)
 }

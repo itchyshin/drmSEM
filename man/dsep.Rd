@@ -54,6 +54,9 @@ Y). This any-component extension is a \code{drmSEM} construction; it has been
 calibrated against the family-grid data-generating processes in
 \verb{inst/calibration/}.
 
+When the SEM declares \verb{latent =} marginalised names, the claims come from the
+MAG branch of \code{\link[=basis_set]{basis_set()}}; the LRT itself is unchanged (any-component).
+
 Requires nodes fitted so that refits converge (the declarative \code{\link[=drm_sem]{drm_sem()}}
 requests standard errors automatically).
 }

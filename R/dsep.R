@@ -33,6 +33,16 @@ drm_order_index <- function(object) {
 #' cycle, and the goodness-of-fit test is scoped to the acyclic part until
 #' sigma-separation lands.
 #'
+#' When `latent =` names **marginalised** latents (`L_M`), claims are generated
+#' on the implied MAG by Richardson & Spirtes (2002) Corollary 5.3: each
+#' non-adjacent observed pair is conditioned on the **anteriors** of the pair
+#' (not on Shipley & Douma's observed parents). Bidirected spouses are not
+#' anteriors. Pairwise ⇒ global is licensed when the independence model is a
+#' compositional graphoid (Sadeghi & Lauritzen 2014 Thm 3; Lauritzen & Sadeghi
+#' 2018 Thm 4) — automatic for homoscedastic all-Gaussian nodes, otherwise
+#' assumed via faithfulness (a `cli_inform()` fires for non-Gaussian or
+#' `sigma ~` nodes). Selection / conditioned latents are not supported.
+#'
 #' The any-component reading of an independence claim is a `drmSEM` choice on top
 #' of the local-likelihood d-separation framework of Shipley; the d-separation
 #' graphical criterion itself is due to Pearl, and the bidirected-edge handling
@@ -41,7 +51,8 @@ drm_order_index <- function(object) {
 #' @param object A `drm_sem` object.
 #' @param ... Unused.
 #' @return A data frame with columns `claim`, `x`, `y`, `given` (comma-separated
-#'   conditioning set = Y's parents).
+#'   conditioning set). On a DAG, `given` is Y's parents. On a MAG (`latent =`
+#'   supplied), it is `ant({X, Y}) \\ {X, Y}`.
 #' @references
 #' \insertRef{Shipley2000}{drmSEM}
 #'
@@ -52,6 +63,12 @@ drm_order_index <- function(object) {
 #' \insertRef{Pearl2009}{drmSEM}
 #'
 #' \insertRef{Lefcheck2016}{drmSEM}
+#'
+#' \insertRef{RichardsonSpirtes2002}{drmSEM}
+#'
+#' \insertRef{SadeghiLauritzen2014}{drmSEM}
+#'
+#' \insertRef{LauritzenSadeghi2018}{drmSEM}
 #' @examples
 #' \dontrun{
 #' sem <- drm_sem(
@@ -70,6 +87,10 @@ basis_set <- function(object, ...) {
 #' @rdname basis_set
 #' @export
 basis_set.drm_sem <- function(object, ...) {
+  if (length(object$latents)) {
+    drm_mag_compositionality_inform(object)
+    return(basis_set_mag(object))
+  }
   edges <- object$edges
   ord <- drm_order_index(object)
   all_vars <- unique(c(object$endogenous, object$exogenous))
@@ -84,10 +105,9 @@ basis_set.drm_sem <- function(object, ...) {
   # already did this "even though no theoretical justification for this was
   # provided" -- drmSEM inherits the justification, so it cites the source.
   #
-  # It also generalises: the same argument extends to a full DAG -> MAG
-  # conversion with m-separation replacing d-separation, which would make the
-  # basis set latent-aware without any joint likelihood. Not implemented; the
-  # rule below is the two-variable special case.
+  # The two-variable special case of the MAG layer: a declared covariance is
+  # equivalent to a latent common cause (Pearl 2009 thm 5.2.3). When `latent =`
+  # is supplied, basis_set_mag() generalises this to the full implied MAG.
   # A declared feedback
   # motif (drm_cycle(), 0.5) likewise drops independence claims among its nodes:
   # DAG d-separation does not apply across the cycle (sigma-separation is
@@ -143,6 +163,75 @@ basis_set.drm_sem <- function(object, ...) {
   out
 }
 
+#' MAG basis set: Cor. 5.3 pairwise claims with anterior conditioning sets.
+#' @keywords internal
+#' @noRd
+basis_set_mag <- function(object) {
+  mag <- object$mag
+  if (is.null(mag) || !nrow(mag)) {
+    out <- data.frame(
+      claim = character(0),
+      x = character(0),
+      y = character(0),
+      given = character(0),
+      stringsAsFactors = FALSE
+    )
+    return(out)
+  }
+  ord <- drm_order_index(object)
+  # MAG is over observed vertices. Emitting claims that name a marginalised
+  # latent would test a vertex that is no longer in the graph.
+  all_vars <- setdiff(
+    unique(c(object$endogenous, object$exogenous)),
+    object$latents
+  )
+  cov_pairs <- unique(c(
+    drm_covariance_pairs(object),
+    drm_feedback_pairs(object)
+  ))
+  rows <- list()
+  for (y in object$order) {
+    yi <- ord(y)
+    for (x in all_vars) {
+      if (identical(x, y)) {
+        next
+      }
+      if (ord(x) > yi) {
+        next
+      }
+      if (drm_mag_is_adjacent(mag, x, y)) {
+        next
+      }
+      if (paste(pmin(x, y), pmax(x, y), sep = "\r") %in% cov_pairs) {
+        next
+      }
+      given <- drm_mag_anteriors(mag, x, y)
+      rows[[length(rows) + 1L]] <- data.frame(
+        x = x,
+        y = y,
+        given = paste(sort(given), collapse = ", "),
+        stringsAsFactors = FALSE
+      )
+    }
+  }
+  if (length(rows) == 0L) {
+    return(data.frame(
+      claim = character(0),
+      x = character(0),
+      y = character(0),
+      given = character(0),
+      stringsAsFactors = FALSE
+    ))
+  }
+  out <- do.call(rbind, rows)
+  out <- cbind(
+    claim = paste0(out$x, " _||_ ", out$y, " | {", out$given, "}"),
+    out
+  )
+  rownames(out) <- NULL
+  out
+}
+
 # Choose the data column to add for variable `v` (node identifier or exogenous).
 drm_add_column <- function(v, object) {
   data <- object$data
@@ -171,6 +260,9 @@ drm_add_column <- function(v, object) {
 #' Y). This any-component extension is a `drmSEM` construction; it has been
 #' calibrated against the family-grid data-generating processes in
 #' `inst/calibration/`.
+#'
+#' When the SEM declares `latent =` marginalised names, the claims come from the
+#' MAG branch of [basis_set()]; the LRT itself is unchanged (any-component).
 #'
 #' Requires nodes fitted so that refits converge (the declarative [drm_sem()]
 #' requests standard errors automatically).

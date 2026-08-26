@@ -10,6 +10,7 @@ drm_sem(
   covariances = NULL,
   composites = NULL,
   feedback = NULL,
+  latent = NULL,
   na_action = c("warn", "common", "fail"),
   impute = c("none", "auto")
 )
@@ -33,6 +34,15 @@ reported by \code{\link[=loadings]{loadings()}}.}
 stays an error). Node-wise ML of a declared cycle is inconsistent under
 simultaneity (a warning is emitted); equilibrium effects use the fixed-point
 propagator. See \code{docs/design/10-cyclic-feedback.md}.}
+
+\item{latent}{Character vector of \strong{marginalised} latent vertex names (\code{L_M}).
+When supplied, \code{\link[=basis_set]{basis_set()}} and \code{\link[=dsep]{dsep()}} generate and test \strong{m-separation}
+claims on the implied MAG, conditioning on Richardson & Spirtes (2002)
+Corollary 5.3 anteriors (\verb{S = \\\\emptyset} only). Pairwise claims are jointly
+licensed by Sadeghi & Lauritzen (2014) Theorem 3 / Lauritzen & Sadeghi (2018)
+Theorem 4 under a compositional-graphoid assumption (automatic for
+homoscedastic all-Gaussian nodes; otherwise faithfulness). Conditioned /
+selection latents are not supported. See \code{docs/design/14-m-separation.md}.}
 
 \item{na_action}{What to do when incomplete rows mean the nodes would not all
 be fitted on the same rows. \code{"warn"} (default) fits anyway but reports which

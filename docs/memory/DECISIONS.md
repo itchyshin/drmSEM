@@ -414,3 +414,27 @@ criterion of Avin, Shpitser & Pearl 2005), otherwise `TRUE`.
 
 Validation: V-35. Remaining OQ-5 work is the live-fit integration test for real
 family sampler accuracy and `NA` handling for unconfirmed-sampler families.
+
+## [2026-08-26] D-20 — MAG m-separation on Cor. 5.3 anteriors (`latent =`)
+
+**Decision.** When `latent =` names **marginalised** latents (`L_M`),
+`basis_set()` / `dsep()` generate and test **m-separation** claims on the
+implied MAG. Conditioning is Richardson & Spirtes (2002) Corollary 5.3
+anteriors (`ant({X,Y}) \ {X,Y}`), not Shipley & Douma observed parents.
+Bidirected spouses are not anteriors. Pairwise ⇒ global is licensed by
+Sadeghi & Lauritzen (2014) Theorem 3 / Lauritzen & Sadeghi (2018) Theorem 4
+under a compositional-graphoid assumption: automatic for homoscedastic
+all-Gaussian nodes, otherwise assumed via faithfulness (one `cli_inform()`
+per `basis_set()` call). Selection / conditioned latents remain structurally
+unrepresentable. The any-component LRT (D-2) is unchanged; only claim
+generation changes.
+
+**Rationale.** The 2026-08-15 conversion (`drm_dag_to_mag()`, V-112–V-115b)
+stopped short of a basis set because pairwise ⇒ global was not located.
+The completeness hunt (2026-08-25) found S&L Thm 3 / L&S Thm 4. Parent-based
+S&D separators stay unlicensed (L&S §5.3 Ex. 1). Residual gap Y — whether
+drmSEM's any-component LRT / Fisher's C *induces* a compositional graphoid
+— is OQ-16, stated not closed.
+
+Validation: V-117 (printed Cor. 5.3 claim set), V-118 / V-119 (DAG d-sep
+wrong, MAG m-sep right). Design: `docs/design/14-m-separation.md`.
