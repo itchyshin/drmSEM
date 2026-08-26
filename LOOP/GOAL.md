@@ -1,21 +1,20 @@
-# GOAL — Wire MAG m-separation into basis_set()/dsep()
+# GOAL — <one sentence: what "done" looks like>
 
-**IMMUTABLE.** Re-read at the top of every arc.
+**IMMUTABLE for this run.** Re-read this file at the top of EVERY arc, before anything else.
 
 ## Definition of done
-- [x] `latent=` on `drm_sem()`/`drm_psem()`; MAG basis set on Cor. 5.3 anteriors (`S=∅`)
-- [x] Compositionality guardrail 3 (`cli_inform` when non-Gaussian / sigma nodes)
-- [x] Tests: S&D claim set + DGP recovery (DAG dsep wrong, MAG msep right)
-- [x] Docs/roxygen + memory ledgers + full test suite green
+- [ ] <the observable end state, not the activity>
 
-## Invariants
-- Never push/merge without Shinichi
-- Do not edit evidence worktree `drmSEM-mag-completeness`
-- dsep LRT machinery unchanged (any-component); only claim generation changes
-- Selection latents out of scope
+## Invariants (never violate, even to finish faster)
+- Never push, merge, or publish — those are HUMAN GATES. Land work on this branch only.
+- Verification means reading the LOG and inspecting the ARTEFACT, never the exit code.
+- A narrow or negative search is not proof. "No X exists" usually means the query missed X.
+- Destructive or irreversible ⇒ STOP and surface, even if it feels urgent.
 
-## Pre-authorisation
-- Scoped edits in mag-wire worktree; local commits; parallel subagents; no push
+## Pre-authorisation (copied from approved ultra-plan)
+- Routine scoped edits, local commands, tests, builds, checkpoints, local commits, and listed checks: CONTINUE.
+- Optional remote authority: <none | push named branch | create named draft PR; never merge or release>.
+- Must stop: merge/release/public message or claim; credentials/security changes; destructive work outside this worktree; new compute/cost beyond the estimate; scope-changing evidence.
 
-## Out of scope
-- Selection latents; wiring parent-based S&D separators; merge to main
+## Out of scope (the fence — do NOT drift here)
+- <...>
