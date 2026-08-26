@@ -13,16 +13,18 @@
 #     with (1 | sp)  : p >> 0.05   <- correct
 # Fisher's C inherits the false rejection, so the whole model is condemned.
 #
-# WHY THIS REPORTS RATHER THAN CORRECTS. The remedy is to give BOTH the base and the
-# augmented fit the grouping term. Adding it only to the augmented fit would compare
-# two different random-effect structures, which is not a valid likelihood-ratio test
-# -- so a silent "fix" is not available here. drmSEM therefore makes the mis-scaled
-# claim LOUD and names the remedy, rather than quietly changing what is tested. That
-# is a deliberate scope line: correcting it automatically changes the estimand.
+# WHY THIS EXCLUDES FROM C RATHER THAN AUTO-REFITTING. The remedy is to give
+# BOTH the base and the augmented fit the grouping term. Adding it only to the
+# augmented fit would compare two different random-effect structures, which is
+# not a valid likelihood-ratio test. Auto-adding it to the stored node would
+# test a different SEM than paths(). D-21 therefore marks the claim
+# `wrong_scale` and drops its p-value from Fisher's C. The user adds `(1 | g)`
+# to test at the right scale (V-110).
 #
-# V-109  a claim whose variable lives at a coarser scale is detected and reported
-# V-110  a correctly-specified model is NOT flagged (no false alarms)
-# V-111  the underlying detector is exact about what counts as a coarser scale
+# V-109   a claim whose variable lives at a coarser scale is detected and reported
+# V-109c  Fisher's C excludes that p-value; the true independence is not condemned
+# V-110   a correctly-specified model is NOT flagged (no false alarms)
+# V-111   the underlying detector is exact about what counts as a coarser scale
 
 skip_if_not_installed("drmTMB")
 
@@ -69,6 +71,28 @@ test_that("V-109b: the warning names the remedy, not just the problem", {
   # And it must say which DIRECTION the error goes -- rejecting true independences,
   # not missing false ones. A reader who assumes the opposite will misread the table.
   expect_match(msg, "REJECTS TRUE", fixed = TRUE)
+})
+
+test_that("V-109c: Fisher's C excludes the mis-scaled claim", {
+  d <- scale_dat()
+  sem <- drm_sem(
+    y = drm_node(drmTMB::bf(y ~ trait), family = stats::gaussian()),
+    z = drm_node(drmTMB::bf(z ~ y), family = stats::gaussian()),
+    data = d
+  )
+  expect_warning(ds <- dsep(sem), "wrong scale")
+  row <- as.data.frame(ds)[ds$x == "trait" & ds$y == "z", , drop = FALSE]
+  expect_identical(nrow(row), 1L)
+  expect_identical(row$status, "wrong_scale")
+  fc <- fisher_c(ds)
+  expect_equal(
+    fc$n_claims,
+    sum(ds$status == "ok" & !is.na(ds$p.value))
+  )
+  expect_false(any(ds$status[ds$status == "ok"] == "wrong_scale"))
+  # The V-109 fixture used to condemn the whole model (C p = 0.004) on a
+  # TRUE independence. Excluding the invalid LR must not reject.
+  expect_false(isTRUE(fc$p.value < 0.05))
 })
 
 test_that("V-110: a correctly-specified model is not flagged", {
