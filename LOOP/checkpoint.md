@@ -3,9 +3,9 @@
 GOAL: see LOOP/GOAL.md. STATE: S0 planning kickoff landed locally; awaiting G0.
 
 ARCS DONE (verified):
-- S0 / A0 in progress until this commit is on `cursor/lane-s6-imputation`:
-  fresh LOOP kit (not the inherited Step 2 S3-grouping kit), arc charter,
-  D-22 draft, AGENT_LOG entry. No drmSEM `R/` edits.
+- S0 / A0 @ `ec41d94` — fresh LOOP kit (not the inherited Step 2
+  S3-grouping kit), charter, D-22, AGENT_LOG. No drmSEM `R/` edits.
+  Verified: `git log -1 --oneline` on this worktree; `R/` unchanged.
 
 ARC IN PROGRESS: none (planning closed pending G0)
 
