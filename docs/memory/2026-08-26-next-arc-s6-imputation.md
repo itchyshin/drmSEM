@@ -1,9 +1,10 @@
 # Next arc — S6 generality: multi-`mi()` imputation
 
 Status: **G0 approved 2026-08-26** (all 10 checklist items; standing
-approval to push / PR / issue-comment / new engine lane). Planning docs
-A1+A3 drafted. Nothing under `R/` has been touched; G1 still blocks
-drmSEM `R/`.
+approval to push / PR / issue-comment / new engine lane). A1+A3
+drafted; A2 comments posted. Nothing under `R/` has been touched;
+G1 still blocks drmSEM `R/`. Phase 1 is a **new drmTMB lane from
+`origin/main`**.
 
 This is a **two-repo programme**. drmSEM already ships a working
 single-parent prototype (`drm_sem(impute = "auto")`, V-77–V-81). Generality
