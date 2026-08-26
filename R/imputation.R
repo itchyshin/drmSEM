@@ -300,14 +300,20 @@ drm_apply_imputation <- function(specs, data, impute = "none") {
 #' Reports the per-node imputation models [drm_sem()] built from the DAG when
 #' called with `impute = "auto"`. Each row is one `(node, parent)` pair: the
 #' incomplete endogenous parent was imputed from that parent's own node model.
-#' A node with two incomplete Gaussian parents yields two rows. This is not
-#' full-information maximum likelihood across the SEM.
+#' A node with two incomplete Gaussian parents yields two rows. Uncertainty
+#' columns come from the engine's [imputed()] table and must be read via
+#' `uncertainty_status`, never via `is.na(std_error)` — those semantics
+#' differ between drmTMB 0.6.0 and 0.7.0. This is not full-information
+#' maximum likelihood across the SEM.
 #'
 #' @param object A `drm_sem` object.
 #' @param ... Unused.
-#' @return A data frame with columns `node`, `variable`, `model` and `family`,
-#'   with zero rows when no imputation was derived.
-#' @seealso [drm_sem()], [check_sem()].
+#' @return A data frame with columns `node`, `variable`, `model`, `family`,
+#'   `n_missing`, `uncertainty_status`, and `std_error_usable`, with zero
+#'   rows when no imputation was derived. `std_error_usable` is `TRUE` only
+#'   when every missing row has `uncertainty_status == "ok"` and a finite
+#'   standard error.
+#' @seealso [drm_sem()], [imputed()], [check_sem()].
 #' @examples
 #' \dontrun{
 #' sem <- drm_sem(
@@ -331,6 +337,9 @@ imputation.drm_sem <- function(object, ...) {
     variable = character(0),
     model = character(0),
     family = character(0),
+    n_missing = integer(0),
+    uncertainty_status = character(0),
+    std_error_usable = logical(0),
     stringsAsFactors = FALSE
   )
   if (is.null(plan) || !length(plan)) {
@@ -338,15 +347,175 @@ imputation.drm_sem <- function(object, ...) {
   }
   rows <- lapply(names(plan), function(nm) {
     recs <- drm_plan_parents(plan[[nm]])
+    fit <- object$records[[nm]]$fit
+    unc <- lapply(recs, function(p) drm_imputation_uncertainty(fit, p$variable))
     data.frame(
       node = nm,
       variable = vapply(recs, function(p) p$variable, character(1)),
       model = vapply(recs, function(p) deparse1(p$formula), character(1)),
       family = vapply(recs, function(p) p$family_name, character(1)),
+      n_missing = vapply(unc, function(u) u$n_missing, integer(1)),
+      uncertainty_status = vapply(unc, function(u) u$uncertainty_status, character(1)),
+      std_error_usable = vapply(unc, function(u) u$std_error_usable, logical(1)),
       stringsAsFactors = FALSE
     )
   })
   out <- do.call(rbind, rows)
+  rownames(out) <- NULL
+  out
+}
+
+# Per-(node, parent) summary of the engine imputed() table.
+# Isolated so imputation() never inspects is.na(std_error) itself.
+drm_imputation_uncertainty <- function(fit, variable) {
+  fallback <- list(
+    n_missing = NA_integer_,
+    uncertainty_status = NA_character_,
+    std_error_usable = NA
+  )
+  tbl <- tryCatch(
+    drm_fit_imputed(fit, variable = variable, rows = "missing", se = TRUE),
+    error = function(e) NULL
+  )
+  if (is.null(tbl)) {
+    return(fallback)
+  }
+  if (!nrow(tbl)) {
+    return(list(
+      n_missing = 0L,
+      uncertainty_status = NA_character_,
+      std_error_usable = NA
+    ))
+  }
+  statuses <- unique(as.character(tbl$uncertainty_status))
+  usable <- drm_imputed_std_error_usable(
+    tbl$uncertainty_status,
+    tbl$std_error,
+    tbl$observed
+  )
+  list(
+    n_missing = as.integer(nrow(tbl)),
+    uncertainty_status = if (length(statuses) == 1L) {
+      statuses[[1L]]
+    } else {
+      "mixed"
+    },
+    std_error_usable = all(usable)
+  )
+}
+
+#' Fitted missing-predictor values from a drmSEM graph
+#'
+#' Walks every node that [drm_sem()] derived an imputation model for and
+#' returns the engine's missing-predictor table, stacked, with a `node`
+#' column. Omitting `variable` stacks every imputed parent — it never
+#' silently returns the first `mi()` term only. Branch on
+#' `uncertainty_status`, never on `is.na(std_error)`: observed rows and
+#' `se = FALSE` requests report `std_error = NA` with status `"ok"`.
+#' This is not multiple imputation, not Rubin's rules, and not
+#' full-information maximum likelihood across the SEM.
+#'
+#' @param object A `drm_sem` object.
+#' @param variable Optional parent name. When omitted, every imputed
+#'   parent is stacked.
+#' @param node Optional endogenous node name that restricts the stack.
+#' @param rows `"missing"` or `"all"`, forwarded to the engine.
+#' @param se Logical; forwarded to the engine.
+#' @param ... Unused.
+#' @return A data frame with `node` plus the engine columns `variable`,
+#'   `original_row`, `model_row`, `observed`, `estimate`, `std_error`,
+#'   `source`, and `uncertainty_status`. Zero rows when nothing was
+#'   imputed.
+#' @seealso [imputation()], [drm_sem()].
+#' @examples
+#' \dontrun{
+#' sem <- drm_sem(
+#'   m = drm_node(drmTMB::bf(m ~ x)),
+#'   y = drm_node(drmTMB::bf(y ~ m + x)),
+#'   data = dat, impute = "auto"
+#' )
+#' imputed(sem)
+#' imputed(sem, variable = "m", rows = "all")
+#' }
+#' @export
+imputed <- function(object, ...) {
+  UseMethod("imputed")
+}
+
+#' @rdname imputed
+#' @export
+imputed.drm_sem <- function(
+  object,
+  variable = NULL,
+  node = NULL,
+  rows = c("missing", "all"),
+  se = TRUE,
+  ...
+) {
+  rows <- match.arg(rows)
+  empty <- data.frame(
+    node = character(0),
+    variable = character(0),
+    original_row = integer(0),
+    model_row = integer(0),
+    observed = logical(0),
+    estimate = numeric(0),
+    std_error = numeric(0),
+    source = character(0),
+    uncertainty_status = character(0),
+    stringsAsFactors = FALSE
+  )
+  plan <- attr(object, "imputation", exact = TRUE)
+  if (is.null(plan) || !length(plan)) {
+    return(empty)
+  }
+  nms <- names(plan)
+  if (!is.null(node)) {
+    if (!is.character(node) || length(node) != 1L || is.na(node) || !nzchar(node)) {
+      cli::cli_abort("{.arg node} must be one endogenous node name.")
+    }
+    if (!node %in% nms) {
+      cli::cli_abort(c(
+        "No graph-derived imputation for node {.val {node}}.",
+        "i" = "Nodes with a derived imputer: {.val {nms}}."
+      ))
+    }
+    nms <- node
+  }
+  if (!is.null(variable)) {
+    if (
+      !is.character(variable) ||
+        length(variable) != 1L ||
+        is.na(variable) ||
+        !nzchar(variable)
+    ) {
+      cli::cli_abort("{.arg variable} must be one missing-predictor name.")
+    }
+  }
+  chunks <- list()
+  available <- character(0)
+  for (nm in nms) {
+    recs <- drm_plan_parents(plan[[nm]])
+    vars <- vapply(recs, function(p) p$variable, character(1))
+    available <- c(available, vars)
+    want <- if (is.null(variable)) vars else intersect(variable, vars)
+    fit <- object$records[[nm]]$fit
+    for (v in want) {
+      tbl <- drm_fit_imputed(fit, variable = v, rows = rows, se = se)
+      tbl <- cbind(node = nm, tbl, stringsAsFactors = FALSE)
+      chunks[[length(chunks) + 1L]] <- tbl
+    }
+  }
+  if (!length(chunks)) {
+    if (!is.null(variable)) {
+      cli::cli_abort(c(
+        "Unknown modelled missing predictor {.val {variable}}.",
+        "i" = "Available modelled missing predictor{?s}: {.val {unique(available)}}."
+      ))
+    }
+    return(empty)
+  }
+  out <- do.call(rbind, chunks)
   rownames(out) <- NULL
   out
 }

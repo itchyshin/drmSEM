@@ -11,13 +11,14 @@
 | A6 | Two-predictor recovery + sentinel-invariance | done | ← A4 |
 | A7 | drmTMB item 1: per-family C++ `has_mi` | todo | Phase 2 |
 | A8 | drmSEM: lift abort, multi-`mi()` from DAG | done | PR #46 |
-| A9 | drmSEM: `imputed()` / `uncertainty_status` tiers | todo | ← A8 |
+| A9 | drmSEM: `imputed()` / `uncertainty_status` tiers | done | ← A8 |
 | A10 | drmSEM tests (keep V-77; new two-parent DGP) | done | PR #46 |
-| A11 | Docs + ledgers + capability-status honesty | todo | ← A10 |
+| A11 | Docs + ledgers + capability-status honesty | done | ← A10 |
 | A12 | Review + reconcile | todo | **G2** |
 
 Status: todo / doing / done / paused / blocked. `paused` = awaiting
 Shinichi's named decision; `blocked` = external dependency.
 
 A2 posted 2026-08-26. #45 merged `ec5692aa`. #1086 merged `1cc1985cd`.
-A8/A10 PR https://github.com/itchyshin/drmSEM/pull/46. G1 open.
+A8–A11 PR https://github.com/itchyshin/drmSEM/pull/46. G1 open.
+G2 partial until Shinichi reviews the public claim.

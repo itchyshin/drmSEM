@@ -15,15 +15,21 @@ imputation(object, ...)
 \item{...}{Unused.}
 }
 \value{
-A data frame with columns \code{node}, \code{variable}, \code{model} and \code{family},
-with zero rows when no imputation was derived.
+A data frame with columns \code{node}, \code{variable}, \code{model}, \code{family},
+\code{n_missing}, \code{uncertainty_status}, and \code{std_error_usable}, with zero
+rows when no imputation was derived. \code{std_error_usable} is \code{TRUE} only
+when every missing row has \code{uncertainty_status == "ok"} and a finite
+standard error.
 }
 \description{
 Reports the per-node imputation models \code{\link[=drm_sem]{drm_sem()}} built from the DAG when
 called with \code{impute = "auto"}. Each row is one \verb{(node, parent)} pair: the
 incomplete endogenous parent was imputed from that parent's own node model.
-A node with two incomplete Gaussian parents yields two rows. This is not
-full-information maximum likelihood across the SEM.
+A node with two incomplete Gaussian parents yields two rows. Uncertainty
+columns come from the engine's \code{\link[drmTMB:imputed]{imputed()}} table and must be read via
+\code{uncertainty_status}, never via \code{is.na(std_error)} — those semantics
+differ between drmTMB 0.6.0 and 0.7.0. This is not full-information
+maximum likelihood across the SEM.
 }
 \examples{
 \dontrun{
@@ -36,5 +42,5 @@ imputation(sem)
 }
 }
 \seealso{
-\code{\link[=drm_sem]{drm_sem()}}, \code{\link[=check_sem]{check_sem()}}.
+\code{\link[=drm_sem]{drm_sem()}}, \code{\link[drmTMB:imputed]{imputed()}}, \code{\link[=check_sem]{check_sem()}}.
 }

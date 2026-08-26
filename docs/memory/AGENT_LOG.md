@@ -1581,3 +1581,26 @@ A8 PR: https://github.com/itchyshin/drmSEM/pull/46 @ `cb5e287` (CI green).
 https://github.com/itchyshin/drmSEM/pull/46 CI green. Do **not**
 merge #46 here — G2 is the public-claim / consumer-merge gate.
 capability-status stays `partial`. Not FIML. No `impute_joint`.
+
+## 2026-08-26 — S6 A9–A11: `uncertainty_status` tiers + two-parent recovery
+
+Same lane `cursor/lane-s6-a8` / `~/local-scratch/lanes/drmSEM-s6-imputation`.
+Standing approval. Foreign Claude MAG/S3 lanes untouched. A7 (drmTMB
+item 1 C++) not started.
+
+**A9.** `imputed.drm_sem` stacks every graph-derived parent (never
+silent first-`mi()` only). `imputation()` gains `n_missing`,
+`uncertainty_status`, `std_error_usable`. Both branch on
+`uncertainty_status`, never `is.na(std_error)`. Engine call isolated
+in `R/extractors.R` (`drm_fit_imputed()`).
+
+**A10.** V-77 kept. V-120 two-parent MAR recovery-to-truth. V-121
+status-tier kernel + live `imputed()` stack. `engine_accepts_k2()`
+now keys on `drm_prepare_two_independent_gaussian_mi_setup` (the
+pre-#1086 helper shares the old name).
+
+**A11.** `13-missing-data.md` updated: two Gaussian parents, not
+FIML. capability-status stays `partial`. Ledger V-79/79b/79c, V-82
+(k=2 identity), V-120, V-121.
+
+G2 remains a human gate for a public capability claim.

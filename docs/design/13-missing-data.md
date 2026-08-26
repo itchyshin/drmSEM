@@ -130,9 +130,11 @@ The user never writes an `impute_model()`.
 - **Only endogenous parents.** An incomplete *exogenous* predictor has no node
   model in the graph, so the graph cannot specify its imputation model — which is
   the entire premise. Those are left to `na_action`.
-- **One incomplete parent per node.** drmTMB models exactly one `mi()` term per
-  fit. Two incomplete parents abort with that reason stated. This is the binding
-  constraint for realistic graphs, and it is drmTMB Issue 2.
+- **Two incomplete Gaussian parents, not a general graph.** drmTMB 0.7.0
+  (#1086) accepts **two independent Gaussian** `mi()` terms on a Gaussian
+  response. `k > 2` and a non-Gaussian response with two incomplete parents
+  still abort with that engine reason. This is not a general missing-data
+  SEM, and it is not FIML.
 
 ### Legality gate
 
@@ -188,17 +190,34 @@ works before anything is fitted.
   The honest claim is **"recovers the intercept and reduces mediator-coefficient
   bias under outcome-dependent missingness"** — not "beats complete-case". It is
   slightly *worse* on `x`, and that is reported rather than buried.
-- **V-79/V-80/V-81.** The failure boundary fails loud; the family gate matches
-  the engine; `mi()` coefficients resolve to the right node.
+- **V-79 / V-79b / V-79c.** Two incomplete Gaussian parents are planned
+  rather than aborted; `k > 2` and a non-Gaussian `k = 2` still fail loud
+  with the engine reason.
+- **V-80 / V-81.** The family gate matches the engine; `mi()` coefficients
+  resolve to the right node.
+- **V-82.** Two-parent auto fit is numerically identical to the
+  hand-written `y ~ mi(m1) + mi(m2) + x` emit (distinct from sampler
+  V-82 tweedie).
+- **V-120.** Two-parent MAR recovery-to-truth: `m1` / `m2` coefficients
+  recover 0.5 / 0.4 within 0.15 across three seeds at n = 400.
+- **V-121.** `imputation()` / `imputed()` branch on
+  `uncertainty_status`. Observed rows and `se = FALSE` requests report
+  `std_error = NA` with status `"ok"`; that is not a failure.
+  `imputed(sem)` stacks every parent and never silently returns the
+  first `mi()` term.
 
 ### Engine dependencies
 
-This works today on a Gaussian chain. It becomes *general* only after drmTMB
-Issues 1 and 2 (`docs/memory/DRMTMB_ISSUES.md`) — the response-family gate and
-the one-`mi()`-per-fit limit. The working prototype is the evidence to attach to
-those asks, which is more persuasive than an abstract request.
+The one-parent Gaussian chain works on drmTMB ≥ 0.6. The Phase 1 cell —
+two independent Gaussian `mi()` terms — needs drmTMB 0.7.0 (#1086).
+Generality beyond that cell still waits on drmTMB Issue 1 (per-family
+C++ `has_mi`, not a whitelist edit) and on `k > 2`. See
+`docs/memory/DRMTMB_ISSUES.md`.
 
 **Version note.** `imputed()$std_error` semantics differ between drmTMB 0.6.0 and
 0.7.0: on 0.6.0 every non-Gaussian route returns `NA`; on 0.7.0 most routes
 compute a posterior SD and a sixth `uncertainty_status` level appears. Any
 consumer must branch on `uncertainty_status`, never on `is.na(std_error)`.
+`imputation()` reports that status per `(node, parent)` pair;
+`imputed()` returns the row-level engine table, stacked, with a `node`
+column.
