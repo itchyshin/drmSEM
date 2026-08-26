@@ -213,6 +213,9 @@ drm_mag_is_adjacent <- function(mag, a, b) {
 #' @keywords internal
 #' @noRd
 drm_mag_anterior_of <- function(v, mag) {
+  # R&S anterior: reflexive closure along --> and undirected --- only.
+  # Bidirected spouses (<->) are NOT anteriors (arrowheads at both ends).
+  # Walking <-> here would emit the false claim A _||_ Y | {X} on A-->X<->Y.
   v <- as.character(v)
   seen <- v
   if (!nrow(mag)) {
@@ -220,13 +223,13 @@ drm_mag_anterior_of <- function(v, mag) {
   }
   repeat {
     add <- character(0)
-  # Directed predecessors (tails at the parent).
     idx <- mag$type == "-->" & mag$to %in% seen
     if (any(idx)) {
       add <- c(add, mag$from[idx])
     }
-  # Spouses across bidirected edges.
-    idx <- mag$type == "<->" & (mag$from %in% seen | mag$to %in% seen)
+    # Undirected edges (---) do not arise from DAG+S=emptyset marginalisation,
+    # but honour them if present so anterior matches R&S on general AGs.
+    idx <- mag$type %in% c("---", "--") & (mag$from %in% seen | mag$to %in% seen)
     if (any(idx)) {
       add <- c(add, mag$from[idx], mag$to[idx])
     }
