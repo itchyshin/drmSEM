@@ -1,43 +1,36 @@
 # Checkpoint — OVERWRITTEN every arc
 
-GOAL: see LOOP/GOAL.md. STATE: G0 approved; A1+A3 committed; A2 comments
-posted. **IN PROGRESS** — next is drmTMB Phase 1 lane (A4–A6).
+GOAL: see LOOP/GOAL.md. STATE: G0 approved; A0–A6 landed tonight.
+**IN PROGRESS** only for CI on the engine PR. G1 still closed.
 
 ARCS DONE (verified):
-- S0 / A0 @ `ec41d94` / `40fb85c` — LOOP kit, charter, D-22.
-- **G0** — Shinichi approved all 10 items + standing approval
-  (push / PR / issue comments / new lanes / Totoro).
-- **A1** — `LOOP/notes/A1-engine-contract.md`. Independence, emit
-  shape, first cell two Gaussian `mi()`. Ledger correction: axis
-  already exists (17 G2 rows); A5 adds `mp-gaussian-gaussian-k2-indep`.
-- **A3** — `LOOP/notes/A3-joint-mi-verdict.md`. Leave
-  `impute_joint`; clone 207 behind / 3 ahead @ `cbbf380bd`.
-- **A2** — comments posted:
-  https://github.com/itchyshin/drmTMB/issues/963#issuecomment-5429119689
-  https://github.com/itchyshin/drmTMB/issues/962#issuecomment-5429120815
+- A0 / G0 — planning kit + standing approval.
+- **A1** — `LOOP/notes/A1-engine-contract.md`.
+- **A2** — #963 https://github.com/itchyshin/drmTMB/issues/963#issuecomment-5429119689
+  #962 https://github.com/itchyshin/drmTMB/issues/962#issuecomment-5429120815
+- **A3** — `LOOP/notes/A3-joint-mi-verdict.md` (leave `impute_joint`).
+- **A4+A5+A6** — drmTMB PR https://github.com/itchyshin/drmTMB/pull/1086
+  (`cursor/lane-s6-multi-mi` @ `0781008b3`). Local: 20 + 109 + 24 pass;
+  ledger `--check` OK. Cell `mp-gaussian-gaussian-k2-indep`.
 
-ARC IN PROGRESS: drmTMB Phase 1 (A4+A5, then A6). Not this worktree.
+ARC IN PROGRESS: wait for drmTMB #1086 CI. No drmSEM `R/`.
 
-NEXT: Push this docs branch as draft PR. Create
-`~/local-scratch/lanes/drmTMB-s6-multi-mi` on `cursor/lane-s6-multi-mi`
-from drmTMB `origin/main`. Implement k=2 independent Gaussian `mi()`.
+NEXT: After #1086 is mergeable / installed, assess **G1**. Then A8
+(lift abort) on this drmSEM lane. Do not start A8 tonight.
 
-OPEN GATES (need human):
-- **G1** — before any drmSEM `R/`
-- **G2** — before drmSEM merge / public capability claim
-- **G3** — if independence fails and only `impute_joint` works
-- Push/PR/issue-comment: authorised tonight by standing approval
+OPEN GATES:
+- **G1** — engine item 2 on an engine this suite can see (PR not yet
+  merged to drmTMB `main`)
+- **G2** — drmSEM merge / public capability claim
+- **G3** — if independence fails
 
 TRUTH LIVES IN:
-- Lane `cursor/lane-s6-imputation` @ `~/local-scratch/lanes/drmSEM-s6-imputation`
-- Parent `main` @ `0852f9f` (`R/` untouched)
-- Contract: `LOOP/notes/A1-engine-contract.md`
-- Joint-mi verdict: `LOOP/notes/A3-joint-mi-verdict.md`
-- MAG-completeness worktree: **do not touch**
+- drmSEM `cursor/lane-s6-imputation` draft PR https://github.com/itchyshin/drmSEM/pull/45
+- drmTMB `cursor/lane-s6-multi-mi` PR https://github.com/itchyshin/drmTMB/pull/1086
+- MAG-completeness: **do not touch**
 
-RESUME: read LOOP/GOAL.md → LOOP/checkpoint.md →
-LOOP/notes/A1-engine-contract.md → LOOP/notes/A3-joint-mi-verdict.md.
-Continue from NEXT (drmTMB Phase 1). Do not start drmSEM `R/`.
-Do not emit `impute_joint`.
+RESUME: read LOOP/GOAL.md → this file → A1 contract. Continue from
+G1 assessment after #1086 CI. Do not start drmSEM `R/`. Do not emit
+`impute_joint`. capability-status stays `partial`.
 
 HUMAN GATE: G1 before drmSEM `R/`.

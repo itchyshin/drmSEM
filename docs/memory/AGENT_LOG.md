@@ -1515,3 +1515,17 @@ Standing approval covered public issue writes.
   — item 1 stays after #963; gate is accurate; not FIML.
 
 **Not done.** drmSEM draft PR; drmTMB A4–A6. Still no drmSEM `R/`.
+
+## 2026-08-26 — S6 Phase 1 engine PR + drmSEM draft PR
+
+- drmSEM draft PR: https://github.com/itchyshin/drmSEM/pull/45
+  (docs/LOOP only; `R/` empty vs `main`).
+- drmTMB Phase 1: worktree `~/local-scratch/lanes/drmTMB-s6-multi-mi`
+  on `cursor/lane-s6-multi-mi` from `origin/main` @ `fc8ee77a6`.
+  PR https://github.com/itchyshin/drmTMB/pull/1086 @ `0781008b3`.
+  Two independent Gaussian `mi()`; not `impute_joint`; not FIML.
+  Tests: 20 (k=2) + 109 (k=1) + 24 (binary). Ledger cell
+  `mp-gaussian-gaussian-k2-indep`.
+
+**G1 still closed** (engine not on drmTMB `main` / not installed for
+the drmSEM suite). capability-status stays `partial`. No drmSEM `R/`.
