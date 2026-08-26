@@ -1,7 +1,7 @@
 # Checkpoint — OVERWRITTEN every arc
 
-GOAL: see LOOP/GOAL.md. STATE: G0 approved; A0–A6 landed tonight.
-**IN PROGRESS** only for CI on the engine PR. G1 still closed.
+GOAL: see LOOP/GOAL.md. STATE: G0 approved; A0–A6 landed; **A8 in
+progress** on `cursor/lane-s6-a8`.
 
 ARCS DONE (verified):
 - A0 / G0 — planning kit + standing approval.
@@ -10,27 +10,31 @@ ARCS DONE (verified):
   #962 https://github.com/itchyshin/drmTMB/issues/962#issuecomment-5429120815
 - **A3** — `LOOP/notes/A3-joint-mi-verdict.md` (leave `impute_joint`).
 - **A4+A5+A6** — drmTMB PR https://github.com/itchyshin/drmTMB/pull/1086
-  (`cursor/lane-s6-multi-mi` @ `0781008b3`). Local: 20 + 109 + 24 pass;
-  ledger `--check` OK. Cell `mp-gaussian-gaussian-k2-indep`.
+  (`cursor/lane-s6-multi-mi` @ `24bcef4c1` after C17 receipt refresh;
+  feature commit `0781008b3`). Cell `mp-gaussian-gaussian-k2-indep`.
+- drmSEM docs PR **#45 MERGED** `ec5692aa302f201891ba1b8ce19299cff6953aa2`.
 
-ARC IN PROGRESS: wait for drmTMB #1086 CI. No drmSEM `R/`.
+ARC IN PROGRESS: **A8** lift one-parent abort in `R/imputation.R` only
++ A10 tests. MAG `basis_set` untouched. capability-status stays
+`partial`. Not FIML. No `impute_joint`.
 
-NEXT: After #1086 is mergeable / installed, assess **G1**. Then A8
-(lift abort) on this drmSEM lane. Do not start A8 tonight.
+NEXT: merge drmTMB #1086 when CI green; finish A8 tests against that
+engine; open drmSEM A8 PR. Do not claim capability-status covered.
 
 OPEN GATES:
-- **G1** — engine item 2 on an engine this suite can see (PR not yet
-  merged to drmTMB `main`)
+- **G1** — opening: engine installable from #1086 (`24bcef4c1`); merge
+  to drmTMB `main` still pending CI (R CMD check)
 - **G2** — drmSEM merge / public capability claim
 - **G3** — if independence fails
 
 TRUTH LIVES IN:
-- drmSEM `cursor/lane-s6-imputation` draft PR https://github.com/itchyshin/drmSEM/pull/45
-- drmTMB `cursor/lane-s6-multi-mi` PR https://github.com/itchyshin/drmTMB/pull/1086
+- drmSEM `main` @ `ec5692aa` (#45)
+- drmSEM A8 branch `cursor/lane-s6-a8`
+- drmTMB PR https://github.com/itchyshin/drmTMB/pull/1086
 - MAG-completeness: **do not touch**
 
-RESUME: read LOOP/GOAL.md → this file → A1 contract. Continue from
-G1 assessment after #1086 CI. Do not start drmSEM `R/`. Do not emit
-`impute_joint`. capability-status stays `partial`.
+RESUME: read LOOP/GOAL.md → this file → A1 contract. Continue A8/A10
+on `cursor/lane-s6-a8`. Do not emit `impute_joint`. capability-status
+stays `partial`.
 
-HUMAN GATE: G1 before drmSEM `R/`.
+HUMAN GATE: G2 before a public capability claim.

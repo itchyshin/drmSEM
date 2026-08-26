@@ -20,8 +20,10 @@ with zero rows when no imputation was derived.
 }
 \description{
 Reports the per-node imputation models \code{\link[=drm_sem]{drm_sem()}} built from the DAG when
-called with \code{impute = "auto"}. Each row is one node whose incomplete parent
-was imputed from that parent's own node model.
+called with \code{impute = "auto"}. Each row is one \verb{(node, parent)} pair: the
+incomplete endogenous parent was imputed from that parent's own node model.
+A node with two incomplete Gaussian parents yields two rows. This is not
+full-information maximum likelihood across the SEM.
 }
 \examples{
 \dontrun{

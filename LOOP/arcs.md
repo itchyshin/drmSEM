@@ -10,13 +10,13 @@
 | A5 | drmTMB item 5: k=2 row on existing `missing_predictor` axis | done | pairs A4 |
 | A6 | Two-predictor recovery + sentinel-invariance | done | ← A4 |
 | A7 | drmTMB item 1: per-family C++ `has_mi` | todo | Phase 2 |
-| A8 | drmSEM: lift abort, multi-`mi()` from DAG | todo | **G1** |
+| A8 | drmSEM: lift abort, multi-`mi()` from DAG | doing | **G1** |
 | A9 | drmSEM: `imputed()` / `uncertainty_status` tiers | todo | ← A8 |
-| A10 | drmSEM tests (keep V-77; new two-parent DGP) | todo | ← A8 |
+| A10 | drmSEM tests (keep V-77; new two-parent DGP) | doing | ← A8 |
 | A11 | Docs + ledgers + capability-status honesty | todo | ← A10 |
 | A12 | Review + reconcile | todo | **G2** |
 
 Status: todo / doing / done / paused / blocked. `paused` = awaiting
 Shinichi's named decision; `blocked` = external dependency.
 
-A2 posted 2026-08-26 (standing approval). G1 still blocks drmSEM `R/`.
+A2 posted 2026-08-26. #45 merged `ec5692aa`. A8/A10 on `cursor/lane-s6-a8`.

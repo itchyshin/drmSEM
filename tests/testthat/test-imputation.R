@@ -2,9 +2,12 @@
 #
 # V-77  auto-derived fit is numerically identical to the hand-written one
 # V-78  the derivation reduces bias under outcome-dependent missingness
-# V-79  >1 incomplete parent fails loud (drmTMB models one mi() at a time)
+# V-79  two incomplete Gaussian parents emit independent mi() (A8; was abort)
+# V-79b k > 2 still fails loud (engine limit)
+# V-79c k = 2 on a non-Gaussian response fails loud (engine Phase 1 cell)
 # V-80  the response/predictor family gate matches the engine's own rule
 # V-81  mi() coefficient names resolve to the right node in paths()
+# V-82  two-parent auto fit matches the hand-written emit shape (needs k=2 engine)
 #
 # The load-bearing assertion is V-77, per this package's convention of comparing
 # a public output against quantities recomputed from the SAME fit rather than
@@ -110,19 +113,116 @@ test_that("V-78: derivation reduces bias under outcome-dependent missingness", {
   expect_lt(mean(abs(b_auto - 0.6)), mean(abs(b_cc - 0.6)))
 })
 
-test_that("V-79: more than one incomplete parent fails loud", {
-  d <- chain_dat()
-  d$m2 <- 0.5 * d$x + stats::rnorm(nrow(d))
-  d$m2[1:50] <- NA
-  expect_error(
-    suppressMessages(drm_sem(
-      m = drm_node(drmTMB::bf(m ~ x)),
-      m2 = drm_node(drmTMB::bf(m2 ~ x)),
-      y = drm_node(drmTMB::bf(y ~ m + m2 + x)),
-      data = d, impute = "auto"
-    )),
-    "one at a time"
+two_parent_dat <- function(n = 400, seed = 11, mar = TRUE) {
+  set.seed(seed)
+  x <- stats::rnorm(n)
+  m1 <- 0.7 * x + stats::rnorm(n, sd = 0.5)
+  m2 <- 0.5 * x + stats::rnorm(n, sd = 0.5)
+  y <- 0.5 * m1 + 0.4 * m2 + 0.3 * x + stats::rnorm(n, sd = 0.5)
+  d <- data.frame(x = x, m1 = m1, m2 = m2, y = y)
+  drop1 <- if (mar) {
+    stats::runif(n) < stats::plogis(1.2 * as.numeric(scale(y)) - 1.2)
+  } else {
+    seq_len(n) %in% sample(n, floor(0.15 * n))
+  }
+  drop2 <- if (mar) {
+    stats::runif(n) < stats::plogis(1.0 * as.numeric(scale(y)) - 1.4)
+  } else {
+    seq_len(n) %in% sample(n, floor(0.15 * n))
+  }
+  d$m1[drop1] <- NA
+  d$m2[drop2] <- NA
+  d
+}
+
+two_parent_specs <- function() {
+  list(
+    m1 = drm_node(drmTMB::bf(m1 ~ x)),
+    m2 = drm_node(drmTMB::bf(m2 ~ x)),
+    y = drm_node(drmTMB::bf(y ~ m1 + m2 + x))
   )
+}
+
+engine_accepts_k2 <- function() {
+  if (!requireNamespace("drmTMB", quietly = TRUE)) {
+    return(FALSE)
+  }
+  ns <- asNamespace("drmTMB")
+  if (!exists("drm_prepare_gaussian_mi_setup", envir = ns, inherits = FALSE)) {
+    return(FALSE)
+  }
+  fn <- get("drm_prepare_gaussian_mi_setup", envir = ns, inherits = FALSE)
+  "allow_k2" %in% names(formals(fn))
+}
+
+test_that("V-79: two incomplete Gaussian parents are planned, not aborted", {
+  d <- two_parent_dat()
+  plan <- drmSEM:::drm_imputation_plan(two_parent_specs(), d)
+  expect_identical(sort(plan$y$variable), c("m1", "m2"))
+  expect_length(plan$y$parents, 2L)
+  expect_identical(
+    sort(vapply(plan$y$parents, function(p) p$variable, character(1))),
+    c("m1", "m2")
+  )
+})
+
+test_that("V-79b: k > 2 incomplete parents still fails loud", {
+  d <- two_parent_dat()
+  d$m3 <- 0.4 * d$x + stats::rnorm(nrow(d))
+  d$m3[1:40] <- NA
+  specs <- two_parent_specs()
+  specs$m3 <- drm_node(drmTMB::bf(m3 ~ x))
+  specs$y <- drm_node(drmTMB::bf(y ~ m1 + m2 + m3 + x))
+  expect_error(
+    drmSEM:::drm_imputation_plan(specs, d),
+    "k > 2"
+  )
+})
+
+test_that("V-79c: two parents on a non-Gaussian response fail loud", {
+  d <- two_parent_dat()
+  d$cnt <- stats::rpois(nrow(d), lambda = 2)
+  specs <- two_parent_specs()
+  specs$cnt <- drm_node(
+    drmTMB::bf(cnt ~ m1 + m2 + x),
+    family = stats::poisson()
+  )
+  expect_error(
+    drmSEM:::drm_imputation_plan(specs, d),
+    "two independent Gaussian"
+  )
+})
+
+test_that("V-82: two-parent auto fit matches the hand-written emit shape", {
+  skip_if_not(engine_accepts_k2(), "engine does not accept two mi() terms")
+  d <- two_parent_dat()
+  auto <- suppressWarnings(suppressMessages(drm_sem(
+    m1 = drm_node(drmTMB::bf(m1 ~ x)),
+    m2 = drm_node(drmTMB::bf(m2 ~ x)),
+    y = drm_node(drmTMB::bf(y ~ m1 + m2 + x)),
+    data = d, impute = "auto"
+  )))
+  hand <- suppressWarnings(suppressMessages(drm_sem(
+    m1 = drm_node(drmTMB::bf(m1 ~ x)),
+    m2 = drm_node(drmTMB::bf(m2 ~ x)),
+    y = drm_node(
+      drmTMB::bf(y ~ mi(m1) + mi(m2) + x),
+      impute = list(
+        m1 = drmTMB::impute_model(m1 ~ x, family = stats::gaussian()),
+        m2 = drmTMB::impute_model(m2 ~ x, family = stats::gaussian())
+      ),
+      missing = drmTMB::miss_control(predictor = "model")
+    ),
+    data = d
+  )))
+  expect_equal(
+    unlist(auto$nodes$y$coefficients$mu),
+    unlist(hand$nodes$y$coefficients$mu)
+  )
+  imp <- imputation(auto)
+  expect_identical(nrow(imp), 2L)
+  expect_identical(sort(imp$variable), c("m1", "m2"))
+  expect_true(all(imp$node == "y"))
 })
 
 test_that("V-80: the family gate matches the engine's own allow-list", {

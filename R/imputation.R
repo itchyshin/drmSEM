@@ -45,11 +45,18 @@ drm_incomplete_columns <- function(data) {
   names(data)[vapply(data, anyNA, logical(1))]
 }
 
-#' Derive one imputation model per node from the graph.
+#' Derive imputation models per node from the graph.
 #'
-#' @return A named list, one element per node needing imputation, each
-#'   `list(variable, formula, family, family_name)`. Empty list when nothing
-#'   needs imputing.
+#' One record per incomplete endogenous parent. A node with two incomplete
+#' Gaussian parents (Phase 1 cell) is legal. k > 2 and non-Gaussian k = 2
+#' still abort — those are engine limits, not a drmSEM likelihood.
+#'
+#' @return A named list, one element per node needing imputation. Each
+#'   element is `list(variable, formula, family, family_name)` for one
+#'   parent, or the same plus `parents` (a list of those records) when
+#'   k = 2. `variable` is a character vector of every imputed parent so
+#'   `drm_node_rows(exclude = )` keeps those columns. Empty list when
+#'   nothing needs imputing.
 #' @keywords internal
 #' @noRd
 drm_imputation_plan <- function(specs, data) {
@@ -71,25 +78,71 @@ drm_imputation_plan <- function(specs, data) {
     if (!length(targets)) {
       next
     }
-    if (length(targets) > 1L) {
+    if (length(targets) > 2L) {
       cli::cli_abort(c(
         "Node {.val {nm}} has {length(targets)} incomplete parents
-         ({.val {targets}}), but the engine models one at a time.",
-        "x" = "{.code drmTMB} supports exactly one {.fn mi} term per fit.",
-        "i" = "Impute or complete all but one of them, or fit this node with
+         ({.val {targets}}).",
+        "x" = "{.code drmTMB} does not yet implement k > 2 independent
+               {.fn mi} terms.",
+        "i" = "Impute or complete all but two of them, or fit this node with
                {.code impute = \"none\"} and accept complete-case rows."
       ))
     }
-    v <- targets[[1L]]
-    drm_check_impute_legal(nm, spec, v, specs[[v]])
+    if (length(targets) == 2L) {
+      drm_check_two_gaussian_mi(nm, spec, targets, specs)
+    }
+    parent_recs <- lapply(targets, function(v) {
+      drm_check_impute_legal(nm, spec, v, specs[[v]])
+      list(
+        variable = v,
+        formula = drm_mu_formula(specs[[v]]),
+        family = specs[[v]]$family,
+        family_name = drm_family_name(drm_fit_family(specs[[v]]))
+      )
+    })
+    first <- parent_recs[[1L]]
     plan[[nm]] <- list(
-      variable = v,
-      formula = drm_mu_formula(specs[[v]]),
-      family = specs[[v]]$family,
-      family_name = drm_family_name(drm_fit_family(specs[[v]]))
+      # Length-1 stays a scalar so one-parent consumers (alignment, V-77)
+      # keep seeing the prototype shape.
+      variable = if (length(targets) == 1L) targets[[1L]] else targets,
+      formula = first$formula,
+      family = first$family,
+      family_name = first$family_name,
+      parents = if (length(targets) > 1L) parent_recs else NULL
     )
   }
   plan
+}
+
+# Parent records for a plan entry. One-parent entries have no $parents list.
+drm_plan_parents <- function(p) {
+  if (!is.null(p$parents)) {
+    return(p$parents)
+  }
+  list(p[c("variable", "formula", "family", "family_name")])
+}
+
+# Phase 1 cell only: y ~ mi(m1) + mi(m2) + x with two Gaussian impute_model().
+# Fail loud with the engine reason rather than emit an illegal call.
+drm_check_two_gaussian_mi <- function(node, spec, targets, specs) {
+  resp_family <- drm_family_name(drm_fit_family(spec))
+  pred_families <- vapply(
+    targets,
+    function(v) drm_family_name(drm_fit_family(specs[[v]])),
+    character(1)
+  )
+  if (!identical(resp_family, "gaussian") || !all(pred_families == "gaussian")) {
+    cli::cli_abort(c(
+      "Node {.val {node}} has two incomplete parents ({.val {targets}}).",
+      "x" = "The engine's first k = 2 slice is two independent Gaussian
+             {.fn mi} terms on a Gaussian response.",
+      "x" = "This node is {.val {resp_family}}; parents are
+             {.val {pred_families}}.",
+      "i" = "Impute or complete one parent, or fit this node with
+             {.code impute = \"none\"}."
+    ))
+  }
+  invisible(TRUE)
 }
 
 # Refuse rather than emit an illegal call. Each check mirrors a hard abort the
@@ -204,12 +257,16 @@ drm_apply_imputation <- function(specs, data, impute = "none") {
   # mi() terms is itself a hard abort in the engine, so a blanket application
   # would break every complete node.
   for (nm in names(plan)) {
-    p <- plan[[nm]]
+    recs <- drm_plan_parents(plan[[nm]])
     spec <- specs[[nm]]
-    spec$formula <- drm_wrap_mi(spec$formula, p$variable)
+    for (pr in recs) {
+      spec$formula <- drm_wrap_mi(spec$formula, pr$variable)
+    }
     spec$args$impute <- stats::setNames(
-      list(drmTMB::impute_model(p$formula, family = p$family)),
-      p$variable
+      lapply(recs, function(pr) {
+        drmTMB::impute_model(pr$formula, family = pr$family)
+      }),
+      vapply(recs, function(pr) pr$variable, character(1))
     )
     spec$args$missing <- drmTMB::miss_control(predictor = "model")
     specs[[nm]] <- spec
@@ -217,7 +274,14 @@ drm_apply_imputation <- function(specs, data, impute = "none") {
   if (length(plan)) {
     detail <- vapply(
       names(plan),
-      function(nm) paste0(nm, " <- ", plan[[nm]]$variable),
+      function(nm) {
+        vars <- vapply(
+          drm_plan_parents(plan[[nm]]),
+          function(pr) pr$variable,
+          character(1)
+        )
+        paste0(nm, " <- ", paste(vars, collapse = ", "))
+      },
       character(1)
     )
     cli::cli_inform(c(
@@ -234,8 +298,10 @@ drm_apply_imputation <- function(specs, data, impute = "none") {
 #' Imputation models drmSEM derived from the graph
 #'
 #' Reports the per-node imputation models [drm_sem()] built from the DAG when
-#' called with `impute = "auto"`. Each row is one node whose incomplete parent
-#' was imputed from that parent's own node model.
+#' called with `impute = "auto"`. Each row is one `(node, parent)` pair: the
+#' incomplete endogenous parent was imputed from that parent's own node model.
+#' A node with two incomplete Gaussian parents yields two rows. This is not
+#' full-information maximum likelihood across the SEM.
 #'
 #' @param object A `drm_sem` object.
 #' @param ... Unused.
@@ -260,21 +326,27 @@ imputation <- function(object, ...) {
 #' @export
 imputation.drm_sem <- function(object, ...) {
   plan <- attr(object, "imputation", exact = TRUE)
-  if (is.null(plan) || !length(plan)) {
-    return(data.frame(
-      node = character(0),
-      variable = character(0),
-      model = character(0),
-      family = character(0),
-      stringsAsFactors = FALSE
-    ))
-  }
-  data.frame(
-    node = names(plan),
-    variable = vapply(plan, function(p) p$variable, character(1)),
-    model = vapply(plan, function(p) deparse1(p$formula), character(1)),
-    family = vapply(plan, function(p) p$family_name, character(1)),
-    row.names = NULL,
+  empty <- data.frame(
+    node = character(0),
+    variable = character(0),
+    model = character(0),
+    family = character(0),
     stringsAsFactors = FALSE
   )
+  if (is.null(plan) || !length(plan)) {
+    return(empty)
+  }
+  rows <- lapply(names(plan), function(nm) {
+    recs <- drm_plan_parents(plan[[nm]])
+    data.frame(
+      node = nm,
+      variable = vapply(recs, function(p) p$variable, character(1)),
+      model = vapply(recs, function(p) deparse1(p$formula), character(1)),
+      family = vapply(recs, function(p) p$family_name, character(1)),
+      stringsAsFactors = FALSE
+    )
+  })
+  out <- do.call(rbind, rows)
+  rownames(out) <- NULL
+  out
 }
