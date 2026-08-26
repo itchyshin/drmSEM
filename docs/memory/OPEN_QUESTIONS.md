@@ -400,3 +400,22 @@ The 0.3 first increment ships composite (formative) constructs (`drm_composite()
   interop, not 0.3 (D-16).
 - **Standardized loadings / construct reliability** (e.g. an AVE / composite-
   reliability summary) as an extension of `loadings()`.
+
+## OQ-16 — Does the any-component LRT / Fisher's C induce a compositional graphoid?
+
+D-20 wires MAG `basis_set()` / `dsep()` under Sadeghi & Lauritzen (2014)
+Theorem 3 / Lauritzen & Sadeghi (2018) Theorem 4. Those theorems need a
+**compositional graphoid**. Regular multivariate Gaussian *is* one;
+graph-induced independence models are always compositional graphoids (S&L
+Thm 1 / L&S Thm 1), so faithfulness to a MAG licenses the wire for any
+family. Composition is **not** free from positive density alone (S&L 2014
+§2; L&S 2018 §3.4).
+
+**Residual gap Y** (stated in `docs/design/14-m-separation.md`): drmSEM's
+any-component LRT and Fisher's C are not shown to induce a compositional
+graphoid. The v1 contract informs once when composition is not automatic
+(non-Gaussian or `sigma ~` nodes) and does not gate the feature on proving
+composition per fit — that is not decidable from a fitted object.
+
+Not a v1 blocker. Selection latents and parent-based S&D separators remain
+out of scope, not this OQ.

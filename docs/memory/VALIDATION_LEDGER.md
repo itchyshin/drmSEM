@@ -1117,3 +1117,36 @@ notice; it is consumed in this test rather than left to inflate the suite's warn
 
 Suite: 987 pass / 0 fail / 3 skip / 10 warn (was 982). Warning count held, which is the
 point of consuming that notice rather than letting it drift the tracked figure.
+
+---
+
+## 2026-08-26 — MAG basis set wired (V-117 / V-118 / V-119)
+
+The 2026-08-15 conversion (`drm_dag_to_mag()`, V-112–V-115b) stopped at graph
+construction. Completeness (pairwise ⇒ global) was located in Sadeghi &
+Lauritzen (2014) Theorem 3 and Lauritzen & Sadeghi (2018) Theorem 4. The
+wire landed on `claude/lane-mag-wire` under D-20: Cor. 5.3 anterior
+conditioning, `S = ∅`, compositional-graphoid license. d-sep LRT machinery
+unchanged (D-2).
+
+- **V-117.** Shipley & Douma Fig 1 DAG (I), `A → X ← L → Y → B` with `L`
+  marginalised: MAG adjacency is `A → X ↔ Y → B`; anteriors of `{A,Y}`
+  exclude the bidirected spouse `X`; `basis_set()` emits
+  `A _||_ Y | {}`, `A _||_ B | {Y}`, `X _||_ B | {A, Y}` and **not**
+  `A _||_ Y | {X}`. Homoscedastic Gaussian stays silent; a `sigma` or
+  non-Gaussian node fires the compositionality `cli_inform()`.
+  `tests/testthat/test-mag-basis.R`. **Validated.**
+- **V-118.** A latent common-cause DGP (`L → x`, `L → y`): DAG `basis_set()`
+  claims `x _||_ y`; declaring `latent = "L"` drops that false claim and
+  never names `L` in the MAG basis. `tests/testthat/test-mag-dsep.R`.
+  **Validated.**
+- **V-119.** Live `dsep()`: the DAG rejects the false `x _||_ y` claim
+  (`p < 0.05`, Fisher's C rejects); the MAG omits it from Fisher's C.
+  Same file. **Validated.**
+
+The 2026-08-15 note "NOT implemented, and why: the basis set" is discharged
+for marginalised latents. Selection / conditioned latents and parent-based
+S&D separators remain out of scope. Residual compositionality gap: OQ-16.
+
+Suite: **1026 pass / 0 fail / 3 skip / 10 warn** (was 987). Warning count
+held. Skips unchanged (ape-missing guard + 2 symbolizer).

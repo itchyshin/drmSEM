@@ -1394,3 +1394,37 @@ What remains is gated: Steps 1 and 2 on Shinichi's judgement; the long tail (joi
 bivariate fits behind `rho12()`, multi-`mi()` imputation, `cumulative_logit` mediator
 values, OQ-9/OQ-10) on the drmTMB engine or on 0.x scope; and CRAN submission on `drmTMB`
 and `symbolizer` still being GitHub `Remotes:`.
+
+## 2026-08-26 — MAG m-separation wired into basis_set()/dsep() (D-20)
+
+**Cursor**, MAG-wire closeout on `claude/lane-mag-wire` at
+`~/local-scratch/lanes/drmSEM-mag-wire`. Shinichi authorised the G1 wire
+after the 2026-08-25 completeness hunt found S&L Thm 3 / L&S Thm 4.
+
+**What shipped.**
+- `latent =` on `drm_sem()` / `drm_psem()`; MAG from collapsed DAG edges
+  (`R/latents.R`, `R/mag.R`).
+- `basis_set_mag()`: Cor. 5.3 pairwise claims conditioned on MAG anteriors;
+  bidirected spouses are not anteriors (`66a80e9`).
+- Marginalised latents are stripped from the claim vertex set so a
+  leftover `L` cannot appear as `x`/`y`.
+- Compositionality `cli_inform()` once per `basis_set()` when any node is
+  non-Gaussian or models `sigma` (guardrail 3).
+- Docs: `14-m-separation.md` status → IMPLEMENTED; `05-roadmap.md` no
+  longer says DESIGN ONLY; roxygen names the license chain; R&S / S&L /
+  L&S added to `inst/REFERENCES.bib`.
+
+**Tests.** V-117 printed claim set + collider trap + compositionality
+(`test-mag-basis.R`). V-118 / V-119 live DGP (`test-mag-dsep.R`, already
+`679b615`). Suite **1026 / 0 / 3 / 10**.
+
+**Review fix before S2 landed.** The draft fixture listed `B` as exogenous,
+which dropped `A _||_ B | {Y}` and swapped the X–B claim labels. B is
+endogenous in S&D Fig 1 (`Y → B`).
+
+**Not done (out of scope).** Selection latents; parent-based S&D
+separators; push/merge; a `capability-status.md` row (new public claim,
+gated). Residual gap Y is OQ-16.
+
+**Commits this closeout.** `df2ea9f` S2 tests; `587d08a` S4 docs/roxygen;
+memory + reconcile follow. Did not redo `679b615` or `66a80e9`.
