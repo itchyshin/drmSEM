@@ -1604,3 +1604,15 @@ FIML. capability-status stays `partial`. Ledger V-79/79b/79c, V-82
 (k=2 identity), V-120, V-121.
 
 G2 remains a human gate for a public capability claim.
+
+## 2026-08-26 — S6 #46 merged; G2 partial
+
+**Merge sha.** drmSEM **#46**
+`7280125d26dc99359aa63048d74d3df05bf18742`
+(A8–A11: two Gaussian `mi()`, `imputed()` tiers, V-77/79/82/120/121).
+CI green (ubuntu / macos / windows / pkgdown). Parent `main`
+fast-forwarded. capability-status stays `partial`. Not FIML.
+No `impute_joint`. A7 not started.
+
+**G2.** Partial: consumer merge done. Public capability claim waits
+for Shinichi. Next slice is A12 review, not A7.

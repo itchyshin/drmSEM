@@ -20,5 +20,5 @@ Status: todo / doing / done / paused / blocked. `paused` = awaiting
 Shinichi's named decision; `blocked` = external dependency.
 
 A2 posted 2026-08-26. #45 merged `ec5692aa`. #1086 merged `1cc1985cd`.
-A8–A11 PR https://github.com/itchyshin/drmSEM/pull/46. G1 open.
-G2 partial until Shinichi reviews the public claim.
+#46 merged `7280125d`. G1 open. G2 partial until Shinichi reviews
+the public claim.

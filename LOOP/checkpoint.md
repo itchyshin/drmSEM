@@ -1,6 +1,6 @@
 # Checkpoint — OVERWRITTEN every arc
 
-GOAL: see LOOP/GOAL.md. STATE: G0 approved; A0–A11 landed on #46.
+GOAL: see LOOP/GOAL.md. STATE: G0 approved; A0–A11 **merged**.
 **G1 OPEN.** **G2 partial** until Shinichi reviews the public claim.
 capability-status stays `partial`.
 
@@ -24,8 +24,8 @@ ARCS DONE (verified):
 ARC IN PROGRESS: none on this slice. Next is **A12** (review) / G2
 public-claim review. Do not start A7 (drmTMB item 1 C++).
 
-NEXT: merge #46 when CI green (standing approval). Then pull parent
-`main`. G2 stays partial until Shinichi reviews the public claim.
+NEXT: A12 review. G2 stays partial until Shinichi reviews the public
+claim. Do not start A7.
 
 OPEN GATES:
 - **G1** — OPEN. Engine item 2 is on drmTMB `main` @ `1cc1985cd`.
@@ -34,8 +34,7 @@ OPEN GATES:
 - **G3** — if independence fails
 
 TRUTH LIVES IN:
-- drmSEM `main` @ `ec5692aa` (#45) until #46 merges
-- drmSEM A8–A11 PR https://github.com/itchyshin/drmSEM/pull/46
+- drmSEM `main` @ `7280125d26dc99359aa63048d74d3df05bf18742` (#46)
 - drmTMB `main` @ `1cc1985cd` (#1086)
 - MAG-completeness: **do not touch**
 
