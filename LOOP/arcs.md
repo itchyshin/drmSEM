@@ -7,7 +7,7 @@
 | A2 | Attach S6 prototype evidence to drmTMB #963 / #962 | done | authorised |
 | A3 | Recon `drmTMB-joint-mi` vs #963 option (b) | done | G0 |
 | A4 | drmTMB item 2: k ≥ 2 independent `mi()` | todo | Phase 1 lane |
-| A5 | drmTMB item 5: `missing_predictor` ledger axis | todo | pairs A4 |
+| A5 | drmTMB item 5: k=2 row on existing `missing_predictor` axis | todo | pairs A4 |
 | A6 | Two-predictor recovery + sentinel-invariance | todo | ← A4 |
 | A7 | drmTMB item 1: per-family C++ `has_mi` | todo | Phase 2 |
 | A8 | drmSEM: lift abort, multi-`mi()` from DAG | todo | **G1** |
