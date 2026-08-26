@@ -16,7 +16,8 @@ basis_set(object, ...)
 }
 \value{
 A data frame with columns \code{claim}, \code{x}, \code{y}, \code{given} (comma-separated
-conditioning set = Y's parents).
+conditioning set). On a DAG, \code{given} is Y's parents. On a MAG (\verb{latent =}
+supplied), it is \verb{ant(\{X, Y\}) \\\\ \{X, Y\}}.
 }
 \description{
 The basis set is the collection of non-adjacent variable pairs (X, Y) where Y
@@ -33,6 +34,16 @@ rule; OQ-14). A declared feedback motif (\code{\link[=drm_cycle]{drm_cycle()}}, 
 independence claims among its nodes — DAG d-separation does not hold across a
 cycle, and the goodness-of-fit test is scoped to the acyclic part until
 sigma-separation lands.
+
+When \verb{latent =} names \strong{marginalised} latents (\code{L_M}), claims are generated
+on the implied MAG by Richardson & Spirtes (2002) Corollary 5.3: each
+non-adjacent observed pair is conditioned on the \strong{anteriors} of the pair
+(not on Shipley & Douma's observed parents). Bidirected spouses are not
+anteriors. Pairwise ⇒ global is licensed when the independence model is a
+compositional graphoid (Sadeghi & Lauritzen 2014 Thm 3; Lauritzen & Sadeghi
+2018 Thm 4) — automatic for homoscedastic all-Gaussian nodes, otherwise
+assumed via faithfulness (a \code{cli_inform()} fires for non-Gaussian or
+\verb{sigma ~} nodes). Selection / conditioned latents are not supported.
 
 The any-component reading of an independence claim is a \code{drmSEM} choice on top
 of the local-likelihood d-separation framework of Shipley; the d-separation
@@ -60,4 +71,10 @@ basis_set(sem)
 \insertRef{Pearl2009}{drmSEM}
 
 \insertRef{Lefcheck2016}{drmSEM}
+
+\insertRef{RichardsonSpirtes2002}{drmSEM}
+
+\insertRef{SadeghiLauritzen2014}{drmSEM}
+
+\insertRef{LauritzenSadeghi2018}{drmSEM}
 }

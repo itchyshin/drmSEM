@@ -10,7 +10,8 @@ drm_psem(
   data = NULL,
   covariances = NULL,
   composites = NULL,
-  feedback = NULL
+  feedback = NULL,
+  latent = NULL
 )
 
 \method{summary}{drm_sem}(object, ...)
@@ -38,6 +39,15 @@ fitted on; the declarations are recorded so \code{\link[=loadings]{loadings()}} 
 the topological-order requirement and is reported by \code{\link[=cycles]{cycles()}}. Node-wise
 fitting of a declared cycle is inconsistent under simultaneity (a warning is
 emitted); see \code{docs/design/10-cyclic-feedback.md}.}
+
+\item{latent}{Character vector of \strong{marginalised} latent vertex names (\code{L_M}).
+When supplied, \code{\link[=basis_set]{basis_set()}} and \code{\link[=dsep]{dsep()}} generate and test \strong{m-separation}
+claims on the implied MAG, conditioning on Richardson & Spirtes (2002)
+Corollary 5.3 anteriors (\verb{S = \\\\emptyset} only). Pairwise claims are jointly
+licensed by Sadeghi & Lauritzen (2014) Theorem 3 / Lauritzen & Sadeghi (2018)
+Theorem 4 under a compositional-graphoid assumption (automatic for
+homoscedastic all-Gaussian nodes; otherwise faithfulness). Conditioned /
+selection latents are not supported. See \code{docs/design/14-m-separation.md}.}
 
 \item{object}{A \code{drm_sem} object.}
 }

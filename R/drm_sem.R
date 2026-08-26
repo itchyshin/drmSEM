@@ -119,8 +119,12 @@ new_drm_sem <- function(
 #'   fitting of a declared cycle is inconsistent under simultaneity (a warning is
 #'   emitted); see `docs/design/10-cyclic-feedback.md`.
 #' @param latent Character vector of **marginalised** latent vertex names (`L_M`).
-#'   When supplied, [basis_set()] generates m-separation claims on the implied MAG
-#'   (Cor. 5.3 anterior conditioning; `S = \\emptyset` only). Conditioned /
+#'   When supplied, [basis_set()] and [dsep()] generate and test **m-separation**
+#'   claims on the implied MAG, conditioning on Richardson & Spirtes (2002)
+#'   Corollary 5.3 anteriors (`S = \\emptyset` only). Pairwise claims are jointly
+#'   licensed by Sadeghi & Lauritzen (2014) Theorem 3 / Lauritzen & Sadeghi (2018)
+#'   Theorem 4 under a compositional-graphoid assumption (automatic for
+#'   homoscedastic all-Gaussian nodes; otherwise faithfulness). Conditioned /
 #'   selection latents are not supported. See `docs/design/14-m-separation.md`.
 #'
 #' @return A `drm_sem` object.
@@ -198,8 +202,14 @@ drm_psem <- function(
 #'   stays an error). Node-wise ML of a declared cycle is inconsistent under
 #'   simultaneity (a warning is emitted); equilibrium effects use the fixed-point
 #'   propagator. See `docs/design/10-cyclic-feedback.md`.
-#' @param latent Character vector of marginalised latent names for MAG
-#'   m-separation in [basis_set()] / [dsep()]. Selection latents are not supported.
+#' @param latent Character vector of **marginalised** latent vertex names (`L_M`).
+#'   When supplied, [basis_set()] and [dsep()] generate and test **m-separation**
+#'   claims on the implied MAG, conditioning on Richardson & Spirtes (2002)
+#'   Corollary 5.3 anteriors (`S = \\emptyset` only). Pairwise claims are jointly
+#'   licensed by Sadeghi & Lauritzen (2014) Theorem 3 / Lauritzen & Sadeghi (2018)
+#'   Theorem 4 under a compositional-graphoid assumption (automatic for
+#'   homoscedastic all-Gaussian nodes; otherwise faithfulness). Conditioned /
+#'   selection latents are not supported. See `docs/design/14-m-separation.md`.
 #' @param na_action What to do when incomplete rows mean the nodes would not all
 #'   be fitted on the same rows. `"warn"` (default) fits anyway but reports which
 #'   nodes used how many rows; `"common"` fits every node on the shared

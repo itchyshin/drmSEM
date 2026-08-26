@@ -15,12 +15,12 @@
 # (2021)'s published orientation rules drop R&S's `∪ S` and are demonstrably wrong
 # when S is non-empty, coinciding with R&S §4.2.1 only in the S = ∅ case.
 #
+# Basis-set wiring lives in R/dsep.R (`basis_set_mag()`): Cor. 5.3 pairwise
+# claims with anterior conditioning. Completeness (pairwise => global) is
+# licensed under a compositional graphoid (S&L 2014 Thm 3; L&S 2018 Thm 4).
+# This file still owns only graph conversion and anterior helpers.
+#
 # NOT IMPLEMENTED HERE, on purpose:
-#   * the basis set over a MAG. R&S Corollary 5.3 proves each pairwise claim
-#     (conditioning on ANTERIORS in the MAG, not parents), but pairwise => global
-#     was not established, and a basis set needs the global property. Shipley &
-#     Douma's parent-based set is unproven on a MAG. So this file converts graphs
-#     and stops; nothing here is wired into basis_set() or dsep().
 #   * anything involving selection/conditioned latents.
 
 #' Ancestors of `v` in a directed edge table, reflexively.
