@@ -1,46 +1,65 @@
-# GOAL — drmSEM Step 2 S3 grouping (IMMUTABLE — re-read at the top of EVERY arc)
+# GOAL — S6 generality multi-mi() (IMMUTABLE — re-read at the top of EVERY arc)
 
 ## Mission
-Stop Fisher's C from inheriting anti-conservative p-values on mis-scaled
-d-separation claims, without silently testing a different SEM than the user
-specified.
+
+Make graph-derived imputation general for ordinary graphs: a node with
+two or more incomplete **endogenous** parents emits independent `mi()`
+terms from the DAG, after drmTMB accepts k ≥ 2 independent `mi()` terms
+and a `missing_predictor` ledger exists. drmSEM does not implement
+engine likelihoods. This run starts in **planning**: no drmSEM `R/`
+until G1.
 
 ## Headline
-Estimand A: status `wrong_scale`; those p-values do not enter Fisher's C.
+
+Engine items **2 + 5, then 1**, then the drmSEM consumer. Independent
+predictor models (option b), not `impute_joint`, not FIML.
 
 ## Invariants
-- ONE lane: `claude/lane-s3-grouping` at `~/local-scratch/lanes/drmSEM-s3-grouping`.
-  Do not touch MAG-completeness or the merged MAG-wire worktree.
-- Locked estimand A (G0). Do **not** auto-refit both sides inside `dsep()`.
-  Do **not** add `(1 | g)` only to the augmented fit.
-- Q3: `model_set()` / CICc inherit C on remaining valid claims (do not refuse
-  the whole candidate).
-- Touch only the scale/status block of `R/dsep.R`. Do not retouch MAG
-  `basis_set_mag()`.
-- Never call a non-mean path a mean effect.
+
+- ONE lane: `cursor/lane-s6-imputation` at
+  `~/local-scratch/lanes/drmSEM-s6-imputation`. Do **not** touch
+  MAG-completeness, MAG-wire, or S3-grouping worktrees. Do **not**
+  edit the dirty drmTMB primary checkout.
+- drmSEM never fits its own likelihoods.
+- Not FIML. Within-node uncertainty only. Incomplete exogenous →
+  `na_action`. `impute = "none"` stays default.
+- Consumer contract = independent `impute_model()` per parent
+  (drmTMB #963 option b). `impute_joint` is sister prior art only.
+- No drmSEM `R/` until G1 (engine contract + item 2 available).
+- Branch on `uncertainty_status`, never `is.na(std_error)`.
 - Explicit paths on every `git add`. NEVER `git add -A`.
 - Never push, merge, or publish — those are HUMAN GATES.
 
 ## Authoritative WHAT
-`LOOP/ultra-plan.md` (approved G0). This file wins on "what must never be lost".
+
+`LOOP/ultra-plan.md` (G0 approved 2026-08-26). Arc charter:
+`docs/memory/2026-08-26-next-arc-s6-imputation.md`. Order lock: D-22.
+This file wins on "what must never be lost".
 
 ## Definition of done
-`03-dsep.md` states the scale rule · D-21 committed · `dsep()` marks
-`wrong_scale` and excludes those p-values from C · V-109c recovers the known
-DGP (true independence is not condemned via C) · V-110 still silent · suite
-green · ledgers updated · LOOP kit is this Step 2 kit, not the inherited
-defect/MAG-wire kit.
+
+Planning phase (this kickoff): lane + charter + LOOP kit + D-22 +
+AGENT_LOG committed; G0 approved 2026-08-26 (all 10 defaults).
+A1 + A3 drafted; A2 authorised (GitHub issue comments).
+
+Programme done (later, after G0→G1→G2): k ≥ 2 independent `mi()` on
+the engine with recovery + ledger; drmSEM lifts the abort and recovers
+a known two-incomplete-parent DGP; honest limits still in the docs.
 
 ## Pre-authorisation
-- Routine scoped edits, local commands, tests, `devtools::document()` /
-  `devtools::test()` / `devtools::check(error_on = "never")` /
-  `tools/check-vignette-tangling.R`, local commits: CONTINUE.
-- Optional remote: none (no push, no PR).
-- Must stop: merge/release/public claim; credentials; destructive work
-  outside this worktree; Step 3 drmTMB; new estimand beyond A.
+
+- After G0: scoped docs/LOOP edits; routine local commands; local
+  commits; listed checks: CONTINUE.
+- Optional remote: none (no push, no PR) until a later human gate.
+- Must stop: drmSEM `R/` before G1; merge/release/public claim;
+  credentials; destructive work outside this worktree; MAG-completeness
+  files; new compute beyond the estimate; switching to `impute_joint`
+  or FIML without a new G0.
 
 ## Out of scope
-- Step 3 drmTMB engine items
-- Orthogonal-hierarchy claim skipping
-- Auto-adding `(1 | g)` to the stored node
-- MAG semantics beyond the already-merged wire
+
+- FIML / joint SEM likelihood / Bayesian imputation
+- Item 3 option (a) (accept a fitted drmTMB as imputer)
+- Incomplete exogenous imputation
+- MAG / S3 grouping / `rho12` joint fit
+- drmSEM `R/` during Phase 0

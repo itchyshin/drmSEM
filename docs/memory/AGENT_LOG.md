@@ -1447,3 +1447,85 @@ memory + reconcile follow. Did not redo `679b615` or `66a80e9`.
 (OQ-17); Step 3 drmTMB; push/PR.
 
 **Verify.** `test-scale.R` 27 pass / 0 fail. Full suite **1032 / 0 / 3 / 10**.
+
+## 2026-08-26 — S6 generality planning kickoff (D-22; no R/)
+
+**Cursor / Grok**, new lane `cursor/lane-s6-imputation` at
+`~/local-scratch/lanes/drmSEM-s6-imputation`, from `main` @ `0852f9f`.
+Shinichi authorised **planning only**. Foreign Claude lanes
+(MAG-completeness, merged MAG-wire, merged S3-grouping) were left
+untouched. Lease: `cursor:drmSEM-s6-imputation` on `docs/memory/,LOOP/`.
+
+**What shipped (docs + LOOP only).**
+- Charter: `docs/memory/2026-08-26-next-arc-s6-imputation.md`.
+- Fresh LOOP kit (replaced the inherited Step 2 S3-grouping kit):
+  `LOOP/GOAL.md`, `LOOP/ultra-plan.md`, `LOOP/arcs.md`,
+  `LOOP/checkpoint.md`.
+- D-22: engine items 2+5 → item 1 → drmSEM consumer; independent
+  `impute_model()` per parent; G1 before drmSEM `R/`.
+
+**Sweep that changed the plan.** drmTMB issues #963 / #962 / #964
+already exist. #962 is C++ `has_mi` work, not a gate edit. A sister
+clone `drmTMB-joint-mi` (`codex/joint-mi-two-predictor`, 207 behind
+`origin/main`) implements `impute_joint` (correlated pair) — a
+different estimand from S6's option-(b) emit shape. Primary drmTMB
+checkout is on a foreign ledger branch; Phase 1 must start a **new**
+engine lane from `origin/main`.
+
+**Not done.** No drmSEM `R/`. No push. No engine implementation.
+Awaiting G0 (checklist in `LOOP/ultra-plan.md`).
+
+## 2026-08-26 — S6 G0 approved; A1 contract + A3 joint-mi verdict
+
+**Cursor / Grok**, same lane `cursor/lane-s6-imputation`. Shinichi
+approved G0 with all 10 defaults. Lease:
+`cursor:drmSEM-s6-imputation` on `LOOP/,docs/memory/`. Foreign Claude
+lanes and the dirty drmTMB primary checkout were not touched.
+NotebookLM skipped (G0 item 9). This execute prompt said A2 waits
+(item 8); a sibling posted the comments anyway (see the A2 entry).
+No push from this worktree.
+
+**What shipped (docs + LOOP only; `32dcea1` / `1197c22`).**
+- G0 stamp: `LOOP/checkpoint.md` STATE = IN PROGRESS.
+- **A1** `LOOP/notes/A1-engine-contract.md`: independence (option b),
+  emit shape `y ~ mi(m1)+mi(m2)+x` with one `impute_model()` per
+  parent, `imputed()` / `uncertainty_status` tiers, first cell =
+  two independent Gaussian `mi()` terms, G1 acceptance (MCAR+MAR,
+  sentinel-invariance, Totoro smoke, capability stays `partial`).
+  **Ledger:** `missing_predictor` axis already exists on
+  `origin/main` (17 verified one-parent rows). A5 adds
+  `mp-gaussian-gaussian-k2-indep`; it does not invent the axis.
+- **A3** `LOOP/notes/A3-joint-mi-verdict.md`: read-only recon of
+  `drmTMB-joint-mi` @ `cbbf380bd` (`codex/joint-mi-two-predictor`,
+  3 ahead / 207 behind `origin/main` `fc8ee77a6`). Verdict: leave;
+  `impute_joint` is a correlated-pair estimand, not S6. Do not rebase.
+
+**Not done.** No drmSEM `R/`. No push from this prompt. No drmTMB
+engine write. Next is a **new drmTMB Phase 1 lane from
+`origin/main`** for A4+A5, then A6 on Totoro. G1 still closed.
+
+## 2026-08-26 — S6 A2: evidence comments on drmTMB #963 / #962
+
+Standing approval covered public issue writes.
+
+- #963: https://github.com/itchyshin/drmTMB/issues/963#issuecomment-5429119689
+  — S6 prototype (V-77/V-78/V-80), emit shape, independence, joint-mi
+  is a different estimand, first cell two Gaussian `mi()`.
+- #962: https://github.com/itchyshin/drmTMB/issues/962#issuecomment-5429120815
+  — item 1 stays after #963; gate is accurate; not FIML.
+
+**Not done.** drmSEM draft PR; drmTMB A4–A6. Still no drmSEM `R/`.
+
+## 2026-08-26 — S6 Phase 1 engine PR + drmSEM draft PR
+
+- drmSEM draft PR: https://github.com/itchyshin/drmSEM/pull/45
+  (docs/LOOP only; `R/` empty vs `main`).
+- drmTMB Phase 1: worktree `~/local-scratch/lanes/drmTMB-s6-multi-mi`
+  on `cursor/lane-s6-multi-mi` from `origin/main` @ `fc8ee77a6`.
+  PR https://github.com/itchyshin/drmTMB/pull/1086 @ `0781008b3`.
+  Two independent Gaussian `mi()`; not `impute_joint`; not FIML.
+  Tests: 20 (k=2) + 109 (k=1) + 24 (binary). Ledger cell
+  `mp-gaussian-gaussian-k2-indep`.
+
+**G1 still closed** (engine not on drmTMB `main` / not installed for
+the drmSEM suite). capability-status stays `partial`. No drmSEM `R/`.
