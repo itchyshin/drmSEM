@@ -1564,3 +1564,20 @@ Against the #1086 worktree: **31 / 0 / 0**. Installed CRAN-ish
 engine: **27 / 0 / 1 skip**.
 
 Branch: `cursor/lane-s6-a8` from `main` @ `ec5692aa`.
+A8 PR: https://github.com/itchyshin/drmSEM/pull/46 @ `cb5e287` (CI green).
+
+## 2026-08-26 — S6 follow-up close: both PRs merged; G1 open
+
+**Merge shas.**
+- drmSEM **#45** `ec5692aa302f201891ba1b8ce19299cff6953aa2`
+- drmTMB **#1086** `1cc1985cd87303d2300b0f311cb0ca91f4d06c34`
+  (drmTMB **0.7.0** on `main`). Engine commits on that PR:
+  `0781008b3` (k=2 mi), `24bcef4c1` (C17 cheap-mode receipt),
+  `7f792508a` (phylo `has_mi2` fixture).
+
+**G1.** OPEN. Item 2 is on drmTMB `main` @ `1cc1985cd`.
+
+**A8.** Implemented on `R/imputation.R` only. PR
+https://github.com/itchyshin/drmSEM/pull/46 CI green. Do **not**
+merge #46 here — G2 is the public-claim / consumer-merge gate.
+capability-status stays `partial`. Not FIML. No `impute_joint`.
