@@ -1763,3 +1763,35 @@ MAG-completeness / MAG-wire / S3-grouping untouched.
 - capability-status stays **`partial`**. Not FIML. No `"covered"`.
 
 **Next.** Engine lognormal `has_mi`. Do not start it on this stamp.
+
+## 2026-08-27 — S6 A7c-3 prep: lognormal consumer wait
+
+**Cursor / Grok** on `cursor/lane-s6-a7-consumer` in worktree
+`~/local-scratch/lanes/drmSEM-s6-a7-consumer`, refreshed from
+`origin/main` @ `0cb3360`. Lease:
+`cursor:drmSEM-s6-a7-consumer` on `LOOP/,docs/memory/,13-missing-data.md`.
+MAG-completeness / MAG-wire / S3-grouping untouched. **No drmSEM
+`R/`.** Did **not** duplicate `drmTMB-s6-family-gate`.
+
+**Engine.** No open drmTMB PR for lognormal `has_mi` as of this
+prep. Sibling still owns `~/local-scratch/lanes/drmTMB-s6-family-gate`.
+
+**This slice (docs only).**
+- Next cell locked: **lognormal × Bernoulli** (mirror of Gamma
+  A7c-2). Not nbinom2 × Gaussian.
+- `LOOP/checkpoint.md` / `arcs.md` / `ultra-plan.md` / `GOAL.md`:
+  A7c-3 is the next *family* cell; old A7c-3–A7c-7 sub-slices
+  folded into shipped #49.
+- Checklist: `LOOP/notes/A7c-3-lognormal-checklist.md`
+  (`R/imputation.R` list, V-80 / V-80e, V-80d→student, V-123 /
+  V-123b, fail-loud continuous).
+- Guardrails: `LOOP/notes/A7-claims-guardrails.md` (Rose; keep
+  `partial`).
+- V-123 / V-123b **reserved** in the ledger; not validated.
+
+**G-engine-ln.** OPEN. `R/` opens only after the engine PR is
+green or merged (C++ `has_mi`, not a whitelist flip).
+
+**Next.** Wait for the engine PR number. Then implement the
+checklist, tests, consumer PR, merge. capability-status stays
+`partial`.

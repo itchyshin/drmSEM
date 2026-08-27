@@ -1238,3 +1238,19 @@ No `impute_joint`. No `"covered"`.
 **Not claimed.** Lognormal or any other leftover family. Non-Gaussian
 `k = 2`. `k > 2`. Cross-node uncertainty. FIML. Capability-status
 `"covered"`.
+
+## 2026-08-27 — S6 A7c-3: V-123 reserved (not validated)
+
+Reserved so a later family cannot reuse the numbers. **Not
+validated.** Waiting on drmTMB lognormal `has_mi` (expected cell
+`mp-lognormal-bernoulli`). Do not treat this row as evidence.
+
+- **V-123.** Lognormal × Bernoulli identity (auto ≡ hand-written
+  `mi()` + `impute_model()`). **Reserved.**
+- **V-123b.** Lognormal × Bernoulli MAR recovery-to-truth.
+  **Reserved.**
+- **V-80e.** Planned leftover letter: lognormal + binary emits;
+  lognormal + continuous fails loud. V-80d retargets to `student`
+  after the lift.
+
+Capability-status stays **`partial`**. Not FIML. No `"covered"`.

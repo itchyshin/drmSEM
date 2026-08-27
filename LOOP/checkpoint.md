@@ -1,8 +1,9 @@
 # Checkpoint — OVERWRITTEN every arc
 
-GOAL: see LOOP/GOAL.md. STATE: **A7c-2 MERGED.** G-engine discharged.
-drmSEM `main` @ `ae2b925` lifts Gamma × Bernoulli. capability-status
-stays **`partial`**.
+GOAL: see LOOP/GOAL.md. STATE: **A7c-3 PREP.** Waiting on engine
+lognormal `has_mi`. drmSEM `main` @ `0cb3360` (A7c-2 stamped).
+Worktree `~/local-scratch/lanes/drmSEM-s6-a7-consumer` on
+`cursor/lane-s6-a7-consumer`. capability-status stays **`partial`**.
 
 ARCS DONE (verified):
 - **A7c-0** — LOOP kit + contract (#48 `1593a23`).
@@ -13,23 +14,34 @@ ARCS DONE (verified):
   `test-imputation.R`: **70 pass / 0 fail / 0 skip** locally against
   drmTMB `6e553879`. CI: macos / ubuntu / windows green.
 
-ARC IN PROGRESS: none on this commit.
+ARC IN PROGRESS: **A7c-3** lognormal × Bernoulli (docs/prep only).
+No drmSEM `R/` until the engine PR is **green or merged**.
 
-NEXT: wait for the next *engine* family (**lognormal** `has_mi`).
-Do not lift lognormal here. A later family repeats A7c-2–A7c-6.
+NEXT CELL (locked): **lognormal × Bernoulli**
+(`mp-lognormal-bernoulli`, expected). Mirror of Gamma A7c-2.
+**Not** nbinom2 × Gaussian. **Not** student. Checklist:
+`LOOP/notes/A7c-3-lognormal-checklist.md`.
 
-FIRST CELL (locked, now consumed): **Gamma × Bernoulli**
-(`mp-gamma-bernoulli`). Ledger: V-122 / V-122b ↔ #1088 `6e553879`.
+ENGINE STATUS (2026-08-27, this prep):
+- Sibling owns `~/local-scratch/lanes/drmTMB-s6-family-gate`
+  (`cursor/lane-s6-family-gate`). Do **not** duplicate.
+- No open drmTMB PR for lognormal `has_mi` yet. Do not lift
+  `"lognormal"` in `drm_impute_response_families()`.
 
 OPEN GATES:
-- **G-engine** — **discharged.**
+- **G-engine-ln** — **OPEN.** Wait for drmTMB lognormal × Bernoulli
+  `has_mi` PR (C++ + recovery + `missing_predictor` row). Not a
+  whitelist-only diff. Then implement the consumer lift.
 - **G-claim** — keep `partial`. No `"covered"`. Not FIML.
 
 TRUTH LIVES IN:
-- drmSEM `main` @ this commit (post #49)
+- This worktree / `cursor/lane-s6-a7-consumer` (from `0cb3360`)
 - Contract: `LOOP/notes/A7-consumer-contract.md`
-- Engine: drmTMB #1088 `6e553879`
+- Checklist: `LOOP/notes/A7c-3-lognormal-checklist.md`
+- Guardrails: `LOOP/notes/A7-claims-guardrails.md`
+- Engine (last shipped cell): drmTMB #1088 `6e553879`
 - MAG-completeness: **do not touch**
 
-RESUME: A7c-2 is closed. Next consumer cell waits on engine
-lognormal. Never `git add -A`.
+RESUME: Docs/prep is on this branch. `R/` opens only after the
+lognormal engine PR exists and is green or merged. Never
+`git add -A`.

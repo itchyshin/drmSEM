@@ -1,9 +1,11 @@
 # A7 — Consumer contract (docs only)
 
-**Status.** 2026-08-27, post #1088. Binding for the drmSEM lane that
-follows drmTMB item 1 (#962). G-engine is discharged. A7c-2 (Gamma
-lift) is a **separate** consumer PR — not an implementation on `main`
-in the merge-follow-up commit.
+**Status.** 2026-08-27, post A7c-2 (#49). Binding for the drmSEM
+lane that follows drmTMB item 1 (#962). G-engine (Gamma) is
+discharged. **A7c-3** is the next family cell: **lognormal ×
+Bernoulli**, a mirror of A7c-2. Docs/prep only until the engine
+lognormal `has_mi` PR is green or merged. Not an `R/` lift on this
+prep commit.
 
 **Audience.** The person who, after the sibling engine PR is
 mergeable, opens this worktree and lifts **one** family gate in
@@ -38,10 +40,12 @@ Honest map after drmTMB #1088 `6e553879` (do not re-derive):
 | gaussian (`1`) | yes | full predictor list + k=2 independent Gaussians |
 | beta / binomial / poisson / nbinom2 (`10` / `18` / `6` / `7`) | yes | **bernoulli / binary only** |
 | Gamma (`5`) | **yes** (#1088) | **bernoulli / binary only** (`mp-gamma-bernoulli`) |
-| lognormal, student, beta_binomial, zi_poisson, zi_nbinom2, … | **none** | must stay refused |
+| lognormal | **none** (A7c-3 waits on this) | must stay refused until C++ `has_mi` |
+| student, beta_binomial, zi_poisson, zi_nbinom2, … | **none** | must stay refused |
 
-First A7 cell is **Gamma × Bernoulli**. Not nbinom2 × Gaussian (later
-expand-gated-family). Next unwired #962 family is lognormal.
+First A7 cell (consumed): **Gamma × Bernoulli**. Next cell
+(**A7c-3**): **lognormal × Bernoulli**. Not nbinom2 × Gaussian
+(later expand-gated-family).
 
 drmSEM mirrors that with three gates in `R/imputation.R` (read-only
 this kickoff):
@@ -49,8 +53,9 @@ this kickoff):
 1. `drm_impute_response_families()` — `gaussian`, `poisson`,
    `binomial`, `nbinom2`, `beta`, `gamma` after A7c-2. V-80
    `expect_setequal(..., drmTMB:::drm_missing_predictor_families())`
-   is the anti-drift lock. Do not add lognormal here until that
-   engine cell exists.
+   is the anti-drift lock. Do not add lognormal here until the
+   A7c-3 engine cell exists (see
+   `LOOP/notes/A7c-3-lognormal-checklist.md`).
 2. `drm_check_impute_legal()` — non-Gaussian response admits only a
    **binary** missing predictor (V-80c). Gaussian response admits
    `drm_impute_predictor_families()`.
@@ -188,23 +193,28 @@ reopen that claim.
 
 ---
 
-## 8. G-engine (opens drmSEM `R/` — discharged)
+## 8. G-engine (opens drmSEM `R/`)
 
-Discharged 2026-08-27: drmTMB #1088 on `main` @ `6e553879`
-(`mp-gamma-bernoulli`). All of the following remain true:
+**Gamma (A7c-2) — discharged 2026-08-27.** drmTMB #1088 on `main` @
+`6e553879` (`mp-gamma-bernoulli`). drmSEM #49 on `main` @ `ae2b925`.
+
+**Lognormal (A7c-3) — OPEN.** Same five checks, new cell:
 
 1. This contract still matches the emit shape (option b; no silent
    `impute_joint`).
-2. The first new-family engine PR is on drmTMB `main` (`6e553879`).
-3. That PR includes C++ `has_mi` for Gamma, a recovery test, and
-   an honest `missing_predictor` row. Not a whitelist-only diff.
+2. The lognormal engine PR is **green or merged** (number not yet
+   assigned as of this prep). Sibling
+   `~/local-scratch/lanes/drmTMB-s6-family-gate` owns it. Do not
+   duplicate that worktree.
+3. That PR includes C++ `has_mi` for **lognormal**, a recovery
+   test, and an honest `missing_predictor` row. Not a
+   whitelist-only diff. Expected cell `mp-lognormal-bernoulli`.
 4. Honest limits still written in `13-missing-data.md`.
 5. capability-status still `partial`.
 
-A7c-2 is still a **separate** consumer PR. Until that PR, the current
-gates in `R/imputation.R` (Gamma absent) are **correct leftovers** —
-V-80 will fail against an installed post-#1088 engine, which is the
-signal to lift Gamma only.
+Until G-engine-ln, the current gates in `R/imputation.R` (lognormal
+absent) are **correct leftovers**. V-80d refusing lognormal is the
+lock working. See `LOOP/notes/A7c-3-lognormal-checklist.md`.
 
 ---
 
