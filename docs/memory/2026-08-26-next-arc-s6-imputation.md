@@ -1,10 +1,15 @@
 # Next arc — S6 generality: multi-`mi()` imputation
 
-Status: **G0 approved 2026-08-26** (all 10 checklist items; standing
-approval to push / PR / issue-comment / new engine lane). A1+A3
-drafted; A2 comments posted. Nothing under `R/` has been touched;
-G1 still blocks drmSEM `R/`. Phase 1 is a **new drmTMB lane from
-`origin/main`**.
+Status: **CLOSED 2026-08-27 (A12).** Phase 1 engine + consumer
+shipped (drmSEM #45 `ec5692aa`, #46 `7280125d`; drmTMB #1086
+`1cc1985cd` / 0.7.0). G2: capability-status stays **`partial`** —
+two-parent Gaussian k = 2 independent `mi()`, not FIML, not
+`impute_joint`, not a general missing-data SEM. A7 (item 1 C++) is
+Phase 2, not this arc. Reconcile:
+`docs/memory/PLAN-ACTUAL-2026-08-27-s6-imputation.md`.
+
+Was: G0 approved 2026-08-26 (all 10 checklist items). Historical
+body below is the kickoff contract, not live lane state.
 
 This is a **two-repo programme**. drmSEM already ships a working
 single-parent prototype (`drm_sem(impute = "auto")`, V-77–V-81). Generality

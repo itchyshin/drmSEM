@@ -1,5 +1,8 @@
 # Arcs — S6 generality multi-mi() (G0 approved 2026-08-26)
 
+**Programme status: CLOSED 2026-08-27 (A12).** G2 resolved: keep
+`partial`. A7 is Phase 2, not this arc.
+
 | # | arc | status | gate? |
 |---|-----|--------|-------|
 | A0 | Lane + charter + LOOP kit + D-22 | done | — |
@@ -9,16 +12,18 @@
 | A4 | drmTMB item 2: k ≥ 2 independent `mi()` | done | PR #1086 |
 | A5 | drmTMB item 5: k=2 row on existing `missing_predictor` axis | done | pairs A4 |
 | A6 | Two-predictor recovery + sentinel-invariance | done | ← A4 |
-| A7 | drmTMB item 1: per-family C++ `has_mi` | todo | Phase 2 |
+| A7 | drmTMB item 1: per-family C++ `has_mi` | deferred | Phase 2 |
 | A8 | drmSEM: lift abort, multi-`mi()` from DAG | done | PR #46 |
 | A9 | drmSEM: `imputed()` / `uncertainty_status` tiers | done | ← A8 |
 | A10 | drmSEM tests (keep V-77; new two-parent DGP) | done | PR #46 |
 | A11 | Docs + ledgers + capability-status honesty | done | ← A10 |
-| A12 | Review + reconcile | todo | **G2** |
+| A12 | Review + reconcile | done | **G2 resolved: partial retained** |
 
-Status: todo / doing / done / paused / blocked. `paused` = awaiting
-Shinichi's named decision; `blocked` = external dependency.
+Status: todo / doing / done / paused / blocked / deferred.
+`paused` = awaiting Shinichi's named decision; `blocked` = external
+dependency; `deferred` = later programme, not this closeout.
 
 A2 posted 2026-08-26. #45 merged `ec5692aa`. #1086 merged `1cc1985cd`.
-#46 merged `7280125d`. G1 open. G2 partial until Shinichi reviews
-the public claim.
+#46 merged `7280125d`. G1 discharged. G2 resolved 2026-08-27: public
+claim review = keep capability-status `partial`; no NEWS overclaim.
+PLAN-ACTUAL: `docs/memory/PLAN-ACTUAL-2026-08-27-s6-imputation.md`.
