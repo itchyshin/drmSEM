@@ -46,11 +46,11 @@ expand-gated-family). Next unwired #962 family is lognormal.
 drmSEM mirrors that with three gates in `R/imputation.R` (read-only
 this kickoff):
 
-1. `drm_impute_response_families()` — still `gaussian`, `poisson`,
-   `binomial`, `nbinom2`, `beta` until A7c-2. Engine list now also
-   has `gamma`. V-80
+1. `drm_impute_response_families()` — `gaussian`, `poisson`,
+   `binomial`, `nbinom2`, `beta`, `gamma` after A7c-2. V-80
    `expect_setequal(..., drmTMB:::drm_missing_predictor_families())`
-   will fail until A7c-2 adds `"gamma"` — that is the lock working.
+   is the anti-drift lock. Do not add lognormal here until that
+   engine cell exists.
 2. `drm_check_impute_legal()` — non-Gaussian response admits only a
    **binary** missing predictor (V-80c). Gaussian response admits
    `drm_impute_predictor_families()`.

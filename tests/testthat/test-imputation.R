@@ -6,10 +6,13 @@
 # V-79b k > 2 still fails loud (engine limit)
 # V-79c k = 2 on a non-Gaussian response fails loud (engine Phase 1 cell)
 # V-80  the response/predictor family gate matches the engine's own rule
+# V-80b Gamma × binary emits; Gamma × continuous still fails loud (A7c-2)
+# V-80d leftover unwired response (lognormal) still fails loud
 # V-81  mi() coefficient names resolve to the right node in paths()
 # V-82  two-parent auto fit matches the hand-written emit shape (needs k=2 engine)
 # V-120 two-parent MAR recovery-to-truth (needs k=2 engine)
 # V-121 imputation()/imputed() branch on uncertainty_status, never is.na(std_error)
+# V-122 Gamma × Bernoulli identity + MAR recovery (engine mp-gamma-bernoulli)
 #
 # The load-bearing assertion is V-77, per this package's convention of comparing
 # a public output against quantities recomputed from the SAME fit rather than
@@ -330,19 +333,150 @@ test_that("V-80: the family gate matches the engine's own allow-list", {
   expect_setequal(drmSEM:::drm_impute_response_families(), engine)
 })
 
-test_that("V-80b: an unsupported response family is refused with a reason", {
-  d <- chain_dat()
-  d$count <- stats::rpois(nrow(d), lambda = 2)
-  # Gamma response is outside the engine's missing-predictor allow-list.
-  d$g <- stats::rgamma(nrow(d), shape = 2, rate = 1)
+engine_accepts_gamma <- function() {
+  if (!requireNamespace("drmTMB", quietly = TRUE)) {
+    return(FALSE)
+  }
+  ns <- asNamespace("drmTMB")
+  if (!exists("drm_missing_predictor_families", envir = ns, inherits = FALSE)) {
+    return(FALSE)
+  }
+  "gamma" %in% getFromNamespace("drm_missing_predictor_families", "drmTMB")()
+}
+
+# z -> treatment (Bernoulli) -> g (Gamma, log link). Engine cell
+# mp-gamma-bernoulli / #1088. Mean-CV parameterization matches the engine
+# recovery DGP (shape = 1/cv^2, scale = mu * cv^2).
+gamma_binary_dat <- function(n = 200, seed = 13L, mar = TRUE) {
+  set.seed(seed)
+  z <- stats::rnorm(n)
+  treatment <- stats::rbinom(n, 1L, stats::plogis(0.3 + 0.8 * z))
+  eta <- 0.4 + 0.5 * z + 0.7 * treatment
+  mu <- exp(eta)
+  cv <- 0.3
+  g <- stats::rgamma(n, shape = 1 / cv^2, scale = mu * cv^2)
+  d <- data.frame(z = z, treatment = treatment, g = g)
+  drop <- if (isTRUE(mar)) {
+    stats::runif(n) < stats::plogis(-0.8 + 0.6 * as.numeric(scale(log(g))))
+  } else {
+    seq_len(n) %in% sample(n, floor(0.2 * n))
+  }
+  d$treatment[drop] <- NA
+  d
+}
+
+gamma_binary_specs <- function() {
+  list(
+    treatment = drm_node(
+      drmTMB::bf(treatment ~ z),
+      family = stats::binomial()
+    ),
+    g = drm_node(
+      drmTMB::bf(g ~ treatment + z),
+      family = stats::Gamma(link = "log")
+    )
+  )
+}
+
+test_that("V-80b: Gamma + binary parent emits; Gamma + continuous fails loud", {
+  d_bin <- gamma_binary_dat()
+  plan <- drmSEM:::drm_imputation_plan(gamma_binary_specs(), d_bin)
+  expect_identical(plan$g$variable, "treatment")
+  expect_identical(
+    drmSEM:::drm_impute_family_key(plan$g$family_name),
+    "binomial"
+  )
+
+  d_cont <- chain_dat()
+  d_cont$g <- stats::rgamma(nrow(d_cont), shape = 2, rate = 1)
   expect_error(
     suppressMessages(drm_sem(
       m = drm_node(drmTMB::bf(m ~ x)),
       g = drm_node(drmTMB::bf(g ~ m + x), family = stats::Gamma(link = "log")),
+      data = d_cont, impute = "auto"
+    )),
+    "BINARY missing predictor"
+  )
+})
+
+test_that("V-80d: a still-unwired response family is refused with a reason", {
+  d <- chain_dat()
+  d$w <- exp(d$y)
+  expect_error(
+    suppressMessages(drm_sem(
+      m = drm_node(drmTMB::bf(m ~ x)),
+      w = drm_node(drmTMB::bf(w ~ m + x), family = drmTMB::lognormal()),
       data = d, impute = "auto"
     )),
     "cannot carry a modelled missing predictor"
   )
+})
+
+test_that("V-122: Gamma x binary auto fit matches the hand-written emit", {
+  skip_if_not(engine_accepts_gamma(), "engine has no Gamma has_mi")
+  d <- gamma_binary_dat(n = 200, seed = 13L)
+  auto <- suppressWarnings(suppressMessages(drm_sem(
+    treatment = drm_node(
+      drmTMB::bf(treatment ~ z),
+      family = stats::binomial()
+    ),
+    g = drm_node(
+      drmTMB::bf(g ~ treatment + z),
+      family = stats::Gamma(link = "log")
+    ),
+    data = d, impute = "auto"
+  )))
+  hand <- suppressWarnings(suppressMessages(drm_sem(
+    treatment = drm_node(
+      drmTMB::bf(treatment ~ z),
+      family = stats::binomial()
+    ),
+    g = drm_node(
+      drmTMB::bf(g ~ mi(treatment) + z),
+      family = stats::Gamma(link = "log"),
+      impute = list(
+        treatment = drmTMB::impute_model(
+          treatment ~ z,
+          family = stats::binomial()
+        )
+      ),
+      missing = drmTMB::miss_control(predictor = "model")
+    ),
+    data = d
+  )))
+  expect_equal(
+    unlist(auto$nodes$g$coefficients$mu),
+    unlist(hand$nodes$g$coefficients$mu)
+  )
+  imp <- imputation(auto)
+  expect_identical(nrow(imp), 1L)
+  expect_identical(imp$node, "g")
+  expect_identical(imp$variable, "treatment")
+  expect_identical(imp$family, "binomial")
+})
+
+test_that("V-122b: Gamma x binary auto recovers known MAR coefficients", {
+  skip_if_not(engine_accepts_gamma(), "engine has no Gamma has_mi")
+  seeds <- c(13L, 21L, 34L)
+  b_trt <- numeric(length(seeds))
+  for (k in seq_along(seeds)) {
+    d <- gamma_binary_dat(n = 800, seed = seeds[[k]])
+    fit <- suppressWarnings(suppressMessages(drm_sem(
+      treatment = drm_node(
+        drmTMB::bf(treatment ~ z),
+        family = stats::binomial()
+      ),
+      g = drm_node(
+        drmTMB::bf(g ~ treatment + z),
+        family = stats::Gamma(link = "log")
+      ),
+      data = d, impute = "auto"
+    )))$nodes$g$coefficients$mu
+    coefs <- unlist(fit)
+    # mu: (Intercept), mi(treatment), z. Truth: 0.4, 0.7, 0.5.
+    b_trt[[k]] <- coefs[["mi(treatment)"]]
+  }
+  expect_lt(mean(abs(b_trt - 0.7)), 0.20)
 })
 
 test_that("V-80c: a non-Gaussian response demands a binary missing predictor", {

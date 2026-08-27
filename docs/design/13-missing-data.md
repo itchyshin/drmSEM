@@ -143,7 +143,7 @@ Refuse rather than emit a call the engine would reject later with less context:
 | node `y` family | permitted node `m` family |
 |---|---|
 | `gaussian` | the full predictor catalogue (gaussian, binomial, ordinal, categorical, beta, zero-one beta, beta-binomial, poisson, nbinom2, truncated nbinom2, lognormal, Gamma, tweedie) |
-| `poisson`, `binomial`, `nbinom2`, `beta` | **binary only** |
+| `poisson`, `binomial`, `nbinom2`, `beta`, `gamma` | **binary only** |
 | anything else | not supported |
 
 `test-imputation.R` (V-80) locks drmSEM's response allow-list to
@@ -193,8 +193,10 @@ works before anything is fitted.
 - **V-79 / V-79b / V-79c.** Two incomplete Gaussian parents are planned
   rather than aborted; `k > 2` and a non-Gaussian `k = 2` still fail loud
   with the engine reason.
-- **V-80 / V-81.** The family gate matches the engine; `mi()` coefficients
-  resolve to the right node.
+- **V-80 / V-80b / V-80d / V-81.** The family gate matches the engine
+  (now including `gamma`); Gamma × one Bernoulli `mi()` emits, Gamma ×
+  a continuous parent still fails loud, and lognormal (no `has_mi`)
+  still fails loud. `mi()` coefficients resolve to the right node.
 - **V-82.** Two-parent auto fit is numerically identical to the
   hand-written `y ~ mi(m1) + mi(m2) + x` emit (distinct from sampler
   V-82 tweedie).
@@ -205,13 +207,19 @@ works before anything is fitted.
   `std_error = NA` with status `"ok"`; that is not a failure.
   `imputed(sem)` stacks every parent and never silently returns the
   first `mi()` term.
+- **V-122.** Gamma × one Bernoulli parent: auto-derived fit is
+  numerically identical to the hand-written `mi()` + `impute_model()`
+  emit, and the mediator coefficient recovers under outcome-dependent
+  missingness (engine cell `mp-gamma-bernoulli`, drmTMB #1088
+  `6e553879`). Not FIML. Not `impute_joint`.
 
 ### Engine dependencies
 
 The one-parent Gaussian chain works on drmTMB ≥ 0.6. The Phase 1 cell —
 two independent Gaussian `mi()` terms — needs drmTMB 0.7.0 (#1086).
-Generality beyond that cell still waits on drmTMB Issue 1 (per-family
-C++ `has_mi`, not a whitelist edit) and on `k > 2`. See
+Gamma × one Bernoulli `mi()` needs drmTMB `main` @ #1088 `6e553879`
+(`mp-gamma-bernoulli`). Leftover families (lognormal, student, …),
+non-Gaussian `k = 2`, and `k > 2` still abort. See
 `docs/memory/DRMTMB_ISSUES.md`.
 
 **Version note.** `imputed()$std_error` semantics differ between drmTMB 0.6.0 and
