@@ -193,11 +193,12 @@ works before anything is fitted.
 - **V-79 / V-79b / V-79c.** Two incomplete Gaussian parents are planned
   rather than aborted; `k > 2` and a non-Gaussian `k = 2` still fail loud
   with the engine reason.
-- **V-80 / V-80b / V-80d / V-80e / V-81.** The family gate matches
-  the engine (now including `gamma` and `lognormal`); Gamma or
-  lognormal × one Bernoulli `mi()` emits, a continuous parent still
-  fails loud, and student (no `has_mi`) still fails loud. `mi()`
-  coefficients resolve to the right node.
+- **V-80 / V-80b / V-80d / V-80e / V-80f / V-81.** The family gate
+  matches the engine (now including `gamma`, `lognormal`, and
+  `beta_binomial`); Gamma, lognormal, or beta_binomial × one
+  Bernoulli `mi()` emits, a continuous parent still fails loud, and
+  student (no `has_mi`) still fails loud. `mi()` coefficients
+  resolve to the right node.
 - **V-82.** Two-parent auto fit is numerically identical to the
   hand-written `y ~ mi(m1) + mi(m2) + x` emit (distinct from sampler
   V-82 tweedie).
@@ -220,6 +221,12 @@ works before anything is fitted.
   `7c104bbd5`).
   Identity log-location (`mu` is meanlog). Not FIML. Not
   `impute_joint`.
+- **V-124.** Beta-binomial × one Bernoulli parent: auto-derived fit
+  is numerically identical to the hand-written `mi()` +
+  `impute_model()` emit, and the mediator coefficient recovers
+  under outcome-dependent missingness (engine cell
+  `mp-beta-binomial-bernoulli`, drmTMB #1094 `4c34c9bb`). Logit `mu` on a
+  `cbind()` count node. Not FIML. Not `impute_joint`.
 
 ### Engine dependencies
 
@@ -228,8 +235,9 @@ two independent Gaussian `mi()` terms — needs drmTMB 0.7.0 (#1086).
 Gamma × one Bernoulli `mi()` needs drmTMB `main` @ #1088 `6e553879`
 (`mp-gamma-bernoulli`). Lognormal × one Bernoulli `mi()` needs
 drmTMB `main` @ #1092 `7c104bbd5` (`mp-lognormal-bernoulli`).
-Leftover families (student, beta_binomial, zi_*), non-Gaussian
-`k = 2`, and `k > 2` still abort. See
+Beta-binomial × one Bernoulli `mi()` needs drmTMB #1094
+`4c34c9bb` (`mp-beta-binomial-bernoulli`). Leftover families (student, zi_*),
+non-Gaussian `k = 2`, and `k > 2` still abort. See
 `docs/memory/DRMTMB_ISSUES.md`.
 
 **Version note.** `imputed()$std_error` semantics differ between drmTMB 0.6.0 and

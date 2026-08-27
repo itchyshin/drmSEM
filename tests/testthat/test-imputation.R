@@ -9,7 +9,9 @@
 # V-80b Gamma × binary emits; Gamma × continuous still fails loud (A7c-2)
 # V-80d leftover unwired response (student) still fails loud
 # V-80e lognormal × binary emits; lognormal × continuous fails loud (A7c-3)
+# V-80f beta_binomial × binary emits; beta_binomial × continuous fails loud (A7c-4)
 # V-123 / V-123b lognormal × Bernoulli identity + MAR recovery
+# V-124 / V-124b beta_binomial × Bernoulli identity + MAR recovery
 # V-81  mi() coefficient names resolve to the right node in paths()
 # V-82  two-parent auto fit matches the hand-written emit shape (needs k=2 engine)
 # V-120 two-parent MAR recovery-to-truth (needs k=2 engine)
@@ -607,6 +609,158 @@ test_that("V-123b: lognormal x binary auto recovers known MAR coefficients", {
     )))$nodes$w$coefficients$mu
     coefs <- unlist(fit)
     # mu is identity meanlog: (Intercept), mi(treatment), z. Truth: 0.4, 0.7, 0.5.
+    b_trt[[k]] <- coefs[["mi(treatment)"]]
+  }
+    expect_lt(mean(abs(b_trt - 0.7)), 0.20)
+})
+
+engine_accepts_beta_binomial <- function() {
+  if (!requireNamespace("drmTMB", quietly = TRUE)) {
+    return(FALSE)
+  }
+  ns <- asNamespace("drmTMB")
+  if (!exists("drm_missing_predictor_families", envir = ns, inherits = FALSE)) {
+    return(FALSE)
+  }
+  "beta_binomial" %in% getFromNamespace("drm_missing_predictor_families", "drmTMB")()
+}
+
+rbeta_binomial <- function(n, trials, mu, phi) {
+  alpha <- mu * phi
+  beta_shape <- (1 - mu) * phi
+  p <- stats::rbeta(n, alpha, beta_shape)
+  stats::rbinom(n, size = trials, prob = p)
+}
+
+# z -> treatment (Bernoulli) -> cbind(success, failure) (beta_binomial).
+# Engine cell mp-beta-binomial-bernoulli / #1094. Logit mu:
+# eta = 0.4 + 0.5*z + 0.7*treatment, sigma = 0.3, phi = 1/sigma^2,
+# trials = 20. Matches the engine recovery DGP.
+beta_binomial_binary_dat <- function(n = 200, seed = 13L, mar = TRUE) {
+  set.seed(seed)
+  z <- stats::rnorm(n)
+  treatment <- stats::rbinom(n, 1L, stats::plogis(0.3 + 0.8 * z))
+  eta <- 0.4 + 0.5 * z + 0.7 * treatment
+  sigma <- 0.3
+  phi <- 1 / sigma^2
+  trials <- 20L
+  success <- rbeta_binomial(n, trials, stats::plogis(eta), phi)
+  d <- data.frame(
+    z = z,
+    treatment = treatment,
+    success = success,
+    failure = trials - success
+  )
+  drop <- if (isTRUE(mar)) {
+    stats::runif(n) < stats::plogis(-0.8 + 0.6 * as.numeric(scale(success / trials)))
+  } else {
+    seq_len(n) %in% sample(n, floor(0.2 * n))
+  }
+  d$treatment[drop] <- NA
+  d
+}
+
+beta_binomial_binary_specs <- function() {
+  list(
+    treatment = drm_node(
+      drmTMB::bf(treatment ~ z),
+      family = stats::binomial()
+    ),
+    bb = drm_node(
+      drmTMB::bf(cbind(success, failure) ~ treatment + z, sigma ~ 1),
+      family = drmTMB::beta_binomial()
+    )
+  )
+}
+
+test_that("V-80f: beta_binomial + binary parent emits; beta_binomial + continuous fails loud", {
+  d_bin <- beta_binomial_binary_dat()
+  plan <- drmSEM:::drm_imputation_plan(beta_binomial_binary_specs(), d_bin)
+  expect_identical(plan$bb$variable, "treatment")
+  expect_identical(
+    drmSEM:::drm_impute_family_key(plan$bb$family_name),
+    "binomial"
+  )
+
+  d_cont <- chain_dat()
+  trials <- 8L
+  d_cont$success <- stats::rbinom(nrow(d_cont), trials, 0.4)
+  d_cont$failure <- trials - d_cont$success
+  expect_error(
+    suppressMessages(drm_sem(
+      m = drm_node(drmTMB::bf(m ~ x)),
+      bb = drm_node(
+        drmTMB::bf(cbind(success, failure) ~ m + x, sigma ~ 1),
+        family = drmTMB::beta_binomial()
+      ),
+      data = d_cont, impute = "auto"
+    )),
+    "BINARY missing predictor"
+  )
+})
+
+test_that("V-124: beta_binomial x binary auto fit matches the hand-written emit", {
+  skip_if_not(engine_accepts_beta_binomial(), "engine has no beta_binomial has_mi")
+  d <- beta_binomial_binary_dat(n = 200, seed = 13L)
+  auto <- suppressWarnings(suppressMessages(drm_sem(
+    treatment = drm_node(
+      drmTMB::bf(treatment ~ z),
+      family = stats::binomial()
+    ),
+    bb = drm_node(
+      drmTMB::bf(cbind(success, failure) ~ treatment + z, sigma ~ 1),
+      family = drmTMB::beta_binomial()
+    ),
+    data = d, impute = "auto"
+  )))
+  hand <- suppressWarnings(suppressMessages(drm_sem(
+    treatment = drm_node(
+      drmTMB::bf(treatment ~ z),
+      family = stats::binomial()
+    ),
+    bb = drm_node(
+      drmTMB::bf(cbind(success, failure) ~ mi(treatment) + z, sigma ~ 1),
+      family = drmTMB::beta_binomial(),
+      impute = list(
+        treatment = drmTMB::impute_model(
+          treatment ~ z,
+          family = stats::binomial()
+        )
+      ),
+      missing = drmTMB::miss_control(predictor = "model")
+    ),
+    data = d
+  )))
+  expect_equal(
+    unlist(auto$nodes$bb$coefficients$mu),
+    unlist(hand$nodes$bb$coefficients$mu)
+  )
+  imp <- imputation(auto)
+  expect_identical(nrow(imp), 1L)
+  expect_identical(imp$node, "bb")
+  expect_identical(imp$variable, "treatment")
+  expect_identical(imp$family, "binomial")
+})
+
+test_that("V-124b: beta_binomial x binary auto recovers known MAR coefficients", {
+  skip_if_not(engine_accepts_beta_binomial(), "engine has no beta_binomial has_mi")
+  seeds <- c(13L, 21L, 34L)
+  b_trt <- numeric(length(seeds))
+  for (k in seq_along(seeds)) {
+    d <- beta_binomial_binary_dat(n = 1500, seed = seeds[[k]])
+    fit <- suppressWarnings(suppressMessages(drm_sem(
+      treatment = drm_node(
+        drmTMB::bf(treatment ~ z),
+        family = stats::binomial()
+      ),
+      bb = drm_node(
+        drmTMB::bf(cbind(success, failure) ~ treatment + z, sigma ~ 1),
+        family = drmTMB::beta_binomial()
+      ),
+      data = d, impute = "auto"
+    )))$nodes$bb$coefficients$mu
+    coefs <- unlist(fit)
+    # logit mu: (Intercept), mi(treatment), z. Truth: 0.4, 0.7, 0.5.
     b_trt[[k]] <- coefs[["mi(treatment)"]]
   }
   expect_lt(mean(abs(b_trt - 0.7)), 0.20)

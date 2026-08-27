@@ -41,20 +41,23 @@ Honest map after drmTMB #1088 `6e553879` (do not re-derive):
 | beta / binomial / poisson / nbinom2 (`10` / `18` / `6` / `7`) | yes | **bernoulli / binary only** |
 | Gamma (`5`) | **yes** (#1088) | **bernoulli / binary only** (`mp-gamma-bernoulli`) |
 | lognormal (`4`) | **yes** (#1092) | **bernoulli / binary only** (`mp-lognormal-bernoulli`) |
-| student, beta_binomial, zi_poisson, zi_nbinom2, … | **none** | must stay refused |
+| beta_binomial (`14`) | **yes** (#1094) | **bernoulli / binary only** (`mp-beta-binomial-bernoulli`) |
+| student, zi_poisson, zi_nbinom2, … | **none** | must stay refused |
 
-First A7 cell (consumed): **Gamma × Bernoulli**. Next cell
-(**A7c-3**): **lognormal × Bernoulli**. Not nbinom2 × Gaussian
+Consumed cells: **Gamma × Bernoulli**, **lognormal × Bernoulli**,
+**beta_binomial × Bernoulli**. Next implementable leftover is
+extra-#962 only; student and zi_* wait. Not nbinom2 × Gaussian
 (later expand-gated-family).
 
 drmSEM mirrors that with three gates in `R/imputation.R` (read-only
 this kickoff):
 
 1. `drm_impute_response_families()` — `gaussian`, `poisson`,
-   `binomial`, `nbinom2`, `beta`, `gamma`, `lognormal` after A7c-3.
+   `binomial`, `nbinom2`, `beta`, `gamma`, `lognormal`,
+   `beta_binomial` after A7c-4.
    V-80
    `expect_setequal(..., drmTMB:::drm_missing_predictor_families())`
-   is the anti-drift lock. Do not add beta_binomial here until that
+   is the anti-drift lock. Do not add student here until that
    engine cell exists.
 2. `drm_check_impute_legal()` — non-Gaussian response admits only a
    **binary** missing predictor (V-80c). Gaussian response admits

@@ -27,7 +27,10 @@
 # constant so the gate is testable without the engine, and locked to the engine's
 # own list by test-imputation.R.
 drm_impute_response_families <- function() {
-  c("gaussian", "poisson", "binomial", "nbinom2", "beta", "gamma", "lognormal")
+  c(
+    "gaussian", "poisson", "binomial", "nbinom2", "beta", "gamma",
+    "lognormal", "beta_binomial"
+  )
 }
 
 # Engine allow-list uses lowercase "gamma"; stats::Gamma()$family is "Gamma".
