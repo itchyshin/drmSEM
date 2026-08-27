@@ -1,8 +1,8 @@
 # Checkpoint — OVERWRITTEN every arc
 
-GOAL: see LOOP/GOAL.md. STATE: G0 approved; A0–A11 **merged**.
-**G1 OPEN.** **G2 partial** until Shinichi reviews the public claim.
-capability-status stays `partial`.
+GOAL: see LOOP/GOAL.md. STATE: **A12 done. Arc CLOSED.**
+G0 approved; G1 discharged; **G2 resolved — keep `partial`.**
+A7 (drmTMB item 1 C++) remains Phase 2, not this programme.
 
 ARCS DONE (verified):
 - A0 / G0 — planning kit + standing approval.
@@ -20,26 +20,34 @@ ARCS DONE (verified):
   V-121 tiers.
 - **A11** — `13-missing-data.md` (no FIML); ledger; capability stays
   `partial`.
+- **A12** — Ada + Rose + Melissa reconcile. PLAN-ACTUAL
+  `docs/memory/PLAN-ACTUAL-2026-08-27-s6-imputation.md`.
+  G2 = keep `partial`; no NEWS overclaim.
 
-ARC IN PROGRESS: none on this slice. Next is **A12** (review) / G2
-public-claim review. Do not start A7 (drmTMB item 1 C++).
+ARC IN PROGRESS: none. Programme closed.
 
-NEXT: A12 review. G2 stays partial until Shinichi reviews the public
-claim. Do not start A7.
+NEXT: none on this lane. A7 is a later drmTMB Phase 2 item — do
+**not** start it from this checkpoint. Archive the stale worktree
+`~/local-scratch/lanes/drmSEM-s6-imputation` after this lands on
+`main`. Do not touch MAG-completeness.
 
 OPEN GATES:
-- **G1** — OPEN. Engine item 2 is on drmTMB `main` @ `1cc1985cd`.
-- **G2** — partial: consumer merge authorised; public capability
-  claim waits for Shinichi.
-- **G3** — if independence fails
+- **G1** — discharged (engine item 2 on drmTMB `main` @ `1cc1985cd`;
+  consumer shipped in #46).
+- **G2** — **resolved 2026-08-27:** retain capability-status
+  `partial`. No public “covered” / FIML / general missing-data SEM
+  claim.
+- **G3** — did not fire.
 
 TRUTH LIVES IN:
-- drmSEM `main` @ `7280125d26dc99359aa63048d74d3df05bf18742` (#46)
+- drmSEM `cursor/lane-s6-a12` (this closeout) → `main` after merge
+- drmSEM #45 `ec5692aa` / #46 `7280125d` / stamp `6c9d6ca`
 - drmTMB `main` @ `1cc1985cd` (#1086)
+- PLAN-ACTUAL: `docs/memory/PLAN-ACTUAL-2026-08-27-s6-imputation.md`
 - MAG-completeness: **do not touch**
 
-RESUME: read LOOP/GOAL.md → this file → A1 contract. A12 / G2
-review. Do not emit `impute_joint`. capability-status stays
-`partial`. Do not start A7 here.
+RESUME: not applicable — arc CLOSED. If a later chat opens A7,
+that is a new drmTMB lane from `origin/main`, not a resume of
+this kit. capability-status stays `partial`.
 
-HUMAN GATE: G2 before a public capability claim.
+HUMAN GATE: none remaining on S6 Phase 1 + consumer.

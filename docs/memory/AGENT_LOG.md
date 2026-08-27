@@ -1616,3 +1616,28 @@ No `impute_joint`. A7 not started.
 
 **G2.** Partial: consumer merge done. Public capability claim waits
 for Shinichi. Next slice is A12 review, not A7.
+
+## 2026-08-27 — S6 A12 closeout; G2 resolved (partial retained)
+
+Ada + Rose + Melissa written reconcile (no extra launches).
+Shinichi authorised “A12 closeout” and did **not** ask to flip
+capability-status.
+
+**G2.** Public-claim review = **keep `partial`**. No NEWS edit (the
+Missing-data bullet already names two Gaussian parents, never FIML,
+and the fail-loud leftovers). No `"covered"`. No FIML / general
+missing-data SEM sentence.
+
+**PLAN-ACTUAL.**
+`docs/memory/PLAN-ACTUAL-2026-08-27-s6-imputation.md`
+(adaptive 4 · drift 0 · unclear 0).
+
+**Shipped claim (unchanged).** Two-parent Gaussian k = 2 independent
+`mi()`, drmTMB 0.7.0 / #1086 `1cc1985cd`, drmSEM #45 `ec5692aa` +
+#46 `7280125d`. V-77 kept; V-79/79b/79c; V-82 k=2 identity; V-120;
+V-121. Not `impute_joint`. A7 not started. MAG-completeness
+untouched. `R/imputation.R` not edited this slice.
+
+**Arc.** CLOSED. Worktree
+`~/local-scratch/lanes/drmSEM-s6-imputation` @ `a873f46` is stale;
+remove it after this commit is on `main`. Do not start A7 here.
