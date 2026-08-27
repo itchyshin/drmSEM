@@ -12,12 +12,12 @@ ARCS DONE (verified):
 
 ARC IN PROGRESS: none. Waiting on sibling.
 
-NEXT: **A7c-1 / G-engine** — wait until the sibling engine PR for the
-**first new family** is mergeable. Then A7c-2 (lift that cell only).
+NEXT: **A7c-1 / G-engine** — engine PR is **open**:
+https://github.com/itchyshin/drmTMB/pull/1088 (Gamma / `mp-gamma-bernoulli`).
+Wait until it is mergeable, then A7c-2 (lift Gamma only).
 
 OPEN GATES (need human / sibling):
-- **G-engine** — first new-family drmTMB #962 PR mergeable. Until
-  then, no drmSEM `R/`.
+- **G-engine** — #1088 CI green / mergeable. Until then, no drmSEM `R/`.
 - **G-claim** — later; default **keep `partial`**. No `"covered"`.
 
 TRUTH LIVES IN:

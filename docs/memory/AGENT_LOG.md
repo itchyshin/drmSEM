@@ -1669,3 +1669,25 @@ drmTMB worktree.
 `"covered"`. No FIML sentence. A7c-2 waits on **G-engine** (first
 new-family engine PR mergeable). A1/A3 notes kept as Phase 1
 locks.
+
+## 2026-08-27 — S6 A7 engine PR opened (Gamma `has_mi`)
+
+Sibling engine lane landed the first #962 family. drmSEM `R/` still
+waits for merge.
+
+- **PR:** https://github.com/itchyshin/drmTMB/pull/1088
+  (`c030f93d0` on `cursor/lane-s6-family-gate`)
+- **Cell:** `mp-gamma-bernoulli` — Gamma response × one Bernoulli
+  `mi()`. Poisson was already wired; G0 locked Gamma as first
+  *unwired* #962 family. Next: lognormal.
+- **Local evidence:** 14/0/0 in
+  `test-missing-predictor-gamma-response.R` (logLik identity, MCAR
+  0.15, MAR 0.20). Not FIML, not `impute_joint`, not k ≥ 2, not
+  `"covered"`.
+- **Consumer lift after merge (trivial, one family):** add
+  `"gamma"` to `drm_impute_response_families()`; rewrite V-80b so
+  Gamma + binary parent emits and Gamma + continuous parent still
+  fails loud. V-80 anti-drift will fail until that list update —
+  that is the lock working.
+
+Issue comment: https://github.com/itchyshin/drmTMB/issues/962#issuecomment-5439306058
