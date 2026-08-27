@@ -1831,3 +1831,17 @@ against drmTMB `7c104bbd5`.
 **beta_binomial × Bernoulli** (`mp-beta-binomial-bernoulli`).
 Student waits on a `nu` ABI change. Do not start nbinom2 ×
 Gaussian.
+
+## 2026-08-27 — S6 A7c-3 merged (#50)
+
+**Cursor / Grok** post-merge stamp on `main`. MAG lanes untouched.
+
+- **PR:** https://github.com/itchyshin/drmSEM/pull/50
+- **Merge sha:** `1e5d4cfbef3d1e130f205a910b86750ecf5f1fc0` (squash)
+- **Tests:** `test-imputation.R` **79 pass / 0 fail / 0 skip**
+  locally against drmTMB `7c104bbd5`. CI macos / ubuntu / windows
+  green.
+- capability-status stays **`partial`**. Not FIML. No `"covered"`.
+
+**Next.** Engine beta_binomial `has_mi` (drmTMB #1094). Do not
+start the consumer lift on this stamp.
