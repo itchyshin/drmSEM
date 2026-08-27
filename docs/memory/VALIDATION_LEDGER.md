@@ -1362,3 +1362,43 @@ Capability-status stays **`partial`**. Not FIML. No
 **Not claimed.** Student or zi_*. nbinom2 × a non-Gaussian
 non-binary predictor. Non-Gaussian `k = 2`. `k > 2`. Cross-node
 uncertainty. FIML. Capability-status `"covered"`.
+
+## 2026-08-27 — S6 A7c-5: V-125 reserved (not validated)
+
+Reserved so a later family cannot reuse the numbers. **Superseded
+by the validated A7c-5 row below** once engine #1096 is on `main`.
+
+## 2026-08-27 — S6 A7c-5: student × Bernoulli consumer lift
+
+A7c-5 lifts one engine cell into drmSEM. drmTMB #1096
+(`mp-student-bernoulli`) wired C++ `has_mi` for a student
+location-scale response with one Bernoulli `mi()`, using
+`drm_student_log_density` rather than extending the shared 7-arg
+leaf ABI. drmSEM adds `"student"` to
+`drm_impute_response_families()` so V-80 still matches the engine
+allow-list. `drmTMB::student()$family` is already `"student"`; no
+`drm_impute_family_key()` mapping. Identity `mu`; `nu` is a live
+third dpar and is not imputed. Capability-status stays
+**`partial`**. Not FIML. No `impute_joint`. No `"covered"`.
+
+- **V-80.** Allow-list now includes `student`. Anti-drift lock
+  still `expect_setequal` against
+  `drmTMB:::drm_missing_predictor_families()`.
+- **V-80d.** Leftover retargeted to `tweedie` (no `has_mi`). Still
+  fails loud (`cannot carry a modelled missing predictor`).
+- **V-80g.** Student + binary parent emits; student + continuous
+  parent still fails loud (`BINARY missing predictor`).
+- **V-125.** Student × Bernoulli identity: auto-derived fit is
+  numerically identical to the hand-written `mi()` +
+  `impute_model()` emit.
+- **V-125b.** Student × Bernoulli MAR recovery-to-truth: the
+  `mi(treatment)` coefficient recovers 0.7 within 0.20 across seeds
+  13, 21, 34 at n = 1500 (identity-mu DGP matching the engine
+  recovery). **Validated** for this cell only.
+
+`test-imputation.R` against drmTMB #1096 (sha pending merge):
+count pending local rerun after rebase onto #54.
+
+**Not claimed.** zi_*. nbinom2 × a non-Gaussian non-binary
+predictor. Non-Gaussian `k = 2`. `k > 2`. Cross-node
+uncertainty. FIML. Capability-status `"covered"`.

@@ -1962,3 +1962,32 @@ edit.
 - capability-status stays **`partial`**. Not FIML. No `"covered"`.
 
 **Not this slice.** Student. zi+`mi`. nbinom2 × poisson. k=2.
+
+## 2026-08-27 — S6 A7c-5: student × Bernoulli consumer lift
+
+**Cursor / Grok** on `cursor/lane-s6-a7-student` in worktree
+`~/local-scratch/lanes/drmSEM-s6-a7-student`, rebased onto
+`origin/main` after #54 `2482e27`. Isolated worktree. Sibling
+5294519a stalled; this follow-up took the student lane. ZIP
+#1097 / zi-mi `LOOP/notes/` untouched.
+
+**Engine.** drmTMB #1096 (`mp-student-bernoulli`) — C++ `has_mi`
+for `model_type == 3` via `drm_student_log_density`. Shared 7-arg
+leaf ABI not extended. `nu` stays a live third dpar; `mi()` is
+`mu`-only. Shinichi authorized this as a parallel hard case
+after the #52 pause (not a clone).
+
+**Consumer lift.**
+- `"student"` added to `drm_impute_response_families()`.
+- nbinom2 × gaussian exception from #54 kept intact.
+- No `drm_impute_family_key()` change.
+- V-80 anti-drift still `expect_setequal`.
+- V-80d leftover retargeted to `tweedie`.
+- V-80g: student + binary emits; + continuous fails loud.
+- V-125 identity + V-125b MAR recovery for
+  `mp-student-bernoulli`.
+- capability-status stays **`partial`**. Not FIML. Not
+  `impute_joint`. No `"covered"`.
+
+**Next.** zi_* (mixture composition). nbinom2 × poisson still
+refused.

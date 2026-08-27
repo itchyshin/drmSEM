@@ -29,7 +29,7 @@
 drm_impute_response_families <- function() {
   c(
     "gaussian", "poisson", "binomial", "nbinom2", "beta", "gamma",
-    "lognormal", "beta_binomial"
+    "lognormal", "beta_binomial", "student"
   )
 }
 

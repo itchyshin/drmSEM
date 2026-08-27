@@ -13,8 +13,9 @@ Do not re-open Phase 1. Do not implement engine likelihoods.
 | A7c-2 | Lift `R/imputation.R` gates for **Gamma × Bernoulli only** (separate PR). Old ultra-plan A7c-3–A7c-7 (V-80 / recovery / ledger / honesty / review) landed inside #49 | done | ← G-engine |
 | A7c-3 | lognormal × Bernoulli consumer lift | done | **G-engine-ln** (#1092 / #50 `1e5d4cf`) |
 | A7c-4 | beta_binomial × Bernoulli consumer lift | done | **G-engine-bb** (#1094 / #51 `e78bb94`) |
-| sibling | nbinom2 × Gaussian consumer lift | doing | **G-engine-nb2g** (#1095) |
-| clone tranche | student / zi+mi | **paused** | Shinichi: "pause A7" |
+| sibling | nbinom2 × Gaussian consumer lift | done | **G-engine-nb2g** (#1095 `3c239a55e` / #54 `2482e27`) |
+| A7c-5 | student × Bernoulli consumer lift | doing | **G-engine-st** (#1096) |
+| leftovers | zi+mi | **paused** | G0 (b) D-23; wait for engine #1097 |
 
 Status: todo / doing / done / paused / blocked / deferred.
 `blocked` = waiting on the sibling engine PR. `paused` = Shinichi's
@@ -22,9 +23,10 @@ named decision.
 
 G-engine (Gamma) is discharged (#1088 / #49). **G-engine-ln is
 discharged** (#1092 / #50). **G-engine-bb is discharged**
-(#1094 `4c34c9bb` / drmSEM #51 `e78bb94`). Consumer tests
-**88/0/0**. **Clone tranche PAUSED.** Leftovers — student
-(`nu` ABI), zi+`mi` (mixture), nbinom2 × Gaussian (expand-gated)
-— are sibling work, not A7c-5. Extra-#962 `truncated_nbinom2`
-only if asked. capability-status stays `partial`.
-See `docs/memory/PLAN-ACTUAL-2026-08-27-s6-a7-pause.md`.
+(#1094 `4c34c9bb` / drmSEM #51 `e78bb94`). **G-engine-nb2g is
+discharged** (#1095 `3c239a55e` / drmSEM #54 `2482e27`).
+**A7c-5** consumes student × Bernoulli after engine #1096
+(`mp-student-bernoulli`, dedicated `drm_student_log_density`,
+no shared-leaf ABI extend). Remaining leftover: zi_* (mixture;
+#1097 separate lane). Extra-#962 `truncated_nbinom2` only if
+asked. Do not flip capability-status.
