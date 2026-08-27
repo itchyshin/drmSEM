@@ -1,29 +1,25 @@
-# Arcs — S6 generality multi-mi() (G0 approved 2026-08-26)
+# Arcs — S6 A7 consumer (docs kickoff 2026-08-27)
 
-**Programme status: CLOSED 2026-08-27 (A12).** G2 resolved: keep
-`partial`. A7 is Phase 2, not this arc.
+Phase 1 (A0–A6, A8–A12) is **CLOSED** on drmSEM `main` @ `e7392d7`
+(#45 / #46 / #47). This kit is the **consumer follow-on** only.
+Engine A7 (per-family C++ `has_mi`, #962) is sibling
+`0a5d078f` / `~/local-scratch/lanes/drmTMB-s6-family-gate`.
+Do not re-open Phase 1. Do not implement engine likelihoods.
 
 | # | arc | status | gate? |
 |---|-----|--------|-------|
-| A0 | Lane + charter + LOOP kit + D-22 | done | — |
-| A1 | Engine contract draft (docs only) | done | G0 |
-| A2 | Attach S6 prototype evidence to drmTMB #963 / #962 | done | authorised |
-| A3 | Recon `drmTMB-joint-mi` vs #963 option (b) | done | G0 |
-| A4 | drmTMB item 2: k ≥ 2 independent `mi()` | done | PR #1086 |
-| A5 | drmTMB item 5: k=2 row on existing `missing_predictor` axis | done | pairs A4 |
-| A6 | Two-predictor recovery + sentinel-invariance | done | ← A4 |
-| A7 | drmTMB item 1: per-family C++ `has_mi` | deferred | Phase 2 |
-| A8 | drmSEM: lift abort, multi-`mi()` from DAG | done | PR #46 |
-| A9 | drmSEM: `imputed()` / `uncertainty_status` tiers | done | ← A8 |
-| A10 | drmSEM tests (keep V-77; new two-parent DGP) | done | PR #46 |
-| A11 | Docs + ledgers + capability-status honesty | done | ← A10 |
-| A12 | Review + reconcile | done | **G2 resolved: partial retained** |
+| A7c-0 | Fresh LOOP kit + consumer contract + AGENT_LOG stubs | done | — |
+| A7c-1 | Wait for first new-family engine PR to be **mergeable** | blocked | **G-engine** |
+| A7c-2 | Lift `R/imputation.R` gates for **that cell only** | todo | ← G-engine |
+| A7c-3 | V-80 still equals engine allow-list; leftovers fail loud | todo | ← A7c-2 |
+| A7c-4 | Known-DGP recovery + identity for the new cell | todo | ← A7c-2 |
+| A7c-5 | Ledger cross-ref (V-number ↔ engine `missing_predictor` row) | todo | ← A7c-4 |
+| A7c-6 | Docs honesty; capability-status stays `partial` | todo | ← A7c-5 |
+| A7c-7 | Review + reconcile | todo | G-claim (keep `partial`) |
 
 Status: todo / doing / done / paused / blocked / deferred.
-`paused` = awaiting Shinichi's named decision; `blocked` = external
-dependency; `deferred` = later programme, not this closeout.
+`blocked` = waiting on the sibling engine PR. `paused` = Shinichi's
+named decision.
 
-A2 posted 2026-08-26. #45 merged `ec5692aa`. #1086 merged `1cc1985cd`.
-#46 merged `7280125d`. G1 discharged. G2 resolved 2026-08-27: public
-claim review = keep capability-status `partial`; no NEWS overclaim.
-PLAN-ACTUAL: `docs/memory/PLAN-ACTUAL-2026-08-27-s6-imputation.md`.
+G-engine opens A7c-2. Until then, **no `R/`**. A later family repeats
+A7c-2–A7c-6; it does not flip capability-status.
