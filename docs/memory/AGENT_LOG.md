@@ -1795,3 +1795,39 @@ green or merged (C++ `has_mi`, not a whitelist flip).
 **Next.** Wait for the engine PR number. Then implement the
 checklist, tests, consumer PR, merge. capability-status stays
 `partial`.
+
+## 2026-08-27 — S6 A7c-3: lognormal × Bernoulli consumer lift
+
+**Cursor / Grok** on `cursor/lane-s6-a7-consumer` in worktree
+`~/local-scratch/lanes/drmSEM-s6-a7-consumer`. Lease:
+`cursor:drmSEM` on `R/imputation.R`, tests, `docs/memory/`,
+`13-missing-data.md`. MAG-completeness / MAG-wire / S3-grouping
+untouched.
+
+**Engine.** drmTMB #1092 MERGED
+`7c104bbd5fb796b02e75bf319e01701fb902067e`
+(`mp-lognormal-bernoulli`) — C++ `has_mi` for `model_type == 4`,
+identity log-location. Local tests used worktree tip `5b8c881de`.
+
+**Consumer lift.**
+- `"lognormal"` added to `drm_impute_response_families()`.
+- No `drm_impute_family_key()` change (`lognormal()` is already
+  lowercase).
+- V-80 anti-drift still `expect_setequal`.
+- V-80d leftover retargeted to `student`.
+- V-80e: lognormal + binary emits; lognormal + continuous fails
+  loud.
+- V-123 identity + V-123b MAR recovery for
+  `mp-lognormal-bernoulli`.
+- Ledger row V-123 / V-123b ↔ engine `mp-lognormal-bernoulli` /
+  #1092 `7c104bbd5`.
+- capability-status stays **`partial`**. Not FIML. Not
+  `impute_joint`. No `"covered"`.
+
+**Tests.** `test-imputation.R` **79 pass / 0 fail / 0 skip**
+against drmTMB `7c104bbd5`.
+
+**Next.** After engine #1092 merge + this consumer PR: engine
+**beta_binomial × Bernoulli** (`mp-beta-binomial-bernoulli`).
+Student waits on a `nu` ABI change. Do not start nbinom2 ×
+Gaussian.

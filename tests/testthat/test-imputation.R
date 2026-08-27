@@ -7,7 +7,9 @@
 # V-79c k = 2 on a non-Gaussian response fails loud (engine Phase 1 cell)
 # V-80  the response/predictor family gate matches the engine's own rule
 # V-80b Gamma × binary emits; Gamma × continuous still fails loud (A7c-2)
-# V-80d leftover unwired response (lognormal) still fails loud
+# V-80d leftover unwired response (student) still fails loud
+# V-80e lognormal × binary emits; lognormal × continuous fails loud (A7c-3)
+# V-123 / V-123b lognormal × Bernoulli identity + MAR recovery
 # V-81  mi() coefficient names resolve to the right node in paths()
 # V-82  two-parent auto fit matches the hand-written emit shape (needs k=2 engine)
 # V-120 two-parent MAR recovery-to-truth (needs k=2 engine)
@@ -401,14 +403,78 @@ test_that("V-80b: Gamma + binary parent emits; Gamma + continuous fails loud", {
 
 test_that("V-80d: a still-unwired response family is refused with a reason", {
   d <- chain_dat()
-  d$w <- exp(d$y)
+  expect_error(
+    suppressMessages(drm_sem(
+      m = drm_node(drmTMB::bf(m ~ x)),
+      y = drm_node(drmTMB::bf(y ~ m + x), family = drmTMB::student()),
+      data = d, impute = "auto"
+    )),
+    "cannot carry a modelled missing predictor"
+  )
+})
+
+engine_accepts_lognormal <- function() {
+  if (!requireNamespace("drmTMB", quietly = TRUE)) {
+    return(FALSE)
+  }
+  ns <- asNamespace("drmTMB")
+  if (!exists("drm_missing_predictor_families", envir = ns, inherits = FALSE)) {
+    return(FALSE)
+  }
+  "lognormal" %in% getFromNamespace("drm_missing_predictor_families", "drmTMB")()
+}
+
+# z -> treatment (Bernoulli) -> w (lognormal). Engine cell
+# mp-lognormal-bernoulli / #1092. Identity log-location: meanlog = eta,
+# sdlog = 0.3. Matches the engine recovery DGP.
+lognormal_binary_dat <- function(n = 200, seed = 13L, mar = TRUE) {
+  set.seed(seed)
+  z <- stats::rnorm(n)
+  treatment <- stats::rbinom(n, 1L, stats::plogis(0.3 + 0.8 * z))
+  mu <- 0.4 + 0.5 * z + 0.7 * treatment
+  sdlog <- 0.3
+  w <- stats::rlnorm(n, meanlog = mu, sdlog = sdlog)
+  d <- data.frame(z = z, treatment = treatment, w = w)
+  drop <- if (isTRUE(mar)) {
+    stats::runif(n) < stats::plogis(-0.8 + 0.6 * as.numeric(scale(log(w))))
+  } else {
+    seq_len(n) %in% sample(n, floor(0.2 * n))
+  }
+  d$treatment[drop] <- NA
+  d
+}
+
+lognormal_binary_specs <- function() {
+  list(
+    treatment = drm_node(
+      drmTMB::bf(treatment ~ z),
+      family = stats::binomial()
+    ),
+    w = drm_node(
+      drmTMB::bf(w ~ treatment + z),
+      family = drmTMB::lognormal()
+    )
+  )
+}
+
+test_that("V-80e: lognormal + binary parent emits; lognormal + continuous fails loud", {
+  d_bin <- lognormal_binary_dat()
+  plan <- drmSEM:::drm_imputation_plan(lognormal_binary_specs(), d_bin)
+  expect_identical(plan$w$variable, "treatment")
+  expect_identical(
+    drmSEM:::drm_impute_family_key(plan$w$family_name),
+    "binomial"
+  )
+
+  d_cont <- chain_dat()
+  d_cont$w <- exp(d_cont$y)
   expect_error(
     suppressMessages(drm_sem(
       m = drm_node(drmTMB::bf(m ~ x)),
       w = drm_node(drmTMB::bf(w ~ m + x), family = drmTMB::lognormal()),
-      data = d, impute = "auto"
+      data = d_cont, impute = "auto"
     )),
-    "cannot carry a modelled missing predictor"
+    "BINARY missing predictor"
   )
 })
 
@@ -474,6 +540,73 @@ test_that("V-122b: Gamma x binary auto recovers known MAR coefficients", {
     )))$nodes$g$coefficients$mu
     coefs <- unlist(fit)
     # mu: (Intercept), mi(treatment), z. Truth: 0.4, 0.7, 0.5.
+    b_trt[[k]] <- coefs[["mi(treatment)"]]
+  }
+  expect_lt(mean(abs(b_trt - 0.7)), 0.20)
+})
+
+test_that("V-123: lognormal x binary auto fit matches the hand-written emit", {
+  skip_if_not(engine_accepts_lognormal(), "engine has no lognormal has_mi")
+  d <- lognormal_binary_dat(n = 200, seed = 13L)
+  auto <- suppressWarnings(suppressMessages(drm_sem(
+    treatment = drm_node(
+      drmTMB::bf(treatment ~ z),
+      family = stats::binomial()
+    ),
+    w = drm_node(
+      drmTMB::bf(w ~ treatment + z),
+      family = drmTMB::lognormal()
+    ),
+    data = d, impute = "auto"
+  )))
+  hand <- suppressWarnings(suppressMessages(drm_sem(
+    treatment = drm_node(
+      drmTMB::bf(treatment ~ z),
+      family = stats::binomial()
+    ),
+    w = drm_node(
+      drmTMB::bf(w ~ mi(treatment) + z),
+      family = drmTMB::lognormal(),
+      impute = list(
+        treatment = drmTMB::impute_model(
+          treatment ~ z,
+          family = stats::binomial()
+        )
+      ),
+      missing = drmTMB::miss_control(predictor = "model")
+    ),
+    data = d
+  )))
+  expect_equal(
+    unlist(auto$nodes$w$coefficients$mu),
+    unlist(hand$nodes$w$coefficients$mu)
+  )
+  imp <- imputation(auto)
+  expect_identical(nrow(imp), 1L)
+  expect_identical(imp$node, "w")
+  expect_identical(imp$variable, "treatment")
+  expect_identical(imp$family, "binomial")
+})
+
+test_that("V-123b: lognormal x binary auto recovers known MAR coefficients", {
+  skip_if_not(engine_accepts_lognormal(), "engine has no lognormal has_mi")
+  seeds <- c(13L, 21L, 34L)
+  b_trt <- numeric(length(seeds))
+  for (k in seq_along(seeds)) {
+    d <- lognormal_binary_dat(n = 800, seed = seeds[[k]])
+    fit <- suppressWarnings(suppressMessages(drm_sem(
+      treatment = drm_node(
+        drmTMB::bf(treatment ~ z),
+        family = stats::binomial()
+      ),
+      w = drm_node(
+        drmTMB::bf(w ~ treatment + z),
+        family = drmTMB::lognormal()
+      ),
+      data = d, impute = "auto"
+    )))$nodes$w$coefficients$mu
+    coefs <- unlist(fit)
+    # mu is identity meanlog: (Intercept), mi(treatment), z. Truth: 0.4, 0.7, 0.5.
     b_trt[[k]] <- coefs[["mi(treatment)"]]
   }
   expect_lt(mean(abs(b_trt - 0.7)), 0.20)

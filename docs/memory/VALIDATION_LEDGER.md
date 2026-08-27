@@ -1241,16 +1241,44 @@ No `impute_joint`. No `"covered"`.
 
 ## 2026-08-27 — S6 A7c-3: V-123 reserved (not validated)
 
-Reserved so a later family cannot reuse the numbers. **Not
-validated.** Waiting on drmTMB lognormal `has_mi` (expected cell
-`mp-lognormal-bernoulli`). Do not treat this row as evidence.
+Reserved so a later family cannot reuse the numbers. **Superseded
+by the validated A7c-3 row below.** Kept so the reservation is
+auditable.
 
-- **V-123.** Lognormal × Bernoulli identity (auto ≡ hand-written
-  `mi()` + `impute_model()`). **Reserved.**
-- **V-123b.** Lognormal × Bernoulli MAR recovery-to-truth.
-  **Reserved.**
-- **V-80e.** Planned leftover letter: lognormal + binary emits;
-  lognormal + continuous fails loud. V-80d retargets to `student`
-  after the lift.
+## 2026-08-27 — S6 A7c-3: lognormal × Bernoulli consumer lift
 
-Capability-status stays **`partial`**. Not FIML. No `"covered"`.
+A7c-3 lifts one engine cell into drmSEM. drmTMB #1092
+`7c104bbd5fb796b02e75bf319e01701fb902067e`
+(`mp-lognormal-bernoulli`) wired C++
+`has_mi` for a lognormal response with one Bernoulli `mi()`.
+drmSEM adds `"lognormal"` to `drm_impute_response_families()` so
+V-80 still matches the engine allow-list. `drmTMB::lognormal()$family`
+is already `"lognormal"`; no `drm_impute_family_key()` mapping.
+Identity log-location (`mu` is meanlog). Capability-status stays
+**`partial`**. Not FIML. No `impute_joint`. No `"covered"`.
+
+- **V-80.** Allow-list now includes `lognormal`. Anti-drift lock
+  still `expect_setequal` against
+  `drmTMB:::drm_missing_predictor_families()`. **Validated**
+  against drmTMB #1092 `7c104bbd5`.
+- **V-80d.** Leftover retargeted to `student` (no `has_mi`). Still
+  fails loud (`cannot carry a modelled missing predictor`).
+  **Validated.**
+- **V-80e.** Lognormal + binary parent emits; lognormal +
+  continuous parent still fails loud (`BINARY missing predictor`).
+  **Validated.**
+- **V-123.** Lognormal × Bernoulli identity: auto-derived fit is
+  numerically identical to the hand-written `mi()` + `impute_model()`
+  emit. **Validated** against engine cell `mp-lognormal-bernoulli`
+  / #1092.
+- **V-123b.** Lognormal × Bernoulli MAR recovery-to-truth: the
+  `mi(treatment)` coefficient recovers 0.7 within 0.20 across seeds
+  13, 21, 34 at n = 800 (identity meanlog DGP matching the engine
+  recovery). **Validated** for this cell only.
+
+`test-imputation.R` against drmTMB `7c104bbd5` (worktree tip
+`5b8c881de` before squash): **79 pass / 0 fail / 0 skip**.
+
+**Not claimed.** Student or any other leftover family. Non-Gaussian
+`k = 2`. `k > 2`. Cross-node uncertainty. FIML. Capability-status
+`"covered"`.

@@ -16,18 +16,18 @@ capability-status stays `partial`. See
 
 Refuse the lift unless **all** of these are true:
 
-1. An engine PR exists (number goes here: **#____**).
+1. An engine PR exists (number goes here: **#1092**).
 2. That PR (or `main` after merge) includes **C++ `has_mi`** for a
    **lognormal response**. A whitelist-only edit of
    `drm_missing_predictor_families()` is the #962 failure mode —
-   refuse it.
+   refuse it. Confirmed: `src/drmTMB.cpp` `model_type == 4` +
+   `src/drm_response_kernels.h` `case 4`.
 3. Predictor coverage is **Bernoulli / binary only** (same as
    Gamma). If the engine ships a wider predictor catalogue, stop
    and re-read the contract; do not silently relax V-80c.
-4. Recovery test + honest `missing_predictor` row exist. Expected
-   cell id: **`mp-lognormal-bernoulli`**. Confirm the real id from
-   the engine ledger; do not invent a second axis.
-5. Engine sha recorded: **`________`**.
+4. Recovery test + honest `missing_predictor` row exist. Cell id:
+   **`mp-lognormal-bernoulli`**.
+5. Engine sha recorded: **`7c104bbd5fb796b02e75bf319e01701fb902067e`**.
 
 Until 1–5, V-80d (lognormal leftover fails loud) is **correct**.
 
@@ -37,19 +37,19 @@ Until 1–5, V-80d (lognormal leftover fails loud) is **correct**.
 
 Mirror A7c-2. One family. Stop.
 
-- [ ] Add `"lognormal"` to `drm_impute_response_families()`.
+- [x] Add `"lognormal"` to `drm_impute_response_families()`.
       Expected list after the lift:
       `gaussian, poisson, binomial, nbinom2, beta, gamma, lognormal`.
-- [ ] **Do not** copy `drm_impute_family_key()` Gamma mapping unless
+- [x] **Do not** copy `drm_impute_family_key()` Gamma mapping unless
       the engine list uses a different string than
       `drmTMB::lognormal()$family`. Today both are `"lognormal"`.
       Confirm against the installed engine before adding a key.
-- [ ] Do **not** widen `drm_impute_predictor_families()`.
-- [ ] Do **not** relax `drm_check_impute_legal()` binary-only for
+- [x] Do **not** widen `drm_impute_predictor_families()`.
+- [x] Do **not** relax `drm_check_impute_legal()` binary-only for
       non-Gaussian responses (lognormal still admits only a binary
       parent).
-- [ ] Do **not** touch `drm_check_two_gaussian_mi()`.
-- [ ] Do **not** emit `impute_joint`. Option (b) only.
+- [x] Do **not** touch `drm_check_two_gaussian_mi()`.
+- [x] Do **not** emit `impute_joint`. Option (b) only.
 
 ---
 
@@ -104,10 +104,10 @@ Sketch only (fill from the engine test; `mu` is meanlog, identity):
 # MAR: drop treatment depending on the outcome (not MCAR-only)
 ```
 
-- [ ] Header comment: V-80d leftover = student; V-80e lognormal
+- [x] Header comment: V-80d leftover = student; V-80e lognormal
       emit + continuous fail-loud; V-123 / V-123b.
-- [ ] Identity before recovery (same convention as V-77 / V-122).
-- [ ] MAR required to claim the cell. MCAR-only is plumbing.
+- [x] Identity before recovery (same convention as V-77 / V-122).
+- [x] MAR required to claim the cell. MCAR-only is plumbing.
 - [ ] Totoro for smoke if a replicated grid is proposed later.
       Not GitHub Actions for the grid.
 
@@ -115,19 +115,20 @@ Sketch only (fill from the engine test; `mu` is meanlog, identity):
 
 ## 5. Ledger + docs (same PR as the lift)
 
-- [ ] `docs/memory/VALIDATION_LEDGER.md` — V-123 / V-123b row:
+- [x] `docs/memory/VALIDATION_LEDGER.md` — V-123 / V-123b row:
       test id, engine cell id, engine PR/sha, leftover list
-      (student, …; non-Gaussian k=2; k>2).
-- [ ] `docs/design/13-missing-data.md` legality table: add
+      (student, …; non-Gaussian k=2; k>2). Merge sha after #1092.
+- [x] `docs/design/13-missing-data.md` legality table: add
       `lognormal` to the binary-only response row. Move lognormal
       off the leftover-family sentence. Keep: not FIML; not
       `impute_joint`; exogenous → `na_action`.
-- [ ] `docs/design/capability-status.md` S6 row: **name the cell**,
+- [x] `docs/design/capability-status.md` S6 row: **name the cell**,
       stay **`partial`**. No `"covered"`. See guardrails.
-- [ ] NEWS: one named-cell sentence + leftovers + closer
+- [x] NEWS: one named-cell sentence + leftovers + closer
       (template in `LOOP/notes/A7-claims-guardrails.md`).
-- [ ] `docs/memory/AGENT_LOG.md` — what shipped, engine sha, next
-      leftover (student).
+- [x] `docs/memory/AGENT_LOG.md` — what shipped, engine sha, next
+      leftover (student). Next *engine* family is beta_binomial
+      (`nu` ABI blocks student).
 - [ ] Update this checklist + `LOOP/checkpoint.md` after merge.
 
 ---

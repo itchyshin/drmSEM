@@ -1,7 +1,8 @@
 # Checkpoint — OVERWRITTEN every arc
 
-GOAL: see LOOP/GOAL.md. STATE: **A7c-3 PREP.** Waiting on engine
-lognormal `has_mi`. drmSEM `main` @ `0cb3360` (A7c-2 stamped).
+GOAL: see LOOP/GOAL.md. STATE: **A7c-3 LIFT.** Engine #1092
+MERGED `7c104bbd5` (`mp-lognormal-bernoulli`). Consumer tests
+green locally. Opening the consumer PR.
 Worktree `~/local-scratch/lanes/drmSEM-s6-a7-consumer` on
 `cursor/lane-s6-a7-consumer`. capability-status stays **`partial`**.
 
@@ -14,34 +15,34 @@ ARCS DONE (verified):
   `test-imputation.R`: **70 pass / 0 fail / 0 skip** locally against
   drmTMB `6e553879`. CI: macos / ubuntu / windows green.
 
-ARC IN PROGRESS: **A7c-3** lognormal × Bernoulli (docs/prep only).
-No drmSEM `R/` until the engine PR is **green or merged**.
+ARC IN PROGRESS: **A7c-3** lognormal × Bernoulli consumer lift.
+`R/` + tests + ledger written. Waiting on #1092 merge, then
+consumer PR.
 
-NEXT CELL (locked): **lognormal × Bernoulli**
-(`mp-lognormal-bernoulli`, expected). Mirror of Gamma A7c-2.
-**Not** nbinom2 × Gaussian. **Not** student. Checklist:
+NEXT CELL (after this consumer lands): **beta_binomial × Bernoulli**
+engine (`mp-beta-binomial-bernoulli`). **Not** student (`nu` ABI).
+**Not** nbinom2 × Gaussian. Checklist for this cell:
 `LOOP/notes/A7c-3-lognormal-checklist.md`.
 
-ENGINE STATUS (2026-08-27, this prep):
+ENGINE STATUS (2026-08-27):
 - Sibling owns `~/local-scratch/lanes/drmTMB-s6-family-gate`
   (`cursor/lane-s6-family-gate`). Do **not** duplicate.
-- No open drmTMB PR for lognormal `has_mi` yet. Do not lift
-  `"lognormal"` in `drm_impute_response_families()`.
+- drmTMB **#1092 MERGED** `7c104bbd5fb796b02e75bf319e01701fb902067e`.
+  Cell `mp-lognormal-bernoulli`. C++ first.
 
 OPEN GATES:
-- **G-engine-ln** — **OPEN.** Wait for drmTMB lognormal × Bernoulli
-  `has_mi` PR (C++ + recovery + `missing_predictor` row). Not a
-  whitelist-only diff. Then implement the consumer lift.
+- **G-engine-ln** — **DISCHARGED.** #1092 on `main` with C++
+  `has_mi` + recovery + `missing_predictor` row. Not a whitelist-only
+  diff.
 - **G-claim** — keep `partial`. No `"covered"`. Not FIML.
 
 TRUTH LIVES IN:
-- This worktree / `cursor/lane-s6-a7-consumer` (from `0cb3360`)
+- This worktree / `cursor/lane-s6-a7-consumer`
 - Contract: `LOOP/notes/A7-consumer-contract.md`
 - Checklist: `LOOP/notes/A7c-3-lognormal-checklist.md`
 - Guardrails: `LOOP/notes/A7-claims-guardrails.md`
-- Engine (last shipped cell): drmTMB #1088 `6e553879`
+- Engine: drmTMB #1092 `7c104bbd5`
 - MAG-completeness: **do not touch**
 
-RESUME: Docs/prep is on this branch. `R/` opens only after the
-lognormal engine PR exists and is green or merged. Never
-`git add -A`.
+RESUME: Merge #1092 when CI green. Stamp engine sha. Push this
+branch and open the consumer PR. Never `git add -A`.
