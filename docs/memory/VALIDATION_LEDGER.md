@@ -1204,3 +1204,37 @@ stays **`partial`**. Not FIML. No `impute_joint`.
 
 **Not claimed.** Generality beyond two Gaussian parents. Cross-node
 uncertainty. FIML. `impute_joint`. Capability-status `"covered"`.
+
+## 2026-08-27 — S6 A7c-2: Gamma × Bernoulli consumer lift
+
+A7c-2 lifts one engine cell into drmSEM. drmTMB #1088
+`6e553879753a2a932ed09d2bba19b21a4b1e00d2` wired C++ `has_mi` for a
+Gamma response with one Bernoulli `mi()` (`mp-gamma-bernoulli`).
+drmSEM adds `"gamma"` to `drm_impute_response_families()` so V-80
+still matches the engine allow-list. `stats::Gamma()$family` is
+`"Gamma"`; the legality gate maps that to `"gamma"` before the
+allow-list check. Capability-status stays **`partial`**. Not FIML.
+No `impute_joint`. No `"covered"`.
+
+- **V-80.** Allow-list now includes `gamma`. Anti-drift lock still
+  `expect_setequal` against `drmTMB:::drm_missing_predictor_families()`.
+  **Validated** against drmTMB `6e553879`.
+- **V-80b.** Gamma + binary parent emits; Gamma + continuous parent
+  still fails loud (`BINARY missing predictor`). **Validated.**
+- **V-80d.** Lognormal (no `has_mi`) still fails loud (`cannot carry
+  a modelled missing predictor`). **Validated.**
+- **V-122.** Gamma × Bernoulli identity: auto-derived fit is
+  numerically identical to the hand-written `mi()` + `impute_model()`
+  emit. **Validated** against drmTMB `6e553879` / engine cell
+  `mp-gamma-bernoulli`.
+- **V-122b.** Gamma × Bernoulli MAR recovery-to-truth: the
+  `mi(treatment)` coefficient recovers 0.7 within 0.20 across seeds
+  13, 21, 34 at n = 800 (mean-CV DGP matching the engine recovery).
+  **Validated** for this cell only.
+
+`test-imputation.R` against drmTMB `6e553879`: **70 pass / 0 fail /
+0 skip**.
+
+**Not claimed.** Lognormal or any other leftover family. Non-Gaussian
+`k = 2`. `k > 2`. Cross-node uncertainty. FIML. Capability-status
+`"covered"`.

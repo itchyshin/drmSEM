@@ -1723,3 +1723,30 @@ No `"covered"`.
 **Next slice.** Consumer Gamma lift (A7c-2, new branch) **or**
 engine lognormal `has_mi`. Prefer A7c-2 first so V-80 matches an
 installed post-#1088 engine.
+
+## 2026-08-27 — S6 A7c-2: Gamma × Bernoulli consumer lift
+
+**Cursor / Grok** on `cursor/lane-s6-a7c2-gamma` in worktree
+`~/local-scratch/lanes/drmSEM-s6-a7-consumer` (from `main` @
+`c033bda`). Lease: `cursor:drmSEM` on `R/imputation.R`, tests,
+`docs/memory/`, `13-missing-data.md`, capability-status, `LOOP/`.
+MAG-completeness / MAG-wire / S3-grouping untouched.
+
+**Engine.** Installed drmTMB from `6e553879`.
+`drmTMB:::drm_missing_predictor_families()` is
+`gaussian, poisson, binomial, nbinom2, beta, gamma`.
+
+**Consumer lift.**
+- `"gamma"` added to `drm_impute_response_families()`.
+- `drm_impute_family_key()` maps `stats::Gamma()` → `"gamma"` so the
+  legality gate matches the engine list.
+- V-80 anti-drift still `expect_setequal`.
+- V-80b: Gamma + binary emits; Gamma + continuous fails loud.
+- V-80d: lognormal leftover still fails loud.
+- V-122 identity + V-122b MAR recovery for `mp-gamma-bernoulli`.
+- Ledger row V-122 / V-122b ↔ engine `mp-gamma-bernoulli` / #1088
+  `6e553879`.
+- capability-status stays **`partial`**. Not FIML. Not `impute_joint`.
+  No `"covered"`.
+
+**Next.** Lognormal is the next *engine* family. Do not lift it here.

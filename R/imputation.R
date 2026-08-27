@@ -27,7 +27,15 @@
 # constant so the gate is testable without the engine, and locked to the engine's
 # own list by test-imputation.R.
 drm_impute_response_families <- function() {
-  c("gaussian", "poisson", "binomial", "nbinom2", "beta")
+  c("gaussian", "poisson", "binomial", "nbinom2", "beta", "gamma")
+}
+
+# Engine allow-list uses lowercase "gamma"; stats::Gamma()$family is "Gamma".
+drm_impute_family_key <- function(family_name) {
+  if (identical(family_name, "Gamma")) {
+    return("gamma")
+  }
+  family_name
 }
 
 # Predictor-model families drmTMB can impute FROM, for a Gaussian response.
@@ -148,8 +156,8 @@ drm_check_two_gaussian_mi <- function(node, spec, targets, specs) {
 # Refuse rather than emit an illegal call. Each check mirrors a hard abort the
 # engine would raise later with less context about WHY drmSEM asked for it.
 drm_check_impute_legal <- function(node, spec, v, parent_spec) {
-  resp_family <- drm_family_name(drm_fit_family(spec))
-  pred_family <- drm_family_name(drm_fit_family(parent_spec))
+  resp_family <- drm_impute_family_key(drm_family_name(drm_fit_family(spec)))
+  pred_family <- drm_impute_family_key(drm_family_name(drm_fit_family(parent_spec)))
   if (!resp_family %in% drm_impute_response_families()) {
     cli::cli_abort(c(
       "Cannot derive an imputation model for node {.val {node}}.",
