@@ -1845,3 +1845,35 @@ Gaussian.
 
 **Next.** Engine beta_binomial `has_mi` (drmTMB #1094). Do not
 start the consumer lift on this stamp.
+
+## 2026-08-27 — S6 A7c-4: beta_binomial × Bernoulli consumer lift
+
+**Cursor / Grok** on `cursor/lane-s6-a7-consumer` in worktree
+`~/local-scratch/lanes/drmSEM-s6-a7-consumer`. Lease:
+`cursor:drmSEM` on `R/imputation.R`, tests, `docs/memory/`,
+`13-missing-data.md`. MAG-completeness / MAG-wire / S3-grouping
+untouched.
+
+**Engine.** drmTMB #1094 MERGED
+`4c34c9bbca35be93d1ebad997d2d15d02024712e`
+(`mp-beta-binomial-bernoulli`) — C++ `has_mi` for
+`model_type == 14`, logit `mu`, `phi = exp(-2*log_sigma)`.
+
+**Consumer lift.**
+- `"beta_binomial"` added to `drm_impute_response_families()`.
+- No `drm_impute_family_key()` change.
+- V-80 anti-drift still `expect_setequal`.
+- V-80d leftover remains `student`.
+- V-80f: beta_binomial + binary emits; + continuous fails loud.
+- V-124 identity + V-124b MAR recovery for
+  `mp-beta-binomial-bernoulli`.
+- capability-status stays **`partial`**. Not FIML. Not
+  `impute_joint`. No `"covered"`.
+
+**Tests.** `test-imputation.R` **88 pass / 0 fail / 0 skip**
+against a local engine that already includes `beta_binomial`.
+
+**Next.** After #1094 merge + this consumer PR: #962 leftovers are
+student (`nu` ABI) and zi_* (mixture). Extra-#962
+`truncated_nbinom2` only if Shinichi wants another implementable
+cell. Do not start nbinom2 × Gaussian.

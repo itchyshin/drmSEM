@@ -1282,3 +1282,41 @@ Identity log-location (`mu` is meanlog). Capability-status stays
 **Not claimed.** Student or any other leftover family. Non-Gaussian
 `k = 2`. `k > 2`. Cross-node uncertainty. FIML. Capability-status
 `"covered"`.
+
+## 2026-08-27 — S6 A7c-4: V-124 reserved (not validated)
+
+Reserved so a later family cannot reuse the numbers. **Superseded
+by the validated A7c-4 row below** once engine #1094 is on `main`.
+
+## 2026-08-27 — S6 A7c-4: beta_binomial × Bernoulli consumer lift
+
+A7c-4 lifts one engine cell into drmSEM. drmTMB #1094
+`4c34c9bbca35be93d1ebad997d2d15d02024712e`
+(`mp-beta-binomial-bernoulli`) wired C++ `has_mi` for a
+beta_binomial response with one Bernoulli `mi()`. drmSEM adds
+`"beta_binomial"` to `drm_impute_response_families()` so V-80
+still matches the engine allow-list. `drmTMB::beta_binomial()$family`
+is already `"beta_binomial"`; no `drm_impute_family_key()` mapping.
+Logit `mu` on a `cbind()` count node. Capability-status stays
+**`partial`**. Not FIML. No `impute_joint`. No `"covered"`.
+
+- **V-80.** Allow-list now includes `beta_binomial`. Anti-drift lock
+  still `expect_setequal` against
+  `drmTMB:::drm_missing_predictor_families()`.
+- **V-80d.** Leftover remains `student` (no `has_mi`). Still
+  fails loud (`cannot carry a modelled missing predictor`).
+- **V-80f.** Beta-binomial + binary parent emits; beta-binomial +
+  continuous parent still fails loud (`BINARY missing predictor`).
+- **V-124.** Beta-binomial × Bernoulli identity: auto-derived fit
+  is numerically identical to the hand-written `mi()` +
+  `impute_model()` emit.
+- **V-124b.** Beta-binomial × Bernoulli MAR recovery-to-truth: the
+  `mi(treatment)` coefficient recovers 0.7 within 0.20 across seeds
+  13, 21, 34 at n = 1500 (logit-mu DGP matching the engine
+  recovery). **Validated** for this cell only.
+
+`test-imputation.R` against drmTMB #1094 `4c34c9bb`: **88 pass / 0
+fail / 0 skip**.
+
+**Not claimed.** Student or zi_*. Non-Gaussian `k = 2`. `k > 2`.
+Cross-node uncertainty. FIML. Capability-status `"covered"`.

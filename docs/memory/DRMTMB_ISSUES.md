@@ -90,12 +90,13 @@ riding alongside. Items 7–9 are separate asks, not part of that lane.
 1. **Widen the response-family gate for `missing = "model"`.**
    `drm_missing_predictor_families()` accepts a modelled missing
    predictor when the *response* family is gaussian, poisson, binomial,
-   nbinom2, beta, gamma (#1088), or lognormal (#1092). Every drmSEM node
+   nbinom2, beta, gamma (#1088), lognormal (#1092), or
+   beta_binomial (#1094). Every drmSEM node
    is one drmTMB fit and drmSEM imposes no family whitelist, so a SEM
    loses `mi()` the moment any node uses student, tweedie,
-   beta_binomial, cumulative_logit or a zero-inflated family. The 12-family *predictor*
+   cumulative_logit or a zero-inflated family. The 12-family *predictor*
    catalogue is already implemented; the restriction is on the response side.
-   *Ask:* extend family by family — student, beta_binomial,
+   *Ask:* extend family by family — student,
    zi_poisson/zi_nbinom2. *Acceptance:* known-DGP recovery test + ledger row each.
 
 2. **Allow more than one `mi()` term per fit.** ← highest priority
