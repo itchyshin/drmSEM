@@ -1891,3 +1891,33 @@ cell. Do not start nbinom2 × Gaussian.
 **Next.** Student and zi_* wait (new derivations, not clones).
 Do not start nbinom2 × Gaussian. Extra-#962 `truncated_nbinom2`
 only if Shinichi asks.
+
+## 2026-08-27 — S6 A7 clone tranche PAUSED
+
+**Cursor / Grok** on fresh `cursor/lane-s6-a7-pause` at
+`~/local-scratch/lanes/drmSEM-s6-a7-pause` from `origin/main` @
+`25c4fe2`. Did **not** reuse `drmSEM-s6-a7-consumer`. Lease:
+`cursor:drmSEM` on `docs/memory/`, `LOOP/`, `NEWS.md`.
+MAG-completeness / MAG-wire / S3-grouping untouched. **No `R/`.**
+Did **not** flip capability-status.
+
+**Shinichi:** "pause A7". Honest stop of the clone tranche.
+
+**Cells that landed.**
+- Phase 1 Gaussian k=2: drmSEM #46 / drmTMB #1086 `1cc1985cd`.
+- A7c-2 Gamma × Bernoulli: #49 `ae2b925` / #1088 `6e553879`.
+- A7c-3 lognormal × Bernoulli: #50 `1e5d4cf` / #1092 `7c104bbd5`.
+- A7c-4 beta_binomial × Bernoulli: #51 `e78bb94` / #1094 `4c34c9bb`.
+- Kickoff kit: #48 `1593a23`.
+
+**Leftovers named; not implemented here.**
+- **student** — needs a `nu` ABI / leaf derivation.
+- **zi + `mi`** — mixture; `zi` is not the conditional mean;
+  already refused.
+- **nbinom2 × Gaussian** — expand-gated; handed to a sibling.
+Parallel siblings pursue those three separately.
+
+**Docs.** `docs/memory/PLAN-ACTUAL-2026-08-27-s6-a7-pause.md`;
+`LOOP/checkpoint.md` / `arcs.md` / GOAL banner / contract stamp;
+NEWS one-liner names leftovers without claiming covered.
+capability stays **`partial`**. Not FIML. No `"covered"`.
