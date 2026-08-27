@@ -1,5 +1,12 @@
 # GOAL — S6 A7 consumer (IMMUTABLE — re-read at the top of EVERY arc)
 
+**2026-08-27 status.** Clone tranche **PAUSED** (Shinichi).
+Shipped cells: Gamma / lognormal / beta_binomial × Bernoulli
+(+ Phase 1 Gaussian k=2). Leftovers (student, zi+`mi`,
+nbinom2 × Gaussian) are sibling work. See
+`docs/memory/PLAN-ACTUAL-2026-08-27-s6-a7-pause.md`.
+capability stays `partial`.
+
 ## Mission
 
 Prepare drmSEM to consume **one engine family cell at a time** after

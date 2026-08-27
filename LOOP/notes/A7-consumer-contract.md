@@ -1,11 +1,12 @@
 # A7 — Consumer contract (docs only)
 
-**Status.** 2026-08-27, post A7c-2 (#49). Binding for the drmSEM
-lane that follows drmTMB item 1 (#962). G-engine (Gamma) is
-discharged. **A7c-3** is the next family cell: **lognormal ×
-Bernoulli**, a mirror of A7c-2. Docs/prep only until the engine
-lognormal `has_mi` PR is green or merged. Not an `R/` lift on this
-prep commit.
+**Status.** 2026-08-27, **clone tranche PAUSED** (Shinichi).
+A7c-2–A7c-4 shipped (Gamma / lognormal / beta_binomial ×
+Bernoulli). Leftovers — student (`nu` ABI), zi+`mi`, nbinom2 ×
+Gaussian — are sibling work, not the next clone cell. See
+`docs/memory/PLAN-ACTUAL-2026-08-27-s6-a7-pause.md`. Binding
+contract for anyone who later lifts a leftover **after** that
+leftover's engine derivation exists. capability stays `partial`.
 
 **Audience.** The person who, after the sibling engine PR is
 mergeable, opens this worktree and lifts **one** family gate in
@@ -45,9 +46,10 @@ Honest map after drmTMB #1088 `6e553879` (do not re-derive):
 | student, zi_poisson, zi_nbinom2, … | **none** | must stay refused |
 
 Consumed cells: **Gamma × Bernoulli**, **lognormal × Bernoulli**,
-**beta_binomial × Bernoulli**. Next implementable leftover is
-extra-#962 only; student and zi_* wait. Not nbinom2 × Gaussian
-(later expand-gated-family).
+**beta_binomial × Bernoulli**. Clone tranche **paused**.
+Leftovers (student, zi+`mi`, nbinom2 × Gaussian) are sibling
+work, not this kit. Extra-#962 `truncated_nbinom2` only if
+asked.
 
 drmSEM mirrors that with three gates in `R/imputation.R` (read-only
 this kickoff):

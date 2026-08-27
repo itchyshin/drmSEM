@@ -1,8 +1,7 @@
 # Checkpoint — OVERWRITTEN every arc
 
-GOAL: see LOOP/GOAL.md. STATE: **A7c-4 MERGED.** G-engine-bb
-discharged. drmSEM `main` @ `e78bb94` lifts beta_binomial ×
-Bernoulli. capability-status stays **`partial`**.
+GOAL: see LOOP/GOAL.md. STATE: **A7 clone tranche PAUSED.**
+Shinichi: "pause A7". capability-status stays **`partial`**.
 
 ARCS DONE (verified):
 - **A7c-0** — LOOP kit + contract (#48 `1593a23`).
@@ -17,26 +16,35 @@ ARCS DONE (verified):
   `test-imputation.R`: **88 pass / 0 fail / 0 skip**. CI: macos /
   ubuntu / windows green.
 
-ARC IN PROGRESS: none on this commit.
+ARC IN PROGRESS: **none.** Clone tranche **PAUSED** (named decision).
 
-NEXT: #962 leftovers are **student** (`nu` not on leaf ABI — wait)
-and **zi_*** (`zi` + `mi` already refused — wait). Extra-#962
-`truncated_nbinom2` only if Shinichi asks. Do **not** start
-nbinom2 × Gaussian. Do **not** start student.
+LEFTOVERS (named; not this lane):
+- **student** — needs a `nu` ABI / leaf derivation. Not a clone.
+- **zi + `mi`** (`zi_poisson`, `zi_nbinom2`, …) — mixture; `zi`
+  is not the conditional mean; already refused. New derivation.
+- **nbinom2 × Gaussian** — expand-gated engine cell (G0 rejected
+  it as first #962 cell). Handed to a sibling.
+- Extra-#962 `truncated_nbinom2` only if Shinichi asks.
 
-CELL JUST CONSUMED: **beta_binomial × Bernoulli**
+Do **not** implement those leftovers here. Parallel siblings
+pursue nbinom2×Gaussian, student, and zi+mi separately.
+
+CELL LAST CONSUMED: **beta_binomial × Bernoulli**
 (`mp-beta-binomial-bernoulli`). Ledger: V-124 / V-124b ↔ #1094
-`4c34c9bb` / #51 `e78bb94`.
+`4c34c9bb` / #51 `e78bb94`. Earlier clone cells: Gamma (#49 /
+#1088) and lognormal (#50 / #1092). Phase 1 Gaussian k=2 remains
+live (#46 / #1086).
 
 OPEN GATES:
-- **G-engine-bb** — **discharged.**
+- **G-engine / G-engine-ln / G-engine-bb** — discharged.
 - **G-claim** — keep `partial`. No `"covered"`. Not FIML.
 
 TRUTH LIVES IN:
-- drmSEM `main` @ this commit (post #51)
+- drmSEM `main` @ `25c4fe2` (post A7c-4 stamp)
+- Pause note: `docs/memory/PLAN-ACTUAL-2026-08-27-s6-a7-pause.md`
 - Contract: `LOOP/notes/A7-consumer-contract.md`
-- Engine: drmTMB #1094 `4c34c9bb`
+- Engine: drmTMB `main` @ `4c34c9bb` (#1094)
 - MAG-completeness: **do not touch**
 
-RESUME: A7c-4 is closed. Honest stop: remaining #962 cells need
-new derivations. Never `git add -A`.
+RESUME: clone tranche is paused. Remaining cells are sibling
+work, not A7c-5. Never `git add -A`.
