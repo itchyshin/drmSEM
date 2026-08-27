@@ -1,8 +1,9 @@
 # A7 — Consumer contract (docs only)
 
-**Status.** Draft 2026-08-27. Binding for the drmSEM lane that follows
-drmTMB item 1 (#962). Not an implementation. No drmSEM `R/` until
-**G-engine** (first new-family engine PR mergeable).
+**Status.** 2026-08-27, post #1088. Binding for the drmSEM lane that
+follows drmTMB item 1 (#962). G-engine is discharged. A7c-2 (Gamma
+lift) is a **separate** consumer PR — not an implementation on `main`
+in the merge-follow-up commit.
 
 **Audience.** The person who, after the sibling engine PR is
 mergeable, opens this worktree and lifts **one** family gate in
@@ -30,21 +31,26 @@ without `has_mi` is the #962 failure mode (drmTMB after-task
 
 ## 2. What is already wired (do not re-derive)
 
-From the 2026-08-09 engine audit of `src/drmTMB.cpp`, still the
-honest map until A7 lands a new cell:
+Honest map after drmTMB #1088 `6e553879` (do not re-derive):
 
 | Response `model_type` | `has_mi` today | Predictor catalogue |
 |---|---|---|
-| gaussian (`1`) | yes | full predictor list |
+| gaussian (`1`) | yes | full predictor list + k=2 independent Gaussians |
 | beta / binomial / poisson / nbinom2 (`10` / `18` / `6` / `7`) | yes | **bernoulli / binary only** |
-| Gamma, lognormal, student, beta_binomial, zi_poisson, zi_nbinom2, … | **none** | must stay refused |
+| Gamma (`5`) | **yes** (#1088) | **bernoulli / binary only** (`mp-gamma-bernoulli`) |
+| lognormal, student, beta_binomial, zi_poisson, zi_nbinom2, … | **none** | must stay refused |
+
+First A7 cell is **Gamma × Bernoulli**. Not nbinom2 × Gaussian (later
+expand-gated-family). Next unwired #962 family is lognormal.
 
 drmSEM mirrors that with three gates in `R/imputation.R` (read-only
 this kickoff):
 
-1. `drm_impute_response_families()` — `gaussian`, `poisson`,
-   `binomial`, `nbinom2`, `beta`. V-80
-   `expect_setequal(..., drmTMB:::drm_missing_predictor_families())`.
+1. `drm_impute_response_families()` — still `gaussian`, `poisson`,
+   `binomial`, `nbinom2`, `beta` until A7c-2. Engine list now also
+   has `gamma`. V-80
+   `expect_setequal(..., drmTMB:::drm_missing_predictor_families())`
+   will fail until A7c-2 adds `"gamma"` — that is the lock working.
 2. `drm_check_impute_legal()` — non-Gaussian response admits only a
    **binary** missing predictor (V-80c). Gaussian response admits
    `drm_impute_predictor_families()`.
@@ -182,20 +188,23 @@ reopen that claim.
 
 ---
 
-## 8. G-engine (opens drmSEM `R/`)
+## 8. G-engine (opens drmSEM `R/` — discharged)
 
-All of the following must be true:
+Discharged 2026-08-27: drmTMB #1088 on `main` @ `6e553879`
+(`mp-gamma-bernoulli`). All of the following remain true:
 
 1. This contract still matches the emit shape (option b; no silent
    `impute_joint`).
-2. The sibling PR for the **first new family** is mergeable — on
-   drmTMB `main`, or an installable worktree this suite can load.
-3. That PR includes C++ `has_mi` for the cell, a recovery test, and
+2. The first new-family engine PR is on drmTMB `main` (`6e553879`).
+3. That PR includes C++ `has_mi` for Gamma, a recovery test, and
    an honest `missing_predictor` row. Not a whitelist-only diff.
 4. Honest limits still written in `13-missing-data.md`.
 5. capability-status still `partial`.
 
-Until G-engine, the current gates in `R/imputation.R` are **correct**.
+A7c-2 is still a **separate** consumer PR. Until that PR, the current
+gates in `R/imputation.R` (Gamma absent) are **correct leftovers** —
+V-80 will fail against an installed post-#1088 engine, which is the
+signal to lift Gamma only.
 
 ---
 

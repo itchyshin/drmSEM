@@ -1691,3 +1691,35 @@ waits for merge.
   that is the lock working.
 
 Issue comment: https://github.com/itchyshin/drmTMB/issues/962#issuecomment-5439306058
+
+## 2026-08-27 — S6 A7 merges; G-engine discharged; no R/ lift
+
+**Cursor / Grok** follow-up on `main` after both PRs merged.
+Lease: `cursor:drmSEM-s6-a7-consumer` on `LOOP/,docs/memory/`.
+MAG-completeness / MAG-wire / S3-grouping untouched. No drmSEM `R/`.
+
+**Merges.**
+- drmTMB **#1088 MERGED** `6e553879753a2a932ed09d2bba19b21a4b1e00d2`
+  (squash of `cursor/lane-s6-family-gate`). First #962 unwired cell:
+  `mp-gamma-bernoulli` (Gamma × one Bernoulli `mi()`). CI first failed
+  on the ledger count guard (18 → 19) plus a stale C17/C14 tip blob
+  after the Gamma source edit; fixed on the engine lane
+  (`0e6a4deb4`), then R-CMD-check green (49m).
+- drmSEM **#48 MERGED** `1593a234ec6409092de4b7367b4b7aadfefca67a`
+  (was draft; marked ready; squash). Docs / LOOP only.
+
+**First cell lock.** Gamma × Bernoulli. **Not** nbinom2 × Gaussian
+(later expand-gated-family per engine G0). Next *engine* family is
+lognormal. nbinom2 already has Bernoulli `has_mi`.
+
+**G-engine.** Discharged. Open steps for **A7c-2** live in
+`LOOP/checkpoint.md`: separate consumer PR; add `"gamma"` to
+`drm_impute_response_families()`; V-80b Gamma+binary emit /
+Gamma+continuous fail-loud; identity then MAR; ledger V-number ↔
+`mp-gamma-bernoulli` / #1088 `6e553879`. Not implemented here.
+capability-status stays `partial`. Not FIML. Not `impute_joint`.
+No `"covered"`.
+
+**Next slice.** Consumer Gamma lift (A7c-2, new branch) **or**
+engine lognormal `has_mi`. Prefer A7c-2 first so V-80 matches an
+installed post-#1088 engine.

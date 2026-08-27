@@ -60,8 +60,8 @@ those kits.
 | # | slice | what | gate |
 |---|---|---|---|
 | A7c-0 | This kickoff | LOOP kit, `A7-consumer-contract.md`, AGENT_LOG stubs | — |
-| A7c-1 | Wait | First new-family engine PR **mergeable** | **G-engine** |
-| A7c-2 | Lift one cell | `drm_impute_response_families()` / `drm_check_impute_legal()` / `drm_check_two_gaussian_mi()` only as far as that cell | ← G-engine |
+| A7c-1 | Wait | First new-family engine PR **mergeable** | **G-engine** (done: #1088 `6e553879`) |
+| A7c-2 | Lift Gamma × Bernoulli only | `drm_impute_response_families()` + V-80b leftovers; separate PR | ← G-engine |
 | A7c-3 | V-80 | `expect_setequal` still matches the engine list; V-80b/c leftovers still fail loud | ← A7c-2 |
 | A7c-4 | Recovery | Known-DGP for the new cell; keep V-77 and V-82 k=2 identity | ← A7c-2 |
 | A7c-5 | Ledger | New V-number in `VALIDATION_LEDGER.md` pointing at the engine `missing_predictor` cell id | ← A7c-4 |
@@ -75,7 +75,12 @@ and it does not flip the capability row.
 
 ## What “first new family” means
 
-The sibling chooses the first #962 cell. This lane does not pick it.
+**Locked 2026-08-27.** First #962 *unwired* cell is **Gamma ×
+Bernoulli** (`mp-gamma-bernoulli`, drmTMB #1088 `6e553879`). A recon
+note proposed nbinom2 × Gaussian as an alternate first cell; engine
+G0 rejected that. nbinom2 × Gaussian is a later expand-gated-family
+cell. Lognormal is the next *unwired* #962 family.
+
 A cell is **new** when it is not already a recovered drmSEM emit:
 
 - already live: one-parent Gaussian chain (V-77/V-78); two independent
@@ -94,10 +99,10 @@ character vector.
 
 ## Gates
 
-- **G-engine (OPEN).** No drmSEM `R/` until the sibling PR for the
-  first new family is mergeable (CI green or Shinichi says install
-  from that worktree). Promoting a family without `has_mi` is the
-  #962 failure mode.
+- **G-engine (DISCHARGED 2026-08-27).** drmTMB #1088 on `main` @
+  `6e553879`. Opens A7c-2 as a **separate** consumer PR. Do not lift
+  `R/` on the merge-follow-up commit. Promoting a family without
+  `has_mi` remains the #962 failure mode.
 - **G-claim.** Default not-ready: keep `partial`. One extra family is
   not a general missing-data SEM.
 

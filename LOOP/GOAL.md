@@ -24,7 +24,8 @@ Never treat a whitelist edit as the work.
 - Not FIML. Within-node uncertainty only. Incomplete exogenous →
   `na_action`. `impute = "none"` stays default. Independent
   `impute_model()` per parent (option b). Never emit `impute_joint`.
-- **No drmSEM `R/` until the first new-family engine PR is mergeable.**
+- **No drmSEM `R/` on the merge-follow-up commit.** A7c-2 (Gamma
+  lift) is a separate consumer PR after G-engine (#1088 `6e553879`).
 - One cell at a time. Do not widen `drm_impute_response_families()`
   ahead of `drmTMB:::drm_missing_predictor_families()`. V-80 is the
   anti-drift lock.
