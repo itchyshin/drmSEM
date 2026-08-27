@@ -1641,3 +1641,53 @@ untouched. `R/imputation.R` not edited this slice.
 **Arc.** CLOSED. Worktree
 `~/local-scratch/lanes/drmSEM-s6-imputation` @ `a873f46` is stale;
 remove it after this commit is on `main`. Do not start A7 here.
+
+## 2026-08-27 — S6 A7 consumer kickoff (docs only; no R/)
+
+**Cursor / Grok**, new lane `cursor/lane-s6-a7-consumer` at
+`~/local-scratch/lanes/drmSEM-s6-a7-consumer`, from `main` @
+`e7392d7`. Lease: `cursor:drmSEM-s6-a7-consumer` on
+`LOOP/,docs/memory/`. MAG-completeness / MAG-wire / S3-grouping
+untouched. Sibling `0a5d078f` owns the engine lane
+`~/local-scratch/lanes/drmTMB-s6-family-gate` on
+`cursor/lane-s6-family-gate` — this lane did **not** create a second
+drmTMB worktree.
+
+**What shipped (docs + LOOP only).**
+- Fresh LOOP kit (replaces the closed Phase 1 kit on this branch):
+  `LOOP/GOAL.md`, `LOOP/arcs.md`, `LOOP/checkpoint.md`,
+  `LOOP/ultra-plan.md`.
+- Consumer contract: `LOOP/notes/A7-consumer-contract.md` — per-cell
+  lift of `R/imputation.R` gates after C++ `has_mi` (#962); fail-loud
+  leftovers; V-80 anti-drift; ledger cross-ref to the engine
+  `missing_predictor` row; capability stays `partial`.
+- drmTMB stub: paste-ready block in that contract (§10). Suggested
+  sibling path
+  `docs/dev-log/after-task/2026-08-27-s6-a7-family-gate-kickoff.md`.
+
+**Not done.** No drmSEM `R/`. No capability-status edit. No
+`"covered"`. No FIML sentence. A7c-2 waits on **G-engine** (first
+new-family engine PR mergeable). A1/A3 notes kept as Phase 1
+locks.
+
+## 2026-08-27 — S6 A7 engine PR opened (Gamma `has_mi`)
+
+Sibling engine lane landed the first #962 family. drmSEM `R/` still
+waits for merge.
+
+- **PR:** https://github.com/itchyshin/drmTMB/pull/1088
+  (`c030f93d0` on `cursor/lane-s6-family-gate`)
+- **Cell:** `mp-gamma-bernoulli` — Gamma response × one Bernoulli
+  `mi()`. Poisson was already wired; G0 locked Gamma as first
+  *unwired* #962 family. Next: lognormal.
+- **Local evidence:** 14/0/0 in
+  `test-missing-predictor-gamma-response.R` (logLik identity, MCAR
+  0.15, MAR 0.20). Not FIML, not `impute_joint`, not k ≥ 2, not
+  `"covered"`.
+- **Consumer lift after merge (trivial, one family):** add
+  `"gamma"` to `drm_impute_response_families()`; rewrite V-80b so
+  Gamma + binary parent emits and Gamma + continuous parent still
+  fails loud. V-80 anti-drift will fail until that list update —
+  that is the lock working.
+
+Issue comment: https://github.com/itchyshin/drmTMB/issues/962#issuecomment-5439306058
