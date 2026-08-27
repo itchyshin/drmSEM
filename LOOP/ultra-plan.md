@@ -61,15 +61,12 @@ those kits.
 |---|---|---|---|
 | A7c-0 | This kickoff | LOOP kit, `A7-consumer-contract.md`, AGENT_LOG stubs | — |
 | A7c-1 | Wait | First new-family engine PR **mergeable** | **G-engine** (done: #1088 `6e553879`) |
-| A7c-2 | Lift Gamma × Bernoulli only | `drm_impute_response_families()` + V-80b leftovers; separate PR | ← G-engine |
-| A7c-3 | V-80 | `expect_setequal` still matches the engine list; V-80b/c leftovers still fail loud | ← A7c-2 |
-| A7c-4 | Recovery | Known-DGP for the new cell; keep V-77 and V-82 k=2 identity | ← A7c-2 |
-| A7c-5 | Ledger | New V-number in `VALIDATION_LEDGER.md` pointing at the engine `missing_predictor` cell id | ← A7c-4 |
-| A7c-6 | Honesty | `13-missing-data.md` names the new cell and the leftovers. capability-status **stays `partial`** | ← A7c-5 |
-| A7c-7 | Review | Ada + Rose: no `"covered"` | G-claim |
+| A7c-2 | Lift Gamma × Bernoulli only | `drm_impute_response_families()` + V-80b leftovers; separate PR. Old A7c-3–A7c-7 sub-slices (V-80 / recovery / ledger / honesty / review) landed in #49 | ← G-engine **done** |
+| **A7c-3** | **lognormal × Bernoulli** | Mirror of A7c-2. Docs/prep now. `R/` after engine PR green or merged. V-80 + V-80e + V-80d→student; V-123 / V-123b | **G-engine-ln** |
 
-A later family **repeats A7c-2–A7c-6**. It does not reopen Phase 1
-and it does not flip the capability row.
+A later family **repeats the A7c-2 pattern**. It does not reopen
+Phase 1 and it does not flip the capability row. Checklist:
+`LOOP/notes/A7c-3-lognormal-checklist.md`.
 
 ---
 
@@ -100,9 +97,10 @@ character vector.
 ## Gates
 
 - **G-engine (DISCHARGED 2026-08-27).** drmTMB #1088 on `main` @
-  `6e553879`. Opens A7c-2 as a **separate** consumer PR. Do not lift
-  `R/` on the merge-follow-up commit. Promoting a family without
-  `has_mi` remains the #962 failure mode.
+  `6e553879`. Opened A7c-2; that consumer PR is #49.
+- **G-engine-ln (OPEN).** drmTMB lognormal × Bernoulli `has_mi` PR
+  must be green or merged before any A7c-3 `R/` edit. Promoting a
+  family without `has_mi` remains the #962 failure mode.
 - **G-claim.** Default not-ready: keep `partial`. One extra family is
   not a general missing-data SEM.
 

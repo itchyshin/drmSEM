@@ -10,17 +10,17 @@ Do not re-open Phase 1. Do not implement engine likelihoods.
 |---|-----|--------|-------|
 | A7c-0 | Fresh LOOP kit + consumer contract + AGENT_LOG stubs | done | — |
 | A7c-1 | Wait for first new-family engine PR to be **mergeable** | done | **G-engine** (#1088 `6e553879`) |
-| A7c-2 | Lift `R/imputation.R` gates for **Gamma × Bernoulli only** (separate PR) | done | ← G-engine |
-| A7c-3 | V-80 still equals engine allow-list; leftovers fail loud | done | ← A7c-2 |
-| A7c-4 | Known-DGP recovery + identity for the new cell | done | ← A7c-2 |
-| A7c-5 | Ledger cross-ref (V-number ↔ engine `missing_predictor` row) | done | ← A7c-4 |
-| A7c-6 | Docs honesty; capability-status stays `partial` | done | ← A7c-5 |
-| A7c-7 | Review + reconcile | done | G-claim (keep `partial`; #49 CI green) |
+| A7c-2 | Lift `R/imputation.R` gates for **Gamma × Bernoulli only** (separate PR). Old ultra-plan A7c-3–A7c-7 (V-80 / recovery / ledger / honesty / review) landed inside #49 | done | ← G-engine |
+| **A7c-3** | **lognormal × Bernoulli** consumer lift (mirror of A7c-2). Engine #1092; consumer `R/` + tests local-green | **doing** | **G-engine-ln** (#1092) |
 
 Status: todo / doing / done / paused / blocked / deferred.
 `blocked` = waiting on the sibling engine PR. `paused` = Shinichi's
 named decision.
 
-G-engine is discharged. A7c-2 is a **separate** consumer PR for
-Gamma × Bernoulli only — not nbinom2 × Gaussian, not lognormal.
-A later family repeats A7c-2–A7c-6; it does not flip capability-status.
+G-engine (Gamma) is discharged (#1088 / #49). **G-engine-ln is
+discharged** (#1092 `7c104bbd5`, `mp-lognormal-bernoulli`).
+Consumer tests **79/0/0**. Next engine cell after this consumer:
+**beta_binomial × Bernoulli**. Not student. Not nbinom2 ×
+Gaussian. Checklist: `LOOP/notes/A7c-3-lognormal-checklist.md`.
+A later family repeats the A7c-2 pattern; it does not flip
+capability-status.

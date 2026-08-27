@@ -24,8 +24,9 @@ Never treat a whitelist edit as the work.
 - Not FIML. Within-node uncertainty only. Incomplete exogenous →
   `na_action`. `impute = "none"` stays default. Independent
   `impute_model()` per parent (option b). Never emit `impute_joint`.
-- **No drmSEM `R/` on the merge-follow-up commit.** A7c-2 (Gamma
-  lift) is a separate consumer PR after G-engine (#1088 `6e553879`).
+- **No drmSEM `R/` on a wait/prep commit.** A7c-2 (Gamma lift) is
+  shipped (#49). A7c-3 (lognormal lift) is a separate consumer PR
+  after G-engine-ln (lognormal `has_mi` green or merged).
 - One cell at a time. Do not widen `drm_impute_response_families()`
   ahead of `drmTMB:::drm_missing_predictor_families()`. V-80 is the
   anti-drift lock.
@@ -46,21 +47,20 @@ on "what must never be lost".
 
 ## Definition of done
 
-**This kickoff:** fresh LOOP kit + A7 consumer contract + AGENT_LOG
-stub committed on this branch; drmTMB stub left for the sibling
-engine lane; no `R/` edit; capability-status untouched.
+**This A7c-3 prep:** LOOP checkpoint + contract + checklist
+committed on this branch; no `R/` edit; capability-status
+untouched. Wait for the lognormal engine PR.
 
-**Programme (later, after G-engine):** for each shipped engine cell,
-drmSEM lifts only that cell's gate, V-80 still matches the engine
-allow-list, a known-DGP recovery exists, the ledger cross-refs the
-engine `missing_predictor` row, leftovers still fail loud, and
+**Programme (later, after G-engine-ln):** lift only lognormal ×
+Bernoulli, V-80 still matches the engine allow-list, V-123 / V-123b
+exist, leftovers (student, …) still fail loud, and
 capability-status is still `partial`.
 
 ## Pre-authorisation
 
 - This kickoff: scoped docs/LOOP edits; local commits; listed
   checks; optional named-branch push + **draft** PR: CONTINUE.
-- Must stop: drmSEM `R/` before G-engine; merge/release/public
+- Must stop: drmSEM `R/` before G-engine-ln; merge/release/public
   claim; credentials; destructive work outside this worktree;
   MAG-completeness files; creating a second drmTMB A7 worktree;
   flipping capability-status; new compute beyond a later Totoro
