@@ -1877,3 +1877,17 @@ against a local engine that already includes `beta_binomial`.
 student (`nu` ABI) and zi_* (mixture). Extra-#962
 `truncated_nbinom2` only if Shinichi wants another implementable
 cell. Do not start nbinom2 × Gaussian.
+
+## 2026-08-27 — S6 A7c-4 merged (#51)
+
+**Cursor / Grok** post-merge stamp on `main`. MAG lanes untouched.
+
+- **PR:** https://github.com/itchyshin/drmSEM/pull/51
+- **Merge sha:** `e78bb9465ffe4328825b5313cefe26222ccd79e0` (squash)
+- **Tests:** `test-imputation.R` **88 pass / 0 fail / 0 skip**.
+  CI macos / ubuntu / windows green.
+- capability-status stays **`partial`**. Not FIML. No `"covered"`.
+
+**Next.** Student and zi_* wait (new derivations, not clones).
+Do not start nbinom2 × Gaussian. Extra-#962 `truncated_nbinom2`
+only if Shinichi asks.
