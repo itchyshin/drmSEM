@@ -15,7 +15,7 @@ Do not re-open Phase 1. Do not implement engine likelihoods.
 | A7c-4 | Known-DGP recovery + identity for the new cell | done | ← A7c-2 |
 | A7c-5 | Ledger cross-ref (V-number ↔ engine `missing_predictor` row) | done | ← A7c-4 |
 | A7c-6 | Docs honesty; capability-status stays `partial` | done | ← A7c-5 |
-| A7c-7 | Review + reconcile | todo | G-claim (keep `partial`) |
+| A7c-7 | Review + reconcile | done | G-claim (keep `partial`; #49 CI green) |
 
 Status: todo / doing / done / paused / blocked / deferred.
 `blocked` = waiting on the sibling engine PR. `paused` = Shinichi's

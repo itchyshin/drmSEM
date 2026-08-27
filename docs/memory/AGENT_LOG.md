@@ -1750,3 +1750,16 @@ MAG-completeness / MAG-wire / S3-grouping untouched.
   No `"covered"`.
 
 **Next.** Lognormal is the next *engine* family. Do not lift it here.
+
+## 2026-08-27 — S6 A7c-2 merged (#49)
+
+**Cursor / Grok** post-merge stamp on `main`. MAG lanes untouched.
+
+- **PR:** https://github.com/itchyshin/drmSEM/pull/49
+- **Merge sha:** `ae2b925521555e604101a58ed821e33d95c3661b` (squash)
+- **Tests:** `test-imputation.R` **70 pass / 0 fail / 0 skip**
+  locally against drmTMB `6e553879`. CI macos / ubuntu / windows
+  green.
+- capability-status stays **`partial`**. Not FIML. No `"covered"`.
+
+**Next.** Engine lognormal `has_mi`. Do not start it on this stamp.
