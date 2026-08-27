@@ -494,3 +494,37 @@ treat `impute_joint` as the SEM emit shape without a new decision.
 
 Charter: `docs/memory/2026-08-26-next-arc-s6-imputation.md`.
 Plan: `LOOP/ultra-plan.md`.
+
+## [2026-08-27] D-23 — zi + mi() = mu-only ZIP mixture (not FIML)
+
+**Decision (G0 confirmed 2026-08-27, option b).** A modelled missing
+predictor on a zero-inflated Poisson node is legal only as a bare
+`mi()` term in **`mu`**. The 2-point sum uses the ZIP mixture density
+
+```
+P(y = 0 | μ, π) = π + (1 − π) e^{−μ}
+P(y > 0 | μ, π) = (1 − π) Pois(y | μ)
+```
+
+with `μ = exp(eta_mu)` and `π = logit⁻¹(eta_zi)`. `eta_zi` comes from
+**observed-only** predictors (`zi ~ 1` first cell; fully observed
+covariates allowed if complete). Do **not** reuse the plain Poisson
+leaf (`drm_response_log_density` case 6) for structural zeros. Do
+**not** put `mi()` on `zi`. Do **not** extend the shared leaf with
+`eta_zi` (that is the student/`nu` ABI). This is **not FIML**.
+Capability stays **`partial`**.
+
+**First cell.** `mp-zi-poisson-bernoulli` — `zi_poisson` × one
+Bernoulli predictor × `zi ~ 1`. `zi_nbinom2` remains refused.
+
+**SEM / V-80.** drmSEM must key leftover `zi_*` on **`model_type`**,
+not `family$family`. Never alias `zi_*` as `poisson` for V-80. After
+the engine cell exists, lift the consumer carefully; until then keep
+the refuse so `impute = "auto"` cannot emit-then-crash.
+
+**Rejected as a first cell.** `mi()` on `zi`; `mi()` on both; two-stage
+/ complete-case `zi`; hurdle (`hu`) in the same PR.
+
+Charter: `LOOP/notes/A7-zi-mi-decision.md`.
+Validation: engine `mp-zi-poisson-bernoulli` (logLik identity +
+MCAR/MAR). drmSEM consumer lift after the engine merges.
