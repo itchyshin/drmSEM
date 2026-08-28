@@ -7,12 +7,14 @@
 # V-79c k = 2 on a non-Gaussian response fails loud (engine Phase 1 cell)
 # V-80  the response/predictor family gate matches the engine's own rule
 # V-80b Gamma × binary emits; Gamma × continuous still fails loud (A7c-2)
-# V-80d leftover unwired response (student) still fails loud
+# V-80d leftover unwired response (tweedie) still fails loud
 # V-80e lognormal × binary emits; lognormal × continuous fails loud (A7c-3)
 # V-80f beta_binomial × binary emits; beta_binomial × continuous fails loud (A7c-4)
+# V-80g student × binary emits; student × continuous fails loud (A7c-5)
 # V-80h nbinom2 × gaussian emits; nbinom2 × poisson still fails (sibling)
 # V-123 / V-123b lognormal × Bernoulli identity + MAR recovery
 # V-124 / V-124b beta_binomial × Bernoulli identity + MAR recovery
+# V-125 / V-125b student × Bernoulli identity + MAR recovery
 # V-126 / V-126b nbinom2 × Gaussian identity + MAR recovery
 # V-81  mi() coefficient names resolve to the right node in paths()
 # V-82  two-parent auto fit matches the hand-written emit shape (needs k=2 engine)
@@ -410,7 +412,7 @@ test_that("V-80d: a still-unwired response family is refused with a reason", {
   expect_error(
     suppressMessages(drm_sem(
       m = drm_node(drmTMB::bf(m ~ x)),
-      y = drm_node(drmTMB::bf(y ~ m + x), family = drmTMB::student()),
+      y = drm_node(drmTMB::bf(y ~ m + x), family = drmTMB::tweedie()),
       data = d, impute = "auto"
     )),
     "cannot carry a modelled missing predictor"
@@ -898,6 +900,141 @@ test_that("V-126b: nbinom2 x gaussian auto recovers known MAR coefficients", {
     b_x[[k]] <- coefs[["mi(x)"]]
   }
   expect_lt(mean(abs(b_x - 0.7)), 0.20)
+})
+
+engine_accepts_student <- function() {
+  if (!requireNamespace("drmTMB", quietly = TRUE)) {
+    return(FALSE)
+  }
+  ns <- asNamespace("drmTMB")
+  if (!exists("drm_missing_predictor_families", envir = ns, inherits = FALSE)) {
+    return(FALSE)
+  }
+  "student" %in% getFromNamespace("drm_missing_predictor_families", "drmTMB")()
+}
+
+# z -> treatment (Bernoulli) -> y (student location-scale). Engine cell
+# mp-student-bernoulli / #1096. Identity mu: 0.4 + 0.5*z + 0.7*treatment,
+# sigma = 0.3, nu = 8. Matches the engine recovery DGP.
+student_binary_dat <- function(n = 200, seed = 13L, mar = TRUE) {
+  set.seed(seed)
+  z <- stats::rnorm(n)
+  treatment <- stats::rbinom(n, 1L, stats::plogis(0.3 + 0.8 * z))
+  mu <- 0.4 + 0.5 * z + 0.7 * treatment
+  sigma <- 0.3
+  nu <- 8
+  y <- mu + sigma * stats::rt(n, df = nu)
+  d <- data.frame(z = z, treatment = treatment, y = y)
+  drop <- if (isTRUE(mar)) {
+    stats::runif(n) < stats::plogis(-0.8 + 0.6 * as.numeric(scale(y)))
+  } else {
+    seq_len(n) %in% sample(n, floor(0.2 * n))
+  }
+  d$treatment[drop] <- NA
+  d
+}
+
+student_binary_specs <- function() {
+  list(
+    treatment = drm_node(
+      drmTMB::bf(treatment ~ z),
+      family = stats::binomial()
+    ),
+    y = drm_node(
+      drmTMB::bf(y ~ treatment + z, sigma ~ 1, nu ~ 1),
+      family = drmTMB::student()
+    )
+  )
+}
+
+test_that("V-80g: student + binary parent emits; student + continuous fails loud", {
+  d_bin <- student_binary_dat()
+  plan <- drmSEM:::drm_imputation_plan(student_binary_specs(), d_bin)
+  expect_identical(plan$y$variable, "treatment")
+  expect_identical(
+    drmSEM:::drm_impute_family_key(plan$y$family_name),
+    "binomial"
+  )
+
+  d_cont <- chain_dat()
+  expect_error(
+    suppressMessages(drm_sem(
+      m = drm_node(drmTMB::bf(m ~ x)),
+      y = drm_node(
+        drmTMB::bf(y ~ m + x, sigma ~ 1, nu ~ 1),
+        family = drmTMB::student()
+      ),
+      data = d_cont, impute = "auto"
+    )),
+    "BINARY missing predictor"
+  )
+})
+
+test_that("V-125: student x binary auto fit matches the hand-written emit", {
+  skip_if_not(engine_accepts_student(), "engine has no student has_mi")
+  d <- student_binary_dat(n = 200, seed = 13L)
+  auto <- suppressWarnings(suppressMessages(drm_sem(
+    treatment = drm_node(
+      drmTMB::bf(treatment ~ z),
+      family = stats::binomial()
+    ),
+    y = drm_node(
+      drmTMB::bf(y ~ treatment + z, sigma ~ 1, nu ~ 1),
+      family = drmTMB::student()
+    ),
+    data = d, impute = "auto"
+  )))
+  hand <- suppressWarnings(suppressMessages(drm_sem(
+    treatment = drm_node(
+      drmTMB::bf(treatment ~ z),
+      family = stats::binomial()
+    ),
+    y = drm_node(
+      drmTMB::bf(y ~ mi(treatment) + z, sigma ~ 1, nu ~ 1),
+      family = drmTMB::student(),
+      impute = list(
+        treatment = drmTMB::impute_model(
+          treatment ~ z,
+          family = stats::binomial()
+        )
+      ),
+      missing = drmTMB::miss_control(predictor = "model")
+    ),
+    data = d
+  )))
+  expect_equal(
+    unlist(auto$nodes$y$coefficients$mu),
+    unlist(hand$nodes$y$coefficients$mu)
+  )
+  imp <- imputation(auto)
+  expect_identical(nrow(imp), 1L)
+  expect_identical(imp$node, "y")
+  expect_identical(imp$variable, "treatment")
+  expect_identical(imp$family, "binomial")
+})
+
+test_that("V-125b: student x binary auto recovers known MAR coefficients", {
+  skip_if_not(engine_accepts_student(), "engine has no student has_mi")
+  seeds <- c(13L, 21L, 34L)
+  b_trt <- numeric(length(seeds))
+  for (k in seq_along(seeds)) {
+    d <- student_binary_dat(n = 1500, seed = seeds[[k]])
+    fit <- suppressWarnings(suppressMessages(drm_sem(
+      treatment = drm_node(
+        drmTMB::bf(treatment ~ z),
+        family = stats::binomial()
+      ),
+      y = drm_node(
+        drmTMB::bf(y ~ treatment + z, sigma ~ 1, nu ~ 1),
+        family = drmTMB::student()
+      ),
+      data = d, impute = "auto"
+    )))$nodes$y$coefficients$mu
+    coefs <- unlist(fit)
+    # identity mu: (Intercept), mi(treatment), z. Truth: 0.4, 0.7, 0.5.
+    b_trt[[k]] <- coefs[["mi(treatment)"]]
+  }
+  expect_lt(mean(abs(b_trt - 0.7)), 0.20)
 })
 
 test_that("V-80c: a non-Gaussian response demands a binary missing predictor", {

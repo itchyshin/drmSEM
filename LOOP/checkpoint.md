@@ -1,7 +1,10 @@
 # Checkpoint — OVERWRITTEN every arc
 
-GOAL: see LOOP/GOAL.md. STATE: **A7 clone tranche PAUSED.**
-Shinichi: "pause A7". capability-status stays **`partial`**.
+GOAL: see LOOP/GOAL.md. STATE: **A7c-5 in progress.** Engine
+#1096 `5fdf834c1` student × Bernoulli `has_mi`. Consumer lift on
+`cursor/lane-s6-a7-student`. The #52 pause named leftovers;
+Shinichi then authorized student as a parallel hard case (not a
+clone). capability-status stays **`partial`**.
 
 ARCS DONE (verified):
 - **A7c-0** — LOOP kit + contract (#48 `1593a23`).
@@ -13,37 +16,31 @@ ARCS DONE (verified):
   `1e5d4cfbef3d1e130f205a910b86750ecf5f1fc0`.
 - **A7c-4** — consumer beta_binomial lift. drmSEM **#51 MERGED**
   `e78bb9465ffe4328825b5313cefe26222ccd79e0`.
-  `test-imputation.R`: **88 pass / 0 fail / 0 skip**. CI: macos /
-  ubuntu / windows green.
+- **sibling nbinom2 × Gaussian** — drmTMB #1095 `3c239a55e` /
+  drmSEM #54 `2482e27`. `test-imputation.R`: **97/0/0**.
 
-ARC IN PROGRESS: **nbinom2 × Gaussian consumer** (sibling
-`cursor/lane-s6-a7-nbinom2`). Clone tranche remains **PAUSED**.
+ARC IN PROGRESS: **A7c-5** student × Bernoulli consumer lift.
 
-LEFTOVERS (named; not this lane):
-- **student** — needs a `nu` ABI / leaf derivation. Not a clone.
-- **zi + `mi`** (`zi_poisson`, `zi_nbinom2`, …) — mixture; `zi`
-  is not the conditional mean; already refused. New derivation.
+LEFTOVERS after this cell:
+- **zi + `mi`** (`zi_poisson`, `zi_nbinom2`, …) — mixture; G0 (b)
+  locked as D-23. Engine #1097 is a separate lane.
 - Extra-#962 `truncated_nbinom2` only if Shinichi asks.
-
-Do **not** implement those leftovers here. Parallel siblings
-pursue nbinom2×Gaussian, student, and zi+mi separately.
 
 CELL LAST CONSUMED: **nbinom2 × Gaussian**
 (`mp-nbinom2-gaussian`). Ledger: V-126 / V-126b ↔ #1095
-`3c239a55e`. Earlier clone cells: Gamma (#49 / #1088),
-lognormal (#50 / #1092), beta_binomial (#51 / #1094). Phase 1
-Gaussian k=2 remains live (#46 / #1086).
+`3c239a55e` / drmSEM #54 `2482e27`.
+CELL IN FLIGHT: **student × Bernoulli** (`mp-student-bernoulli`)
+↔ drmTMB #1096 `5fdf834c1` / V-125 / V-125b.
 
 OPEN GATES:
 - **G-engine / G-engine-ln / G-engine-bb** — discharged.
 - **G-claim** — keep `partial`. No `"covered"`. Not FIML.
 
 TRUTH LIVES IN:
-- drmSEM `main` @ `25c4fe2` (post A7c-4 stamp)
+- drmSEM this branch (A7c-5) rebased onto #54 `2482e27`
 - Pause note: `docs/memory/PLAN-ACTUAL-2026-08-27-s6-a7-pause.md`
 - Contract: `LOOP/notes/A7-consumer-contract.md`
-- Engine: drmTMB `main` @ `4c34c9bb` (#1094)
+- Engine: drmTMB #1096 `5fdf834c1`
 - MAG-completeness: **do not touch**
 
-RESUME: clone tranche is paused. Remaining cells are sibling
-work, not A7c-5. Never `git add -A`.
+RESUME: finish A7c-5 after #1096 merges. Never `git add -A`.
