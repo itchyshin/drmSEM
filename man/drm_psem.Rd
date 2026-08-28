@@ -19,7 +19,9 @@ drm_psem(
 \arguments{
 \item{...}{Named fitted \code{drmTMB} objects, one per endogenous node. The name
 is the node identifier used in path queries; predictors are matched to a
-node by its name or its response variable.}
+node by its name or its response variable. A joint bivariate fit may be
+passed once (unnamed, or named as either response): it is split into the
+two response nodes and the residual \code{rho12} edge is recorded automatically.}
 
 \item{data}{The data frame all nodes were fitted to. Defaults to the data of
 the first node.}

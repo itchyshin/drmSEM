@@ -18,20 +18,19 @@ rho12(object, ...)
 \item{...}{Unused.}
 }
 \value{
-A \code{drm_rho12} data frame: \code{y1}, \code{y2}, \code{predictors} (of \code{rho12 ~ x}, or
-\code{""}), \code{constant}, \code{estimate}.
+A \code{drm_rho12} data frame: \code{y1}, \code{y2}, \code{term}, \code{estimate},
+\code{std.error}, \code{statistic}, \code{p.value}, \code{link}, \code{predictors}, \code{constant}.
 }
 \description{
 Reports the \strong{residual} correlation edge(s) between two responses — the
 within-observation coupling \code{rho12} that remains after each response's mean and
-scale (class 2 in \code{docs/design/07-bivariate-covariance-edges.md}). For a
-\code{\link[=drm_pair]{drm_pair()}} it is the declared edge; for a \code{\link[=drm_sem]{drm_sem()}} it is the declared
-residual covariance edges of the assembled model. The \code{estimate} is the
-\emph{fitted} correlation read back from a live bivariate \code{drmTMB} fit — \code{NA} in the
-pure-R lane, since drmSEM never re-solves and the joint fit is the 0.4 engine
-step. Distinct from \code{\link[=corpairs]{corpairs()}} (higher-level random-effect correlations) and
-kept out of \code{\link[=paths]{paths()}} (any \code{x -> rho12} directed path is reported there
-instead).
+scale (class 2 in \code{docs/design/07-bivariate-covariance-edges.md}). For an
+unfitted \code{\link[=drm_pair]{drm_pair()}} it is the declared edge (\code{estimate} is \code{NA}). For a
+\code{\link[=drm_sem]{drm_sem()}} that holds a joint bivariate \code{drmTMB} fit it is the Wald table of
+\code{rho12} coefficients: intercept and any \code{rho12 ~ x} predictors, with standard
+error and p-value, on the \code{tanh} (engine: \code{atanh_guarded}) link. Distinct from
+\code{\link[=corpairs]{corpairs()}} (higher-level random-effect correlations) and kept out of
+\code{\link[=paths]{paths()}} except for directed \code{x -> rho12} paths.
 }
 \examples{
 rho12(drm_pair(activity ~ x, boldness ~ x, rho12 = ~ x))

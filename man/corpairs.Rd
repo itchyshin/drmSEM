@@ -18,18 +18,18 @@ corpairs(object, ...)
 \item{...}{Unused.}
 }
 \value{
-A \code{drm_corpairs} data frame: \code{level}, \code{y1}, \code{y2}, \code{estimate}.
+A \code{drm_corpairs} data frame: \code{level}, \code{y1}, \code{y2}, \code{estimate},
+\code{std.error}, \code{p.value}.
 }
 \description{
 Reports the \strong{higher-level} random-effect correlation edge(s) — the
 between-unit coupling \verb{u_level,y1 <-> u_level,y2} among random effects sharing a
 grouping \code{level} (class 3 in \code{docs/design/07-bivariate-covariance-edges.md}).
-For a \code{\link[=drm_pair]{drm_pair()}} these are the declared \code{corpair} edges (auto-detected from
-shared grouping factors); for a \code{\link[=drm_sem]{drm_sem()}} they are the declared higher-level
-covariance edges. As with \code{\link[=rho12]{rho12()}}, the \code{estimate} is read back from a live
-bivariate \code{drmTMB} fit and is \code{NA} in the pure-R lane. Reported separately from
-the residual \code{rho12} because the two answer different biological questions
-(between-unit average coupling vs within-observation residual coupling).
+For an unfitted \code{\link[=drm_pair]{drm_pair()}} these are the declared \code{corpair} edges. For a
+\code{\link[=drm_sem]{drm_sem()}} they are read from \code{drmTMB::corpairs()} (non-residual rows only)
+when a joint bivariate fit is present; otherwise the declared higher-level
+edges are returned with \code{estimate = NA}. Residual \code{rho12} is never mixed in —
+use \code{\link[=rho12]{rho12()}} for that.
 }
 \examples{
 corpairs(drm_pair(activity ~ x + (1 | id), boldness ~ x + (1 | id)))

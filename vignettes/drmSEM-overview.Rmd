@@ -130,10 +130,9 @@ like any other component path. The covariance-edge grammar now ships:
 knows two covarying responses should not get a `y1 _||_ y2` claim. The
 bivariate-node declaration grammar now also ships: `drm_pair()` declares a joint
 two-response node, `rho12()` / `corpairs()` report the declared edges, and
-`plot()` draws double-headed (residual) / dashed (higher-level) arcs. Only the
-joint bivariate *fit* that reads a fitted `rho12` / `corpair` correlation back (a
-non-`NA` estimate) remains a roadmap item (see
-`docs/design/07-bivariate-covariance-edges.md`).
+`plot()` draws double-headed (residual) / dashed (higher-level) arcs.
+`drm_sem()` fits one joint bivariate `drmTMB` model; `rho12()` reads the
+coefficients back (see `docs/design/07-bivariate-covariance-edges.md`).
 
 ```{r paths, eval = has_engine}
 paths(sem)   # component-labelled path table

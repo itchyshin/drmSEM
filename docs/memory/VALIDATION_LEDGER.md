@@ -1458,3 +1458,25 @@ D-20 / V-117 / V-118 / V-119 were already validated on
   validation number. No change to the LRT (D-2).
 
 **Not claimed.** Capability-status `"covered"`. Closing OQ-16.
+
+## 2026-08-28 — V-128 / V-129: joint bivariate rho12 recovery
+
+`drm_sem(drm_pair(...))` fits one `biv_gaussian` drmTMB model; both
+response names share that fit. `rho12()` returns the Wald table on the
+`tanh` (engine `atanh_guarded`) link. `basis_set()` drops `y1 _||_ y2`.
+
+- **V-128.** Constant residual correlation \(\rho_{12} = 0.45\), n = 400,
+  seed 20260828: `|tanh(intercept) - 0.45| < 0.12`; SE and p-value
+  finite; the pair's independence claim is absent from `basis_set()`.
+  **Validated.**
+- **V-129.** \(\eta_{\rho_{12}} = 0.20 + 0.50 x\), n = 600, seed
+  20260828: intercept and slope recovered within 0.15; slope p < 0.05;
+  `paths()` reports `x -> rho12` and never a `y1 -> y2` arrow.
+  **Validated.**
+
+`tests/testthat/test-rho12.R` against drmTMB 0.7.0. Also: `drm_psem()`
+consumes a pre-fitted bivariate model as two named nodes; mixed-family
+pairs abort.
+
+**Not claimed.** Global multivariate SEM. Mixed-family bivariate.
+Deep RE-block level-compatibility. Capability-status `"covered"`.

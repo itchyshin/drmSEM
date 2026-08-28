@@ -3,28 +3,23 @@
 NULL
 
 # ---------------------------------------------------------------------------
-# OQ-14 / 0.4 — drm_pair(): the bivariate-node *declaration* grammar.
+# OQ-14 / 0.4 — drm_pair(): bivariate-node declaration AND joint fit.
 #
 # A bivariate model fits two responses jointly with a residual correlation
 # `rho12` (optionally regressed on covariates) and, when the two responses share
-# a grouping level, a higher-level random-effect correlation (`corpair`). The
-# *joint fit* — estimating rho12 inside one drmTMB model — is the 0.4 engine
-# deliverable and is NOT performed here (drmSEM never fits its own likelihoods,
-# and the dev container has no engine). This file is the pure-R layer that:
+# a grouping level, a higher-level random-effect correlation (`corpair`).
 #
 #   1. records and validates the pair declaration (two response formulas, two
 #      families, an optional `rho12 ~ x` correlation model, the shared level),
 #   2. bridges it onto the shipped covariance-edge grammar (`covary()`), so the
 #      pair's residual (rho12) and higher-level (corpair) arcs flow through the
-#      existing d-separation / covariances() machinery unchanged,
-#   3. exposes `rho12()` / `corpairs()` accessors that return the *declared*
-#      structure now, with the fitted estimates explicitly left as the engine
-#      read-back hook (NA until a live bivariate fit is supplied).
+#      existing d-separation / covariances() machinery,
+#   3. when consumed by drm_sem() / drm_psem(), fits ONE joint bivariate drmTMB
+#      model (biv_gaussian / biv_lognormal / biv_student) and reads rho12
+#      coefficients back through the extractors.R adapter.
 #
-# Honest boundary (docs/design/07-bivariate-covariance-edges.md): the two
-# response sub-nodes are still ordinary piecewise nodes; rho12 is *declared*, not
-# jointly estimated, until the engine lane lands the joint fit. drm_pair() never
-# fabricates a correlation estimate.
+# drm_pair() itself still does not fit; the declaration stays inspectable
+# without an engine. Estimates stay NA until a live bivariate fit is attached.
 # ---------------------------------------------------------------------------
 
 # Response label of a (two-sided) formula: the bare symbol if the LHS is one,
@@ -88,16 +83,16 @@ drm_formula_groups <- function(f) {
 #' higher-level random-effect correlation (`corpair`). It is the bivariate
 #' counterpart of [drm_node()].
 #'
-#' **This is the declaration grammar, not the fit.** drmSEM is piecewise and the
-#' dev lane has no engine, so `drm_pair()` does not estimate `rho12`: it validates
-#' the declaration and bridges it onto the shipped covariance-edge grammar
-#' ([covary()] / [covariances()]), so the residual (`rho12`) and higher-level
-#' (`corpair`) arcs are reported separately from [paths()] and respected by
-#' [basis_set()] / [dsep()]. Estimating `rho12` inside one joint `drmTMB` model —
-#' and reading it back through [rho12()] / [corpairs()] — is the 0.4 engine
-#' deliverable (see `docs/design/07-bivariate-covariance-edges.md`). The declared
-#' estimates are `NA` until a live bivariate fit is supplied; `drm_pair()` never
-#' fabricates a correlation.
+#' **Declaration here; the joint fit happens in [drm_sem()].** `drm_pair()`
+#' validates the two-response node and bridges it onto the covariance-edge
+#' grammar ([covary()] / [covariances()]), so the residual (`rho12`) and
+#' higher-level (`corpair`) arcs are reported separately from [paths()] and
+#' respected by [basis_set()] / [dsep()]. Passing the pair to [drm_sem()] fits
+#' **one** joint `drmTMB` bivariate model (`biv_gaussian()` / `biv_lognormal()` /
+#' `biv_student()`) and [rho12()] / [corpairs()] then read the fitted
+#' coefficients back. An unfitted declaration still reports `estimate = NA`;
+#' `drm_pair()` never fabricates a correlation. See
+#' `docs/design/07-bivariate-covariance-edges.md`.
 #'
 #' @param formula1,formula2 Two two-sided response formulas (e.g.
 #'   `activity ~ x + (1 | id)` and `boldness ~ x + (1 | id)`). Random-effect bar
@@ -131,7 +126,7 @@ drm_formula_groups <- function(f) {
 #'   rho12 = ~ x
 #' )
 #' pair
-#' rho12(pair)      # declared residual edge (estimate NA -> needs a joint fit)
+#' rho12(pair)      # declared residual edge (estimate NA until drm_sem() fits)
 #' corpairs(pair)   # declared higher-level edge at the shared `id` level
 #' @export
 drm_pair <- function(
@@ -254,7 +249,7 @@ print.drm_pair <- function(x, ...) {
     )
   }
   cli::cli_text(cli::col_grey(
-    "estimates: NA (declared; joint bivariate fit is the 0.4 engine step)"
+    "declaration only; pass this pair to drm_sem() for a joint bivariate fit"
   ))
   invisible(x)
 }
@@ -262,11 +257,11 @@ print.drm_pair <- function(x, ...) {
 #' Expand a bivariate pair onto the covariance-edge grammar
 #'
 #' Bridges a [drm_pair()] declaration onto the shipped pieces: two [drm_node()]
-#' specifications (the marginal response sub-nodes) and the [covary()] covariance
-#' edges (residual `rho12` plus any higher-level `corpair`). This is the
-#' documented hook point for the 0.4 engine lane — a joint bivariate `drmTMB` fit
-#' replaces the two independent node fits, while the covariance edges and
-#' accessors stay the same. Building the [drm_node()] objects wraps each plain
+#' specifications (used for row-alignment and imputation bookkeeping) and the
+#' [covary()] covariance edges (residual `rho12` plus any higher-level
+#' `corpair`). [drm_sem()] no longer fits those two nodes independently: it
+#' calls the joint bivariate engine path and stores the same `drmTMB` fit under
+#' both response names. Building the [drm_node()] objects wraps each plain
 #' formula with [drmTMB::bf()], so this needs `drmTMB` available; the declaration
 #' itself ([drm_pair()]) and the accessors do not.
 #'
@@ -306,37 +301,337 @@ drm_expand_pair <- function(pair) {
 }
 
 # ---------------------------------------------------------------------------
-# rho12() / corpairs() accessors.
-#
-# These return the DECLARED covariance structure with an `estimate` column that
-# is NA until a live bivariate fit is read back (the engine hook). They work on a
-# drm_pair (the declaration) and on a drm_sem (the declared covariance edges of a
-# fitted/assembled SEM). drmSEM never re-solves; the estimate is whatever the
-# fitted object exposes (currently nothing, in the pure-R lane).
+# Joint bivariate fit (0.4). drmSEM still never writes a likelihood: it builds
+# one drmTMB::bf() with mu1/mu2/sigma1/sigma2/rho12 and delegates to drmTMB.
 # ---------------------------------------------------------------------------
 
-# Shared note attached to the declared-only accessor output.
-drm_rho12_note <- function() {
-  "estimate NA: rho12/corpair are declared; a joint bivariate drmTMB fit is needed to read fitted values back (OQ-14, 0.4 engine)."
+drm_univariate_family_stem <- function(name) {
+  switch(
+    name,
+    biv_gaussian = "gaussian",
+    biv_lognormal = "lognormal",
+    biv_student = "student",
+    name
+  )
+}
+
+#' Map a homogeneous pair of families onto a drmTMB bivariate family.
+#' @keywords internal
+#' @noRd
+drm_pair_joint_family <- function(pair) {
+  drm_require_drmTMB()
+  n1 <- drm_univariate_family_stem(drm_family_name(pair$families[[1L]]))
+  n2 <- drm_univariate_family_stem(drm_family_name(pair$families[[2L]]))
+  if (!identical(n1, n2)) {
+    cli::cli_abort(c(
+      "A joint bivariate fit needs the same family on both responses.",
+      "x" = "Got {.val {n1}} and {.val {n2}}.",
+      "i" = "Use two Gaussian, two lognormal, or two Student margins, or pass an already-fitted bivariate {.pkg drmTMB} model to {.fn drm_psem}."
+    ))
+  }
+  switch(
+    n1,
+    gaussian = drmTMB::biv_gaussian(),
+    lognormal = drmTMB::biv_lognormal(),
+    student = drmTMB::biv_student(),
+    cli::cli_abort(c(
+      "No joint bivariate family for {.val {n1}}.",
+      "i" = "{.pkg drmTMB} currently ships {.fn biv_gaussian}, {.fn biv_lognormal}, and {.fn biv_student}."
+    ))
+  )
+}
+
+#' Build the joint drmTMB::bf() for a drm_pair declaration.
+#' @keywords internal
+#' @noRd
+drm_pair_formula <- function(pair) {
+  drm_require_drmTMB()
+  y1 <- pair$responses[[1L]]
+  y2 <- pair$responses[[2L]]
+  rho <- pair$rho12$formula
+  if (is.null(rho)) {
+    rho <- ~1
+  }
+  do.call(
+    drmTMB::bf,
+    list(
+      mu1 = pair$formulas[[y1]],
+      mu2 = pair$formulas[[y2]],
+      sigma1 = ~1,
+      sigma2 = ~1,
+      rho12 = rho
+    )
+  )
+}
+
+#' Fit one joint bivariate drmTMB model for a drm_pair.
+#' @keywords internal
+#' @noRd
+drm_fit_pair <- function(pair, data, name = NULL) {
+  drm_require_drmTMB()
+  control <- tryCatch(drmTMB::drm_control(se = TRUE), error = function(e) NULL)
+  form <- drm_pair_formula(pair)
+  fam <- drm_pair_joint_family(pair)
+  label <- if (is.null(name)) {
+    paste(pair$responses, collapse = " & ")
+  } else {
+    name
+  }
+  call_args <- c(
+    list(form, family = fam, data = data),
+    if (!is.null(control)) list(control = control)
+  )
+  tryCatch(
+    do.call(drmTMB::drmTMB, call_args),
+    error = function(e) {
+      cli::cli_abort(c(
+        "Bivariate pair {.val {label}} failed to fit.",
+        "x" = conditionMessage(e)
+      ))
+    }
+  )
+}
+
+#' Split `drm_sem(...)` args into named nodes, pairs, and covariance edges.
+#' @keywords internal
+#' @noRd
+drm_unpack_sem_specs <- function(specs) {
+  if (is.null(names(specs))) {
+    names(specs) <- rep("", length(specs))
+  }
+  nodes <- list()
+  pairs <- list()
+  member_pair <- list()
+  extra_cov <- list()
+  for (i in seq_along(specs)) {
+    spec <- specs[[i]]
+    nm <- names(specs)[[i]]
+    if (inherits(spec, "drm_pair")) {
+      y1 <- spec$responses[[1L]]
+      y2 <- spec$responses[[2L]]
+      if (y1 %in% names(nodes) || y2 %in% names(nodes)) {
+        cli::cli_abort(c(
+          "Pair responses {.val {y1}} and {.val {y2}} collide with an existing node name.",
+          "i" = "Give the pair distinct response names, or drop the duplicate {.fn drm_node}."
+        ))
+      }
+      key <- paste(y1, y2, sep = "\r")
+      pairs[[key]] <- spec
+      extra_cov <- c(extra_cov, list(spec$residual), spec$corpairs)
+      nodes[[y1]] <- drm_node(
+        spec$formulas[[y1]],
+        family = spec$families[[y1]]
+      )
+      nodes[[y2]] <- drm_node(
+        spec$formulas[[y2]],
+        family = spec$families[[y2]]
+      )
+      member_pair[[y1]] <- key
+      member_pair[[y2]] <- key
+    } else if (inherits(spec, "drm_node")) {
+      if (!nzchar(nm)) {
+        cli::cli_abort(c(
+          "Every {.fn drm_node} passed to {.fn drm_sem} must be named.",
+          "i" = "A {.fn drm_pair} may be unnamed: its responses become the node names."
+        ))
+      }
+      if (nm %in% names(nodes)) {
+        cli::cli_abort("Node name {.val {nm}} is used more than once.")
+      }
+      nodes[[nm]] <- spec
+    } else {
+      cli::cli_abort(c(
+        "{.fn drm_sem} expects {.fn drm_node} or {.fn drm_pair} specifications.",
+        "i" = "To assemble from already-fitted models, use {.fn drm_psem}."
+      ))
+    }
+  }
+  list(
+    nodes = nodes,
+    pairs = pairs,
+    member_pair = member_pair,
+    covariances = extra_cov
+  )
+}
+
+#' Expand drm_psem() args so one bivariate fit becomes two named nodes.
+#' @keywords internal
+#' @noRd
+drm_expand_psem_fits <- function(fits) {
+  if (is.null(names(fits))) {
+    names(fits) <- rep("", length(fits))
+  }
+  out <- list()
+  for (i in seq_along(fits)) {
+    fit <- fits[[i]]
+    if (!is_drmTMB_fit(fit)) {
+      cli::cli_abort(c(
+        "{.fn drm_psem} expects fitted {.pkg drmTMB} objects.",
+        "i" = "For the declarative interface that fits nodes for you, use {.fn drm_sem}."
+      ))
+    }
+    nm <- names(fits)[[i]]
+    if (drm_is_bivariate_fit(fit)) {
+      ys <- drm_biv_response_names(fit)
+      if (anyNA(ys) || !all(nzchar(ys))) {
+        cli::cli_abort(
+          "Could not read both response names from the bivariate fit."
+        )
+      }
+      if (nzchar(nm) && nm %in% ys) {
+        if (nm %in% names(out) && !identical(out[[nm]], fit)) {
+          cli::cli_abort(
+            "Node {.val {nm}} was supplied twice with different fits."
+          )
+        }
+        out[[nm]] <- fit
+      } else {
+        for (y in ys) {
+          if (y %in% names(out) && !identical(out[[y]], fit)) {
+            cli::cli_abort(
+              "Node {.val {y}} was supplied twice with different fits."
+            )
+          }
+          out[[y]] <- fit
+        }
+      }
+    } else {
+      if (!nzchar(nm)) {
+        cli::cli_abort("Every univariate node passed to {.fn drm_psem} must be named.")
+      }
+      if (nm %in% names(out)) {
+        cli::cli_abort("Node name {.val {nm}} is used more than once.")
+      }
+      out[[nm]] <- fit
+    }
+  }
+  out
+}
+
+#' Combine auto-detected and user covariance declarations; NULL if none.
+#' @keywords internal
+#' @noRd
+drm_combine_covariances <- function(auto, user) {
+  if (inherits(user, "drm_covary")) {
+    user <- list(user)
+  }
+  out <- c(auto, user)
+  if (!length(out)) {
+    return(NULL)
+  }
+  out
+}
+
+#' Residual covary() edges implied by fitted bivariate nodes.
+#' @keywords internal
+#' @noRd
+drm_bivariate_fit_covariances <- function(fits) {
+  extra <- list()
+  seen <- character(0)
+  for (nm in names(fits)) {
+    fit <- fits[[nm]]
+    if (!drm_is_bivariate_fit(fit)) {
+      next
+    }
+    ys <- drm_biv_response_names(fit)
+    if (anyNA(ys) || !all(nzchar(ys))) {
+      next
+    }
+    key <- paste(pmin(ys[[1L]], ys[[2L]]), pmax(ys[[1L]], ys[[2L]]), sep = "\r")
+    if (key %in% seen) {
+      next
+    }
+    seen <- c(seen, key)
+    extra[[length(extra) + 1L]] <- covary(ys[[1L]], ys[[2L]])
+  }
+  extra
+}
+
+# ---------------------------------------------------------------------------
+# rho12() / corpairs() accessors.
+#
+# Declaration objects still report estimate = NA. A drm_sem that holds a live
+# bivariate drmTMB fit returns the Wald table for rho12 coefficients (link /
+# tanh scale) and, for corpairs(), higher-level rows from drmTMB::corpairs().
+# ---------------------------------------------------------------------------
+
+drm_rho12_empty <- function() {
+  data.frame(
+    y1 = character(0),
+    y2 = character(0),
+    term = character(0),
+    estimate = numeric(0),
+    std.error = numeric(0),
+    statistic = numeric(0),
+    p.value = numeric(0),
+    link = character(0),
+    predictors = character(0),
+    constant = logical(0),
+    stringsAsFactors = FALSE
+  )
+}
+
+drm_rho12_declared_row <- function(y1, y2, predictors, constant) {
+  data.frame(
+    y1 = y1,
+    y2 = y2,
+    term = NA_character_,
+    estimate = NA_real_,
+    std.error = NA_real_,
+    statistic = NA_real_,
+    p.value = NA_real_,
+    link = "tanh",
+    predictors = predictors,
+    constant = constant,
+    stringsAsFactors = FALSE
+  )
+}
+
+drm_rho12_note <- function(fitted = FALSE) {
+  if (isTRUE(fitted)) {
+    "rho12 coefficients on the tanh (atanh_guarded) link; not a y1 -> y2 path."
+  } else {
+    "estimate NA: declaration only; fit the pair with drm_sem() or pass a bivariate drmTMB fit to drm_psem()."
+  }
+}
+
+drm_unique_bivariate_fits <- function(object) {
+  fits <- object$nodes
+  if (is.null(fits) || !length(fits)) {
+    return(list())
+  }
+  out <- list()
+  for (nm in names(fits)) {
+    fit <- fits[[nm]]
+    if (!is_drmTMB_fit(fit) || !drm_is_bivariate_fit(fit)) {
+      next
+    }
+    ys <- drm_biv_response_names(fit)
+    key <- paste(ys, collapse = "\r")
+    if (key %in% names(out)) {
+      next
+    }
+    out[[key]] <- fit
+  }
+  out
 }
 
 #' Residual response-response correlation (rho12)
 #'
 #' Reports the **residual** correlation edge(s) between two responses — the
 #' within-observation coupling `rho12` that remains after each response's mean and
-#' scale (class 2 in `docs/design/07-bivariate-covariance-edges.md`). For a
-#' [drm_pair()] it is the declared edge; for a [drm_sem()] it is the declared
-#' residual covariance edges of the assembled model. The `estimate` is the
-#' *fitted* correlation read back from a live bivariate `drmTMB` fit — `NA` in the
-#' pure-R lane, since drmSEM never re-solves and the joint fit is the 0.4 engine
-#' step. Distinct from [corpairs()] (higher-level random-effect correlations) and
-#' kept out of [paths()] (any `x -> rho12` directed path is reported there
-#' instead).
+#' scale (class 2 in `docs/design/07-bivariate-covariance-edges.md`). For an
+#' unfitted [drm_pair()] it is the declared edge (`estimate` is `NA`). For a
+#' [drm_sem()] that holds a joint bivariate `drmTMB` fit it is the Wald table of
+#' `rho12` coefficients: intercept and any `rho12 ~ x` predictors, with standard
+#' error and p-value, on the `tanh` (engine: `atanh_guarded`) link. Distinct from
+#' [corpairs()] (higher-level random-effect correlations) and kept out of
+#' [paths()] except for directed `x -> rho12` paths.
 #'
 #' @param object A `drm_pair` or `drm_sem`.
 #' @param ... Unused.
-#' @return A `drm_rho12` data frame: `y1`, `y2`, `predictors` (of `rho12 ~ x`, or
-#'   `""`), `constant`, `estimate`.
+#' @return A `drm_rho12` data frame: `y1`, `y2`, `term`, `estimate`,
+#'   `std.error`, `statistic`, `p.value`, `link`, `predictors`, `constant`.
 #' @seealso [corpairs()], [covary()], [covariances()], [drm_pair()].
 #' @references
 #' \insertRef{Shipley2016}{drmSEM}
@@ -354,13 +649,11 @@ rho12 <- function(object, ...) {
 #' @rdname rho12
 #' @export
 rho12.drm_pair <- function(object, ...) {
-  out <- data.frame(
-    y1 = object$responses[[1L]],
-    y2 = object$responses[[2L]],
-    predictors = paste(object$rho12$predictors, collapse = " + "),
-    constant = object$rho12$constant,
-    estimate = NA_real_,
-    stringsAsFactors = FALSE
+  out <- drm_rho12_declared_row(
+    object$responses[[1L]],
+    object$responses[[2L]],
+    paste(object$rho12$predictors, collapse = " + "),
+    object$rho12$constant
   )
   structure(out, class = c("drm_rho12", "data.frame"), note = drm_rho12_note())
 }
@@ -368,24 +661,51 @@ rho12.drm_pair <- function(object, ...) {
 #' @rdname rho12
 #' @export
 rho12.drm_sem <- function(object, ...) {
+  biv <- drm_unique_bivariate_fits(object)
+  if (length(biv)) {
+    rows <- lapply(biv, function(fit) {
+      ys <- drm_biv_response_names(fit)
+      coefs <- drm_fit_rho12_coef(fit)
+      preds <- drm_fit_component_predictors(fit, "rho12")
+      if (!nrow(coefs)) {
+        return(drm_rho12_declared_row(
+          ys[[1L]],
+          ys[[2L]],
+          paste(preds, collapse = " + "),
+          length(preds) == 0L
+        ))
+      }
+      data.frame(
+        y1 = ys[[1L]],
+        y2 = ys[[2L]],
+        term = coefs$term,
+        estimate = coefs$estimate,
+        std.error = coefs$std.error,
+        statistic = coefs$statistic,
+        p.value = coefs$p.value,
+        link = "tanh",
+        predictors = paste(preds, collapse = " + "),
+        constant = length(preds) == 0L,
+        stringsAsFactors = FALSE
+      )
+    })
+    out <- do.call(rbind, rows)
+    rownames(out) <- NULL
+    return(structure(
+      out,
+      class = c("drm_rho12", "data.frame"),
+      note = drm_rho12_note(fitted = TRUE)
+    ))
+  }
   cv <- object$covariances
   if (is.null(cv) || nrow(cv) == 0L) {
     return(structure(
-      data.frame(
-        y1 = character(0),
-        y2 = character(0),
-        predictors = character(0),
-        constant = logical(0),
-        estimate = numeric(0),
-        stringsAsFactors = FALSE
-      ),
+      drm_rho12_empty(),
       class = c("drm_rho12", "data.frame"),
       note = drm_rho12_note()
     ))
   }
   res <- cv[cv$class == "residual", c("y1", "y2"), drop = FALSE]
-  # Directed x -> rho12 paths, if a bivariate fit ever surfaces them, live in
-  # $edges with component == "rho12"; surface their predictors per response pair.
   edges <- object$edges
   preds_for <- function(y1, y2) {
     if (is.null(edges) || nrow(edges) == 0L || is.null(edges$component)) {
@@ -394,22 +714,19 @@ rho12.drm_sem <- function(object, ...) {
     hit <- edges$component == "rho12" & edges$to %in% c(y1, y2)
     paste(unique(edges$term[hit]), collapse = " + ")
   }
-  preds <- if (nrow(res) == 0L) {
-    character(0)
-  } else {
-    vapply(
-      seq_len(nrow(res)),
-      function(i) preds_for(res$y1[[i]], res$y2[[i]]),
-      character(1)
-    )
+  if (nrow(res) == 0L) {
+    return(structure(
+      drm_rho12_empty(),
+      class = c("drm_rho12", "data.frame"),
+      note = drm_rho12_note()
+    ))
   }
-  out <- data.frame(
-    y1 = res$y1,
-    y2 = res$y2,
-    predictors = preds,
-    constant = nchar(preds) == 0L,
-    estimate = NA_real_,
-    stringsAsFactors = FALSE
+  out <- do.call(
+    rbind,
+    lapply(seq_len(nrow(res)), function(i) {
+      pr <- preds_for(res$y1[[i]], res$y2[[i]])
+      drm_rho12_declared_row(res$y1[[i]], res$y2[[i]], pr, nchar(pr) == 0L)
+    })
   )
   rownames(out) <- NULL
   structure(out, class = c("drm_rho12", "data.frame"), note = drm_rho12_note())
@@ -435,16 +752,16 @@ print.drm_rho12 <- function(x, ...) {
 #' Reports the **higher-level** random-effect correlation edge(s) — the
 #' between-unit coupling `u_level,y1 <-> u_level,y2` among random effects sharing a
 #' grouping `level` (class 3 in `docs/design/07-bivariate-covariance-edges.md`).
-#' For a [drm_pair()] these are the declared `corpair` edges (auto-detected from
-#' shared grouping factors); for a [drm_sem()] they are the declared higher-level
-#' covariance edges. As with [rho12()], the `estimate` is read back from a live
-#' bivariate `drmTMB` fit and is `NA` in the pure-R lane. Reported separately from
-#' the residual `rho12` because the two answer different biological questions
-#' (between-unit average coupling vs within-observation residual coupling).
+#' For an unfitted [drm_pair()] these are the declared `corpair` edges. For a
+#' [drm_sem()] they are read from `drmTMB::corpairs()` (non-residual rows only)
+#' when a joint bivariate fit is present; otherwise the declared higher-level
+#' edges are returned with `estimate = NA`. Residual `rho12` is never mixed in —
+#' use [rho12()] for that.
 #'
 #' @param object A `drm_pair` or `drm_sem`.
 #' @param ... Unused.
-#' @return A `drm_corpairs` data frame: `level`, `y1`, `y2`, `estimate`.
+#' @return A `drm_corpairs` data frame: `level`, `y1`, `y2`, `estimate`,
+#'   `std.error`, `p.value`.
 #' @seealso [rho12()], [covary()], [covariances()], [drm_pair()].
 #' @references
 #' \insertRef{Bollen1989}{drmSEM}
@@ -457,17 +774,23 @@ corpairs <- function(object, ...) {
   UseMethod("corpairs")
 }
 
+drm_corpairs_empty <- function() {
+  data.frame(
+    level = character(0),
+    y1 = character(0),
+    y2 = character(0),
+    estimate = numeric(0),
+    std.error = numeric(0),
+    p.value = numeric(0),
+    stringsAsFactors = FALSE
+  )
+}
+
 #' @rdname corpairs
 #' @export
 corpairs.drm_pair <- function(object, ...) {
   if (length(object$corpairs) == 0L) {
-    out <- data.frame(
-      level = character(0),
-      y1 = character(0),
-      y2 = character(0),
-      estimate = numeric(0),
-      stringsAsFactors = FALSE
-    )
+    out <- drm_corpairs_empty()
   } else {
     out <- do.call(
       rbind,
@@ -477,6 +800,8 @@ corpairs.drm_pair <- function(object, ...) {
           y1 = cv$y1,
           y2 = cv$y2,
           estimate = NA_real_,
+          std.error = NA_real_,
+          p.value = NA_real_,
           stringsAsFactors = FALSE
         )
       })
@@ -493,9 +818,43 @@ corpairs.drm_pair <- function(object, ...) {
 #' @rdname corpairs
 #' @export
 corpairs.drm_sem <- function(object, ...) {
+  biv <- drm_unique_bivariate_fits(object)
+  rows <- list()
+  for (fit in biv) {
+    cp <- tryCatch(drm_fit_corpairs(fit), error = function(e) NULL)
+    if (is.null(cp) || !nrow(cp)) {
+      next
+    }
+    hl <- cp[cp$level != "residual" & cp$class != "residual", , drop = FALSE]
+    if (!nrow(hl)) {
+      next
+    }
+    rows[[length(rows) + 1L]] <- data.frame(
+      level = ifelse(
+        is.na(hl$group) | !nzchar(hl$group),
+        hl$level,
+        hl$group
+      ),
+      y1 = hl$from_response,
+      y2 = hl$to_response,
+      estimate = hl$estimate,
+      std.error = NA_real_,
+      p.value = NA_real_,
+      stringsAsFactors = FALSE
+    )
+  }
+  if (length(rows)) {
+    out <- do.call(rbind, rows)
+    rownames(out) <- NULL
+    return(structure(
+      out,
+      class = c("drm_corpairs", "data.frame"),
+      note = drm_rho12_note(fitted = TRUE)
+    ))
+  }
   cv <- object$covariances
   if (is.null(cv) || nrow(cv) == 0L) {
-    hl <- data.frame(level = character(0), y1 = character(0), y2 = character(0))
+    hl <- drm_corpairs_empty()[, c("level", "y1", "y2"), drop = FALSE]
   } else {
     hl <- cv[cv$class == "higher_level", c("level", "y1", "y2"), drop = FALSE]
   }
@@ -504,6 +863,8 @@ corpairs.drm_sem <- function(object, ...) {
     y1 = hl$y1,
     y2 = hl$y2,
     estimate = NA_real_,
+    std.error = NA_real_,
+    p.value = NA_real_,
     stringsAsFactors = FALSE
   )
   rownames(out) <- NULL

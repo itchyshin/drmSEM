@@ -46,16 +46,16 @@ higher-level random-effect correlation (\code{corpair}). It is the bivariate
 counterpart of \code{\link[=drm_node]{drm_node()}}.
 }
 \details{
-\strong{This is the declaration grammar, not the fit.} drmSEM is piecewise and the
-dev lane has no engine, so \code{drm_pair()} does not estimate \code{rho12}: it validates
-the declaration and bridges it onto the shipped covariance-edge grammar
-(\code{\link[=covary]{covary()}} / \code{\link[=covariances]{covariances()}}), so the residual (\code{rho12}) and higher-level
-(\code{corpair}) arcs are reported separately from \code{\link[=paths]{paths()}} and respected by
-\code{\link[=basis_set]{basis_set()}} / \code{\link[=dsep]{dsep()}}. Estimating \code{rho12} inside one joint \code{drmTMB} model —
-and reading it back through \code{\link[=rho12]{rho12()}} / \code{\link[=corpairs]{corpairs()}} — is the 0.4 engine
-deliverable (see \code{docs/design/07-bivariate-covariance-edges.md}). The declared
-estimates are \code{NA} until a live bivariate fit is supplied; \code{drm_pair()} never
-fabricates a correlation.
+\strong{Declaration here; the joint fit happens in \code{\link[=drm_sem]{drm_sem()}}.} \code{drm_pair()}
+validates the two-response node and bridges it onto the covariance-edge
+grammar (\code{\link[=covary]{covary()}} / \code{\link[=covariances]{covariances()}}), so the residual (\code{rho12}) and
+higher-level (\code{corpair}) arcs are reported separately from \code{\link[=paths]{paths()}} and
+respected by \code{\link[=basis_set]{basis_set()}} / \code{\link[=dsep]{dsep()}}. Passing the pair to \code{\link[=drm_sem]{drm_sem()}} fits
+\strong{one} joint \code{drmTMB} bivariate model (\code{biv_gaussian()} / \code{biv_lognormal()} /
+\code{biv_student()}) and \code{\link[=rho12]{rho12()}} / \code{\link[=corpairs]{corpairs()}} then read the fitted
+coefficients back. An unfitted declaration still reports \code{estimate = NA};
+\code{drm_pair()} never fabricates a correlation. See
+\code{docs/design/07-bivariate-covariance-edges.md}.
 }
 \examples{
 # A bivariate node: two responses sharing an `id` grouping, with the residual
@@ -66,7 +66,7 @@ pair <- drm_pair(
   rho12 = ~ x
 )
 pair
-rho12(pair)      # declared residual edge (estimate NA -> needs a joint fit)
+rho12(pair)      # declared residual edge (estimate NA until drm_sem() fits)
 corpairs(pair)   # declared higher-level edge at the shared `id` level
 }
 \references{

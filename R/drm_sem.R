@@ -102,7 +102,9 @@ new_drm_sem <- function(
 #'
 #' @param ... Named fitted `drmTMB` objects, one per endogenous node. The name
 #'   is the node identifier used in path queries; predictors are matched to a
-#'   node by its name or its response variable.
+#'   node by its name or its response variable. A joint bivariate fit may be
+#'   passed once (unnamed, or named as either response): it is split into the
+#'   two response nodes and the residual `rho12` edge is recorded automatically.
 #' @param data The data frame all nodes were fitted to. Defaults to the data of
 #'   the first node.
 #' @param covariances Optional [covary()] declaration(s) (one object or a list)
@@ -158,16 +160,14 @@ drm_psem <- function(
   feedback = NULL,
   latent = NULL
 ) {
-  fits <- list(...)
-  if (!all(vapply(fits, is_drmTMB_fit, logical(1)))) {
-    cli::cli_abort(c(
-      "{.fn drm_psem} expects fitted {.pkg drmTMB} objects.",
-      "i" = "For the declarative interface that fits nodes for you, use {.fn drm_sem}."
-    ))
-  }
+  fits <- drm_expand_psem_fits(list(...))
   if (is.null(data)) {
     data <- drm_fit_data(fits[[1L]])
   }
+  covariances <- drm_combine_covariances(
+    drm_bivariate_fit_covariances(fits),
+    covariances
+  )
   new_drm_sem(
     fits,
     data,
@@ -183,12 +183,14 @@ drm_psem <- function(
 #' Fit and assemble a distributional piecewise SEM
 #'
 #' `drm_sem()` is the declarative interface. You describe each endogenous node
-#' with [drm_node()]; `drm_sem()` fits each node with [drmTMB::drmTMB()] and then
-#' builds the same object [drm_psem()] returns. Causal paths are
-#' component-labelled: a predictor may target `mu`, `sigma`, `nu`, `zi`, `hu`,
-#' `sd(group)`, or `rho12` of a node.
+#' with [drm_node()], or a joint two-response node with [drm_pair()];
+#' `drm_sem()` fits each univariate node with [drmTMB::drmTMB()] and each pair
+#' as **one** bivariate model, then builds the same object [drm_psem()] returns.
+#' Causal paths are component-labelled: a predictor may target `mu`, `sigma`,
+#' `nu`, `zi`, `hu`, `sd(group)`, or `rho12` of a node.
 #'
-#' @param ... Named [drm_node()] specifications, one per endogenous node.
+#' @param ... Named [drm_node()] specifications and/or [drm_pair()] declarations.
+#'   A pair may be unnamed: its two response variables become the node names.
 #' @param data A data frame supplied to every node fit.
 #' @param covariances Optional [covary()] declaration(s) (one object or a list)
 #'   recording residual (`rho12`) or higher-level (`corpair`) covariance edges
@@ -282,21 +284,20 @@ drm_sem <- function(
 ) {
   na_action <- match.arg(na_action)
   impute <- match.arg(impute)
-  specs <- list(...)
+  raw_specs <- list(...)
   if (missing(data)) {
     cli::cli_abort("{.arg data} is required for {.fn drm_sem}.")
   }
+  if (length(raw_specs) == 0L) {
+    cli::cli_abort("Supply at least one {.fn drm_node} or {.fn drm_pair}.")
+  }
+  unpacked <- drm_unpack_sem_specs(raw_specs)
+  specs <- unpacked$nodes
+  pairs <- unpacked$pairs
+  member_pair <- unpacked$member_pair
+  covariances <- drm_combine_covariances(unpacked$covariances, covariances)
   if (length(specs) == 0L) {
-    cli::cli_abort("Supply at least one named {.fn drm_node}.")
-  }
-  if (!all(vapply(specs, inherits, logical(1), what = "drm_node"))) {
-    cli::cli_abort(c(
-      "{.fn drm_sem} expects {.fn drm_node} specifications.",
-      "i" = "To assemble from already-fitted models, use {.fn drm_psem}."
-    ))
-  }
-  if (is.null(names(specs)) || any(!nzchar(names(specs)))) {
-    cli::cli_abort("Every node passed to {.fn drm_sem} must be named.")
+    cli::cli_abort("Supply at least one {.fn drm_node} or {.fn drm_pair}.")
   }
   # Materialize composite-construct columns BEFORE fitting, so node formulas can
   # reference them as ordinary observed columns (drm_apply_composites is a no-op
@@ -318,11 +319,22 @@ drm_sem <- function(
   aln <- drm_alignment_issues(specs, data, plan)
   data <- drm_resolve_alignment(aln, data, na_action, specs, plan)
   fits <- vector("list", length(specs))
-  for (i in seq_along(specs)) {
-    cli::cli_progress_step("Fitting node {.val {nms[[i]]}}")
-    fits[[i]] <- drm_fit_node(specs[[i]], data = data, name = nms[[i]])
-  }
   names(fits) <- nms
+  pair_fits <- list()
+  for (i in seq_along(specs)) {
+    nm <- nms[[i]]
+    key <- member_pair[[nm]]
+    if (!is.null(key)) {
+      if (is.null(pair_fits[[key]])) {
+        cli::cli_progress_step("Fitting bivariate pair {.val {gsub('\r', ' & ', key, fixed = TRUE)}}")
+        pair_fits[[key]] <- drm_fit_pair(pairs[[key]], data = data, name = key)
+      }
+      fits[[nm]] <- pair_fits[[key]]
+    } else {
+      cli::cli_progress_step("Fitting node {.val {nm}}")
+      fits[[nm]] <- drm_fit_node(specs[[i]], data = data, name = nm)
+    }
+  }
   out <- new_drm_sem(
     fits,
     data,
