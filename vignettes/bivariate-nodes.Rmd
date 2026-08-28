@@ -10,12 +10,8 @@ vignette: >
 ---
 
 ```{r setup, include = FALSE}
-# drmSEM never fits its own likelihoods. The bivariate JOINT fit that would
-# estimate rho12 inside one drmTMB model is the 0.4 engine deliverable, and the
-# dev lane has no engine. So every chunk that would need a live drmTMB fit is
-# shown for illustration only (`eval = has_engine`, FALSE here). The pure-R
-# declaration grammar — drm_pair(), rho12(), corpairs(), drm_expand_pair() — runs
-# normally, and those chunks are marked `eval = TRUE` explicitly.
+# The declaration grammar runs without an engine. Live drm_sem() joint fits
+# are illustrated only (`eval = has_engine`); recovery lives in test-rho12.R.
 has_engine <- FALSE
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = has_engine)
 library(drmSEM)
@@ -127,22 +123,17 @@ rho12(pair)
 corpairs(pair)
 ```
 
-Look at the `estimate` column in both: it is **`NA`**. This is the core honesty
-of the grammar, and it is deliberate, not a placeholder waiting to be silently
-filled.
+Look at the `estimate` column in both: it is **`NA`**. That is the declaration
+talking, not a fitted model.
 
-> **`drm_pair()` never fabricates a correlation.** drmSEM is piecewise and does
-> not fit its own likelihoods. Estimating `rho12` (and any `corpair`) means
-> fitting *both responses jointly* inside **one** bivariate `drmTMB` model and
-> reading the fitted correlation back — that joint fit is the **0.4 engine
-> deliverable**. Until a live bivariate fit is supplied, the declared structure
-> is complete but every estimate is `NA` by construction. The accessors carry a
-> grey note saying exactly this. Anyone who shows you a number here from the
-> grammar layer alone is showing you something `drmSEM` did not compute.
-
-This is the same boundary as in the covariance-edges vignette, made
-node-shaped: the *grammar and graph semantics* ship today; the *fitted estimate*
-is the engine step.
+> **`drm_pair()` never fabricates a correlation.** drmSEM does not write its
+> own likelihood. Estimating `rho12` means fitting *both responses jointly*
+> inside **one** bivariate `drmTMB` model (`biv_gaussian()` and kin) and
+> reading the coefficients back. Pass the pair to `drm_sem()` (or a fitted
+> bivariate model to `drm_psem()`) and `rho12()` returns the Wald table —
+> intercept and any `rho12 ~ x` predictors — on the `tanh` link. Until then
+> every estimate stays `NA`. Anyone who shows you a number from the grammar
+> layer alone is showing you something `drmSEM` did not compute.
 
 ## Expanding a pair onto the shipped grammar: `drm_expand_pair()`
 
@@ -161,11 +152,9 @@ names(expanded$nodes)     # "activity" "boldness" — two ordinary sub-nodes
 expanded$covariances      # the residual rho12 edge + the id-level corpair edge
 ```
 
-This is the **documented hook point for the 0.4 engine lane**: when the joint
-bivariate fit lands, it swaps the two independent node fits for one joint fit,
-while the covariance edges and the `rho12()` / `corpairs()` accessors stay
-exactly the same — they simply start returning a non-`NA` estimate read back from
-the fit.
+`drm_sem()` uses this expansion for alignment bookkeeping, then fits **one**
+joint bivariate model instead of the two independent nodes. The covariance
+edges stay; `rho12()` / `corpairs()` start returning fitted numbers.
 
 ## Putting the pair in a SEM, and seeing the arcs
 
@@ -221,11 +210,11 @@ edges only, when you want the bare causal skeleton.
   questions and are reported separately by `rho12()` and `corpairs()`.
 - `rho12 = ~ x` is a *directed path into the correlation component*, distinct from
   both a mean effect and a `y1 -> y2` arrow.
-- **The estimates are `NA` by construction.** The grammar declares the structure;
-  the fitted correlation must be read back from one joint bivariate `drmTMB` fit
-  (the 0.4 engine step). `drm_pair()` never fabricates a number.
-- `drm_expand_pair()` bridges the declaration onto the shipped `covary()` grammar
-  and is the hook point where the joint fit will land.
+- **An unfitted `drm_pair()` reports `NA`.** After `drm_sem()` / `drm_psem()`
+  attach one joint bivariate `drmTMB` fit, `rho12()` returns the Wald table on
+  the `tanh` link. `drm_pair()` never fabricates a number.
+- `drm_expand_pair()` bridges the declaration onto `covary()` for alignment;
+  `drm_sem()` then fits one joint model, not two independent nodes.
 
 For the covariance-edge primitive (`covary()` / `covariances()`) and how a
 declared edge changes d-separation, see

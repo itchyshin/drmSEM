@@ -96,21 +96,20 @@ generated — the any-component LRT (D-2) and `fisher_c()` are untouched.
   toward lavaan-style measurement while staying likelihood-based per node. Out of
   scope until the observed-variable core is validated.
 
-## 0.4 — Joint multivariate SEM (joint-FIT milestone) — PARTIAL (grammar + declaration shipped 0.2.x; joint fit engine-dependent, deferred)
+## 0.4 — Joint multivariate SEM (joint-FIT milestone) — PARTIAL (joint bivariate residual `rho12` shipped; >2-response / deep RE-block still open)
 
 - Optionally fit correlated endogenous responses as one joint drmTMB model
   (`rho12` becomes a first-class structural target rather than a per-node
   residual correlation), moving beyond the strictly piecewise assumption.
-- This is the joint-*fit* milestone for bivariate covariance edges (OQ-14,
-  D-14): `drm_pair()` joint bivariate fitting and `rho12()` / `corpairs()`
-  read-back from a live fit. The covariance-edge *grammar* + d-separation-
-  *awareness* layer landed in 0.2.0 (`R/covariances.R`); the bivariate-node
-  *declaration* grammar — `drm_pair()`, `drm_expand_pair()`, and the `rho12()` /
-  `corpairs()` accessors returning the declared edges with an `NA` (engine-hook)
-  estimate — landed in 0.2.x (`R/pair.R`); and double-headed / dashed-arc
-  plotting shipped in 0.2.x (`plot.drm_sem(show=)`). Only the engine-dependent
-  joint *fit* and the fitted-correlation read-back (a non-`NA` estimate) remain
-  here.
+- **Shipped (0.4 bivariate joint fit).** `drm_sem()` / `drm_psem()` fit or
+  consume one `biv_gaussian` / `biv_lognormal` / `biv_student` model for a
+  [drm_pair()]; `rho12()` returns the Wald table of `rho12` coefficients
+  (intercept and `rho12 ~ x`) on the `tanh` link; `basis_set()` drops
+  `y1 _||_ y2`. Recovery: V-128 (constant \(\rho_{12}\)), V-129
+  (\(\rho_{12} \sim x\)). This is still **one drmTMB fit**, not a global
+  multivariate SEM likelihood across the whole graph.
+- Remaining: deep level-compatibility checks against fitted RE blocks;
+  arbitrary >2-response covariance blocks beyond what drmTMB fits.
 
 ## 0.5 — Cyclic / feedback graphs (RELEASED, 0.5.0)
 

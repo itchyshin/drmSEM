@@ -353,14 +353,26 @@ dsep.drm_sem <- function(object, ...) {
   refit_env <- if (is.null(object$fit_env)) globalenv() else object$fit_env
   for (i in seq_len(nrow(bs))) {
     y <- bs$y[[i]]
-    fit <- object$records[[y]]$fit
+    rec <- object$records[[y]]
+    fit <- rec$fit
     add_var <- drm_add_column(bs$x[[i]], object)
     if (is.na(add_var)) {
       bs$status[[i]] <- "no_data_column"
       next
     }
     base <- drm_fit_logLik(fit)
-    aug_fit <- drm_refit_augmented(fit, add_var, env = refit_env)
+    # A shared bivariate fit models both margins. The any-component claim is
+    # about Y only, so augment this margin's dpars and never rho12 (pair-level).
+    comps <- rec$components
+    if (isTRUE(drm_is_bivariate_fit(fit))) {
+      comps <- setdiff(comps, "rho12")
+    }
+    aug_fit <- drm_refit_augmented(
+      fit,
+      add_var,
+      components = comps,
+      env = refit_env
+    )
     if (is.null(aug_fit)) {
       bs$status[[i]] <- "refit_failed"
       next

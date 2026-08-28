@@ -41,8 +41,8 @@ bivariate node, `eps_y1 <-> eps_y2`, not a directed `y1 -> y2` path). A path to
 `sigma` is never reported as a mean effect; a path `rho12 ~ x` says `x` changes
 that residual coupling. The covariance-edge grammar (`covary()` / `covariances()`)
 and the bivariate-node declaration (`drm_pair()` / `rho12()` / `corpairs()`) ship,
-and `plot()` draws the arcs; only the joint bivariate *fit* that reads a fitted
-`rho12` back from a live model is the remaining 0.4 engine step (see
+and `plot()` draws the arcs. `drm_sem()` fits one joint bivariate `drmTMB`
+model; `rho12()` reads the coefficients back (see
 `docs/design/07-bivariate-covariance-edges.md`).
 
 This article positions `drmSEM` against four tools it is often compared with:
@@ -239,10 +239,10 @@ Being honest about scope is part of choosing the right tool. Per the charter and
   `covariances()` reports it separately from `paths()`, and covariance-aware
   d-separation drops the `y1 _||_ y2` claim. The bivariate-node declaration
   (`drm_pair()`, `rho12()` / `corpairs()` accessors) and double-headed / dashed-arc
-  plotting also ship; only the joint bivariate *fit* that reads a *fitted*
-  `rho12` / `corpair` correlation back (a non-`NA` estimate) remains a roadmap
-  item (see `docs/design/07-bivariate-covariance-edges.md`); a single joint
-  multivariate likelihood remains out of scope for 0.x.
+  plotting also ship; the joint bivariate *fit* now reads a fitted `rho12`
+  Wald table from one `drmTMB` model (see
+  `docs/design/07-bivariate-covariance-edges.md`); a single joint
+  multivariate likelihood across the whole SEM remains out of scope for 0.x.
 - **DAG-only by default.** *Undeclared* cyclic / feedback graphs are an
   **error**. A feedback motif declared with `drm_cycle()` / `feedback=` is now
   allowed (0.5.0): the relaxed toposort, d-separation suppression, and the

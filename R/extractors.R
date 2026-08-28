@@ -376,6 +376,143 @@ drm_fit_logLik <- function(fit) {
   list(logLik = as.numeric(ll), df = attr(ll, "df"))
 }
 
+#' Bivariate drmTMB family names (joint two-response residual correlation).
+#' @keywords internal
+#' @noRd
+drm_biv_family_names <- function() {
+  c("biv_gaussian", "biv_lognormal", "biv_student")
+}
+
+#' Is this a joint bivariate drmTMB fit (mu1/mu2/rho12)?
+#' @keywords internal
+#' @noRd
+drm_is_bivariate_fit <- function(fit) {
+  fam <- drm_family_name(drm_fit_family(fit))
+  if (fam %in% drm_biv_family_names()) {
+    return(TRUE)
+  }
+  comps <- tryCatch(drm_fit_components(fit), error = function(e) character(0))
+  any(comps %in% c("mu1", "mu2", "rho12"))
+}
+
+#' Response labels of a bivariate fit: c(y1, y2) from the mu1/mu2 entries.
+#' @keywords internal
+#' @noRd
+drm_biv_response_names <- function(fit) {
+  entries <- tryCatch(drm_fit_entries(fit), error = function(e) list())
+  y1 <- NA_character_
+  y2 <- NA_character_
+  for (e in entries) {
+    if (identical(as.character(e$dpar), "mu1") && !is.null(e$response) &&
+      !is.na(e$response)) {
+      y1 <- e$response
+    }
+    if (identical(as.character(e$dpar), "mu2") && !is.null(e$response) &&
+      !is.na(e$response)) {
+      y2 <- e$response
+    }
+  }
+  c(y1, y2)
+}
+
+#' Which margin of a bivariate fit `name` is (1 = mu1, 2 = mu2, NA = neither).
+#' @keywords internal
+#' @noRd
+drm_biv_role <- function(fit, name) {
+  ys <- drm_biv_response_names(fit)
+  if (!is.na(ys[[1L]]) && identical(name, ys[[1L]])) {
+    return(1L)
+  }
+  if (!is.na(ys[[2L]]) && identical(name, ys[[2L]])) {
+    return(2L)
+  }
+  NA_integer_
+}
+
+#' Engine dpars that belong to one margin of a bivariate fit.
+#'
+#' `rho12` is a pair-level component. Attach it to margin 1 for path extraction
+#' so `x -> rho12` appears once; d-separation strips it before the LRT so a
+#' claim about y1 does not also test the correlation.
+#' @keywords internal
+#' @noRd
+drm_biv_components_for_role <- function(role, include_rho12 = FALSE) {
+  if (identical(role, 1L)) {
+    c("mu1", "sigma1", if (isTRUE(include_rho12)) "rho12")
+  } else if (identical(role, 2L)) {
+    c("mu2", "sigma2")
+  } else {
+    character(0)
+  }
+}
+
+#' Wald table for one component: term, estimate, SE, z, p.
+#' Isolated here so rho12()/paths() share the dpar:term vcov convention.
+#' @keywords internal
+#' @noRd
+drm_wald_rows <- function(fit, component) {
+  empty <- data.frame(
+    term = character(0),
+    estimate = numeric(0),
+    std.error = numeric(0),
+    statistic = numeric(0),
+    p.value = numeric(0),
+    stringsAsFactors = FALSE
+  )
+  coefs <- drm_fit_coef(fit, component)
+  if (!length(coefs)) {
+    return(empty)
+  }
+  V <- drm_fit_vcov(fit)
+  rows <- lapply(names(coefs), function(cn) {
+    est <- unname(coefs[[cn]])
+    key <- paste0(component, ":", cn)
+    se <- if (!is.null(V) && key %in% rownames(V)) {
+      sqrt(V[key, key])
+    } else {
+      NA_real_
+    }
+    z <- est / se
+    data.frame(
+      term = cn,
+      estimate = est,
+      std.error = se,
+      statistic = z,
+      p.value = 2 * stats::pnorm(-abs(z)),
+      stringsAsFactors = FALSE
+    )
+  })
+  do.call(rbind, rows)
+}
+
+#' Fitted rho12 coefficients (link / atanh scale) from a bivariate drmTMB fit.
+#' @keywords internal
+#' @noRd
+drm_fit_rho12_coef <- function(fit) {
+  drm_wald_rows(fit, "rho12")
+}
+
+#' Response- or link-scale residual correlation curve from drmTMB::rho12().
+#' @keywords internal
+#' @noRd
+drm_fit_rho12 <- function(fit, newdata = NULL, type = c("response", "link")) {
+  drm_require_drmTMB()
+  type <- match.arg(type)
+  drmTMB::rho12(fit, newdata = newdata, type = type)
+}
+
+#' Fitted correlation-pair table from drmTMB::corpairs().
+#' @keywords internal
+#' @noRd
+drm_fit_corpairs <- function(fit, ...) {
+  drm_require_drmTMB()
+  ns <- asNamespace("drmTMB")
+  if (!exists("corpairs", envir = ns, inherits = FALSE)) {
+    return(NULL)
+  }
+  drmTMB::corpairs(fit, ...)
+}
+
 #' Convergence flag for a node
 #' @keywords internal
 #' @noRd

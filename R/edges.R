@@ -56,22 +56,52 @@ drm_nominal_link <- function(family_name, component) {
 }
 
 # Build node metadata records from a named list of fitted drmTMB objects.
+# A joint bivariate fit may be stored under both response names; each record
+# then keeps only that margin's components (mu1/sigma1 vs mu2/sigma2), with
+# rho12 attached to the first margin so x -> rho12 is extracted once.
 drm_build_node_records <- function(fits) {
   nms <- names(fits)
   records <- vector("list", length(fits))
   for (i in seq_along(fits)) {
     fit <- fits[[i]]
-    resp <- drm_fit_response(fit)
-    ids <- unique(stats::na.omit(c(nms[[i]], resp$label, resp$vars)))
-    records[[i]] <- list(
-      name = nms[[i]],
-      fit = fit,
-      family = drm_family_name(drm_fit_family(fit)),
-      response_label = resp$label,
-      response_vars = resp$vars,
-      components = drm_fit_components(fit),
-      identifiers = ids
-    )
+    if (drm_is_bivariate_fit(fit)) {
+      role <- drm_biv_role(fit, nms[[i]])
+      ys <- drm_biv_response_names(fit)
+      if (is.na(role)) {
+        role <- 1L
+      }
+      resp_label <- ys[[role]]
+      if (is.na(resp_label) || !nzchar(resp_label)) {
+        resp_label <- nms[[i]]
+      }
+      comps <- intersect(
+        drm_fit_components(fit),
+        drm_biv_components_for_role(role, include_rho12 = identical(role, 1L))
+      )
+      ids <- unique(stats::na.omit(c(nms[[i]], resp_label)))
+      records[[i]] <- list(
+        name = nms[[i]],
+        fit = fit,
+        family = drm_family_name(drm_fit_family(fit)),
+        response_label = resp_label,
+        response_vars = resp_label,
+        components = comps,
+        identifiers = ids,
+        biv_role = role
+      )
+    } else {
+      resp <- drm_fit_response(fit)
+      ids <- unique(stats::na.omit(c(nms[[i]], resp$label, resp$vars)))
+      records[[i]] <- list(
+        name = nms[[i]],
+        fit = fit,
+        family = drm_family_name(drm_fit_family(fit)),
+        response_label = resp$label,
+        response_vars = resp$vars,
+        components = drm_fit_components(fit),
+        identifiers = ids
+      )
+    }
   }
   names(records) <- nms
   records

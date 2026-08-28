@@ -313,7 +313,7 @@ and contribute to Fisher's C. Validated on live drmTMB (CI run 27006262081
 green; asserted in `tests/testthat/test-phylo.R`). No drmTMB change required
 (see `DRMTMB_ISSUES.md`).
 
-## OQ-14 — First-class bivariate covariance edges (rho12 / corpairs) + d-sep awareness  [PARTIAL 2026-06-06, see D-14]
+## OQ-14 — First-class bivariate covariance edges (rho12 / corpairs) + d-sep awareness  [PARTIAL 2026-08-28, see D-14; joint residual fit shipped]
 
 First-class support for bivariate models and their covariance edges, deferred to
 post-0.1 (see D-12, `07-bivariate-covariance-edges.md`). drmSEM 0.1 already
@@ -334,14 +334,15 @@ bidirected-edge rule).
 declares a bivariate node (two response formulas + families, optional `rho12 ~ x`,
 auto-detected `corpair` level), `drm_expand_pair()` bridges it onto `covary()`,
 the `rho12()` / `corpairs()` accessors report the declared edges (with
-`estimate = NA` by construction), and `plot(sem, show = "all")` draws
-double-headed (residual) / dashed (higher-level) covariance arcs. Remaining open
-items now need only a **live bivariate drmTMB fit** (the Codex lane):
+`estimate = NA` until a live fit is attached), and `plot(sem, show = "all")` draws
+double-headed (residual) / dashed (higher-level) covariance arcs.
 
-- The joint bivariate *fit* itself (estimating `rho12` in one drmTMB model);
-  `drm_pair()` is the declaration primitive it consumes.
-- `rho12(fit)` / `corpairs(fit)` returning a *fitted* (non-`NA`) correlation read
-  back from a live bivariate fit.
+**Update 2026-08-28 — joint residual fit shipped.** `drm_sem()` / `drm_psem()`
+fit or consume one `biv_gaussian` / `biv_lognormal` / `biv_student` model;
+`rho12()` returns the Wald table (V-128 constant \(\rho_{12}\); V-129
+\(\rho_{12} \sim x\) on the `tanh` link); d-separation drops `y1 _||_ y2`.
+Remaining:
+
 - Deep level-compatibility validation (both nodes actually share the declared
   grouping + a compatible covariance structure) — needs RE-block introspection.
 

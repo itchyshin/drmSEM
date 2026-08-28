@@ -1,8 +1,7 @@
 # OQ-14 / 0.4 — drm_pair(): the bivariate-node declaration grammar. The parsing,
-# the covary() bridge, and the rho12()/corpairs() accessors are pure-R, so they
-# are tested here without drmTMB. The joint bivariate FIT (estimating rho12) and
-# reading fitted estimates back are the engine deliverable: every `estimate`
-# below is asserted to be NA, never fabricated.
+# the covary() bridge, and the unfitted rho12()/corpairs() accessors are pure-R,
+# so they are tested here without drmTMB. Joint-fit recovery lives in
+# test-rho12.R; every `estimate` below is asserted to be NA, never fabricated.
 
 # ---- formula parsing helpers ------------------------------------------------
 

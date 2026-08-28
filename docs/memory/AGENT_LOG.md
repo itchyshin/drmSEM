@@ -2049,5 +2049,30 @@ landed. Lease: `cursor:drmSEM` on the five inventory files.
 **Not claimed.** `"covered"`. Selection latents. Parent-based
 S&D separators. Closing OQ-16. Reflective measurement models.
 
-**Next.** Review + merge of this inventory PR. Imputation
-lanes remain on their own files.
+**Next.** Merged as PR #57 (`22b1b52`).
+
+## 2026-08-28 — 0.4 joint bivariate rho12 fit (V-128 / V-129)
+
+**Cursor / Grok** on `cursor/lane-rho12-joint` from `origin/main` @
+`b39c8e1`, rebased onto MAG #57 (`22b1b52`). Isolated from S6
+imputation worktrees. Lease: `cursor:drmSEM-rho12`.
+
+**What shipped.**
+- `drm_sem()` accepts unnamed `drm_pair()` and fits **one**
+  `biv_gaussian` / `biv_lognormal` / `biv_student` model; both
+  responses share that fit.
+- `drm_psem()` splits a bivariate `drmTMB` fit into two named nodes
+  and records the residual `covary()` edge.
+- `rho12()` returns the Wald table (term, estimate, SE, z, p) on the
+  `tanh` link. `paths()` reports directed `x -> rho12` once.
+- d-sep augments only that margin's dpars (never the other response,
+  never `rho12`).
+- Adapter helpers live in `R/extractors.R` only.
+
+**Tests.** `test-pair.R` + `test-rho12.R` + `test-psem.R` +
+`test-covariances.R`: **117 pass / 0 fail**. d-sep / integration /
+diagnostics / plotting: **87 pass / 0 fail / 8 warn** (pre-existing
+canonical-DGP optimizer noise).
+
+**Not this slice.** Deep RE-block compatibility. >2-response
+covariance. Mixed-family pairs (abort).

@@ -69,9 +69,9 @@ separately from `paths()`, and d-separation is aware of covarying responses
 (dropping the `y1 _||_ y2` claim). The bivariate-node declaration grammar now
 also ships: `drm_pair()` declares a joint two-response node, `rho12()` /
 `corpairs()` report the declared edges, and `plot()` draws them as double-headed
-(residual) / dashed (higher-level) arcs. Only the joint bivariate *fit* that
-reads a fitted `rho12` / `corpair` correlation back (a non-`NA` estimate) remains
-the 0.4 engine step (see `docs/design/07-bivariate-covariance-edges.md`).
+(residual) / dashed (higher-level) arcs. `drm_sem()` fits one joint bivariate
+`drmTMB` model for a `drm_pair()`; `rho12()` reads the coefficients back
+(see `docs/design/07-bivariate-covariance-edges.md`).
 
 ## A worked system: `size -> abundance -> survival`
 

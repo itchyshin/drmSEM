@@ -174,11 +174,12 @@ engine — see the vignette for a worked run.)
   not FIML and not a reflective measurement model. Selection latents are not
   supported. See `docs/design/14-m-separation.md`.
 - **Bivariate nodes.** `drm_pair()` declares a joint two-response node with a
-  residual `rho12` (and higher-level `corpair`) correlation; `rho12()` /
-  `corpairs()` report the declared edges and `plot(show = "all")` draws them as
-  double-headed / dashed arcs. The correlation *estimates* await the joint
-  bivariate fit (an engine step), so they are reported as `NA`, never fabricated.
-  See `vignette("bivariate-nodes")`.
+  residual `rho12` (and higher-level `corpair`) correlation. `drm_sem()` fits
+  **one** bivariate `drmTMB` model; `rho12()` then returns the estimated
+  coefficients (intercept and any `rho12 ~ x` predictors) on the `tanh` link.
+  An unfitted declaration still reports `NA`, never a fabricated number.
+  `plot(show = "all")` draws residual / higher-level edges as double-headed /
+  dashed arcs. See `vignette("bivariate-nodes")`.
 - **Feedback / cyclic models.** Declare a reciprocal motif with `drm_cycle()` /
   `feedback =` (undeclared cycles stay an error); `total_effects()` then reports
   the system's **equilibrium** effect by fixed-point propagation (`NA` if it

@@ -16,7 +16,8 @@ drm_sem(
 )
 }
 \arguments{
-\item{...}{Named \code{\link[=drm_node]{drm_node()}} specifications, one per endogenous node.}
+\item{...}{Named \code{\link[=drm_node]{drm_node()}} specifications and/or \code{\link[=drm_pair]{drm_pair()}} declarations.
+A pair may be unnamed: its two response variables become the node names.}
 
 \item{data}{A data frame supplied to every node fit.}
 
@@ -81,10 +82,11 @@ A \code{drm_sem} object.
 }
 \description{
 \code{drm_sem()} is the declarative interface. You describe each endogenous node
-with \code{\link[=drm_node]{drm_node()}}; \code{drm_sem()} fits each node with \code{\link[drmTMB:drmTMB]{drmTMB::drmTMB()}} and then
-builds the same object \code{\link[=drm_psem]{drm_psem()}} returns. Causal paths are
-component-labelled: a predictor may target \code{mu}, \code{sigma}, \code{nu}, \code{zi}, \code{hu},
-\code{sd(group)}, or \code{rho12} of a node.
+with \code{\link[=drm_node]{drm_node()}}, or a joint two-response node with \code{\link[=drm_pair]{drm_pair()}};
+\code{drm_sem()} fits each univariate node with \code{\link[drmTMB:drmTMB]{drmTMB::drmTMB()}} and each pair
+as \strong{one} bivariate model, then builds the same object \code{\link[=drm_psem]{drm_psem()}} returns.
+Causal paths are component-labelled: a predictor may target \code{mu}, \code{sigma},
+\code{nu}, \code{zi}, \code{hu}, \code{sd(group)}, or \code{rho12} of a node.
 }
 \examples{
 \dontrun{

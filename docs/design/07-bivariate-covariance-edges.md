@@ -209,22 +209,29 @@ the basis set.
 | --- | --- | --- | --- | --- |
 | Directed path `y1 -> y2` | yes | yes | **yes** | yes |
 | `x -> rho12` as directed path into correlation | n/a | no | **yes (from bivariate drmTMB fit via `drm_psem()`)** | yes |
-| `drm_pair()` bivariate node type | n/a | no | declaration grammar (0.2.x); joint fit roadmap | **yes** |
+| `drm_pair()` bivariate node type | n/a | no | **yes (joint `biv_*` fit via `drm_sem()` / `drm_psem()`)** | yes |
 | Residual covariance `eps_y1 <-> eps_y2` (`rho12`) as arc | yes | partial | no | **yes** |
 | Higher-level RE covariance (`corpair`) as arc | limited | no | no | **yes** |
 | `rho12()` / `corpairs()` accessors (declaration) | n/a | no | declared edges (0.2.x, estimate NA) | yes |
-| `rho12()` / `corpairs()` accessors (read from fit) | n/a | no | no | **yes** |
+| `rho12()` / `corpairs()` accessors (read from fit) | n/a | no | **yes (`rho12` Wald table; residual `corpairs` via engine)** | yes |
 | `covary()` declaration + `covariances()` separate from `paths()` | n/a | no | **yes (0.2.0)** | yes |
 | Double-headed / dashed arc plotting | yes (semPaths) | no | yes (0.2.x: rho12 double-head, corpair dashed) | yes |
 | Level-compatibility rule for RE correlations | manual | no | partial (declared; deep RE-block check needs fit) | **yes** |
 | d-sep aware of covariance edges (drop `y1 _||_ y2`) | yes (Shipley) | partial | **yes (0.2.0)** | yes |
 
-## Current state (0.2.0)
+## Current state (0.4 joint fit)
 
-drmSEM already extracts `x -> rho12` as a **directed-path component** *if* it is
-given a bivariate drmTMB fit through `drm_psem()`: a predictor on the `rho12`
-component is treated like any other component-labelled path and flows into
-`paths()`/`dsep()`/effects. That much works today.
+`drm_sem()` / `drm_psem()` now fit or consume **one** joint bivariate `drmTMB`
+model (`biv_gaussian()` / `biv_lognormal()` / `biv_student()`). The two
+responses share that fit; `rho12()` returns the Wald table of `rho12`
+coefficients (intercept and any `rho12 ~ x` predictors) on the `tanh` link;
+`paths()` reports directed `x -> rho12`; and `basis_set()` drops
+`y1 _||_ y2` because the residual covariance edge is recorded automatically.
+
+drmSEM already extracted `x -> rho12` as a **directed-path component** *if* it
+was given a bivariate drmTMB fit through `drm_psem()`. That path still works;
+the new work is that `drm_pair()` no longer expands into two independent
+univariate fits.
 
 **Shipped (pure-R grammar layer, `R/covariances.R`).** The covariance-edge
 *declaration and graph semantics* now exist and are unit-tested without a live
@@ -251,31 +258,27 @@ fit (`test-covariances.R`):
   grouping factor (explicit `level =`/`NA` overrides). It validates the
   declaration (distinct responses, well-formed `rho12`, level-compatibility
   warning) but does **not** fit.
-- **`drm_expand_pair()`** bridges a pair onto the shipped `covary()` grammar (two
-  `drm_node()` sub-nodes + the residual/`corpair` edges) — the hook point where
-  the 0.4 engine lane swaps the two independent node fits for one joint fit.
-- **`rho12()` / `corpairs()`** accessors report the declared residual /
-  higher-level edges of a `drm_pair` or a `drm_sem`, separate from `paths()`,
-  with an `estimate` column that is **`NA` by construction**: the fitted value
-  must be read back from a live bivariate fit (drmSEM never re-solves).
+- **`drm_expand_pair()`** still bridges a pair onto the `covary()` grammar (two
+  `drm_node()` sub-nodes + residual/`corpair` edges) for alignment bookkeeping.
+  [drm_sem()] fits **one** joint model instead of those two independent nodes.
+- **`rho12()` / `corpairs()`** report declared edges with `estimate = NA` on an
+  unfitted [drm_pair()], and the fitted Wald / engine table on a `drm_sem` that
+  holds a bivariate `drmTMB` fit (V-128 constant \(\rho_{12}\); V-129
+  \(\rho_{12} \sim x\) on the `tanh` link). drmSEM never re-solves.
 - **`plot(sem)` draws the covariance edges** as double-headed arcs (residual
   `rho12` solid grey, higher-level `corpair` dashed grey), distinct from the
   directed component-coloured paths; `show = "paths"` suppresses them. Rendered
   to a null device in CI (`test-plotting.R`).
 
-What still does **not** exist (needs a **live bivariate drmTMB fit**, so it
-cannot be built/validated in the dev container — see `CODEX_HANDOFF.md`):
+What still does **not** exist:
 
-- **No joint bivariate fit / read-back.** `drm_pair()` declares the structure but
-  the two responses are still fitted as ordinary piecewise nodes when expanded;
-  estimating `rho12` inside one drmTMB model and surfacing it through
-  `rho12(fit)` / `corpairs(fit)` (a non-`NA` `estimate`) is the engine deliverable.
-  `drm_pair()` is the pure-R declaration `covary()` always anticipated.
 - **Deep level-compatibility validation** — confirming both nodes actually share
   the declared grouping + a compatible covariance structure — needs to introspect
   the fitted random-effect blocks; `drm_pair()` / `covary()` currently record the
   declared `level`/`structure`, auto-detect shared grouping factors syntactically,
-  and validate only the response resolution.
+  and validate only the response resolution. Higher-level `corpairs()` estimates
+  are read from `drmTMB::corpairs()` when present; they are not a new drmSEM
+  estimator.
 
 These remaining pieces are tracked in OQ-14.
 
