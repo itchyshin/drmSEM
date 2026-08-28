@@ -141,7 +141,7 @@ plot.drm_sem <- function(x, show = c("all", "paths"), ...) {
   show <- match.arg(show)
   edges <- x$edges
   cov <- x$covariances
-  comps <- x$composites
+  comps <- c(x$composites, x$latent_constructs)
   draw_cov <- identical(show, "all") && !is.null(cov) && nrow(cov) > 0L
   draw_meas <- identical(show, "all") && length(comps) > 0L
 
@@ -167,22 +167,23 @@ plot.drm_sem <- function(x, show = c("all", "paths"), ...) {
     ecurv <- c(ecurv, ifelse(is_res, 0.35, 0.45))
   }
 
-  # Measurement edges: each composite construct's indicators point INTO the
-  # construct (formative loadings), drawn as steel-blue arrows so they read as a
-  # measurement model, distinct from structural paths and covariance arcs.
+  # Measurement edges: formative indicators point INTO the construct;
+  # reflective / MIMIC indicators point OUT from construct to indicators.
   ind_names <- character(0)
   if (draw_meas) {
-    meas <- do.call(
-      rbind,
-      lapply(comps, function(cp) {
+    meas_list <- lapply(comps, function(cp) {
+      if (identical(cp$type, "formative")) {
         data.frame(from = cp$indicators, to = cp$name, stringsAsFactors = FALSE)
-      })
-    )
-    ind_names <- unique(meas$from)
+      } else {
+        data.frame(from = cp$name, to = cp$indicators, stringsAsFactors = FALSE)
+      }
+    })
+    meas <- do.call(rbind, meas_list)
+    ind_names <- unique(unlist(lapply(comps, function(cp) cp$indicators)))
     e_df <- rbind(e_df, meas)
     ecol <- c(ecol, rep("#3182bd", nrow(meas)))
     elty <- c(elty, rep(1, nrow(meas)))
-    earrow <- c(earrow, rep(2, nrow(meas))) # indicator -> construct
+    earrow <- c(earrow, rep(2, nrow(meas)))
     ecurv <- c(ecurv, rep(0, nrow(meas)))
   }
 

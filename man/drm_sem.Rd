@@ -9,6 +9,7 @@ drm_sem(
   data,
   covariances = NULL,
   composites = NULL,
+  latents = NULL,
   feedback = NULL,
   latent = NULL,
   na_action = c("warn", "common", "fail"),
@@ -29,6 +30,11 @@ between responses; see \code{\link[=covariances]{covariances()}}.}
 column is materialized from its indicators \emph{before} fitting, so node
 formulas can reference it as an ordinary observed column; the loadings are
 reported by \code{\link[=loadings]{loadings()}}.}
+
+\item{latents}{Optional \code{\link[=drm_latent]{drm_latent()}} declaration(s) or list of them. Each
+latent construct score is materialized from its indicators \emph{before} fitting,
+so node formulas can reference it as an ordinary observed predictor or
+response; the measurement loadings are reported by \code{\link[=loadings]{loadings()}}.}
 
 \item{feedback}{Optional \code{\link[=drm_cycle]{drm_cycle()}} declaration(s) naming a feedback
 (cyclic) motif, allowing those nodes to form a cycle (every undeclared cycle

@@ -3,7 +3,7 @@
 \name{loadings}
 \alias{loadings}
 \alias{loadings.drm_sem}
-\title{Indicator loadings of a SEM's composite constructs}
+\title{Indicator loadings of a SEM's composite or latent constructs}
 \usage{
 loadings(object, ...)
 
@@ -16,13 +16,13 @@ loadings(object, ...)
 }
 \value{
 A \code{drm_loadings} data frame with columns \code{composite}, \code{indicator},
-\code{loading}, \code{method}.
+\code{loading}, \code{std_loading}, \code{method}, \code{type}, \code{identification}.
 }
 \description{
 Returns the indicator-to-construct loadings for every composite declared with
-\code{\link[=drm_composite]{drm_composite()}}, reported separately from the structural \code{\link[=paths]{paths()}} (a
-composite's measurement structure is not a causal path). Empty if the SEM has
-no composites.
+\code{\link[=drm_composite]{drm_composite()}} or latent construct declared with \code{\link[=drm_latent]{drm_latent()}}, reported
+separately from the structural \code{\link[=paths]{paths()}} (a construct's measurement structure
+is not a causal path). Empty if the SEM has no composites or latents.
 }
 \examples{
 \dontrun{
@@ -37,7 +37,9 @@ loadings(sem)
 \insertRef{BollenLennox1991}{drmSEM}
 
 \insertRef{Grace2008}{drmSEM}
+
+\insertRef{Bollen1989}{drmSEM}
 }
 \seealso{
-\code{\link[=drm_composite]{drm_composite()}}, \code{\link[=paths]{paths()}}.
+\code{\link[=drm_composite]{drm_composite()}}, \code{\link[=drm_latent]{drm_latent()}}, \code{\link[=reliability]{reliability()}}, \code{\link[=paths]{paths()}}.
 }

@@ -15,7 +15,8 @@ new_drm_sem <- function(
   covariances = NULL,
   composites = NULL,
   feedback = NULL,
-  latents = NULL
+  latents = NULL,
+  latent_constructs = NULL
 ) {
   if (length(fits) == 0L) {
     cli::cli_abort("A drmSEM model needs at least one endogenous node.")
@@ -32,6 +33,7 @@ new_drm_sem <- function(
   vedges <- drm_collapse_edges(edges)
   covs <- drm_build_covariances(covariances, records)
   comps <- drm_build_composites(composites)
+  lat_constructs <- drm_build_latent_constructs(latent_constructs, data)
   dag_vertices <- unique(c(vedges$from, vedges$to))
   lats <- drm_build_latents(latents, dag_vertices)
   mag <- drm_build_mag(vedges, lats)
@@ -77,6 +79,7 @@ new_drm_sem <- function(
       var_edges = vedges,
       covariances = covs,
       composites = comps,
+      latent_constructs = lat_constructs,
       feedback = fb,
       latents = lats,
       mag = mag,
@@ -115,6 +118,7 @@ new_drm_sem <- function(
 #' @param composites Optional [drm_composite()] declaration(s). For `drm_psem()`
 #'   the construct column(s) must already be present in the data the nodes were
 #'   fitted on; the declarations are recorded so [loadings()] can report them.
+#' @param latents Optional [drm_latent()] declaration(s) or list of them.
 #' @param feedback Optional [drm_cycle()] declaration(s) naming a feedback
 #'   (cyclic) motif. Cycles are an error unless declared; a declared motif relaxes
 #'   the topological-order requirement and is reported by [cycles()]. Node-wise
@@ -157,6 +161,7 @@ drm_psem <- function(
   data = NULL,
   covariances = NULL,
   composites = NULL,
+  latents = NULL,
   feedback = NULL,
   latent = NULL
 ) {
@@ -168,6 +173,31 @@ drm_psem <- function(
     drm_bivariate_fit_covariances(fits),
     covariances
   )
+
+  # Separate latent constructs from marginalized latent names
+  latent_constructs <- list()
+  marginalized_latents <- character(0)
+  if (!is.null(latent)) {
+    marginalized_latents <- c(marginalized_latents, as.character(latent))
+  }
+  if (!is.null(latents)) {
+    if (inherits(latents, "drm_latent") || inherits(latents, "drm_composite")) {
+      latent_constructs <- list(latents)
+    } else if (is.list(latents) && all(vapply(latents, function(x) inherits(x, "drm_latent") || inherits(x, "drm_composite"), logical(1)))) {
+      latent_constructs <- latents
+    } else if (is.character(latents)) {
+      marginalized_latents <- c(marginalized_latents, latents)
+    } else if (is.list(latents)) {
+      for (item in latents) {
+        if (inherits(item, "drm_latent") || inherits(item, "drm_composite")) {
+          latent_constructs <- c(latent_constructs, list(item))
+        } else if (is.character(item)) {
+          marginalized_latents <- c(marginalized_latents, item)
+        }
+      }
+    }
+  }
+
   new_drm_sem(
     fits,
     data,
@@ -176,7 +206,8 @@ drm_psem <- function(
     covariances = covariances,
     composites = composites,
     feedback = feedback,
-    latents = latent
+    latents = if (length(marginalized_latents)) unique(marginalized_latents) else NULL,
+    latent_constructs = if (length(latent_constructs)) latent_constructs else NULL
   )
 }
 
@@ -199,6 +230,10 @@ drm_psem <- function(
 #'   column is materialized from its indicators *before* fitting, so node
 #'   formulas can reference it as an ordinary observed column; the loadings are
 #'   reported by [loadings()].
+#' @param latents Optional [drm_latent()] declaration(s) or list of them. Each
+#'   latent construct score is materialized from its indicators *before* fitting,
+#'   so node formulas can reference it as an ordinary observed predictor or
+#'   response; the measurement loadings are reported by [loadings()].
 #' @param feedback Optional [drm_cycle()] declaration(s) naming a feedback
 #'   (cyclic) motif, allowing those nodes to form a cycle (every undeclared cycle
 #'   stays an error). Node-wise ML of a declared cycle is inconsistent under
@@ -277,6 +312,7 @@ drm_sem <- function(
   data,
   covariances = NULL,
   composites = NULL,
+  latents = NULL,
   feedback = NULL,
   latent = NULL,
   na_action = c("warn", "common", "fail"),
@@ -299,10 +335,38 @@ drm_sem <- function(
   if (length(specs) == 0L) {
     cli::cli_abort("Supply at least one {.fn drm_node} or {.fn drm_pair}.")
   }
-  # Materialize composite-construct columns BEFORE fitting, so node formulas can
-  # reference them as ordinary observed columns (drm_apply_composites is a no-op
-  # when composites is NULL).
-  data <- drm_apply_composites(data, composites)
+
+  # Separate latent constructs from marginalized latent names
+  latent_constructs <- list()
+  marginalized_latents <- character(0)
+  if (!is.null(latent)) {
+    marginalized_latents <- c(marginalized_latents, as.character(latent))
+  }
+  if (!is.null(latents)) {
+    if (inherits(latents, "drm_latent") || inherits(latents, "drm_composite")) {
+      latent_constructs <- list(latents)
+    } else if (is.list(latents) && all(vapply(latents, function(x) inherits(x, "drm_latent") || inherits(x, "drm_composite"), logical(1)))) {
+      latent_constructs <- latents
+    } else if (is.character(latents)) {
+      marginalized_latents <- c(marginalized_latents, latents)
+    } else if (is.list(latents)) {
+      for (item in latents) {
+        if (inherits(item, "drm_latent") || inherits(item, "drm_composite")) {
+          latent_constructs <- c(latent_constructs, list(item))
+        } else if (is.character(item)) {
+          marginalized_latents <- c(marginalized_latents, item)
+        }
+      }
+    }
+  }
+
+  # Materialize latent construct and composite columns BEFORE fitting
+  if (length(latent_constructs)) {
+    data <- drm_apply_latents(data, latent_constructs)
+  }
+  if (!is.null(composites)) {
+    data <- drm_apply_composites(data, composites)
+  }
   nms <- names(specs)
   # Resolve the missing-data policy BEFORE fitting: nodes silently fitted on
   # different row sets are not the model the user asked for.
@@ -343,7 +407,8 @@ drm_sem <- function(
     covariances = covariances,
     composites = composites,
     feedback = feedback,
-    latents = latent
+    latents = if (length(marginalized_latents)) unique(marginalized_latents) else NULL,
+    latent_constructs = if (length(latent_constructs)) latent_constructs else NULL
   )
   # After "common" the frame is complete, so re-derive rather than reporting
   # the pre-alignment finding.
@@ -499,6 +564,12 @@ print.drm_sem <- function(x, ...) {
   if (np > 0L) {
     cli::cli_text(
       "{np} composite construct{?s}. Use {.fn loadings} to list the indicators."
+    )
+  }
+  nlc <- if (is.null(x$latent_constructs)) 0L else length(x$latent_constructs)
+  if (nlc > 0L) {
+    cli::cli_text(
+      "{nlc} latent construct{?s}. Use {.fn loadings} to list the indicators."
     )
   }
   nf <- length(drm_feedback_motifs(x))

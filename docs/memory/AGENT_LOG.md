@@ -2111,4 +2111,29 @@ covariance. Mixed-family pairs (abort).
   - V-138: Variance-moderated feedback loop equilibrium recovery (\(y_1 \to \sigma(y_2) \to \mu(y_1)\)).
 - Updated documentation and ledgers: `docs/design/10-cyclic-feedback.md`, `docs/design/capability-status.md`, `VALIDATION_LEDGER.md`, and `AGENT_LOG.md`.
 
+## 2026-08-28 — Program Arc A: 0.3 Latent & MIMIC Measurement Blocks (V-130 .. V-134)
+
+**Cursor / Ada (orchestrator-integrator)** on `cursor/lane-03-latents-mimic` at `/Users/z3437171/local-scratch/lanes/drmSEM-03-latents`.
+
+**What shipped.**
+- Grammar & Specification (`R/latents.R`, `R/composite.R`):
+  - `drm_latent()`: specifies formative, reflective, and MIMIC constructs with marker indicator or unit-variance identification rules, scoring methods (`"pca"`, `"fa"`, `"fixed"`), and optional cause vectors.
+  - `drm_indicator()`: declares individual indicators with explicit loadings and marker flags.
+  - `drm_cronbach_alpha()` & `drm_raykov_rho()`: compute internal consistency and composite reliability.
+  - `reliability()` generic and S3 method `reliability.drm_sem()`: provides summary of $\alpha, \rho, \text{AVE}, \text{prop\_var}$ for both composite and latent constructs.
+- Piecewise Estimation & Materialization (`R/drm_sem.R`, `R/composite.R`):
+  - `drm_apply_latents()` materializes latent scores prior to node fitting.
+  - Extended `loadings.drm_sem()` and `drm_std_loadings()` to report standardized measurement loadings separate from `paths(sem)`.
+  - Maintained clear separation between measurement blocks and causal path equations.
+- Distributional Effects & Interventions (`R/effects.R`):
+  - Exported `simulate_effects` alias for `total_effects`.
+  - Supported interventions on latent construct nodes $do(\eta) \to z$ and structural causes $do(x) \to \eta \to z$, correctly propagating through $\mu$ and $\sigma$ distributional components.
+- MAG m-separation Projection (`R/dsep.R`):
+  - Filtered marginalized latent variables in `basis_set_mag()` so that only observed endogenous variables are iterated over as response nodes in Corollary 5.3 anterior projection.
+- Plotting (`R/plotting.R`):
+  - Updated `plot.drm_sem()` to draw measurement edges distinguishing formative (`indicator -> construct`) and reflective/MIMIC (`construct -> indicator`) orientations.
+- Tests & Validation (`tests/testthat/test-latents.R`):
+  - Added test suite with V-130 .. V-134 (70 assertions passing).
+  - Full local test suite passes cleanly: **1213 pass / 0 fail / 5 skip / 10 warn**.
+
 

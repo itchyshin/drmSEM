@@ -190,7 +190,7 @@ basis_set_mag <- function(object) {
     drm_feedback_pairs(object)
   ))
   rows <- list()
-  for (y in object$order) {
+  for (y in setdiff(object$order, object$latents)) {
     yi <- ord(y)
     for (x in all_vars) {
       if (identical(x, y)) {
