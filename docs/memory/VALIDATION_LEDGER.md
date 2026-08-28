@@ -1320,3 +1320,45 @@ fail / 0 skip**.
 
 **Not claimed.** Student or zi_*. Non-Gaussian `k = 2`. `k > 2`.
 Cross-node uncertainty. FIML. Capability-status `"covered"`.
+
+## 2026-08-27 — S6 sibling: V-126 reserved (not validated)
+
+Reserved so a later family cannot reuse the numbers. **Superseded
+by the validated sibling row below** once engine #1095 is on `main`.
+
+## 2026-08-27 — S6 sibling: nbinom2 × Gaussian consumer lift
+
+Sibling lift of one engine cell into drmSEM. drmTMB #1095
+`3c239a55edc14513ae4b7634c0fc420f418b6dbe`
+(`mp-nbinom2-gaussian`) wired C++ `has_mi` for an nbinom2
+response with one Gaussian `mi()` (`mi_family == 0` inside
+`model_type == 7`). nbinom2 was already on
+`drm_impute_response_families()` from the Bernoulli cell; this
+lift relaxes the binary-only branch in `drm_check_impute_legal()`
+for the nbinom2 × gaussian pair only. Other non-Gaussian
+responses stay binary-only. nbinom2 × poisson still fails loud.
+Capability-status stays **`partial`**. Not FIML. No
+`impute_joint`. No `"covered"`.
+
+- **V-80.** Allow-list unchanged (`nbinom2` already present).
+  Anti-drift lock still `expect_setequal` against
+  `drmTMB:::drm_missing_predictor_families()`.
+- **V-80d.** Leftover remains `student` (no `has_mi` on
+  `origin/main` at lift time). Still fails loud (`cannot carry a
+  modelled missing predictor`).
+- **V-80h.** nbinom2 + Gaussian parent emits; nbinom2 + poisson
+  parent still fails loud (`BINARY or GAUSSIAN missing predictor`).
+- **V-126.** nbinom2 × Gaussian identity: auto-derived fit is
+  numerically identical to the hand-written `mi()` +
+  `impute_model()` emit.
+- **V-126b.** nbinom2 × Gaussian MAR recovery-to-truth: the
+  `mi(x)` coefficient recovers 0.7 within 0.20 across seeds 13,
+  21, 34 at n = 1500 (log-mean DGP matching the engine recovery).
+  **Validated** for this cell only.
+
+`test-imputation.R` against drmTMB #1095 `3c239a55e`:
+**97 pass / 0 fail / 0 skip**.
+
+**Not claimed.** Student or zi_*. nbinom2 × a non-Gaussian
+non-binary predictor. Non-Gaussian `k = 2`. `k > 2`. Cross-node
+uncertainty. FIML. Capability-status `"covered"`.
