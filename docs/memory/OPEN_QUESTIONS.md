@@ -216,27 +216,24 @@ prior split (mediators at observed values, `indirect = total - direct`). See
 links / interactions, an integration test on a live nonlinear fit, CIs, and
 harmonizing with the `method`/`uncertainty` surface (OQ-12).
 
-## OQ-9 — Marginal (population-averaged) effects through random-effect scale
+## OQ-9 — Marginal (population-averaged) effects through random-effect scale [RESOLVED 2026-08-28]
 
-The effect engine currently propagates with random effects held at zero, so
-reported direct/indirect/total effects are **conditional** (RE = 0), not the
-marginal mean `E_b[g^{-1}(eta+b)]`. This means a causal path *into* a
-random-effect scale — e.g. `X -> sd(group)` or a path into `sd(species)` under a
-phylogenetic node — cannot be expressed as an effect on the response, because
-integrating it out requires marginalizing over the RE distribution. Open: add a
-`marginal = TRUE` / `population = c("conditional","marginal")` option that
-integrates over the fitted RE distribution (needs drmTMB to expose the RE
-variance components and a way to draw/integrate them on the response scale).
-Until then, `sd(group)` paths appear in `paths()` but have no entry in the effect
-decomposition, and this is documented as a conditional-effects limitation (see
-`02-effect-calculus.md`, `06-phylogenetic-sem.md`). Needs a live drmTMB session
-to confirm the ranef variance API.
+`population = "marginal"` is fully implemented across `direct_effects()`, `total_effects()`,
+`indirect_effects()`, and `path_effects()`. Node expectations and scenario simulations integrate
+over the fitted random-effects covariance $\Sigma_{RE}$ (extracted via `drm_fit_component_sdpar()`)
+rather than conditioning on $b = 0$.
+- For linear and log links: exact closed-form marginalization $E_b[\exp(\eta + b)] = \exp(\eta + \tfrac{1}{2}\sigma_{RE}^2)$.
+- For nonlinear links (logit, tanh): 15-point Gauss-Hermite quadrature.
+- For distribution-mediated paths: realizations sample $b \sim N(0, \sigma_{RE}^2)$ per row.
+Validated by test V-144 in `tests/testthat/test-bootstrap-marginal.R`.
 
-## OQ-10 — Bootstrap uncertainty (speed Tier 5)
+## OQ-10 — Bootstrap uncertainty (speed Tier 5) [RESOLVED 2026-08-28]
 
-Add `uncertainty = "bootstrap"` (parametric/nonparametric, refit per replicate)
-as an alternative to the current `MVN(coef, vcov)` coefficient draw for effect
-CIs.
+`uncertainty = "bootstrap"` is fully implemented across all effect functions.
+- Cluster/block-aware case resampling: when random effects (`(1|group)`) or grouping variables are detected, entire clusters are resampled with replacement and relabeled; otherwise simple observation case resampling is used (`drm_resample_data()`).
+- Fast refitting: all piecewise models are refitted per bootstrap replicate using `drm_control(se = FALSE)` (`drm_bootstrap_refit_sem()`).
+- Output: returns point estimates from the fitted SEM, bootstrap standard errors (`std.error`), percentile confidence intervals (`conf.low`, `conf.high`), normal-approximation confidence intervals (`boot_ci_normal`), and raw bootstrap replicates (`boot_replicates`).
+Validated by tests V-142 and V-143 in `tests/testthat/test-bootstrap-marginal.R`.
 
 ## OQ-11 — Outcome functionals beyond the mean  [PARTIAL 2026-06-07 — extended to the whole effect API + quantiles]
 
