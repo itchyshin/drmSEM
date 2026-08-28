@@ -1404,3 +1404,34 @@ student V-80g / V-125 / V-125b).
 **Not claimed.** zi_*. nbinom2 × a non-Gaussian non-binary
 predictor. Non-Gaussian `k = 2`. `k > 2`. Cross-node
 uncertainty. FIML. Capability-status `"covered"`.
+
+## 2026-08-28 — S6 A7: ZIP × Bernoulli consumer lift (D-23)
+
+D-23 first cell into drmSEM. drmTMB #1097 `9d4b63400`
+(`mp-zi-poisson-bernoulli`) inlined the ZIP mixture for
+`model_type == 8` with `mi()` in `mu` only and `zi ~ 1`. drmSEM
+does **not** add `zi_poisson` to `drm_impute_response_families()`
+(V-80 stays `expect_setequal` against the engine list, which is
+`"poisson"`). Leftover `zi_*` is keyed on the `zi` formula:
+`zi_nbinom2` and incomplete / `mi()` `zi` stay refused.
+Capability-status stays **`partial`**. Not FIML. No `"covered"`.
+
+- **V-80.** Unchanged allow-list. ZIP is still family `poisson`.
+- **V-80d.** Leftover remains `tweedie`.
+- **V-80i.** ZIP + binary parent emits; ZIP + continuous fails
+  loud (`BINARY missing predictor`); `zi_nbinom2` fails loud;
+  incomplete `zi` symbol fails loud (`eta_zi`).
+- **V-127.** ZIP × Bernoulli identity: auto-derived fit is
+  numerically identical to the hand-written `mi()` +
+  `impute_model()` emit.
+- **V-127b.** ZIP × Bernoulli MAR recovery-to-truth: the
+  `mi(treatment)` coefficient recovers 0.7 within 0.20 across seeds
+  13, 21, 34 at n = 1500 (log-mean DGP matching the engine
+  recovery). **Validated** for this cell only.
+
+`test-imputation.R` against drmTMB #1097 `9d4b63400`:
+**117 pass / 0 fail / 0 skip**.
+
+**Not claimed.** `zi_nbinom2`. `mi()` on `zi`. Non-Gaussian
+`k = 2`. `k > 2`. Cross-node uncertainty. FIML.
+Capability-status `"covered"`.

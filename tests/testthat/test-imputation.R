@@ -12,10 +12,12 @@
 # V-80f beta_binomial × binary emits; beta_binomial × continuous fails loud (A7c-4)
 # V-80g student × binary emits; student × continuous fails loud (A7c-5)
 # V-80h nbinom2 × gaussian emits; nbinom2 × poisson still fails (sibling)
+# V-80i ZIP × binary emits; ZIP × continuous fails; zi_nbinom2 leftover
 # V-123 / V-123b lognormal × Bernoulli identity + MAR recovery
 # V-124 / V-124b beta_binomial × Bernoulli identity + MAR recovery
 # V-125 / V-125b student × Bernoulli identity + MAR recovery
 # V-126 / V-126b nbinom2 × Gaussian identity + MAR recovery
+# V-127 / V-127b ZIP × Bernoulli identity + MAR recovery (D-23)
 # V-81  mi() coefficient names resolve to the right node in paths()
 # V-82  two-parent auto fit matches the hand-written emit shape (needs k=2 engine)
 # V-120 two-parent MAR recovery-to-truth (needs k=2 engine)
@@ -1032,6 +1034,182 @@ test_that("V-125b: student x binary auto recovers known MAR coefficients", {
     )))$nodes$y$coefficients$mu
     coefs <- unlist(fit)
     # identity mu: (Intercept), mi(treatment), z. Truth: 0.4, 0.7, 0.5.
+    b_trt[[k]] <- coefs[["mi(treatment)"]]
+  }
+  expect_lt(mean(abs(b_trt - 0.7)), 0.20)
+})
+
+engine_accepts_zi_poisson_mi <- function() {
+  if (!requireNamespace("drmTMB", quietly = TRUE)) {
+    return(FALSE)
+  }
+  # D-23: do NOT look for zi_poisson on drm_missing_predictor_families().
+  # That list stays "poisson"; the cell is keyed on model_type == 8.
+  ns <- asNamespace("drmTMB")
+  if (!exists("drm_finalize_missing_data", envir = ns, inherits = FALSE)) {
+    return(FALSE)
+  }
+  grepl(
+    "zi_poisson",
+    paste(deparse(getFromNamespace("drm_finalize_missing_data", "drmTMB")), collapse = "\n"),
+    fixed = TRUE
+  )
+}
+
+rzip <- function(n, lambda, pi) {
+  y <- stats::rpois(n, lambda)
+  y[stats::runif(n) < pi] <- 0L
+  as.integer(y)
+}
+
+# z -> treatment (Bernoulli) -> y (ZIP). Engine cell
+# mp-zi-poisson-bernoulli / #1097. Log-mean DGP matches the engine
+# recovery: eta = 0.4 + 0.5*z + 0.7*treatment, zi intercept -0.8.
+zip_binary_dat <- function(n = 200, seed = 13L, mar = TRUE) {
+  set.seed(seed)
+  z <- stats::rnorm(n)
+  treatment <- stats::rbinom(n, 1L, stats::plogis(0.3 + 0.8 * z))
+  eta <- 0.4 + 0.5 * z + 0.7 * treatment
+  pi <- stats::plogis(-0.8)
+  y <- rzip(n, exp(eta), pi)
+  d <- data.frame(z = z, treatment = treatment, y = y)
+  drop <- if (isTRUE(mar)) {
+    stats::runif(n) < stats::plogis(-0.8 + 0.6 * as.numeric(scale(y)))
+  } else {
+    seq_len(n) %in% sample(n, floor(0.2 * n))
+  }
+  d$treatment[drop] <- NA
+  d
+}
+
+zip_binary_specs <- function() {
+  list(
+    treatment = drm_node(
+      drmTMB::bf(treatment ~ z),
+      family = stats::binomial()
+    ),
+    y = drm_node(
+      drmTMB::bf(y ~ treatment + z, zi ~ 1),
+      family = stats::poisson()
+    )
+  )
+}
+
+test_that("V-80i: ZIP + binary parent emits; ZIP + continuous fails; zi_nbinom2 leftover", {
+  d_bin <- zip_binary_dat()
+  plan <- drmSEM:::drm_imputation_plan(zip_binary_specs(), d_bin)
+  expect_identical(plan$y$variable, "treatment")
+  expect_identical(
+    drmSEM:::drm_impute_family_key(plan$y$family_name),
+    "binomial"
+  )
+
+  d_cont <- chain_dat()
+  d_cont$y <- stats::rpois(nrow(d_cont), lambda = 2)
+  expect_error(
+    suppressMessages(drm_sem(
+      m = drm_node(drmTMB::bf(m ~ x)),
+      y = drm_node(
+        drmTMB::bf(y ~ m + x, zi ~ 1),
+        family = stats::poisson()
+      ),
+      data = d_cont, impute = "auto"
+    )),
+    "BINARY missing predictor"
+  )
+
+  expect_error(
+    suppressMessages(drm_sem(
+      m = drm_node(drmTMB::bf(m ~ x)),
+      y = drm_node(
+        drmTMB::bf(y ~ m + x, zi ~ 1),
+        family = drmTMB::nbinom2()
+      ),
+      data = d_cont, impute = "auto"
+    )),
+    "zi_nbinom2"
+  )
+
+  d_zi_miss <- zip_binary_dat()
+  expect_error(
+    drmSEM:::drm_imputation_plan(
+      list(
+        treatment = drm_node(
+          drmTMB::bf(treatment ~ z),
+          family = stats::binomial()
+        ),
+        y = drm_node(
+          drmTMB::bf(y ~ treatment + z, zi ~ treatment),
+          family = stats::poisson()
+        )
+      ),
+      d_zi_miss
+    ),
+    "eta_zi"
+  )
+})
+
+test_that("V-127: ZIP x binary auto fit matches the hand-written emit", {
+  skip_if_not(engine_accepts_zi_poisson_mi(), "engine has no ZIP has_mi")
+  d <- zip_binary_dat(n = 200, seed = 13L)
+  auto <- suppressWarnings(suppressMessages(drm_sem(
+    treatment = drm_node(
+      drmTMB::bf(treatment ~ z),
+      family = stats::binomial()
+    ),
+    y = drm_node(
+      drmTMB::bf(y ~ treatment + z, zi ~ 1),
+      family = stats::poisson()
+    ),
+    data = d, impute = "auto"
+  )))
+  hand <- suppressWarnings(suppressMessages(drm_sem(
+    treatment = drm_node(
+      drmTMB::bf(treatment ~ z),
+      family = stats::binomial()
+    ),
+    y = drm_node(
+      drmTMB::bf(y ~ mi(treatment) + z, zi ~ 1),
+      family = stats::poisson(),
+      impute = list(
+        treatment = drmTMB::impute_model(
+          treatment ~ z,
+          family = stats::binomial()
+        )
+      ),
+      missing = drmTMB::miss_control(predictor = "model")
+    ),
+    data = d
+  )))
+  expect_equal(
+    unlist(auto$nodes$y$coefficients$mu),
+    unlist(hand$nodes$y$coefficients$mu)
+  )
+  imp <- imputation(auto)
+  expect_identical(nrow(imp), 1L)
+  expect_identical(imp$node, "y")
+  expect_identical(imp$variable, "treatment")
+  expect_identical(imp$family, "binomial")
+})
+
+test_that("V-127b: ZIP x binary auto recovers known MAR coefficients", {
+  skip_if_not(engine_accepts_zi_poisson_mi(), "engine has no ZIP has_mi")
+  seeds <- c(13L, 21L, 34L)
+  b_trt <- numeric(length(seeds))
+  for (k in seq_along(seeds)) {
+    d <- zip_binary_dat(n = 1500, seed = seeds[[k]])
+    fit <- suppressWarnings(suppressMessages(drm_sem(
+      treatment = drm_node(
+        drmTMB::bf(treatment ~ z),
+        family = stats::binomial()
+      ),
+      y = drm_node(
+        drmTMB::bf(y ~ treatment + z, zi ~ 1),
+        family = stats::poisson()
+      ),
+      data = d, impute = "auto"
+    )))$nodes$y$coefficients$mu
+    coefs <- unlist(fit)
     b_trt[[k]] <- coefs[["mi(treatment)"]]
   }
   expect_lt(mean(abs(b_trt - 0.7)), 0.20)

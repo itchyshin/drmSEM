@@ -1995,3 +1995,28 @@ V-80g / V-125 / V-125b).
 
 **Next.** zi_* (mixture composition). nbinom2 × poisson still
 refused.
+
+## 2026-08-28 — S6 A7: ZIP × Bernoulli consumer lift (D-23)
+
+**Cursor / Grok** on fresh `cursor/lane-s6-a7-zi-consumer` at
+`~/local-scratch/lanes/drmSEM-s6-a7-zi-consumer` from
+`origin/main` @ `1a601c1`. Isolated from MAG / student /
+nbinom2 trees.
+
+**Engine.** drmTMB #1097 `9d4b63400` `mp-zi-poisson-bernoulli`
+(inline ZIP mixture in `model_type == 8`; `mi()` in `mu` only;
+`zi ~ 1`). Did not add `zi_poisson` to
+`drm_missing_predictor_families()`.
+
+**Consumer.**
+- V-80 allow-list unchanged (`poisson`, not a `zi_*` alias).
+- `drm_check_impute_legal()` keys leftover `zi_*` on the `zi`
+  formula: ZIP + `zi ~ 1` / observed-only `zi` emits; `zi_nbinom2`
+  and incomplete / `mi()` `zi` refuse.
+- V-80i emit + leftover; V-127 identity; V-127b MAR recovery.
+- capability-status stays **`partial`**. Not FIML. No `"covered"`.
+
+**Tests.** `test-imputation.R` **117 pass / 0 fail / 0 skip**
+against local engine #1097.
+
+**Not this slice.** `zi_nbinom2`. `mi()` on `zi`. k=2.
