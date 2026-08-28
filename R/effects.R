@@ -657,6 +657,10 @@ total_effects <- function(
   out
 }
 
+#' @rdname total_effects
+#' @export
+simulate_effects <- total_effects
+
 #' Indirect effect of a predictor on a node, with a distributional decomposition
 #'
 #' The indirect effect is the simulation-based total path effect (mediators in

@@ -49,9 +49,7 @@ indicators. The indicator loadings are recorded and reported by \code{\link[=loa
 \details{
 This is the \emph{formative / composite} construct (indicators define the
 construct), which stays fully within drmSEM's piecewise, likelihood-based core.
-\emph{Reflective} latent variables (a latent common cause estimated through a
-measurement model) require a joint likelihood drmTMB does not fit piecewise and
-are out of scope here; see \code{docs/design/09-latent-variables.md}.
+For reflective or MIMIC constructs, see \code{\link[=drm_latent]{drm_latent()}}.
 }
 \examples{
 dat <- data.frame(len = rnorm(50), mass = rnorm(50), wing = rnorm(50))
@@ -68,5 +66,5 @@ drm_composite("body_size", c("len", "mass", "wing"), method = "pca", data = dat)
 \insertRef{Bollen1989}{drmSEM}
 }
 \seealso{
-\code{\link[=loadings]{loadings()}}, \code{\link[=drm_sem]{drm_sem()}}.
+\code{\link[=loadings]{loadings()}}, \code{\link[=reliability]{reliability()}}, \code{\link[=drm_latent]{drm_latent()}}, \code{\link[=drm_sem]{drm_sem()}}.
 }

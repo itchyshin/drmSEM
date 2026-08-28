@@ -13,11 +13,8 @@ NULL
 # reported by loadings(), kept separate from the structural paths() exactly as
 # covariance edges are.
 #
-# This is the FORMATIVE / composite case (indicators -> construct), which is
-# pure-R: no joint likelihood, no engine change. REFLECTIVE latent constructs (a
-# latent common cause with a measurement model) need a joint measurement
-# likelihood drmTMB does not provide piecewise, and are deferred to 0.4 / lavaan
-# interop. See docs/design/09-latent-variables.md.
+# References:
+# Bollen & Lennox (1991), Grace & Bollen (2008), Bollen (1989).
 # ---------------------------------------------------------------------------
 
 #' Declare a composite construct from observed indicators
@@ -31,9 +28,7 @@ NULL
 #'
 #' This is the *formative / composite* construct (indicators define the
 #' construct), which stays fully within drmSEM's piecewise, likelihood-based core.
-#' *Reflective* latent variables (a latent common cause estimated through a
-#' measurement model) require a joint likelihood drmTMB does not fit piecewise and
-#' are out of scope here; see `docs/design/09-latent-variables.md`.
+#' For reflective or MIMIC constructs, see [drm_latent()].
 #'
 #' @param name Name of the construct column to create. Must not collide with an
 #'   existing data column or node name.
@@ -51,7 +46,7 @@ NULL
 #'   `loadings` and the construct's reliability (Cronbach's alpha, an
 #'   internal-consistency measure for *reflective* indicator sets), shown by
 #'   `print()` / `summary()`.
-#' @seealso [loadings()], [drm_sem()].
+#' @seealso [loadings()], [reliability()], [drm_latent()], [drm_sem()].
 #' @references
 #' \insertRef{BollenLennox1991}{drmSEM}
 #'
@@ -135,6 +130,8 @@ drm_composite <- function(
     name = name,
     indicators = indicators,
     method = method,
+    type = "formative",
+    identification = if (identical(method, "fixed")) "fixed" else "unit_variance",
     loadings = loadings,
     scale = scale_indicators,
     prop_var = prop_var,
@@ -143,23 +140,6 @@ drm_composite <- function(
   )
   class(out) <- "drm_composite"
   out
-}
-
-# Cronbach's alpha for the indicator set: a reflective-construct reliability
-# (internal consistency). NA for a single indicator; can be negative when the
-# indicators are not positively correlated (a useful "these don't form a scale"
-# signal), which is honest rather than clamped.
-drm_cronbach_alpha <- function(M) {
-  k <- ncol(M)
-  if (k < 2L) {
-    return(NA_real_)
-  }
-  cv <- stats::cov(M)
-  total_var <- sum(cv)
-  if (!is.finite(total_var) || total_var <= 0) {
-    return(NA_real_)
-  }
-  (k / (k - 1)) * (1 - sum(diag(cv)) / total_var)
 }
 
 #' @export
@@ -230,12 +210,12 @@ drm_build_composites <- function(composites) {
   if (is.null(composites)) {
     return(list())
   }
-  if (inherits(composites, "drm_composite")) {
+  if (inherits(composites, "drm_composite") && !inherits(composites, "drm_latent")) {
     composites <- list(composites)
   }
   if (
     !is.list(composites) ||
-      !all(vapply(composites, inherits, logical(1), what = "drm_composite"))
+      !all(vapply(composites, function(x) inherits(x, "drm_composite") && !inherits(x, "drm_latent"), logical(1)))
   ) {
     cli::cli_abort(c(
       "{.arg composites} must be {.fn drm_composite} declaration(s).",
@@ -265,22 +245,24 @@ drm_apply_composites <- function(data, composites) {
   data
 }
 
-#' Indicator loadings of a SEM's composite constructs
+#' Indicator loadings of a SEM's composite or latent constructs
 #'
 #' Returns the indicator-to-construct loadings for every composite declared with
-#' [drm_composite()], reported separately from the structural [paths()] (a
-#' composite's measurement structure is not a causal path). Empty if the SEM has
-#' no composites.
+#' [drm_composite()] or latent construct declared with [drm_latent()], reported
+#' separately from the structural [paths()] (a construct's measurement structure
+#' is not a causal path). Empty if the SEM has no composites or latents.
 #'
 #' @param object A `drm_sem` object.
 #' @param ... Unused.
 #' @return A `drm_loadings` data frame with columns `composite`, `indicator`,
-#'   `loading`, `method`.
-#' @seealso [drm_composite()], [paths()].
+#'   `loading`, `std_loading`, `method`, `type`, `identification`.
+#' @seealso [drm_composite()], [drm_latent()], [reliability()], [paths()].
 #' @references
 #' \insertRef{BollenLennox1991}{drmSEM}
 #'
 #' \insertRef{Grace2008}{drmSEM}
+#'
+#' \insertRef{Bollen1989}{drmSEM}
 #' @examples
 #' \dontrun{
 #' sem <- drm_sem(
@@ -298,22 +280,38 @@ loadings <- function(object, ...) {
 #' @export
 loadings.drm_sem <- function(object, ...) {
   comps <- object$composites
+  lats <- object$latent_constructs
+  all_constructs <- c(comps, lats)
   empty <- data.frame(
     composite = character(0),
     indicator = character(0),
     loading = numeric(0),
+    std_loading = numeric(0),
     method = character(0),
+    type = character(0),
+    identification = character(0),
     stringsAsFactors = FALSE
   )
-  if (is.null(comps) || length(comps) == 0L) {
+  if (is.null(all_constructs) || length(all_constructs) == 0L) {
     out <- empty
   } else {
-    rows <- lapply(comps, function(spec) {
+    data <- if (is.null(object$data)) NULL else as.data.frame(object$data)
+    rows <- lapply(all_constructs, function(spec) {
+      typ <- if (!is.null(spec$type)) spec$type else "formative"
+      ident <- if (!is.null(spec$identification)) spec$identification else if (identical(spec$method, "fixed")) "fixed" else "unit_variance"
+      std_ld <- if (!is.null(spec$std_loadings)) {
+        as.numeric(spec$std_loadings[spec$indicators])
+      } else {
+        drm_std_loadings(spec, data)
+      }
       data.frame(
         composite = spec$name,
         indicator = spec$indicators,
         loading = as.numeric(spec$loadings[spec$indicators]),
+        std_loading = std_ld,
         method = spec$method,
+        type = typ,
+        identification = ident,
         stringsAsFactors = FALSE
       )
     })
@@ -324,17 +322,132 @@ loadings.drm_sem <- function(object, ...) {
   out
 }
 
+# Standardized loading = correlation of each indicator with the construct score,
+# computed from the materialized data. Valid for both fixed/weighted and PCA
+# composites (correlation is invariant to the score's scale). Returns NA per
+# indicator when the data or its variation is unavailable, rather than guessing.
+drm_std_loadings <- function(spec, data) {
+  na <- rep(NA_real_, length(spec$indicators))
+  if (is.null(data) || !all(spec$indicators %in% names(data))) {
+    return(na)
+  }
+  score <- tryCatch({
+    if (inherits(spec, "drm_latent")) {
+      drm_score_latent(spec, data)
+    } else {
+      drm_score_composite(spec, data)
+    }
+  }, error = function(e) NULL)
+  if (is.null(score) || !is.finite(stats::sd(score)) || stats::sd(score) == 0) {
+    return(na)
+  }
+  vapply(spec$indicators, function(ind) {
+    xi <- data[[ind]]
+    if (!is.numeric(xi) || !is.finite(stats::sd(xi)) || stats::sd(xi) == 0) {
+      NA_real_
+    } else {
+      stats::cor(xi, score, use = "pairwise.complete.obs")
+    }
+  }, numeric(1), USE.NAMES = FALSE)
+}
+
 #' @export
 print.drm_loadings <- function(x, ...) {
   if (nrow(x) == 0L) {
-    cli::cli_text("<drmSEM composite loadings: none>")
+    cli::cli_text("<drmSEM composite/latent loadings: none>")
     return(invisible(x))
   }
   cli::cli_text(
-    "<drmSEM composite loadings: {length(unique(x$composite))} construct{?s}>"
+    "<drmSEM composite/latent loadings: {length(unique(x$composite))} construct{?s}>"
   )
   df <- as.data.frame(x)
   df$loading <- round(df$loading, 4)
+  if ("std_loading" %in% names(df)) df$std_loading <- round(df$std_loading, 4)
+  print.data.frame(df, row.names = FALSE)
+  invisible(x)
+}
+
+#' Construct reliability summary for composite and latent constructs
+#'
+#' Per-construct reliability diagnostics for [drm_composite()] and [drm_latent()]
+#' constructs in a SEM: `alpha` (Cronbach's alpha), `rho` (Raykov's rho /
+#' composite reliability), `ave` (average variance extracted -- the mean squared
+#' standardized loading), and `prop_var` (proportion of variance explained).
+#'
+#' @param object A `drm_sem` object.
+#' @param ... Unused.
+#' @return A `drm_reliability` data frame: `composite`, `type`, `method`,
+#'   `n_indicators`, `alpha`, `rho`, `ave`, `prop_var` (one row per construct;
+#'   empty when there are no constructs).
+#' @seealso [loadings()], [drm_composite()], [drm_latent()].
+#' @examples
+#' \dontrun{
+#' sem <- drm_sem(
+#'   fitness = drm_node(drmTMB::bf(fitness ~ body_size), family = stats::gaussian()),
+#'   data = dat,
+#'   composites = drm_composite("body_size", c("len", "mass"), data = dat))
+#' reliability(sem)
+#' }
+#' @export
+reliability <- function(object, ...) {
+  UseMethod("reliability")
+}
+
+#' @rdname reliability
+#' @export
+reliability.drm_sem <- function(object, ...) {
+  comps <- object$composites
+  lats <- object$latent_constructs
+  all_constructs <- c(comps, lats)
+  empty <- data.frame(
+    composite = character(0),
+    type = character(0),
+    method = character(0),
+    n_indicators = integer(0),
+    alpha = numeric(0),
+    rho = numeric(0),
+    ave = numeric(0),
+    prop_var = numeric(0),
+    stringsAsFactors = FALSE
+  )
+  if (is.null(all_constructs) || length(all_constructs) == 0L) {
+    out <- empty
+  } else {
+    ld <- loadings(object)
+    rows <- lapply(all_constructs, function(spec) {
+      typ <- if (!is.null(spec$type)) spec$type else "formative"
+      sl <- ld$std_loading[ld$composite == spec$name]
+      alpha_val <- if (!is.null(spec$reliability)) spec$reliability else NA_real_
+      rho_val <- if (!is.null(spec$composite_reliability)) spec$composite_reliability else NA_real_
+      data.frame(
+        composite = spec$name,
+        type = typ,
+        method = spec$method,
+        n_indicators = length(spec$indicators),
+        alpha = alpha_val,
+        rho = rho_val,
+        ave = if (length(sl) > 0L && all(is.finite(sl))) mean(sl^2) else NA_real_,
+        prop_var = if (is.null(spec$prop_var)) NA_real_ else spec$prop_var,
+        stringsAsFactors = FALSE
+      )
+    })
+    out <- do.call(rbind, rows)
+  }
+  rownames(out) <- NULL
+  class(out) <- c("drm_reliability", "data.frame")
+  out
+}
+
+#' @export
+print.drm_reliability <- function(x, ...) {
+  if (nrow(x) == 0L) {
+    cli::cli_text("<drmSEM construct reliability: none>")
+    return(invisible(x))
+  }
+  cli::cli_text("<drmSEM construct reliability: {nrow(x)} construct{?s}>")
+  df <- as.data.frame(x)
+  num <- vapply(df, is.numeric, logical(1))
+  df[num] <- lapply(df[num], function(v) round(v, 4))
   print.data.frame(df, row.names = FALSE)
   invisible(x)
 }

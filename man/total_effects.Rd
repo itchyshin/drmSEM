@@ -2,9 +2,32 @@
 % Please edit documentation in R/effects.R
 \name{total_effects}
 \alias{total_effects}
+\alias{simulate_effects}
 \title{Total effect of a predictor on a node by simulation}
 \usage{
 total_effects(
+  object,
+  from,
+  to,
+  method = NULL,
+  target = c("mean", "p_gt", "p_zero", "var", "quantile"),
+  threshold = 0,
+  prob = 0.5,
+  functional = c("simulate", "analytic"),
+  at = NULL,
+  B = 200L,
+  uncertainty = NULL,
+  nsim = NULL,
+  population = NULL,
+  level = 0.95,
+  seed = NULL,
+  mediation = NULL,
+  draw = NULL,
+  n_sim = NULL,
+  ...
+)
+
+simulate_effects(
   object,
   from,
   to,

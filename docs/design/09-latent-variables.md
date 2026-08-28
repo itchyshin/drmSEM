@@ -1,96 +1,116 @@
-# 09 — Latent variables (0.3): composite constructs
+# 09 — Latent & MIMIC Measurement Blocks (0.3)
 
-The 0.3 milestone lets a node load on a **latent construct** while staying inside
-drmSEM's hard constraints: observed-variable, piecewise, DAG-only, each node one
-drmTMB fit, no joint likelihood. The first increment ships **composite
-(formative) constructs**; reflective measurement models are deferred. Code:
-`R/composite.R`.
+The 0.3 milestone expands `drmSEM`'s latent-construct capabilities to support **MIMIC (Multiple Indicators, Multiple Causes)**, **formative**, and **reflective** constructs while strictly preserving `drmSEM`'s core architectural tenets:
+- Observed-variable, piecewise estimation (one `drmTMB` model per endogenous node; no joint full-information likelihood).
+- Causal paths are **component-labelled** (`mu`, `sigma`, `nu`, `zi`, etc.).
+- Direct, indirect, and total effects are simulation-based Monte-Carlo propagations over the fitted DAG.
+- Honest separation between measurement model loadings (`loadings(sem)`) and causal path structure (`paths(sem)`).
 
-## Composite constructs (shipped)
+Code: `R/latents.R`, `R/composite.R`, `R/drm_sem.R`, `R/effects.R`.
 
-A composite construct is a **deterministic function of observed indicators**,
-computed *before* any fit:
+---
 
-- `method = "fixed"` — a weighted sum of the raw indicators (equal weights by
-  default, or user-supplied `weights`).
-- `method = "pca"` — the first principal-component score of the **scaled**
-  indicators; the PC1 loadings are recorded (sign-fixed so the largest-magnitude
-  loading is positive) along with the proportion of variance explained.
+## 1. Construct Specification & Grammar
 
-Because the construct is just a column once materialized, it slots into the
-existing machinery with **no engine change**:
+Users specify latent and composite constructs via `drm_latent()`, `drm_indicator()`, and `drm_composite()`:
 
-- `drm_composite(name, indicators, weights, method, data)` records the spec and
-  its loadings (`R/composite.R`).
-- `drm_sem(..., composites = )` materializes each construct column from the data
-  *before* fitting (`drm_apply_composites()`), so any node formula can use the
-  construct name as an ordinary predictor or response. `drm_psem(..., composites =)`
-  records the declarations for reporting; the column must already be in the data
-  the nodes were fitted on.
-- `loadings(sem)` reports the indicator→construct loadings, kept **separate from
-  `paths()`** exactly as `covariances()` is — a construct's measurement structure
-  is not a causal path.
+```r
+# Reflective construct (unit-variance or marker-indicator identified)
+eta_refl <- drm_latent(
+  name = "eta",
+  indicators = c("y1", "y2", "y3"),
+  type = "reflective",
+  identification = "marker", # or "unit_variance"
+  marker = "y1"
+)
 
-### Construct quality: reliability and standardization
+# MIMIC model: Multiple Causes (x1, x2) -> Latent (eta) -> Multiple Indicators (y1, y2, y3)
+eta_mimic <- drm_latent(
+  name = "eta",
+  indicators = c("y1", "y2", "y3"),
+  causes = c("x1", "x2"),
+  type = "mimic",
+  identification = "marker",
+  marker = "y1"
+)
 
-`drm_composite()` records and reports two diagnostics so a user can judge the
-construct rather than take it on faith:
+# Formative construct (indicators define the construct)
+eta_form <- drm_latent(
+  name = "index",
+  indicators = c(drm_indicator("x1", loading = 0.5), drm_indicator("x2", loading = 0.5)),
+  type = "formative"
+)
+```
 
-- **Reliability** — Cronbach's alpha over the indicator set, an internal-
-  consistency measure for a *reflective* reading of the indicators (the degree to
-  which they move together as one scale). It is stored on the spec and shown by
-  `print()` / `summary()`. It is **not clamped**: a low or negative alpha is an
-  honest "these indicators do not form a coherent scale" signal, and `NA` for a
-  single indicator. (`drm_cronbach_alpha()`.) For a *formative* construct, where
-  indicators are causes rather than effects of the construct, alpha is not the
-  right criterion and is reported for information only.
-- **`standardize = TRUE`** rescales the materialized score to mean 0, sd 1 (after
-  the weighted-sum / PC step), so a construct used as a predictor enters on a
-  comparable scale to standardized continuous predictors.
+### Identification Rules
 
-`summary(composite)` prints the loadings table, the PC1 proportion of variance
-(for `"pca"`), and the reliability; `print()` gives the one-line form.
+1. **Marker Indicator (`identification = "marker"`):**
+   - The designated marker indicator (default: first indicator) is constrained to have a unit loading ($\lambda_1 = 1$).
+   - Other indicator loadings are estimated or extracted relative to the marker.
+2. **Unit Variance (`identification = "unit_variance"`):**
+   - The latent construct is constrained to have unit variance ($\mathrm{Var}(\eta) = 1$).
+   - Loadings reflect the standard deviation of each indicator explained by the common factor.
 
-### Formative vs reflective reading
+---
 
-`method = "fixed"` is the **formative** composite (the indicators *define* the
-construct; weights are a design choice). `method = "pca"` is the closest
-piecewise-feasible **reflective-flavoured** construct: the first principal
-component approximates the common factor when the indicators are strongly,
-positively correlated (high reliability), and its loadings/`prop_var` report how
-well a single dimension summarizes them. Neither estimates a latent measurement
-*model* — see below.
+## 2. Piecewise Estimation & Score Materialization
 
-### Honest limitations (documented, tracked)
+In the piecewise SEM framework:
+1. **Measurement Scoring:** Indicators are summarized into latent scores ($\hat{\eta}$) via principal components (`method = "pca"`), factor-analytic weighting (`method = "fa"`), or fixed user-specified weights (`method = "fixed"`).
+2. **Sign Alignment:** The principal component / factor score is sign-aligned so that the dominant loading (or the marker indicator) is strictly positive.
+3. **Data Materialization:** Before any `drmTMB` node models are fitted, `drm_apply_latents()` materializes the latent construct columns into the analysis dataset.
+4. **Structural Node Estimation:** Structural equations treat the materialized construct $\eta$ as an endogenous node or predictor (e.g. `eta ~ x1 + x2`, `z ~ eta`, `sigma ~ eta`).
+5. **Separation of Measurement and Structural Paths:**
+   - `loadings(sem)` returns the measurement loadings matrix ($\lambda_k$, standardized loadings, construct type, identification rule).
+   - `paths(sem)` returns solely the causal paths among variables, preserving the distinction between measurement definition and structural causal effects.
 
-- **Indicators are leaves.** The construct is frozen in the data, so an
-  intervention on an *indicator* does not propagate into the construct in the
-  effect engine; intervene on the **construct** instead. (Propagating from
-  indicators would require the engine to re-derive the column inside
-  `drm_build_scenarios()`.)
-- **Loadings are not drawn as measurement arcs** in `plot()` yet, and they do not
-  enter the d-separation basis set (the construct is not a fitted node, so no
-  `indicator _||_ construct` claim is ever generated — there is nothing to drop).
+---
 
-## Reflective constructs (out of scope for 0.3)
+## 3. Reliability Metrics
 
-A reflective latent `eta` is the unobserved *common cause* of its indicators
-(`indicator_k = lambda_k * eta + e_k`). Estimating the loadings and factor scores
-requires integrating over `eta` in a **measurement likelihood that couples all
-indicators simultaneously** — a single joint model. drmSEM is piecewise (one node
-= one drmTMB fit over observed responses, no joint likelihood), and drmTMB does
-not expose a multi-indicator latent-factor likelihood, so a true reflective
-construct cannot be a drmSEM node. Reflective measurement belongs with the **0.4
-joint multivariate** work or with lavaan interop. A pre-fit factor-score plug-in
-(fit a 1-factor model externally, write predicted scores as a column) is possible
-but is just a composite with externally-estimated weights that **ignores score
-uncertainty**, and must be labelled as such rather than advertised as reflective
-SEM.
+`drmSEM` provides internal-consistency and composite reliability metrics:
+
+- **Cronbach's $\alpha$ (`drm_cronbach_alpha(M)`):** Classical lower bound on reliability under tau-equivalence:
+  $$\alpha = \frac{k}{k-1} \left( 1 - \frac{\sum_{i=1}^k \sigma_i^2}{\sum_{i,j} \sigma_{ij}} \right)$$
+- **Raykov's $\rho$ / Composite Reliability (`drm_raykov_rho(M, loadings, error_variances)`):** Factor-analytic composite reliability:
+  $$\rho = \frac{\left(\sum \lambda_i\right)^2 \mathrm{Var}(\eta)}{\left(\sum \lambda_i\right)^2 \mathrm{Var}(\eta) + \sum \theta_i}$$
+- **`reliability(sem)` Accessor:** Returns construct-level reliability diagnostics ($\alpha$, $\rho$, average variance extracted AVE, and proportion of variance explained).
+
+---
+
+## 4. Distributional Effect Propagation & Interventions
+
+`drmSEM`'s simulation-based effect engine seamlessly supports interventions involving latent nodes:
+- **Intervention on Latent Node:** $do(\eta = a)$ propagating downstream to response components (e.g., $do(\eta) \to \mu_z$, $do(\eta) \to \sigma_z$).
+- **Intervention on Structural Causes:** $do(x_1 = a) \to \eta \to z$, propagating through the latent construct and decomposing into:
+  - Total path effect
+  - Direct effect ($x_1 \to z$)
+  - Indirect effect ($x_1 \to \eta \to z$)
+  - Mean-mediated vs. Distribution-mediated channels.
+
+---
+
+## 5. MAG Anterior Projection for Marginalized Latents
+
+When unobserved confounding is represented by marginalized latent variables in `drm_sem(..., latents = c("L1", "L2"))`, `basis_set()` projects the DAG to a Maximal Ancestral Graph (MAG) using Richardson & Spirtes (2002) Corollary 5.3:
+- Condition on anteriors: $\mathrm{ant}(\{X, Y\}) \setminus \{X, Y\}$.
+- Ensures no spurious bidirected cycles or invalid collider conditioning between observed indicators and downstream nodes.
+
+---
+
+## 6. Validation Summary (V-130 .. V-134)
+
+- **V-130:** Grammar, input validation, and specification for `drm_indicator()` and `drm_latent()` across formative, reflective, and MIMIC constructs with marker and unit-variance identification.
+- **V-131:** Exact recovery of Cronbach's $\alpha$ and Raykov's $\rho$ across tau-equivalent and congeneric indicator configurations.
+- **V-132:** End-to-end 2-cause, 3-indicator MIMIC model parameter recovery ($\beta_{x1}, \beta_{x2}, \lambda_1, \lambda_2, \lambda_3$) and construct reliability reporting.
+- **V-133:** Interventions on latent constructs ($do(\eta) \to z$) and structural causes ($do(x_1) \to \eta \to z$) propagating through both $\mu$ and $\sigma$ distributional channels.
+- **V-134:** MAG m-separation projection preserving Richardson & Spirtes Corollary 5.3 independence claims without cycles.
+
+---
 
 ## References
 
-- Bollen KA, Bauldry S (2011). Three Cs in measurement models: causal indicators,
-  composite indicators, and covariates. *Psychol. Methods* 16(3):265-284.
-- Grace JB, Bollen KA (2008). Representing general theoretical concepts in
-  structural equation models: the role of composite variables. *Environ. Ecol.
-  Stat.* 15:191-213.
+- Bollen KA, Bauldry S (2011). Three Cs in measurement models: causal indicators, composite indicators, and covariates. *Psychol. Methods* 16(3):265–284.
+- Grace JB, Bollen KA (2008). Representing general theoretical concepts in structural equation models: the role of composite variables. *Environ. Ecol. Stat.* 15:191–213.
+- Raykov T (1997). Estimation of composite reliability for congeneric measures. *Appl. Psychol. Meas.* 21(2):173–184.
+- Richardson T, Spirtes P (2002). Ancestral graph Markov models. *Ann. Statist.* 30(4):962–1030.

@@ -1481,6 +1481,33 @@ pairs abort.
 **Not claimed.** Global multivariate SEM. Mixed-family bivariate.
 Deep RE-block level-compatibility. Capability-status `"covered"`.
 
+## 2026-08-28 — 0.3 Latent & MIMIC measurement blocks (V-130 .. V-134)
+
+Piecewise latent construct specification, materialization, MIMIC structural models,
+reliability calculations, and distributional effect propagation (`R/latents.R`, `R/composite.R`).
+
+- **V-130.** Grammar & validation for `drm_indicator()` and `drm_latent()`:
+  supports `type = c("mimic", "reflective", "formative")`, `identification = c("marker", "unit_variance")`,
+  explicit weights, marker designation, and validation of malformed inputs. **Validated.**
+- **V-131.** Reliability formulas: exact recovery of Cronbach's \(\alpha\) and Raykov's \(\rho\)
+  for tau-equivalent and congeneric indicators against closed forms; bounds \([0, 1]\). **Validated.**
+- **V-132.** MIMIC DGP parameter recovery: 2-cause, 3-indicator MIMIC model (\(x_1, x_2 \to \eta \to y_1, y_2, y_3\))
+  recovers structural paths (\(\beta_1 \approx 0.6, \beta_2 \approx 0.4\)) and measurement loadings
+  under marker identification (\(\lambda_1 = 1, \lambda_2 \approx 0.8, \lambda_3 \approx 0.6\));
+  `reliability()` accessor returns \(\alpha, \rho, \text{AVE}, \text{prop\_var}\). **Validated.**
+- **V-133.** Distributional interventions and effect propagation: interventions on latent construct
+  \(do(\eta) \to z\) and structural cause \(do(x_1) \to \eta \to z\) propagate through both \(\mu\) and
+  \(\sigma\) components of downstream node \(z\); direct/indirect decomposition correctly attributes
+  indirect path effect without leakage to direct effect. **Validated.**
+- **V-134.** MAG m-separation projection: marginalized latent variables are projected via
+  Richardson & Spirtes (2002) Corollary 5.3 anterior sets without generating spurious cycles or
+  missing observed-variable claims. **Validated.**
+
+`tests/testthat/test-latents.R` against drmTMB 0.7.0: **70 pass / 0 fail / 0 skip / 0 warn**.
+
+**Not claimed.** Full joint multivariate likelihood estimation. Joint iterative FIML.
+Uncertainty propagation from score estimation into downstream node fits.
+
 ## 2026-08-28 — Arc B: 0.5 Cyclic Feedback — Distributional Equilibria (V-135..V-138)
 
 Advanced `propagate_fixedpoint()` to simultaneously iterate and solve fixed points

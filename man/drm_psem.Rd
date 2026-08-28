@@ -10,6 +10,7 @@ drm_psem(
   data = NULL,
   covariances = NULL,
   composites = NULL,
+  latents = NULL,
   feedback = NULL,
   latent = NULL
 )
@@ -35,6 +36,8 @@ decomposition.}
 \item{composites}{Optional \code{\link[=drm_composite]{drm_composite()}} declaration(s). For \code{drm_psem()}
 the construct column(s) must already be present in the data the nodes were
 fitted on; the declarations are recorded so \code{\link[=loadings]{loadings()}} can report them.}
+
+\item{latents}{Optional \code{\link[=drm_latent]{drm_latent()}} declaration(s) or list of them.}
 
 \item{feedback}{Optional \code{\link[=drm_cycle]{drm_cycle()}} declaration(s) naming a feedback
 (cyclic) motif. Cycles are an error unless declared; a declared motif relaxes
