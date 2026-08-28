@@ -1,110 +1,327 @@
 ---
-title: "Latent constructs: composites and reliability"
+title: "Latent constructs and measurement models in drmSEM"
 output: rmarkdown::html_vignette
 bibliography: ../inst/REFERENCES.bib
 link-citations: true
 vignette: >
-  %\VignetteIndexEntry{Latent constructs: composites and reliability}
+  %\VignetteIndexEntry{Latent constructs and measurement models in drmSEM}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
 ```{r setup, include = FALSE}
 # Model-fitting chunks use the drmTMB engine and are eval-gated; the pure-R
-# construct helpers (drm_composite, print, summary) run.
-has_engine <- FALSE
-knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = has_engine)
+# construct helpers (drm_latent, drm_indicator, drm_composite, reliability) run.
+has_engine <- requireNamespace("drmTMB", quietly = TRUE)
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  eval = TRUE
+)
 library(drmSEM)
-set.seed(1)
+set.seed(20260828)
 ```
 
-drmSEM lets a node load on a **latent construct** while staying inside its hard
-constraints — observed-variable, piecewise, DAG-only, each node one `drmTMB` fit,
-no joint likelihood. The piece that fits this paradigm is the **composite
-construct**: a deterministic index of observed indicators, materialized as a
-column *before* fitting, so it can be used as an ordinary predictor or response.
+In observational and ecological research, many foundational concepts—such as
+**individual quality**, **habitat degradation**, **boldness**, or **organismal
+size**—cannot be measured directly with a single error-free variable. Instead,
+researchers measure a battery of correlated proxies (indicators) or combine
+multiple environmental drivers.
 
-## A formative composite
+`drmSEM` supports **latent, MIMIC, and composite measurement models** within
+its piecewise structural equation modelling framework [@Shipley2000; @Shipley2009;
+@Grace2008]. This vignette explains:
 
-A **formative** construct is *defined* by its indicators (they are causes, not
-effects, of the construct) [@BollenLennox1991; @Grace2008]. `drm_composite()`
-builds it; the helper is pure R and runs without the engine:
+1. The distinction between **formative**, **reflective**, and **MIMIC** constructs.
+2. The declaration syntax: `drm_latent()`, `drm_indicator()`, and `drm_composite()`.
+3. **Identification constraints**: marker indicator ($\lambda_{\text{marker}} = 1$) versus unit-variance ($\text{Var}(\eta) = 1$).
+4. **Reliability metrics**: Cronbach's $\alpha$ [@Cronbach1951] versus Raykov's composite reliability $\rho$ [@Raykov1997; @McDonald1999].
+5. **Distributional effect propagation**: tracing causal interventions through latent constructs to downstream mean ($\mu$), dispersion ($\sigma$), and zero-inflation ($\text{zi}$) components.
+6. The honest piecewise paradigm: how factor scores are materialized and why indicator loadings are kept strictly separate from structural paths.
 
-```{r formative, eval = TRUE}
+---
+
+## The three construct paradigms
+
+Before writing formulas, it is critical to distinguish the causal direction
+between the latent variable $\eta$ and its observed variables [@Bollen1989;
+@BollenLennox1991; @GraceBollen2005]:
+
+```{r construct-table, echo = FALSE, results = "asis"}
+cat("
+| Construct type | Causal topology | Interpretation | Declaration |
+| :--- | :--- | :--- | :--- |
+| **Formative / Composite** | Indicators $\\to$ Construct | Indicators *define* or *cause* the construct (e.g. Diet + Activity $\\to$ Body Condition). | `drm_composite()` or `drm_latent(type = \"formative\")` |
+| **Reflective** | Latent $\\to$ Indicators | Indicators are *manifestations* of a common underlying factor (e.g. Boldness $\\to$ Latency, Exploration, Aggression). | `drm_latent(type = \"reflective\")` |
+| **MIMIC** | Causes $\\to$ Latent $\\to$ Indicators | Multiple causes drive an unobserved state, which is reflected in multiple observable proxies (Jöreskog & Goldberger 1975). | `drm_latent(type = \"mimic\", causes = ...)` |
+")
+```
+
+---
+
+## 1. Formative constructs: `drm_composite()`
+
+A formative construct is a deterministic or weighted combination of observed
+causes [@BollenLennox1991; @Grace2008]. Because the indicators cause the
+construct, indicators are not required to correlate positively with each other,
+and internal-consistency reliability is not a validity requirement.
+
+```{r formative-example}
+# Simulated morphometric data for 250 birds
+n <- 250
 dat <- data.frame(
-  bill = rnorm(200), tarsus = rnorm(200), mass = rnorm(200), x = rnorm(200)
+  bill_length = rnorm(n, mean = 20, sd = 2),
+  tarsus_length = rnorm(n, mean = 35, sd = 3),
+  body_mass = rnorm(n, mean = 15, sd = 1.5),
+  temp = rnorm(n, mean = 18, sd = 4)
 )
-# the response the SEM below regresses on the construct
-dat$fitness <- 0.6 * rowMeans(dat[c("bill", "tarsus", "mass")]) + 0.3 * dat$x + rnorm(200)
-# equal-weighted index of three size indicators:
-size <- drm_composite("size", c("bill", "tarsus", "mass"), data = dat)
-size
+
+# Build an equal-weighted composite index of body size
+size_comp <- drm_composite(
+  name = "structural_size",
+  indicators = c("bill_length", "tarsus_length", "body_mass"),
+  method = "fixed",
+  data = dat,
+  standardize = TRUE
+)
+size_comp
 ```
 
-Pass it to `drm_sem(..., composites = )`; the column is materialized before
-fitting, so a node formula can use `size` like any observed predictor, and
-`loadings()` reports the indicator weights (kept separate from `paths()`):
+When passed to `drm_sem()`, the composite score is materialized into the data
+frame prior to node fitting. Structural nodes can use `structural_size` as an
+ordinary predictor or response.
 
-```{r formative-sem, eval = has_engine}
+---
+
+## 2. Reflective constructs: `drm_latent(type = "reflective")`
+
+In a reflective construct, an unobserved latent variable $\eta$ drives multiple
+observable indicators:
+
+$$y_i = \nu_i + \lambda_i \eta + \varepsilon_i, \quad \varepsilon_i \sim \mathcal{N}(0, \theta_i)$$
+
+where $\lambda_i$ is the factor loading for indicator $i$, and $\theta_i$ is the
+unique (error) variance [@Bollen1989].
+
+### Identification constraints
+
+Because $\eta$ is unobserved, its scale and origin are indeterminate without an
+identification constraint. `drm_latent()` provides two standard identification
+options:
+
+1. **Marker variable identification (`identification = "marker"`):**
+   Fixes the loading of a reference indicator to $\lambda_1 = 1$. The scale of
+   $\eta$ is identical to the scale of that marker indicator.
+2. **Unit-variance identification (`identification = "unit_variance"`):**
+   Constrains the latent variance to $\text{Var}(\eta) = 1$. All indicator loadings
+   $\lambda_i$ are estimated freely as factor loadings.
+
+```{r reflective-example}
+# Generate data driven by a single latent trait: 'boldness'
+boldness_true <- rnorm(n, mean = 0, sd = 1.5)
+dat$exploratory_speed <- 1.0 * boldness_true + rnorm(n, sd = 0.5)
+dat$novel_object_time <- 0.8 * boldness_true + rnorm(n, sd = 0.6)
+dat$trap_latency      <- 0.6 * boldness_true + rnorm(n, sd = 0.7)
+
+# Declare a reflective latent with marker identification:
+refl_marker <- drm_latent(
+  name = "boldness",
+  indicators = c("exploratory_speed", "novel_object_time", "trap_latency"),
+  type = "reflective",
+  identification = "marker",
+  marker = "exploratory_speed",
+  data = dat
+)
+summary(refl_marker)
+```
+
+Notice that `exploratory_speed` has a loading of exactly $1.0$, fixing the
+metric of the latent construct.
+
+Alternatively, using `identification = "unit_variance"`:
+
+```{r reflective-unit-var}
+refl_uvar <- drm_latent(
+  name = "boldness_std",
+  indicators = list(
+    drm_indicator("exploratory_speed"),
+    drm_indicator("novel_object_time"),
+    drm_indicator("trap_latency")
+  ),
+  type = "reflective",
+  identification = "unit_variance",
+  data = dat
+)
+summary(refl_uvar)
+```
+
+---
+
+## 3. MIMIC models: Multiple Indicators, Multiple Causes
+
+A **MIMIC** (Multiple Indicators, Multiple Causes) construct [@JoreskogGoldberger1975]
+combines structural causes and reflective indicators in a single unified block:
+
+$$\eta = \sum_{j} \gamma_j x_j + \zeta, \quad \zeta \sim \mathcal{N}(0, \psi)$$
+$$y_i = \lambda_i \eta + \varepsilon_i, \quad \varepsilon_i \sim \mathcal{N}(0, \theta_i)$$
+
+Environmental causes $x_1, x_2, \dots$ predict the latent variable $\eta$, which
+in turn manifests in observed proxy indicators $y_1, y_2, \dots$.
+
+```{r mimic-example}
+# Environmental causes of condition
+dat$food_availability <- rnorm(n)
+dat$parasite_load     <- rnorm(n)
+condition_true <- 0.7 * dat$food_availability - 0.5 * dat$parasite_load + rnorm(n, sd = 0.4)
+
+# Reflective physiological indicators of condition
+dat$hematocrit <- 1.0 * condition_true + rnorm(n, sd = 0.3)
+dat$glucose    <- 0.75 * condition_true + rnorm(n, sd = 0.35)
+dat$plasma_fat <- 0.55 * condition_true + rnorm(n, sd = 0.4)
+
+# Downstream response: clutch size with location-scale effects
+dat$clutch_size <- rnorm(
+  n,
+  mean = 4.0 + 0.8 * condition_true,
+  sd = exp(0.1 - 0.4 * condition_true)
+)
+
+# Declare MIMIC construct:
+mimic_cond <- drm_latent(
+  name = "condition",
+  causes = c("food_availability", "parasite_load"),
+  indicators = list(
+    drm_indicator("hematocrit", marker = TRUE),
+    drm_indicator("glucose"),
+    drm_indicator("plasma_fat")
+  ),
+  type = "mimic",
+  identification = "marker",
+  data = dat
+)
+summary(mimic_cond)
+```
+
+---
+
+## 4. Construct reliability: $\alpha$ versus Raykov's $\rho$
+
+Assessing construct quality is essential before interpreting structural
+pathways. `drmSEM` provides both classical Cronbach's $\alpha$ and modern
+composite reliability:
+
+### Cronbach's $\alpha$
+
+$$\alpha = \frac{k}{k - 1} \left(1 - \frac{\sum_{i=1}^k \sigma_i^2}{\sum_{i=1}^k \sum_{j=1}^k \sigma_{ij}}\right)$$
+
+Cronbach's $\alpha$ [@Cronbach1951] assumes **essential $\tau$-equivalence**
+(all indicators share identical factor loadings $\lambda_1 = \lambda_2 = \dots = \lambda_k$).
+When loadings differ (as is almost universally true in real biological data),
+$\alpha$ **underestimates** scale reliability [@Raykov1997].
+
+### Raykov's composite reliability $\rho$ (McDonald's $\omega$)
+
+$$\rho = \frac{\left(\sum_{i=1}^k \lambda_i\right)^2 \text{Var}(\eta)}{\left(\sum_{i=1}^k \lambda_i\right)^2 \text{Var}(\eta) + \sum_{i=1}^k \theta_i}$$
+
+Raykov's $\rho$ [@Raykov1997; @McDonald1999] allows congeneric indicators with
+unequal loadings $\lambda_i$ and unique error variances $\theta_i$.
+
+```{r reliability-demo}
+# Compute standalone metrics on an indicator matrix
+ind_df <- dat[c("hematocrit", "glucose", "plasma_fat")]
+
+alpha_val <- drm_cronbach_alpha(ind_df)
+rho_val   <- drm_raykov_rho(ind_df)
+
+c("Cronbach's alpha" = alpha_val, "Raykov's rho" = rho_val)
+```
+
+When indicator loadings vary substantially, Raykov's $\rho$ gives the honest,
+unattenuated measure of composite reliability.
+
+---
+
+## 5. Assembling the SEM and estimating distributional pathways
+
+In `drmSEM`, latent and composite constructs integrate seamlessly into
+piecewise structural equation models via the `latents =` or `composites =`
+arguments:
+
+```{r fit-sem, eval = has_engine}
 sem <- drm_sem(
-  fitness = drm_node(drmTMB::bf(fitness ~ size + x), family = stats::gaussian()),
+  # Node 1: Condition driven by environmental causes
+  condition = drm_node(
+    drmTMB::bf(condition ~ food_availability + parasite_load),
+    family = stats::gaussian()
+  ),
+  # Node 2: Clutch size has location (mu) AND scale (sigma) predicted by condition
+  clutch_size = drm_node(
+    drmTMB::bf(
+      clutch_size ~ condition,
+      sigma ~ condition
+    ),
+    family = stats::gaussian()
+  ),
   data = dat,
-  composites = drm_composite("size", c("bill", "tarsus", "mass"), data = dat)
+  latents = mimic_cond
 )
+
+summary(sem)
+```
+
+### Inspecting structural paths vs indicator loadings
+
+`drmSEM` strictly separates structural paths between nodes from indicator
+measurement loadings:
+
+```{r paths-and-loadings, eval = has_engine}
+# Structural regression coefficients between nodes
+paths(sem)
+
+# Indicator loadings (measurement model)
 loadings(sem)
+
+# Construct reliability summary across all latent blocks
+reliability(sem)
 ```
 
-## A reflective-flavoured composite, and construct quality
+---
 
-When the indicators are thought to be *effects* of one underlying dimension
-(reflective) [@Bollen1989; @Rosseel2012], the first principal component
-approximates that common factor.
-`method = "pca"` records the PC1 loadings and the proportion of variance it
-captures, and every composite reports its **reliability** (Cronbach's alpha — the
-internal consistency of the indicator set):
+## 6. Distributional effect propagation through latent nodes
 
-```{r reflective, eval = TRUE}
-# correlated indicators of one latent dimension
-z <- rnorm(200)
-ind <- data.frame(i1 = z + rnorm(200, sd = .4),
-                  i2 = z + rnorm(200, sd = .4),
-                  i3 = z + rnorm(200, sd = .4))
-boldness <- drm_composite("boldness", c("i1", "i2", "i3"),
-                          method = "pca", data = ind, standardize = TRUE)
-summary(boldness)
+A central strength of `drmSEM` is that causal effects are **component-labelled**.
+A path from a latent construct to a downstream node can target the **mean**
+($\mu$), the **dispersion / scale** ($\sigma$), the **shape** ($\nu$), or the
+**zero-inflation** ($\text{zi}$) component.
+
+Suppose we intervene on `food_availability`, shifting it by $+1.0$ standard
+deviation. What happens downstream to `clutch_size`?
+
+```{r effects-sim, eval = has_engine}
+# Simulate total interventional effects of food_availability on clutch_size
+eff <- total_effects(sem, from = "food_availability", to = "clutch_size", nsim = 200)
+eff
 ```
 
-A high alpha (indicators move together) supports a reflective reading; a low or
-negative alpha is an honest signal that the indicators do *not* form a coherent
-scale. `standardize = TRUE` puts the score on a mean-0 / sd-1 scale so it enters a
-model comparably to other standardized predictors. (For a *formative* construct
-alpha is reported for information only — internal consistency is not the right
-criterion when indicators are causes.)
+### Interpreting component-labelled pathways
 
-## A construct as a response
+- **Path `condition -> clutch_size (mu)`**: Increases the expected mean clutch size.
+- **Path `condition -> clutch_size (sigma)`**: Modulates the residual variation or reproductive risk among individuals. **This is not a mean effect.** A negative $\sigma$ path indicates that birds in higher condition have more predictable, less erratic clutch sizes.
 
-Because the construct is just a column, a node can also be fit *on* it — e.g. to
-ask what predicts `size`:
+By simulating forward through the structural graph, `drmSEM` correctly
+propagates interventions through the latent construct to all modelled distributional
+parameters simultaneously.
 
-```{r response, eval = has_engine}
-sem2 <- drm_sem(
-  size    = drm_node(drmTMB::bf(size ~ x), family = stats::gaussian()),
-  fitness = drm_node(drmTMB::bf(fitness ~ size), family = stats::gaussian()),
-  data = dat,
-  composites = drm_composite("size", c("bill", "tarsus", "mass"), data = dat)
-)
-paths(sem2)
-```
+---
 
-## What is *not* a composite
+## Summary of best practices
 
-A true **reflective measurement model** — estimating the latent's loadings and
-score *jointly* with the structural model, propagating score uncertainty —
-requires a single joint likelihood across all indicators, which a piecewise,
-one-fit-per-node engine cannot provide. That belongs to the **0.4 joint
-multivariate** work (or lavaan interop), and drmSEM does not pretend a composite
-is it. A composite is an *observed* index with transparent, recorded weights; use
-it when that is what you mean, and reach for a joint factor model when you need
-the latent estimated.
+1. **Choose the right construct model**: Use `drm_composite()` when indicators are causes/inputs (formative); use `drm_latent()` when indicators are reflections/proxies of an underlying factor.
+2. **Select an identification rule**: Use `marker` when you want the latent construct to inherit the scale of a primary reference trait; use `unit_variance` when you want a standardized factor score.
+3. **Check composite reliability**: Report Raykov's $\rho$ alongside Cronbach's $\alpha$ to ensure proxy indicators measure a congeneric construct reliably ($\rho \ge 0.70$).
+4. **Distinguish structural paths from loadings**: In publications, report measurement loadings ($\lambda_i$) separately from structural regressions ($\beta_{j}$).
+5. **Embrace distributional targets**: Use location-scale formulas (`sigma ~ eta`) when latent quality stabilizes or destabilizes downstream biological traits.
+
+---
 
 ## References

@@ -185,6 +185,11 @@ engine — see the vignette for a worked run.)
   the system's **equilibrium** effect by fixed-point propagation (`NA` if it
   diverges). Node-wise fitting of a cycle is inconsistent under simultaneity —
   drmSEM warns and never fakes consistency. See `vignette("feedback-cycles")`.
+- **Missing data & graph-derived imputation.** Automatically derive missing
+  mediator models from the causal DAG with `drm_sem(impute = "auto")`. Supports
+  continuous (`gaussian`, `Gamma`, `lognormal`, `student`, `beta`) and discrete
+  (`poisson`, `nbinom2`, `ZIP`) families, with multi-parent ($k = 2$) support and
+  detailed diagnostics. See `vignette("missing-data")`.
 - **Interoperability.** `as_lavaan()` / `from_lavaan()` exchange the graph with
   lavaan model syntax (non-mean distributional paths are dropped *with notice*,
   never misrepresented), and `as_dot()` exports a Graphviz diagram. Graph

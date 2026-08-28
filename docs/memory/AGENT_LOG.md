@@ -2136,6 +2136,25 @@ covariance. Mixed-family pairs (abort).
   - Added test suite with V-130 .. V-134 (70 assertions passing).
   - Full local test suite passes cleanly: **1213 pass / 0 fail / 5 skip / 10 warn**.
 
+## 2026-08-28 — Track 4: Comprehensive Vignette Suite & Package Polish
+
+**Cursor / Pat (applied PhD-student user tester) & Ada (orchestrator-integrator)** on `cursor/lane-quad-t4-vignettes` at `/Users/z3437171/local-scratch/lanes/drmSEM-quad-t4`.
+
+**What shipped.**
+- **Vignette Suite Authoring & Refinement (`vignettes/`)**:
+  - `vignettes/latent-variables.Rmd`: Comprehensive guide to formative, reflective, and MIMIC measurement constructs in piecewise SEM. Explains marker variable ($\lambda_{\text{marker}} = 1$) vs unit-variance ($\text{Var}(\eta) = 1$) identification, reliability calculations (Cronbach's $\alpha$ vs Raykov's congeneric composite $\rho$), downstream distributional effect propagation through location ($\mu$), scale ($\sigma$), and zero-inflation ($\text{zi}$) targets, and the clean separation of `loadings(sem)` from `paths(sem)`.
+  - `vignettes/feedback-cycles.Rmd`: Rigorous guide to reciprocal causation and feedback motifs declared with `drm_cycle()`. Details multi-component Banach fixed-point iteration across $\mu, \sigma, \nu, \text{zi}$, stability diagnostics (spectral radius $\rho(B) < 1$ and empirical Lipschitz contraction constants), equilibrium total effects via `total_effects()`, and honest limits regarding simultaneity bias in node-wise estimation.
+  - `vignettes/missing-data.Rmd`: New complete guide to graph-derived piecewise imputation with `drm_sem(impute = "auto")`. Walkthrough of automatic mediator model borrowing across continuous (`gaussian`, `Gamma`, `lognormal`, `student`, `beta`) and count/discrete families (`poisson`, `nbinom2`, `ZIP`), multi-parent imputation ($k = 2$), diagnostic accessors (`imputation()`, `imputed()`, `check_sem()`), and honest piecewise variance bounds vs joint FIML.
+  - `vignettes/bivariate-nodes.Rmd`: Comprehensive guide to joint two-response estimation with `drm_pair()`. Clearly distinguishes directed paths ($y_1 \to y_2$), within-observation residual correlations ($\rho_{12}$ on $\tanh$ link), and individual-level random-effect correlations (`corpairs`). Demonstrates environmental moderation of residual coupling ($x \to \rho_{12}$) and explains basis-set suppression in d-separation.
+- **Website & Package Configuration (`_pkgdown.yml`)**:
+  - Reorganized articles navbar into 5 thematic categories: "Get Started", "Distributional Pathways", "Latents & Measurement", "Feedback & Covariance", and "Missing Data & Diagnostics".
+  - Verified `pkgdown::check_pkgdown()` passes with 0 missing topics and 0 unreferenced vignettes across all 14 articles.
+- **Documentation & References**:
+  - Added bibliography entries for missing data and fixed-point theory (`LittleRubin2019`, `Enders2010`, `Banach1922`) in `inst/REFERENCES.bib`.
+  - Updated `NEWS.md`, `README.md`, and `docs/design/capability-status.md`.
+- **Validation**:
+  - Full test suite passes: **1249 pass / 0 fail / 5 skip / 10 warn**.
+
 ## 2026-08-28 — Track 1: Outcome Functionals & Non-Gaussian Tail Exceedance / Quantile Effects (V-139 .. V-141, OQ-11)
 
 **Cursor / Ada (orchestrator-integrator)** on `cursor/lane-quad-t1-functionals` at `/Users/z3437171/local-scratch/lanes/drmSEM-quad-t1`.
@@ -2154,6 +2173,7 @@ covariance. Mixed-family pairs (abort).
   - Full test suite passes cleanly: **1295 pass / 0 fail / 5 skip / 10 warn**.
 - Documentation & Ledgers:
   - Updated `docs/design/02-effect-calculus.md`, `docs/design/capability-status.md`, `docs/memory/OPEN_QUESTIONS.md` (resolving OQ-11), and `docs/memory/VALIDATION_LEDGER.md`.
+
 
 
 

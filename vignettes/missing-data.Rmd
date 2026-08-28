@@ -1,0 +1,248 @@
+---
+title: "Graph-derived piecewise imputation for missing data (drm_sem)"
+output: rmarkdown::html_vignette
+bibliography: ../inst/REFERENCES.bib
+link-citations: true
+vignette: >
+  %\VignetteIndexEntry{Graph-derived piecewise imputation for missing data (drm_sem)}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+# Model-fitting chunks use the drmTMB engine and are eval-gated; the pure-R
+# declaration grammar and diagnostic tables run.
+has_engine <- requireNamespace("drmTMB", quietly = TRUE)
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  eval = TRUE
+)
+library(drmSEM)
+set.seed(20260828)
+```
+
+Missing data is pervasive in ecology, evolutionary biology, and the environmental
+sciences [@LittleRubin2019; @Enders2010]. In mediation chains and structural equation
+models ($X \to M \to Y$), intermediate traits $M$ (such as hormone titers, metabolic
+rates, behavioural assays, or tissue samples) are often missing on a substantial
+fraction of individuals.
+
+When mediator $M$ is missing conditionally on the outcome $Y$ (**Missing at Random**, MAR),
+dropping incomplete rows via **complete-case analysis induces severe bias** in both
+the direct and indirect paths.
+
+`drmSEM` provides **graph-derived piecewise imputation** via `impute = "auto"` in
+`drm_sem()` and `drm_psem()`. This vignette explains:
+
+1. Why complete-case analysis fails in causal mediation chains.
+2. How `drmSEM` derives imputation models directly from the causal DAG without ad-hoc user choices.
+3. Supported response and predictor families (`Gamma`, `lognormal`, `student`, `nbinom2`, `ZIP`, `gaussian`).
+4. Multi-parent imputation ($k = 2$ incomplete parents) and engine constraints.
+5. Inspection tools: `imputation()`, `imputed()`, and `check_sem()`.
+6. The honest scientific boundary: why piecewise graph-derived imputation is not joint FIML, and how within-node uncertainty is propagated.
+
+---
+
+## 1. The problem: mediator missingness in causal chains
+
+Consider a classic mediation chain where an environmental driver $X$ influences
+a physiological mediator $M$, which in turn affects fitness $Y$:
+
+$$X \to M \to Y$$
+
+```{r mar-data}
+# Simulate a mediation chain with outcome-dependent missingness (MAR)
+n <- 400
+x <- rnorm(n, mean = 0, sd = 1)
+m_true <- 0.7 * x + rnorm(n, sd = 0.5)
+y <- 0.5 * m_true + 0.4 * x + rnorm(n, sd = 0.5)
+
+dat <- data.frame(x = x, m = m_true, y = y)
+
+# Induce MAR missingness: individuals with low fitness (Y) are less likely to be sampled for M
+p_miss <- plogis(-0.5 - 1.2 * scale(y))
+dat$m[runif(n) < p_miss] <- NA
+
+# Check missingness proportion
+mean(is.na(dat$m))
+```
+
+If we fit this system with standard complete-case analysis (`impute = "none"`),
+any row with missing $M$ is dropped from the regression of $Y$ on $M$ and $X$.
+Because missingness depends on $Y$, complete-case estimates of $M \to Y$ and
+$X \to Y$ are substantially biased.
+
+---
+
+## 2. Graph-derived automatic imputation (`impute = "auto"`)
+
+In traditional structural equation modelling, handling missing predictors
+requires either:
+- Specifying an ad-hoc imputation model (risking uncongeniality with the analysis model), or
+- Running external chained equations (MICE) with manual variable selections.
+
+In `drmSEM`, **the causal DAG already specifies the imputation model**.
+Because $M$ is an endogenous node in the SEM with its own formula and family
+($M \sim X$, $\text{family} = \dots$), `drmSEM` automatically borrows node $M$'s
+model and wires it directly into node $Y$'s likelihood as a modelled missing
+predictor (`mi(m)`):
+
+```{r auto-impute, eval = has_engine}
+sem_imputed <- drm_sem(
+  m = drm_node(drmTMB::bf(m ~ x), family = stats::gaussian()),
+  y = drm_node(drmTMB::bf(y ~ m + x), family = stats::gaussian()),
+  data = dat,
+  impute = "auto"
+)
+
+summary(sem_imputed)
+```
+
+No manual imputation formulas or custom missing-data scripts are required:
+the DAG supplies the exact parent set and distributional family for $M$.
+
+---
+
+## 3. Supported continuous and discrete families
+
+`drmSEM` supports graph-derived imputation across a wide range of response
+and predictor distributions:
+
+### Continuous families
+- **Gaussian (`gaussian`)**: Standard continuous location-scale responses.
+- **Gamma (`Gamma` / `gamma`)**: Positive continuous traits (e.g. body size, metabolic rate, dispersal distance).
+- **Log-normal (`lognormal`)**: Skewed positive measurements.
+- **Student-$t$ (`student`)**: Heavy-tailed robust continuous outcomes.
+- **Beta (`beta`)**: Proportions and bounded indices on $(0, 1)$.
+
+### Discrete and count families
+- **Poisson (`poisson`)**: Unbounded count data (e.g. egg counts, territory visits).
+- **Negative Binomial (`nbinom2`)**: Overdispersed ecological count responses with quadratic variance $\mu + \mu^2/\theta$.
+- **Zero-Inflated Poisson (`ZIP` / `zi_poisson`)**: Count data with excess structural zeros (e.g. parasite counts, mating successes).
+- **Binomial & Beta-Binomial (`binomial`, `beta_binomial`)**: Binary trials and overdispersed success proportions.
+
+```{r count-example, eval = has_engine}
+# Example with a Gaussian mediator and Negative Binomial count response
+dat_count <- data.frame(
+  temp = rnorm(n),
+  x_env = rnorm(n)
+)
+dat_count$biomass <- 0.6 * dat_count$temp + rnorm(n, sd = 0.5)
+dat_count$parasites <- rpois(n, lambda = exp(0.5 + 0.4 * dat_count$biomass - 0.3 * dat_count$x_env))
+
+# Introduce missingness in biomass
+dat_count$biomass[runif(n) < 0.25] <- NA
+
+sem_count <- drm_sem(
+  biomass   = drm_node(drmTMB::bf(biomass ~ temp), family = stats::gaussian()),
+  parasites = drm_node(drmTMB::bf(parasites ~ biomass + x_env), family = drmTMB::nbinom2()),
+  data = dat_count,
+  impute = "auto"
+)
+
+paths(sem_count)
+```
+
+---
+
+## 4. Multi-parent imputation ($k = 2$) and engine constraints
+
+When a downstream node $Y$ has **two incomplete endogenous parents**
+($X \to M_1 \to Y$ and $X \to M_2 \to Y$), `drmSEM` automatically derives
+independent modelled imputation terms for both parents:
+
+```{r two-parent, eval = has_engine}
+# Two incomplete Gaussian parents
+dat2 <- data.frame(x = rnorm(n))
+dat2$m1 <- 0.6 * dat2$x + rnorm(n, sd = 0.5)
+dat2$m2 <- -0.4 * dat2$x + rnorm(n, sd = 0.5)
+dat2$y  <- 0.5 * dat2$m1 + 0.3 * dat2$m2 + 0.2 * dat2$x + rnorm(n, sd = 0.5)
+
+# Missingness in both parents
+dat2$m1[runif(n) < 0.20] <- NA
+dat2$m2[runif(n) < 0.20] <- NA
+
+sem_2p <- drm_sem(
+  m1 = drm_node(drmTMB::bf(m1 ~ x), family = stats::gaussian()),
+  m2 = drm_node(drmTMB::bf(m2 ~ x), family = stats::gaussian()),
+  y  = drm_node(drmTMB::bf(y ~ m1 + m2 + x), family = stats::gaussian()),
+  data = dat2,
+  impute = "auto"
+)
+
+paths(sem_2p)
+```
+
+### Engine constraints and clear error reporting
+
+`drmSEM` enforces strict honesty regarding engine limits:
+- **$k > 2$ incomplete parents**: The fitting engine currently limits simultaneous modelled imputation to $k \le 2$ terms per node. Attempting $k > 2$ aborts with an actionable error directing the user to complete or impute upstream predictors.
+- **$k = 2$ on non-Gaussian responses**: Multi-parent imputation currently requires a Gaussian response node; non-Gaussian $k = 2$ cells fail loudly with clear diagnostics.
+
+---
+
+## 5. Inspecting imputation models and diagnostics
+
+`drmSEM` provides three dedicated diagnostic accessors:
+
+### 1. `imputation(sem)`
+Summarizes the exact graph-derived imputation plan for each node:
+
+```{r inspect-plan, eval = has_engine}
+imputation(sem_imputed)
+```
+
+### 2. `imputed(sem)`
+Extracts observation-level imputed predictions, standard errors, and status flags:
+
+```{r inspect-imputed, eval = has_engine}
+imp_vals <- imputed(sem_imputed)
+head(imp_vals)
+```
+
+Observations that were originally missing carry `observed = FALSE` and report
+imputed values along with their model-based standard errors.
+
+### 3. `check_sem(sem)`
+Performs a comprehensive health check across the entire SEM, reporting
+sample sizes, convergence status, covariance availability, and missingness:
+
+```{r inspect-check, eval = has_engine}
+check_sem(sem_imputed)
+```
+
+---
+
+## 6. Honest piecewise bounds versus FIML
+
+It is critical to distinguish **piecewise graph-derived imputation** from
+**Full-Information Maximum Likelihood (FIML)**:
+
+1. **Within-node parameter estimation**:
+   In piecewise SEM, node $Y$ re-estimates the missing parent model ($M \sim X$)
+   *within its own likelihood function*. It does not rigidly fix the parameters
+   to node $M$'s point estimates.
+2. **Uncertainty propagation**:
+   Imputation uncertainty for $M$ is fully accounted for within node $Y$'s
+   joint Hessian (standard errors for $M \to Y$ and $X \to Y$ correctly reflect
+   missing-data uncertainty).
+3. **No across-node joint likelihood**:
+   Because `drmSEM` is piecewise, it does not fit a single global joint covariance
+   matrix across all endogenous nodes. It must never be described as whole-SEM FIML.
+
+This approach provides a robust, principled solution for missing mediators that
+eliminates MAR attrition bias while respecting the piecewise architecture.
+
+---
+
+## Summary of best practices
+
+1. **Activate auto-imputation**: Use `drm_sem(..., impute = "auto")` whenever endogenous mediators contain missing observations.
+2. **Check the imputation plan**: Run `imputation(sem)` to verify that derived parent formulas match your theoretical DAG.
+3. **Inspect individual imputations**: Use `imputed(sem)` to verify that imputed values lie within reasonable biological bounds.
+4. **Audit model health**: Run `check_sem(sem)` to confirm node convergence and Hessian positive-definiteness across all sub-models.
+
+---
+
+## References

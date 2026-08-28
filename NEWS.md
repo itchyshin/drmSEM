@@ -1,5 +1,18 @@
 # drmSEM (development version)
 
+## Comprehensive Vignette Suite & Documentation Architecture (0.5.0)
+
+* **Expanded Latents & Measurement Guide (`vignettes/latent-variables.Rmd`)**:
+  Comprehensive walkthrough of formative, reflective, and MIMIC measurement constructs in piecewise SEM. Demonstrates marker variable ($\lambda_{\text{marker}} = 1$) vs unit-variance ($\text{Var}(\eta) = 1$) identification, construct reliability calculation (Cronbach's $\alpha$ vs Raykov's composite $\rho$), downstream distributional effect propagation to location ($\mu$), scale ($\sigma$), and zero-inflation ($\text{zi}$) targets, and the clean separation of `loadings(sem)` from structural `paths(sem)`.
+* **Expanded Feedback Cycles & Equilibrium Guide (`vignettes/feedback-cycles.Rmd`)**:
+  Comprehensive guide to declaring reciprocal feedback loops with `drm_cycle()`. Details multi-component Banach fixed-point iteration across $\mu, \sigma, \nu, \text{zi}$, stability and contraction diagnostics (spectral radius $\rho(B) < 1$ and empirical Lipschitz constants), equilibrium total effects via `total_effects()`, and honest limits regarding simultaneity bias in node-wise estimation.
+* **New Graph-Derived Piecewise Imputation Guide (`vignettes/missing-data.Rmd`)**:
+  Full walkthrough of `drm_sem(impute = "auto")`. Explains how missing mediator models are derived directly from the causal DAG across continuous (`gaussian`, `Gamma`, `lognormal`, `student`, `beta`) and count/discrete families (`poisson`, `nbinom2`, `ZIP`, `beta_binomial`), multi-parent imputation ($k = 2$), diagnostic accessors (`imputation()`, `imputed()`, `check_sem()`), and honest piecewise variance bounds vs joint FIML.
+* **Refined Bivariate Nodes & Moderation Guide (`vignettes/bivariate-nodes.Rmd`)**:
+  Complete guide to joint two-response estimation with `drm_pair()`, distinguishing directed paths ($y_1 \to y_2$), within-observation residual correlations ($\rho_{12}$ on $\tanh$ link), and individual-level random-effect correlations (`corpairs`). Demonstrates environmental moderation of residual coupling ($x \to \rho_{12}$) and explains basis-set suppression in d-separation.
+* **Modernized `_pkgdown.yml` Navigation**:
+  Articles reorganized into five intuitive thematic sections: "Get Started", "Distributional Pathways", "Latents & Measurement", "Feedback & Covariance", and "Missing Data & Diagnostics", passing `pkgdown::check_pkgdown()` with 0 missing topics and 0 unreferenced vignettes.
+
 ## Joint bivariate residual correlation (0.4)
 
 * **`drm_pair()` now fits one joint bivariate `drmTMB` model.** Passing a pair to `drm_sem()` (or a bivariate fit to `drm_psem()`) no longer expands into two independent univariate nodes. Both responses share one `biv_gaussian()` / `biv_lognormal()` / `biv_student()` likelihood. `rho12()` returns the Wald table of `rho12` coefficients — intercept and any `rho12 ~ x` predictors — with standard error and p-value on the `tanh` (engine: `atanh_guarded`) link. `basis_set()` drops the `y1 _||_ y2` independence claim because the residual covariance edge is recorded automatically. This is still one drmTMB node, not a global multivariate SEM. Mixed-family pairs abort. Recovery: V-128 (constant \(\rho_{12}\)), V-129 (\(\rho_{12} \sim x\)). See `docs/design/07-bivariate-covariance-edges.md`.
