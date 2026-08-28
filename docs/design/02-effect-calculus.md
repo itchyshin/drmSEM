@@ -267,32 +267,33 @@ downstream even when it leaves `E[Y]` untouched. The functional effect is the
 same low/high counterfactual contrast, read on the chosen functional of the
 simulated outcome population.
 
-**Status (OQ-11 — PARTIAL, extended 2026-06-07).** `target` is exposed on
-`direct_effects()`, `total_effects()`, **and `indirect_effects()`**. For
-`indirect_effects(effect = "controlled")` the three legs (cde, mean-mediated
+**Status (OQ-11 — RESOLVED).** `target` is exposed on
+`direct_effects()`, `total_effects()`, `indirect_effects()`, **and `path_effects()`**.
+For `indirect_effects(effect = "controlled")` the three legs (cde, mean-mediated
 total, distribution-mediated total) are each read on the functional, so the split
-still closes: `indirect = mean_mediated + distribution_mediated`. This required
-fixing `drm_functional_target()`, which had hardcoded `"distribution"` mediator
-propagation — for a non-mean target the mean- and distribution-mediated legs were
-identical and the split degenerated; the leg now honours the passed `mediation`.
+still closes: `indirect = mean_mediated + distribution_mediated`. For
+`indirect_effects(effect = "natural")`, cross-world outcome functional contrasts
+are computed via `drm_natural_target()`, providing the 4-way decomposition
+`total = natural_direct + natural_indirect + mediated_interaction` on tail risk,
+exceedance probability, variance, and quantile targets.
+Path-specific decompositions in `path_effects(..., by = "component")` attribute
+shifts in tail risk and quantiles directly to individual mediator distributional
+channels (`mean_channel`, `sigma_channel`, zero-inflation).
 Recovery-tested in `test-effect-kernels.R` (`p_zero` recovers the Poisson change
 `exp(-mu_hi) - exp(-mu_lo)`; `quantile` recovers a sigma-path tail effect
-`b + qnorm(p)*s1`; the functional legs are non-degenerate and close) and on live
-fits in `test-recovery-samplers.R` (V-62..V-64). `effect = "natural"` is mean-only
-(the cross-world functional contrast is open, OQ-8) and a feedback SEM is mean-only
-(the equilibrium response).
+`b + qnorm(p)*s1`), on live fits in `test-recovery-samplers.R` (V-62..V-64),
+and in `test-functionals.R` (V-139..V-141 for analytic and simulated lognormal,
+Gamma, nbinom2, beta, and student-t tail exceedances and quantile effects).
 
-`direct_effects()` / `total_effects()` also take `functional = c("simulate",
-"analytic")`. `"analytic"` evaluates the functional **in closed form** from the
-predicted parameters (no Monte-Carlo noise) — `var`/`p_gt`/`p_zero`/`quantile`
-for the **gaussian** and **poisson** families, which have no `sigma`↔dispersion
-ambiguity; it requires mean mediation (deterministic outcome params) and aborts
-for other families (their dispersion scale is the OQ-1 open item). Verified exact
-in `test-effect-kernels.R` (V-76 — the Poisson `p_zero` contrast the simulated
-kernel hits to ~0.03 is recovered to machine precision). What remains open:
-closed forms for the dispersion families once OQ-1 lands, the natural/cross-world
-functional variant, multiple functionals per call, bootstrap intervals for
-functional effects (OQ-10), and settling the default reporting scale.
+`direct_effects()`, `total_effects()`, `indirect_effects()`, and `path_effects()`
+support both `prob` and the explicit alias `quantile_prob` (e.g. 0.5, 0.9, 0.95).
+`direct_effects()` / `total_effects()` take `functional = c("simulate", "analytic")`.
+`"analytic"` evaluates the functional **in closed form** from the predicted parameters
+(no Monte-Carlo noise) for **gaussian**, **poisson**, **lognormal**, **Gamma**,
+**nbinom2**, **beta**, and **student** families. Closed forms support zero-inflation (`zi`)
+where applicable. Verified exact in `test-effect-kernels.R` (V-76) and
+`test-functionals.R` (V-139..V-141). Remaining open items for future tracks:
+multiple simultaneous functionals per call and bootstrap intervals for functional effects (OQ-10).
 
 ## API harmonization (OQ-12 — implemented)
 

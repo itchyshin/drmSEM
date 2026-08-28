@@ -11,6 +11,11 @@ path_effects(
   through = NULL,
   by = c("mediator", "component"),
   effect = c("controlled", "natural"),
+  target = c("mean", "p_gt", "p_zero", "var", "quantile"),
+  threshold = 0,
+  prob = 0.5,
+  quantile_prob = NULL,
+  functional = c("simulate", "analytic"),
   at = NULL,
   B = 200L,
   uncertainty = NULL,
@@ -50,6 +55,19 @@ column that is \code{FALSE} when a \strong{recanting witness} (another mediator 
 a descendant of \code{from} and an ancestor of this one) makes the natural
 path-specific effect non-identified. \code{by} is ignored when \code{effect = "natural"}.}
 
+\item{target}{Functional of the outcome distribution to report the effect on:
+\code{"mean"} (default), \code{"p_gt"} (Pr(Y > \code{threshold})), \code{"p_zero"} (Pr(Y = 0)),
+\code{"var"} (Var(Y)), or \code{"quantile"} (the \code{prob}-quantile).}
+
+\item{threshold}{Cutoff for \code{target = "p_gt"}.}
+
+\item{prob}{Probability for \code{target = "quantile"} (default \code{0.5}, the median).}
+
+\item{quantile_prob}{Alias for \code{prob} for specifying quantile probabilities.}
+
+\item{functional}{How a non-mean \code{target} is evaluated: \code{"simulate"} (default)
+or \code{"analytic"} (closed-form evaluation for supported families).}
+
 \item{at}{Optional length-2 contrast values for \code{from}.}
 
 \item{B}{Number of uncertainty replicates (coefficient draws) used when
@@ -78,7 +96,7 @@ deprecation warning.}
 }
 \value{
 A \code{drm_effect} data frame with columns \code{from}, \code{to}, \code{through},
-\code{mediator}, \code{estimand}, \code{estimate}, \code{conf.low}, \code{conf.high}. For
+\code{target}, \code{mediator}, \code{estimand}, \code{estimate}, \code{conf.low}, \code{conf.high}. For
 \code{by = "mediator"} the \code{estimand} values are \code{total_indirect}, \code{inclusion},
 \code{exclusion}, \code{interaction_remainder}; for \code{by = "component"} they are
 \code{total_indirect}, \code{mean_channel}, \verb{<component>_channel} (one per non-mean

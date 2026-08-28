@@ -235,7 +235,24 @@ Validated by test V-144 in `tests/testthat/test-bootstrap-marginal.R`.
 - Output: returns point estimates from the fitted SEM, bootstrap standard errors (`std.error`), percentile confidence intervals (`conf.low`, `conf.high`), normal-approximation confidence intervals (`boot_ci_normal`), and raw bootstrap replicates (`boot_replicates`).
 Validated by tests V-142 and V-143 in `tests/testthat/test-bootstrap-marginal.R`.
 
-## OQ-11 — Outcome functionals beyond the mean  [PARTIAL 2026-06-07 — extended to the whole effect API + quantiles]
+## OQ-11 — Outcome functionals beyond the mean  [RESOLVED 2026-08-28 — Track 1: Non-Gaussian tail exceedance / quantile analytics & cross-world functional mediation]
+
+**Update 2026-08-28 (Resolution).**
+1. **Analytic non-Gaussian functionals:** Extended closed-form evaluation (`functional = "analytic"`)
+   to non-Gaussian families (`lognormal`, `Gamma`, `nbinom2`, `beta`, `student`) for all targets
+   (`mean`, `var`, `p_gt`, `p_zero`, `quantile`) in `drm_analytic_functional()`.
+   Analytic forms explicitly integrate `zi` (zero-inflation) where applicable.
+2. **Cross-world natural mediation on functionals:** `drm_natural_target()` and
+   `indirect_effects(effect = "natural")` / `path_effects(effect = "natural")` support all outcome
+   functionals (`p_gt`, `p_zero`, `var`, `quantile`). Provides the 4-way cross-world decomposition
+   `total = natural_direct + natural_indirect + mediated_interaction` on tail risk.
+3. **Path-specific tail risk decomposition:** `path_effects(..., by = "component")` attributes shifts in
+   tail risk (`p_gt`) and quantiles directly to mediator mean vs dispersion (`sigma_channel`) vs zero-inflation.
+4. **Quantile argument harmonization:** Added `quantile_prob` argument across `direct_effects()`,
+   `total_effects()`, `indirect_effects()`, and `path_effects()`.
+5. **DGP Recovery Suite:** Validated in `tests/testthat/test-functionals.R` (V-139 exact recovery of
+   analytic vs simulated tail exceedance; V-140 quantile effect recovery; V-141 tail risk decomposition
+   and live fitted SEM verification).
 
 **Update 2026-06-07.** `target` now rides the **whole effect surface**:
 `direct_effects()`, `total_effects()`, **and `indirect_effects()`** take
@@ -260,9 +277,7 @@ mean-only (equilibrium response).
 params (no MC noise) for **gaussian** and **poisson** (`var`/`p_gt`/`p_zero`/
 `quantile`), requires mean mediation, and aborts for other families (their
 `sigma`↔dispersion scale is OQ-1). Kernel-verified exact in `test-effect-kernels.R`
-(V-76). **Still open:** closed forms for the dispersion families once OQ-1 is
-settled, the natural/cross-world functional variant, multiple quantiles in one
-call, and a live-fit functional recovery beyond V-62..V-64. Original note below.
+(V-76). Original note below.
 
 **Implemented (2026-06-05):** `total_effects(..., target = c("mean","p_gt","p_zero","var"),
 threshold=)` simulates the outcome and reports the effect on that functional of

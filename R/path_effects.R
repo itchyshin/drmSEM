@@ -39,21 +39,58 @@ drm_path_contrasts <- function(
   n_sim = 50L,
   draw = TRUE,
   seed = NULL,
-  population = "conditional"
+  population = "conditional",
+  target = "mean",
+  threshold = 0,
+  prob = 0.5,
+  functional = "simulate"
 ) {
   contrast <- function(active, med, ns) {
-    drm_effect_contrast(
-      engines,
-      scenarios,
-      to,
-      active = active,
-      mediation = med,
-      B = B,
-      n_sim = ns,
-      draw = draw,
-      seed = seed,
-      population = population
-    )
+    if (identical(target, "mean")) {
+      drm_effect_contrast(
+        engines,
+        scenarios,
+        to,
+        active = active,
+        mediation = med,
+        B = B,
+        n_sim = ns,
+        draw = draw,
+        seed = seed,
+        population = population
+      )
+    } else if (identical(functional, "analytic")) {
+      drm_functional_contrast_analytic(
+        engines,
+        scenarios,
+        to,
+        active = active,
+        mediation = med,
+        target = target,
+        threshold = threshold,
+        prob = prob,
+        B = B,
+        draw = draw,
+        seed = seed,
+        population = population
+      )
+    } else {
+      drm_functional_contrast(
+        engines,
+        scenarios,
+        to,
+        active = active,
+        mediation = med,
+        target = target,
+        threshold = threshold,
+        B = B,
+        n_sim = ns,
+        draw = draw,
+        seed = seed,
+        prob = prob,
+        population = population
+      )
+    }
   }
   cde <- contrast(character(0), "mean", 1L)
   tot <- contrast(meds, mediation, n_sim)
@@ -117,51 +154,153 @@ drm_component_contrasts <- function(
   n_sim = 50L,
   draw = TRUE,
   seed = NULL,
-  population = "conditional"
+  population = "conditional",
+  target = "mean",
+  threshold = 0,
+  prob = 0.5,
+  functional = "simulate"
 ) {
   ctr <- function(eng, med) {
+    if (identical(target, "mean")) {
+      drm_effect_contrast(
+        eng,
+        scenarios,
+        to,
+        active = mj,
+        mediation = med,
+        B = B,
+        n_sim = if (identical(med, "mean")) 1L else n_sim,
+        draw = draw,
+        seed = seed,
+        population = population
+      )
+    } else if (identical(functional, "analytic")) {
+      drm_functional_contrast_analytic(
+        eng,
+        scenarios,
+        to,
+        active = mj,
+        mediation = med,
+        target = target,
+        threshold = threshold,
+        prob = prob,
+        B = B,
+        draw = draw,
+        seed = seed,
+        population = population
+      )
+    } else {
+      drm_functional_contrast(
+        eng,
+        scenarios,
+        to,
+        active = mj,
+        mediation = med,
+        target = target,
+        threshold = threshold,
+        B = B,
+        n_sim = if (identical(med, "mean")) 1L else n_sim,
+        draw = draw,
+        seed = seed,
+        prob = prob,
+        population = population
+      )
+    }
+  }
+  cde <- if (identical(target, "mean")) {
     drm_effect_contrast(
-      eng,
+      engines,
       scenarios,
       to,
-      active = mj,
-      mediation = med,
+      active = character(0),
+      mediation = "mean",
       B = B,
-      n_sim = if (identical(med, "mean")) 1L else n_sim,
+      n_sim = 1L,
       draw = draw,
       seed = seed,
       population = population
     )
+  } else if (identical(functional, "analytic")) {
+    drm_functional_contrast_analytic(
+      engines,
+      scenarios,
+      to,
+      active = character(0),
+      mediation = "mean",
+      target = target,
+      threshold = threshold,
+      prob = prob,
+      B = B,
+      draw = draw,
+      seed = seed,
+      population = population
+    )
+  } else {
+    drm_functional_contrast(
+      engines,
+      scenarios,
+      to,
+      active = character(0),
+      mediation = "mean",
+      target = target,
+      threshold = threshold,
+      B = B,
+      n_sim = 1L,
+      draw = draw,
+      seed = seed,
+      prob = prob,
+      population = population
+    )
   }
-  cde <- drm_effect_contrast(
-    engines,
-    scenarios,
-    to,
-    active = character(0),
-    mediation = "mean",
-    B = B,
-    n_sim = 1L,
-    draw = draw,
-    seed = seed,
-    population = population
-  )
   full <- ctr(engines, "distribution") # T_dist({Mj})
   mean_channel <- ctr(engines, "mean") - cde # Mj's mean channel
   inclusion <- full - cde
   comps <- setdiff(engines[[mj]]$components, "mu")
   channels <- stats::setNames(
     lapply(comps, function(cc) {
-      frozen <- drm_effect_contrast(
-        drm_freeze_engine(engines, mj, cc, scenarios$lo),
-        scenarios,
-        to,
-        active = mj,
-        mediation = "distribution",
-        B = B,
-        n_sim = n_sim,
-        draw = draw,
-        seed = seed
-      )
+      frozen_eng <- drm_freeze_engine(engines, mj, cc, scenarios$lo)
+      frozen <- if (identical(target, "mean")) {
+        drm_effect_contrast(
+          frozen_eng,
+          scenarios,
+          to,
+          active = mj,
+          mediation = "distribution",
+          B = B,
+          n_sim = n_sim,
+          draw = draw,
+          seed = seed
+        )
+      } else if (identical(functional, "analytic")) {
+        drm_functional_contrast_analytic(
+          frozen_eng,
+          scenarios,
+          to,
+          active = mj,
+          mediation = "distribution",
+          target = target,
+          threshold = threshold,
+          prob = prob,
+          B = B,
+          draw = draw,
+          seed = seed
+        )
+      } else {
+        drm_functional_contrast(
+          frozen_eng,
+          scenarios,
+          to,
+          active = mj,
+          mediation = "distribution",
+          target = target,
+          threshold = threshold,
+          B = B,
+          n_sim = n_sim,
+          draw = draw,
+          seed = seed,
+          prob = prob
+        )
+      }
       full - frozen
     }),
     comps
@@ -229,8 +368,16 @@ drm_recanting_witness <- function(object, from, mj, meds) {
 #'   at its reference value), plus a `component_remainder` for the part that does
 #'   not separate cleanly (the channels are not an exact partition under a
 #'   nonlinear outcome).
+#' @param target Functional of the outcome distribution to report the effect on:
+#'   `"mean"` (default), `"p_gt"` (Pr(Y > `threshold`)), `"p_zero"` (Pr(Y = 0)),
+#'   `"var"` (Var(Y)), or `"quantile"` (the `prob`-quantile).
+#' @param threshold Cutoff for `target = "p_gt"`.
+#' @param prob Probability for `target = "quantile"` (default `0.5`, the median).
+#' @param quantile_prob Alias for `prob` for specifying quantile probabilities.
+#' @param functional How a non-mean `target` is evaluated: `"simulate"` (default)
+#'   or `"analytic"` (closed-form evaluation for supported families).
 #' @return A `drm_effect` data frame with columns `from`, `to`, `through`,
-#'   `mediator`, `estimand`, `estimate`, `conf.low`, `conf.high`. For
+#'   `target`, `mediator`, `estimand`, `estimate`, `conf.low`, `conf.high`. For
 #'   `by = "mediator"` the `estimand` values are `total_indirect`, `inclusion`,
 #'   `exclusion`, `interaction_remainder`; for `by = "component"` they are
 #'   `total_indirect`, `mean_channel`, `<component>_channel` (one per non-mean
@@ -272,6 +419,11 @@ path_effects <- function(
   through = NULL,
   by = c("mediator", "component"),
   effect = c("controlled", "natural"),
+  target = c("mean", "p_gt", "p_zero", "var", "quantile"),
+  threshold = 0,
+  prob = 0.5,
+  quantile_prob = NULL,
+  functional = c("simulate", "analytic"),
   at = NULL,
   B = 200L,
   uncertainty = NULL,
@@ -285,6 +437,11 @@ path_effects <- function(
 ) {
   by <- match.arg(by)
   effect <- match.arg(effect)
+  target <- match.arg(target)
+  functional <- match.arg(functional)
+  if (!is.null(quantile_prob)) {
+    prob <- quantile_prob
+  }
   drm_validate_effect_args(object, from, to)
   drm_block_feedback_decomp(object, "path_effects")
   ctl <- drm_effect_controls(
@@ -341,7 +498,11 @@ path_effects <- function(
           mediation = "distribution",
           beta_list = beta_list,
           n_sim = ctl$n_sim,
-          population = ctl$population
+          population = ctl$population,
+          target = target,
+          threshold = threshold,
+          prob = prob,
+          functional = functional
         )[["nie"]]
       }
       rows <- add_row(
@@ -363,7 +524,11 @@ path_effects <- function(
       n_sim = ctl$n_sim,
       draw = ctl$draw,
       seed = seed,
-      population = ctl$population
+      population = ctl$population,
+      target = target,
+      threshold = threshold,
+      prob = prob,
+      functional = functional
     )
     rows <- add_row(list(), NA_character_, "total_indirect", pc$total_indirect)
     if (identical(by, "mediator")) {
@@ -388,7 +553,11 @@ path_effects <- function(
           n_sim = ctl$n_sim,
           draw = ctl$draw,
           seed = seed,
-          population = ctl$population
+          population = ctl$population,
+          target = target,
+          threshold = threshold,
+          prob = prob,
+          functional = functional
         )
         rows <- add_row(rows, mj, "mean_channel", cc$mean)
         for (comp in names(cc$channels)) {
@@ -408,6 +577,7 @@ path_effects <- function(
       from = from,
       to = to,
       through = paste(meds, collapse = ", "),
+      target = target,
       stringsAsFactors = FALSE
     ),
     do.call(rbind, rows)

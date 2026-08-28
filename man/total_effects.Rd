@@ -13,6 +13,7 @@ total_effects(
   target = c("mean", "p_gt", "p_zero", "var", "quantile"),
   threshold = 0,
   prob = 0.5,
+  quantile_prob = NULL,
   functional = c("simulate", "analytic"),
   at = NULL,
   B = 200L,
@@ -35,6 +36,7 @@ simulate_effects(
   target = c("mean", "p_gt", "p_zero", "var", "quantile"),
   threshold = 0,
   prob = 0.5,
+  quantile_prob = NULL,
   functional = c("simulate", "analytic"),
   at = NULL,
   B = 200L,
@@ -71,12 +73,10 @@ equilibrium response) is defined.}
 
 \item{prob}{Probability for \code{target = "quantile"} (default \code{0.5}, the median).}
 
-\item{functional}{How a non-mean \code{target} is evaluated: \code{"simulate"} (default;
-draw the outcome from its family and summarize) or \code{"analytic"} (a
-closed-form functional of the predicted parameters — no Monte-Carlo noise).
-Analytic forms are offered for the gaussian and poisson families (others
-abort with a pointer to \code{"simulate"}), and require mean mediation
-(\code{method = "gcomp"}) so the outcome parameters are deterministic.}
+\item{quantile_prob}{Alias for \code{prob} for specifying quantile probabilities.}
+
+\item{functional}{How a non-mean \code{target} is evaluated: \code{"simulate"} (default)
+or \code{"analytic"} (closed-form evaluation for supported families).}
 
 \item{at}{Optional length-2 contrast values for \code{from}.}
 

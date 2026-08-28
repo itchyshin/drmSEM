@@ -9,7 +9,10 @@ utils::globalVariables(c(
   "quantity",
   "conf.low",
   "conf.high",
-  ".channel"
+  ".channel",
+  ".y",
+  "y",
+  ".group"
 ))
 
 # Colour and line style per distributional component, so the plot reads as a
