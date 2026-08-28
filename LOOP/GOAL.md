@@ -1,11 +1,15 @@
 # GOAL — S6 A7 consumer (IMMUTABLE — re-read at the top of EVERY arc)
 
-**2026-08-27 status.** Clone tranche **PAUSED** (Shinichi).
-Shipped cells: Gamma / lognormal / beta_binomial × Bernoulli
-(+ Phase 1 Gaussian k=2). Leftovers (student, zi+`mi`,
-nbinom2 × Gaussian) are sibling work. See
-`docs/memory/PLAN-ACTUAL-2026-08-27-s6-a7-pause.md`.
-capability stays `partial`.
+**2026-08-28 status.** S6 A7 Multi-Family Imputation is **COMPLETE** on `main`.
+Shipped cells:
+- Gaussian k=2 independent missing parents (Phase 1, #46)
+- Gamma × Bernoulli (#49)
+- lognormal × Bernoulli (#50)
+- beta_binomial × Bernoulli (#51)
+- nbinom2 × Gaussian (#54)
+- student × Bernoulli (#55)
+- ZIP × Bernoulli (D-23, #56; `mi()` in `mu` only, `zi ~ 1`)
+All engine-backed cells are consolidated. capability stays **`partial`** (within-node uncertainty only; not FIML).
 
 ## Mission
 

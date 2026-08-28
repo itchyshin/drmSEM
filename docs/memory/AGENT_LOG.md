@@ -2076,3 +2076,17 @@ canonical-DGP optimizer noise).
 
 **Not this slice.** Deep RE-block compatibility. >2-response
 covariance. Mixed-family pairs (abort).
+
+## 2026-08-28 — S6 Multi-Family Imputation: Integration & Promotion Closeout
+
+**Cursor / Ada (orchestrator-integrator)** on `cursor/lane-s6-a7-consolidation` rebased on `main` @ `2fa6625`.
+
+**Scope & Consolidation.**
+- Surveyed all 5 candidate S6 A7 consumer lanes (`drmSEM-s6-a7-consumer`, `drmSEM-s6-a7-nbinom2`, `drmSEM-s6-a7-student`, `drmSEM-s6-a7-zi-consumer`, `drmSEM-s6-a7-zi-mi`).
+- All 5 family gates / lifts landed sequentially on `main` via PRs #49 (Gamma), #50 (lognormal), #51 (beta_binomial), #54 (nbinom2 × Gaussian), #55 (student), #56 (ZIP × Bernoulli D-23).
+- Verified `R/imputation.R`, `R/extractors.R`, and `tests/testthat/test-imputation.R` are completely clean, coherent, and aligned with drmTMB's missing predictor catalogue.
+- Ran full test suite (`devtools::test()`): **1143 passing / 0 failing / 5 skips / 10 warnings** across all 38 test files.
+- `test-imputation.R` passes 111 assertions cleanly (and V-127 / V-127b skip honestly only on dev environment without engine #1097 build).
+- capability-status updated with fresh full test evidence (1143 assertions passing); status stays strictly **`partial`** (within-node uncertainty only, piecewise SEM re-estimates missing parent models in node likelihoods, never FIML).
+- Closed out `LOOP/GOAL.md` and `LOOP/arcs.md`.
+
