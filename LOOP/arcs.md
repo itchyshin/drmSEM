@@ -14,8 +14,9 @@ Do not re-open Phase 1. Do not implement engine likelihoods.
 | A7c-3 | lognormal × Bernoulli consumer lift | done | **G-engine-ln** (#1092 / #50 `1e5d4cf`) |
 | A7c-4 | beta_binomial × Bernoulli consumer lift | done | **G-engine-bb** (#1094 / #51 `e78bb94`) |
 | sibling | nbinom2 × Gaussian consumer lift | done | **G-engine-nb2g** (#1095 `3c239a55e` / #54 `2482e27`) |
-| A7c-5 | student × Bernoulli consumer lift | doing | **G-engine-st** (#1096 `5fdf834c1`) |
-| leftovers | zi+mi | **paused** | G0 (b) D-23; wait for engine #1097 |
+| A7c-5 | student × Bernoulli consumer lift | done | **G-engine-st** (#1096 `5fdf834c1` / drmSEM #55 `1a601c1`) |
+| leftovers | zi+mi (ZIP × Bernoulli) | done | **G-engine-zi** (#1097 `9d4b63400` / drmSEM #56 `b39c8e1`) |
+| consolidation | S6 multi-family imputation integration & promotion | done | All 5 cells landed; capability stays partial |
 
 Status: todo / doing / done / paused / blocked / deferred.
 `blocked` = waiting on the sibling engine PR. `paused` = Shinichi's
@@ -25,8 +26,9 @@ G-engine (Gamma) is discharged (#1088 / #49). **G-engine-ln is
 discharged** (#1092 / #50). **G-engine-bb is discharged**
 (#1094 `4c34c9bb` / drmSEM #51 `e78bb94`). **G-engine-nb2g is
 discharged** (#1095 `3c239a55e` / drmSEM #54 `2482e27`).
-**A7c-5** consumes student × Bernoulli after engine #1096
-(`mp-student-bernoulli`, dedicated `drm_student_log_density`,
-no shared-leaf ABI extend). Remaining leftover: zi_* (mixture;
-#1097 separate lane). Extra-#962 `truncated_nbinom2` only if
-asked. Do not flip capability-status.
+**G-engine-st is discharged** (#1096 `5fdf834c1` / drmSEM #55 `1a601c1`).
+**G-engine-zi is discharged** (#1097 `9d4b63400` / drmSEM #56 `b39c8e1`).
+All 5 target family cells (Gamma, lognormal, beta_binomial,
+student, nbinom2 × Gaussian, plus ZIP × Bernoulli) are landed on main.
+Capability-status stays **`partial`** (not FIML; piecewise within-node
+uncertainty only). Extra-#962 `truncated_nbinom2` only if asked.
