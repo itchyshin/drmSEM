@@ -103,7 +103,7 @@ drm_imputation_plan <- function(specs, data) {
       drm_check_two_gaussian_mi(nm, spec, targets, specs)
     }
     parent_recs <- lapply(targets, function(v) {
-      drm_check_impute_legal(nm, spec, v, specs[[v]])
+      drm_check_impute_legal(nm, spec, v, specs[[v]], data)
       list(
         variable = v,
         formula = drm_mu_formula(specs[[v]]),
@@ -158,9 +158,82 @@ drm_check_two_gaussian_mi <- function(node, spec, targets, specs) {
 
 # Refuse rather than emit an illegal call. Each check mirrors a hard abort the
 # engine would raise later with less context about WHY drmSEM asked for it.
-drm_check_impute_legal <- function(node, spec, v, parent_spec) {
+drm_spec_has_zi <- function(spec) {
+  any(vapply(
+    spec$formula$entries,
+    function(e) identical(e$dpar, "zi"),
+    logical(1)
+  ))
+}
+
+# D-23: eta_zi is observed-only. zi ~ 1 is the first cell; a complete
+# covariate is allowed. mi() on zi, a missing zi symbol, and RE on zi
+# stay refused.
+drm_zi_is_observed_only <- function(spec, data) {
+  incomplete <- drm_incomplete_columns(data)
+  for (e in spec$formula$entries) {
+    if (!identical(e$dpar, "zi")) {
+      next
+    }
+    for (t in drm_additive_terms(e$rhs)) {
+      if (identical(t, 1) || identical(t, 1L)) {
+        next
+      }
+      if (
+        is.call(t) &&
+          (identical(t[[1L]], as.name("|")) ||
+            identical(t[[1L]], as.name("mi")))
+      ) {
+        return(FALSE)
+      }
+      if (is.name(t)) {
+        if (as.character(t) %in% incomplete) {
+          return(FALSE)
+        }
+        next
+      }
+      return(FALSE)
+    }
+  }
+  TRUE
+}
+
+drm_check_impute_legal <- function(node, spec, v, parent_spec, data) {
   resp_family <- drm_impute_family_key(drm_family_name(drm_fit_family(spec)))
   pred_family <- drm_impute_family_key(drm_family_name(drm_fit_family(parent_spec)))
+  # D-23: key leftover zi_* on the zi formula / model_type, never by
+  # aliasing zi_poisson as poisson for V-80. poisson stays on the
+  # family list because that is the engine name; zi_nbinom2 must not
+  # ride nbinom2's allow-list.
+  if (drm_spec_has_zi(spec)) {
+    if (identical(resp_family, "nbinom2")) {
+      cli::cli_abort(c(
+        "Cannot derive an imputation model for node {.val {node}}.",
+        "x" = "Zero-inflated nbinom2 ({.code zi_nbinom2}) cannot carry a
+               modelled missing predictor.",
+        "i" = "The first zi cell is ZIP with {.code zi ~ 1} and {.fn mi}
+               in {.val mu} only (engine {.code mp-zi-poisson-bernoulli}).
+               Do not treat this as a poisson or nbinom2 alias."
+      ))
+    }
+    if (!identical(resp_family, "poisson")) {
+      cli::cli_abort(c(
+        "Cannot derive an imputation model for node {.val {node}}.",
+        "x" = "A {.code zi} formula on family {.val {resp_family}} has no
+               missing-predictor leaf."
+      ))
+    }
+    if (!drm_zi_is_observed_only(spec, data)) {
+      cli::cli_abort(c(
+        "Cannot derive an imputation model for node {.val {node}}.",
+        "x" = "{.code eta_zi} must come from observed-only predictors
+               ({.code zi ~ 1} first cell). {.fn mi} on {.code zi}, a
+               missing {.code zi} symbol, and random effects on
+               {.code zi} stay refused.",
+        "i" = "{.fn mi} is legal in {.val mu} only (D-23)."
+      ))
+    }
+  }
   if (!resp_family %in% drm_impute_response_families()) {
     cli::cli_abort(c(
       "Cannot derive an imputation model for node {.val {node}}.",

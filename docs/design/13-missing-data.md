@@ -144,7 +144,8 @@ Refuse rather than emit a call the engine would reject later with less context:
 |---|---|
 | `gaussian` | the full predictor catalogue (gaussian, binomial, ordinal, categorical, beta, zero-one beta, beta-binomial, poisson, nbinom2, truncated nbinom2, lognormal, Gamma, tweedie) |
 | `nbinom2` | **binary or one Gaussian** (engine `mp-nbinom2-gaussian` / #1095) |
-| `poisson`, `binomial`, `beta`, `gamma`, `lognormal`, `beta_binomial`, `student` | **binary only** |
+| `poisson` (including ZIP with `zi ~ 1`) | **binary only**; ZIP is still family `poisson` (D-23: do not alias `zi_poisson` for V-80). `zi_nbinom2` and `mi()` on `zi` stay refused |
+| `binomial`, `beta`, `gamma`, `lognormal`, `beta_binomial`, `student` | **binary only** |
 | anything else | not supported |
 
 `test-imputation.R` (V-80) locks drmSEM's response allow-list to
@@ -194,14 +195,16 @@ works before anything is fitted.
 - **V-79 / V-79b / V-79c.** Two incomplete Gaussian parents are planned
   rather than aborted; `k > 2` and a non-Gaussian `k = 2` still fail loud
   with the engine reason.
-- **V-80 / V-80b / V-80d / V-80e / V-80f / V-80g / V-80h / V-81.** The
+- **V-80 / V-80b / V-80d / V-80e / V-80f / V-80g / V-80h / V-80i / V-81.** The
   family gate matches the engine (now including `gamma`,
-  `lognormal`, `beta_binomial`, and `student`); Gamma, lognormal,
-  beta_binomial, or student × one Bernoulli `mi()` emits, a
-  continuous parent still fails loud, nbinom2 × one Gaussian `mi()`
-  emits (`mp-nbinom2-gaussian`), nbinom2 × poisson still fails loud,
-  and tweedie (no `has_mi`) still fails loud. `mi()` coefficients
-  resolve to the right node.
+  `lognormal`, `beta_binomial`, and `student`; ZIP stays family
+  `poisson`, not a `zi_poisson` alias — D-23). Gamma, lognormal,
+  beta_binomial, student, or ZIP (`zi ~ 1`) × one Bernoulli `mi()`
+  emits, a continuous parent still fails loud, nbinom2 × one Gaussian
+  `mi()` emits (`mp-nbinom2-gaussian`), nbinom2 × poisson still fails
+  loud, `zi_nbinom2` and `mi()` on `zi` stay refused, and tweedie
+  (no `has_mi`) still fails loud. `mi()` coefficients resolve to the
+  right node.
 - **V-82.** Two-parent auto fit is numerically identical to the
   hand-written `y ~ mi(m1) + mi(m2) + x` emit (distinct from sampler
   V-82 tweedie).
@@ -242,6 +245,13 @@ works before anything is fitted.
   under outcome-dependent missingness (engine cell
   `mp-nbinom2-gaussian`, drmTMB #1095 `3c239a55e`). Log-mean DGP. Not FIML.
   Not `impute_joint`.
+- **V-127.** Zero-inflated Poisson × one Bernoulli parent (`zi ~ 1`,
+  `mi()` in `mu` only): auto-derived fit is numerically identical
+  to the hand-written emit, and the mediator coefficient recovers
+  under outcome-dependent missingness (engine cell
+  `mp-zi-poisson-bernoulli`, drmTMB #1097 `9d4b63400`, D-23). The
+  2-point sum uses the ZIP mixture; this is not a poisson alias.
+  Not FIML. Not `impute_joint`.
 
 ### Engine dependencies
 
@@ -254,7 +264,9 @@ Beta-binomial × one Bernoulli `mi()` needs drmTMB #1094
 `4c34c9bb` (`mp-beta-binomial-bernoulli`). Student × one Bernoulli
 `mi()` needs drmTMB #1096 `5fdf834c1` (`mp-student-bernoulli`). nbinom2 × one
 Gaussian `mi()` needs drmTMB #1095 `3c239a55e`
-(`mp-nbinom2-gaussian`). Leftover families (tweedie, zi_*),
+(`mp-nbinom2-gaussian`). ZIP × one Bernoulli `mi()` in `mu` with
+`zi ~ 1` needs drmTMB #1097 `9d4b63400` (`mp-zi-poisson-bernoulli`).
+Leftover families (tweedie, `zi_nbinom2`), `mi()` on `zi`,
 nbinom2 × a non-Gaussian non-binary predictor, non-Gaussian
 `k = 2`, and `k > 2` still abort. See `docs/memory/DRMTMB_ISSUES.md`.
 
