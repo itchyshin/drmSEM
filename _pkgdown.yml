@@ -114,21 +114,32 @@ reference:
       - imputed
 
 articles:
-  - title: Get started
+  - title: Get Started
+    desc: Essential workflows for building and inspecting distributional piecewise SEMs.
     contents:
       - drmSEM
       - drmSEM-overview
-  - title: Concepts
-    desc: The ideas that make drmSEM a distributional SEM.
+  - title: Distributional Pathways
+    desc: Propagate effects across location, scale, shape, and zero-inflation components.
     contents:
       - effect-decomposition
+      - equations-via-symbolizer
+      - phylogenetic-sem
+  - title: Latents & Measurement
+    desc: Incorporate formative, reflective, and MIMIC measurement constructs with reliability metrics.
+    contents:
+      - latent-variables
       - covariance-edges-and-composites
+  - title: Feedback & Covariance
+    desc: Model reciprocal causation with Banach fixed-point equilibria and joint bivariate correlation.
+    contents:
       - bivariate-nodes
       - feedback-cycles
-      - latent-variables
-      - equations-via-symbolizer
+  - title: Missing Data & Diagnostics
+    desc: Graph-derived piecewise imputation, model comparison, d-separation calibration, and recovery validation.
+    contents:
+      - missing-data
       - model-selection
       - comparison
-      - phylogenetic-sem
       - calibration
       - validation
