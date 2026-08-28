@@ -1558,3 +1558,28 @@ across `direct_effects()`, `total_effects()`, `indirect_effects()`, and `path_ef
 
 **Not claimed.** Joint multivariate Bayesian posterior sampling.
 
+## 2026-08-28 — Track 3: K >= 3 Covariance Clique Partitioning & d-Separation Suppression (V-145..V-147)
+
+Complete covariance sub-graph (clique) detection via Bron-Kerbosch algorithm, block partitioning,
+within-clique conditional independence claim suppression in `basis_set()`, and d-separation
+testing for external predictors and downstream descendants (`R/covariances.R`, `R/pair.R`, `R/dsep.R`).
+
+- **V-145.** 3-response covariance block basis-set suppression: a SEM with a complete
+  residual covariance clique across \(\{y_1, y_2, y_3\}\) (declared via `covary_clique()`
+  or pairwise `covary()`) suppresses all 3 within-clique pairwise claims
+  (\(y_1 \_\| \_ y_2\), \(y_2 \_\| \_ y_3\), \(y_1 \_\| \_ y_3\)); zero spurious within-block
+  claims are generated. `covariance_cliques()` correctly identifies the size-3 complete clique. **Validated.**
+- **V-146.** d-separation test accuracy for external predictors and downstream descendants:
+  for DAG \(x \to y_1\), \(\{y_1, y_2, y_3\}\) clique, \(y_3 \to z\), `basis_set()` generates
+  the 5 admissible boundary claims (\(x \_\| \_ y_2 \mid \emptyset\), \(x \_\| \_ y_3 \mid \emptyset\),
+  \(x \_\| \_ z \mid \{y_3\}\), \(y_1 \_\| \_ z \mid \{y_3\}\), \(y_2 \_\| \_ z \mid \{y_3\}\));
+  LRT and Fisher's C correctly evaluate the claims on live simulated data (true model p > 0.05). **Validated.**
+- **V-147.** Pairwise \(\rho_{jk}\) parameter recovery: trivariate correlated residual DGP
+  with \(\rho_{12} = 0.40, \rho_{23} = 0.50, \rho_{13} = 0.30\) recovers true correlation
+  parameters via pairwise bivariate models within \(|\tanh(\hat{\eta}) - \rho| < 0.12\);
+  `rho12()` and `covariance_cliques()` report all edges and clique structures. **Validated.**
+
+`tests/testthat/test-clique-covariances.R`.
+
+**Not claimed.** Arbitrary >2-response joint likelihoods inside drmSEM (relies on drmTMB bivariate models or piecewise node fitting). Global joint multivariate SEM.
+
