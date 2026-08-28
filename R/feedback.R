@@ -267,24 +267,84 @@ drm_toposort_feedback <- function(nodes, edges, motifs) {
 # Equilibrium (fixed-point) propagation.
 #
 # Replaces drm_propagate()'s single topological sweep with an iterate-to-fixed-
-# point loop over the MEAN propagation map: each endogenous node is re-predicted
-# from the current working values of its parents (including the cyclic ones)
-# until the active nodes' means stop changing (< tol) or `max_iter` is hit. The
-# equilibrium of the means is the linear reduced form (I - B)^{-1} Gamma x in the
-# identity-link Gaussian case, and its nonlinear generalization otherwise. When
-# the map is not a contraction (no stable equilibrium) the result is flagged
-# `converged = FALSE` -- the honest analogue of identified = FALSE elsewhere.
-#
-# Distributional feedback equilibria (sampling inside the loop) are deferred:
-# the fixed point is defined on the deterministic mean map for 0.5.0.
+# point loop over the multi-component propagation map: each endogenous node is
+# re-predicted across all modelled distributional components (mu, sigma, nu, zi, hu)
+# from the current working values of its parents (including cyclic ones) until
+# the active nodes' states stop changing (< tol) or `max_iter` is hit. Vectorized
+# Banach contraction iteration with adaptive relaxation is applied to resolve
+# oscillations. Contraction constants and spectral radius diagnostics are tracked
+# and non-convergence is reported honestly (never a fabricated number).
 # ---------------------------------------------------------------------------
+
+# Extract linear direct effect matrix B for active Gaussian nodes when available.
+drm_extract_B <- function(engines, active, beta_list = NULL) {
+  k <- length(active)
+  if (k == 0L) {
+    return(list(B = matrix(0, 0, 0), spectral_radius = NA_real_, is_linear_gaussian = FALSE))
+  }
+  B <- matrix(0, nrow = k, ncol = k, dimnames = list(active, active))
+  is_lin_gauss <- TRUE
+  for (i in seq_along(active)) {
+    nm_i <- active[[i]]
+    eng_i <- engines[[nm_i]]
+    fam <- if (is.character(eng_i$family)) eng_i$family else if (is.list(eng_i$family)) eng_i$family$family else "gaussian"
+    link <- if (is.character(eng_i$links)) eng_i$links[["mu"]] %||% "identity" else if (is.list(eng_i$links)) eng_i$links$mu %||% "identity" else "identity"
+    if (!fam %in% c("gaussian", "stats::gaussian", stats::gaussian()$family) || !identical(link, "identity")) {
+      is_lin_gauss <- FALSE
+    }
+    coefs <- if (!is.null(beta_list[[nm_i]])) {
+      if (is.list(beta_list[[nm_i]])) beta_list[[nm_i]][["mu"]] %||% beta_list[[nm_i]][[1L]] else beta_list[[nm_i]]
+    } else {
+      if (is.list(eng_i$coef)) eng_i$coef[["mu"]] %||% eng_i$coef[[1L]] else eng_i$coef
+    }
+    if (!is.null(coefs)) {
+      for (j in seq_along(active)) {
+        if (i == j) next
+        nm_j <- active[[j]]
+        eng_j <- engines[[nm_j]]
+        ident_j <- eng_j$identifier %||% nm_j
+        if (ident_j %in% names(coefs)) {
+          B[i, j] <- as.numeric(coefs[[ident_j]])
+        } else if (nm_j %in% names(coefs)) {
+          B[i, j] <- as.numeric(coefs[[nm_j]])
+        }
+      }
+    }
+  }
+  rho <- if (any(B != 0)) drm_spectral_radius(B) else NA_real_
+  list(B = B, spectral_radius = rho, is_linear_gaussian = is_lin_gauss)
+}
+
+# Empirical Lipschitz contraction constant computed from iterate deltas.
+drm_empirical_contraction_constant <- function(deltas) {
+  if (length(deltas) < 2L) {
+    return(NA_real_)
+  }
+  d_prev <- deltas[-length(deltas)]
+  d_curr <- deltas[-1L]
+  valid <- is.finite(d_prev) & is.finite(d_curr) & (d_prev > 1e-14)
+  if (!any(valid)) {
+    return(0)
+  }
+  ratios <- d_curr[valid] / d_prev[valid]
+  ratios <- ratios[is.finite(ratios)]
+  if (length(ratios) == 0L) {
+    return(NA_real_)
+  }
+  tail_n <- min(length(ratios), 10L)
+  tail_ratios <- utils::tail(ratios, tail_n)
+  max(tail_ratios)
+}
+
 propagate_fixedpoint <- function(
   engines,
   scenario,
   active = names(engines),
   beta_list = NULL,
-  max_iter = 100L,
-  tol = 1e-8
+  max_iter = 200L,
+  tol = 1e-8,
+  damping = 1.0,
+  adaptive_relaxation = TRUE
 ) {
   work <- as.data.frame(scenario)
   # Seed each active node's working column so a cyclic parent reference resolves
@@ -294,33 +354,124 @@ propagate_fixedpoint <- function(
       work[[eng$identifier]] <- rep(0, nrow(work))
     }
   }
+
+  lin_diag <- drm_extract_B(engines, active, beta_list)
+  spectral_radius <- lin_diag$spectral_radius
+
   node_mean <- list()
-  prev <- NULL
+  node_comps <- list()
+  prev_state <- NULL
+  prev_diff <- NULL
+  deltas <- numeric()
   converged <- FALSE
   iters <- 0L
+  alpha <- damping
+
   for (k in seq_len(max_iter)) {
     iters <- k
-    node_mean <- list()
+    cur_means <- list()
+    cur_comps <- list()
+    prev_work <- work
+
+    # Multi-component evaluation across all engines
     for (eng in engines) {
-      preds <- eng$predict(work, beta = beta_list[[eng$name]])
-      node_mean[[eng$name]] <- preds$mu
-      if (eng$name %in% active) {
-        work[[eng$identifier]] <- preds$mu
+      preds <- as.data.frame(eng$predict(work, beta = beta_list[[eng$name]]))
+      fam <- eng$family %||% "gaussian"
+      mod_type <- eng$model_type %||% NA_character_
+      eff_fam <- drm_effective_family(fam, mod_type)
+      expected <- drm_family_expected_mean(eff_fam, preds)
+      cur_comps[[eng$name]] <- preds
+      cur_means[[eng$name]] <- expected
+    }
+
+    # Extract state vector across all active nodes (expected means + all predicted components)
+    state_pieces <- list()
+    for (nm in active) {
+      if (!is.null(cur_means[[nm]])) {
+        state_pieces[[length(state_pieces) + 1L]] <- as.numeric(cur_means[[nm]])
+      }
+      if (!is.null(cur_comps[[nm]])) {
+        num_cols <- vapply(cur_comps[[nm]], is.numeric, logical(1))
+        if (any(num_cols)) {
+          for (cn in names(cur_comps[[nm]])[num_cols]) {
+            state_pieces[[length(state_pieces) + 1L]] <- as.numeric(cur_comps[[nm]][[cn]])
+          }
+        }
       }
     }
-    cur <- unlist(node_mean[active], use.names = FALSE)
-    if (
-      !is.null(prev) &&
-        length(prev) == length(cur) &&
-        all(is.finite(cur)) &&
-        max(abs(cur - prev)) < tol
-    ) {
-      converged <- TRUE
+    cur_state <- unlist(state_pieces, use.names = FALSE)
+
+    if (any(!is.finite(cur_state)) || any(abs(cur_state) > 1e12)) {
+      converged <- FALSE
       break
     }
-    prev <- cur
+
+    if (!is.null(prev_state) && length(prev_state) == length(cur_state)) {
+      diff_vec <- cur_state - prev_state
+      delta_k <- max(abs(diff_vec))
+      deltas <- c(deltas, delta_k)
+
+      if (delta_k < tol) {
+        converged <- TRUE
+        node_mean <- cur_means
+        node_comps <- cur_comps
+        break
+      }
+
+      if (delta_k > 1e10 || (length(deltas) >= 15L && all(utils::tail(deltas, 5L) > 1e4))) {
+        converged <- FALSE
+        break
+      }
+
+      # Adaptive relaxation when oscillation is detected
+      if (isTRUE(adaptive_relaxation) && !is.null(prev_diff) && length(prev_diff) == length(diff_vec)) {
+        inner_prod <- sum(diff_vec * prev_diff)
+        if (inner_prod < 0) {
+          # Oscillation detected -> under-relax
+          alpha <- max(0.05, alpha * 0.7)
+        } else if (length(deltas) >= 2L && delta_k < deltas[length(deltas) - 1L] * 0.95 && alpha < 1.0) {
+          # Monotonic contraction -> restore full step size
+          alpha <- min(1.0, alpha * 1.05)
+        }
+      }
+      prev_diff <- diff_vec
+    }
+
+    # Update active working variables with relaxed step
+    for (eng in engines) {
+      if (eng$name %in% active) {
+        new_val <- cur_means[[eng$name]]
+        old_val <- prev_work[[eng$identifier]]
+        if (is.null(old_val)) old_val <- new_val
+        work[[eng$identifier]] <- (1 - alpha) * old_val + alpha * new_val
+      }
+    }
+
+    prev_state <- cur_state
+    node_mean <- cur_means
+    node_comps <- cur_comps
   }
-  list(mean = node_mean, work = work, converged = converged, iterations = iters)
+
+  contraction_constant <- drm_empirical_contraction_constant(deltas)
+
+  # Check stability guard
+  if (!is.na(spectral_radius) && spectral_radius >= 1.0) {
+    converged <- FALSE
+  }
+  if (!is.na(contraction_constant) && contraction_constant >= 1.0 && !converged) {
+    converged <- FALSE
+  }
+
+  list(
+    mean = node_mean,
+    components = node_comps,
+    work = work,
+    converged = converged,
+    iterations = iters,
+    spectral_radius = spectral_radius,
+    contraction_constant = contraction_constant,
+    deltas = deltas
+  )
 }
 
 # Spectral radius of a direct-effect matrix B (max modulus eigenvalue). The
@@ -349,8 +500,8 @@ drm_reduced_form <- function(B, Gamma) {
 # (any replicate, either scenario) failed to reach a stable equilibrium -- the
 # honest signal that no population-average equilibrium effect is defined (the
 # feedback diverges, spectral radius >= 1). Used by total_effects() (0.5.x);
-# the equilibrium is on the deterministic MEAN map, so this is target = "mean"
-# only and the mean/distribution decomposition through a cycle is out of scope.
+# the equilibrium is on the deterministic multi-component map, so this is target = "mean"
+# and the mean/distribution decomposition through a cycle is out of scope.
 drm_equilibrium_contrast <- function(
   engines,
   scenarios,
@@ -359,7 +510,9 @@ drm_equilibrium_contrast <- function(
   draw,
   seed = NULL,
   max_iter = 200L,
-  tol = 1e-8
+  tol = 1e-8,
+  damping = 1.0,
+  adaptive_relaxation = TRUE
 ) {
   if (!is.null(seed)) {
     set.seed(seed)
@@ -368,6 +521,9 @@ drm_equilibrium_contrast <- function(
   vals <- numeric(reps)
   ok <- logical(reps)
   active <- names(engines)
+  spectral_radii <- numeric(reps)
+  contraction_constants <- numeric(reps)
+
   for (b in seq_len(reps)) {
     beta_list <- lapply(engines, drm_draw_beta, draw = draw)
     names(beta_list) <- names(engines)
@@ -377,7 +533,9 @@ drm_equilibrium_contrast <- function(
       active = active,
       beta_list = beta_list,
       max_iter = max_iter,
-      tol = tol
+      tol = tol,
+      damping = damping,
+      adaptive_relaxation = adaptive_relaxation
     )
     lo <- propagate_fixedpoint(
       engines,
@@ -385,10 +543,31 @@ drm_equilibrium_contrast <- function(
       active = active,
       beta_list = beta_list,
       max_iter = max_iter,
-      tol = tol
+      tol = tol,
+      damping = damping,
+      adaptive_relaxation = adaptive_relaxation
     )
     ok[[b]] <- isTRUE(hi$converged) && isTRUE(lo$converged)
-    vals[[b]] <- mean(hi$mean[[to]] - lo$mean[[to]], na.rm = TRUE)
+    sr_hi <- hi$spectral_radius %||% NA_real_
+    sr_lo <- lo$spectral_radius %||% NA_real_
+    spectral_radii[[b]] <- if (is.finite(sr_hi) || is.finite(sr_lo)) max(sr_hi, sr_lo, na.rm = TRUE) else NA_real_
+
+    cc_hi <- hi$contraction_constant %||% NA_real_
+    cc_lo <- lo$contraction_constant %||% NA_real_
+    contraction_constants[[b]] <- if (is.finite(cc_hi) || is.finite(cc_lo)) max(cc_hi, cc_lo, na.rm = TRUE) else NA_real_
+
+    vals[[b]] <- if (ok[[b]]) {
+      mean(hi$mean[[to]] - lo$mean[[to]], na.rm = TRUE)
+    } else {
+      NA_real_
+    }
   }
-  list(vals = vals, converged = all(ok))
+
+  list(
+    vals = vals,
+    converged = all(ok),
+    status = if (all(ok)) "converged" else "non_convergent",
+    spectral_radius = if (any(is.finite(spectral_radii))) mean(spectral_radii, na.rm = TRUE) else NA_real_,
+    contraction_constant = if (any(is.finite(contraction_constants))) mean(contraction_constants, na.rm = TRUE) else NA_real_
+  )
 }

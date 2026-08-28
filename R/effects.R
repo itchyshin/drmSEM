@@ -548,9 +548,9 @@ total_effects <- function(
 
   # Feedback SEM: the total effect is the system's EQUILIBRIUM response, computed
   # by the fixed-point propagator rather than a single topological sweep (0.5.x).
-  # The equilibrium is on the deterministic mean map, so only target = "mean" is
+  # The equilibrium is on the deterministic multi-component map, so only target = "mean" is
   # supported; non-convergence (no stable equilibrium) is reported honestly as NA.
-  if (length(drm_feedback_nodes(object)) > 0L) {
+  if (length(drm_feedback_nodes(object)) > 0L || identical(mediation_resolved, "equilibrium")) {
     if (!identical(target, "mean")) {
       cli::cli_abort(c(
         "Outcome functionals are not yet defined through a feedback motif.",
@@ -562,7 +562,7 @@ total_effects <- function(
       drm_summ(eq$vals, level)
     } else {
       cli::cli_warn(c(
-        "The feedback system did not reach a stable equilibrium (spectral radius >= 1?).",
+        "The feedback system did not reach a stable equilibrium (spectral radius >= 1 or non-contracting map).",
         "i" = "No population-average equilibrium effect is defined; reporting {.val NA}."
       ))
       data.frame(estimate = NA_real_, conf.low = NA_real_, conf.high = NA_real_)
@@ -579,6 +579,9 @@ total_effects <- function(
       summ
     )
     attr(out, "converged") <- eq$converged
+    attr(out, "status") <- eq$status
+    attr(out, "spectral_radius") <- eq$spectral_radius
+    attr(out, "contraction_constant") <- eq$contraction_constant
     out <- drm_finalize_effect(out, engines, ctl$draw, list(eq$vals))
     class(out) <- c("drm_effect", "data.frame")
     return(out)

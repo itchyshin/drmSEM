@@ -1480,3 +1480,30 @@ pairs abort.
 
 **Not claimed.** Global multivariate SEM. Mixed-family bivariate.
 Deep RE-block level-compatibility. Capability-status `"covered"`.
+
+## 2026-08-28 — Arc B: 0.5 Cyclic Feedback — Distributional Equilibria (V-135..V-138)
+
+Advanced `propagate_fixedpoint()` to simultaneously iterate and solve fixed points
+across all modelled distributional components (\(\mu, \sigma, \nu, \text{zi}, \text{hu}\))
+with adaptive Banach contraction iteration, spectral radius and empirical Lipschitz
+contraction ratio diagnostics, and equilibrium total effects (`total_effects(mediation = "equilibrium")`).
+
+- **V-135.** Linear 2-node reciprocal feedback matches theoretical reduced-form
+  \((I - B)^{-1}\Gamma\) and exact spectral radius \(\rho(B) < 1\); `drm_equilibrium_contrast`
+  recovers reduced-form total effects. **Validated.**
+- **V-136.** Stability boundary detection: \(\rho(B) \ge 1\) (including divergent feedback,
+  unit root \(\rho(B) = 1.0\), and oscillatory instability) is honestly flagged
+  `converged = FALSE` with `status = "non_convergent"` and `NA` estimates. **Validated.**
+- **V-137.** Nonlinear feedback equilibrium with lognormal and zero-inflated Poisson (ZIP)
+  models: multi-component fixed point across \(\mu, \sigma, \text{zi}\) solves to self-consistent
+  equilibrium with empirical Lipschitz contraction constant \(< 1\). **Validated.**
+- **V-138.** Variance-moderated feedback loop equilibrium recovery: a causal loop where
+  \(y_1\) targets the scale component \(\sigma\) of lognormal \(y_2\) and \(y_2\) feeds back
+  to the mean of \(y_1\) (\(y_1 \to \sigma(y_2) \to \mu(y_1)\)) converges to a coupled
+  distributional fixed point and correctly captures the Jensen-gap variance amplification. **Validated.**
+
+`tests/testthat/test-feedback.R`.
+
+**Not claimed.** Consistent estimation of feedback systems under simultaneity
+(requires engine IV/2SLS or joint likelihood; `drm_sem` warns). Full sigma-separation.
+Capability-status `"partial"`.

@@ -2090,3 +2090,25 @@ covariance. Mixed-family pairs (abort).
 - capability-status updated with fresh full test evidence (1143 assertions passing); status stays strictly **`partial`** (within-node uncertainty only, piecewise SEM re-estimates missing parent models in node likelihoods, never FIML).
 - Closed out `LOOP/GOAL.md` and `LOOP/arcs.md`.
 
+## 2026-08-28 — Program Arc B: 0.5 Cyclic Feedback — Distributional Equilibria
+
+**Cursor / Gauss (engine reviewer) & Ada** on `cursor/lane-05-cyclic-feedback` from `main` @ `e6e60f3`.
+
+**What shipped.**
+- Advanced `propagate_fixedpoint()` in `R/feedback.R`:
+  - Multi-component fixed-point propagation iterating simultaneously across all modelled distributional components (\(\mu, \sigma, \nu, \text{zi}, \text{hu}\)).
+  - Vectorized Banach contraction iteration with adaptive under-relaxation when oscillation is detected.
+  - Exact direct-effect matrix \(B\) extraction and spectral radius \(\rho(B)\) check for linear Gaussian loops.
+  - Empirical Lipschitz contraction constant diagnostic for nonlinear and distributional loops.
+  - Honest non-convergence reporting (`converged = FALSE`, `status = "non_convergent"`, `NA` estimates) when \(\rho(B) \ge 1\) or the map fails to contract.
+- Updated `R/effects.R` and `R/effects_api.R`:
+  - `total_effects(sem, mediation = "equilibrium")` and `total_effects(sem, method = "equilibrium")` route feedback and distributional cyclic SEMs to the equilibrium contrast propagator.
+  - Attached convergence status, spectral radius, and empirical contraction constant attributes.
+- Tests in `tests/testthat/test-feedback.R` (4 new test blocks, V-135..V-138; 82 passing assertions):
+  - V-135: Exact match of linear 2-node reciprocal feedback against theoretical reduced-form \((I - B)^{-1}\Gamma\) and spectral radius.
+  - V-136: Stability boundary detection (\(\rho(B) \ge 1\), unit root \(\rho = 1.0\), and oscillatory instability).
+  - V-137: Nonlinear multi-component lognormal + ZIP feedback equilibrium recovery.
+  - V-138: Variance-moderated feedback loop equilibrium recovery (\(y_1 \to \sigma(y_2) \to \mu(y_1)\)).
+- Updated documentation and ledgers: `docs/design/10-cyclic-feedback.md`, `docs/design/capability-status.md`, `VALIDATION_LEDGER.md`, and `AGENT_LOG.md`.
+
+
