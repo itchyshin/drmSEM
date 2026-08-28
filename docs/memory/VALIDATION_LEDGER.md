@@ -1435,3 +1435,26 @@ Capability-status stays **`partial`**. Not FIML. No `"covered"`.
 **Not claimed.** `zi_nbinom2`. `mi()` on `zi`. Non-Gaussian
 `k = 2`. `k > 2`. Cross-node uncertainty. FIML.
 Capability-status `"covered"`.
+
+## 2026-08-28 — MAG public claim inventory closeout (no new V)
+
+D-20 / V-117 / V-118 / V-119 were already validated on
+`claude/lane-mag-wire`. This entry records only that the
+**public capability inventory** now projects them.
+
+- `docs/design/capability-status.md` adds a **`partial`** row
+  for MAG m-separation under `latent =`. Status is not
+  `"covered"`: Cor. 5.3 anteriors only, \(S = \emptyset\), no
+  selection / conditioned latents, parent-based S&D separators
+  unlicensed, residual OQ-16 (any-component LRT / Fisher's C
+  not shown to induce a compositional graphoid), not FIML.
+- Fresh suite used as the inventory evidence anchor:
+  **2026-08-28**, `drmTMB` **0.7.0**, `NOT_CRAN=true` —
+  **1120 pass / 0 fail / 5 skip / 10 warn** (38 files, 315
+  `test_that()` blocks). V-127 / V-127b skip on this machine
+  because installed `0.7.0` predates engine #1097; they passed
+  on the #56 lane.
+- `NEWS.md` and `README.md` state the same bounds. No new
+  validation number. No change to the LRT (D-2).
+
+**Not claimed.** Capability-status `"covered"`. Closing OQ-16.

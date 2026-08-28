@@ -93,7 +93,9 @@ unless the outcome is linear with no exposure–mediator interaction (use
 rich distributional GLMMs but is not an SEM; `dsem` does dynamic SEM. `drmSEM`
 is the piece that lets a piecewise SEM address scale, shape, zero-inflation,
 hurdle, random-effect scale, and residual correlation as first-class causal
-targets.
+targets. Unmeasured confounding can be *projected* with `latent =` (MAG
+m-separation on the observed graph); that is not FIML and not a joint
+latent-variable likelihood.
 
 ## Quick start
 
@@ -165,6 +167,12 @@ engine — see the vignette for a worked run.)
   build composite (formative / PCA) constructs with `drm_composite()` /
   `loadings()`. See `vignette("covariance-edges-and-composites")` and
   `vignette("latent-variables")`.
+- **Latent confounding (MAG m-separation).** Name *marginalised* latents with
+  `latent =` on `drm_sem()` / `drm_psem()`. `basis_set()` / `dsep()` then test
+  m-separation on the implied MAG (Richardson & Spirtes 2002 Cor. 5.3 anteriors;
+  empty selection set). This is a graph projection onto a piecewise observed SEM,
+  not FIML and not a reflective measurement model. Selection latents are not
+  supported. See `docs/design/14-m-separation.md`.
 - **Bivariate nodes.** `drm_pair()` declares a joint two-response node with a
   residual `rho12` (and higher-level `corpair`) correlation; `rho12()` /
   `corpairs()` report the declared edges and `plot(show = "all")` draws them as
@@ -191,10 +199,12 @@ engine — see the vignette for a worked run.)
 
 Early and experimental. The kernel logic — d-separation bookkeeping, the
 any-component LRT and Fisher's C, and the simulation-based effect calculus — is
-validated by recovery tests that run without the engine. The full
-`drmTMB`-integration path (fitting nodes end to end) is validated in the
-cloud / CI environment where `drmTMB` is compiled and installed. APIs may change
-before a stable release.
+validated by recovery tests that run without the engine. MAG m-separation under
+`latent =` is **partial**: Cor. 5.3 anterior projection with empty selection
+set, no selection latents, residual compositional-graphoid question (OQ-16).
+The full `drmTMB`-integration path (fitting nodes end to end) is validated in
+the cloud / CI environment where `drmTMB` is compiled and installed. APIs may
+change before a stable release.
 
 ## Methodological background
 
@@ -205,6 +215,8 @@ page and the `bibliography:` of each vignette). The canonical entry points are:
 - piecewise SEM and local-likelihood d-separation — Shipley (2000, 2009,
   2016) and Lefcheck (2016, `piecewiseSEM`);
 - d-separation as a graphical criterion — Pearl (2009);
+- ancestral graphs and m-separation — Richardson & Spirtes (2002),
+  Sadeghi & Lauritzen (2014), Lauritzen & Sadeghi (2018);
 - counterfactual mediation — Pearl (2001), Robins & Greenland (1992),
   Imai et al. (2010), VanderWeele (2014, 2015), Vansteelandt & Daniel (2017);
 - distributional regression — Rigby & Stasinopoulos (2005, GAMLSS),
