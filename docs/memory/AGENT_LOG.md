@@ -2020,3 +2020,34 @@ nbinom2 trees.
 against local engine #1097.
 
 **Not this slice.** `zi_nbinom2`. `mi()` on `zi`. k=2.
+
+## 2026-08-28 — MAG public claims & capability inventory closeout
+
+**Cursor / Grok** on `cursor/lane-mag-claims` from `origin/main` @
+`b39c8e1`. Isolated from S6 imputation worktrees. Shinichi
+approved the held-back public claim ("MAG claims") after D-20
+landed. Lease: `cursor:drmSEM` on the five inventory files.
+
+**What shipped (docs only; no `R/`).**
+- `docs/design/capability-status.md`: new **`partial`** row for
+  MAG m-separation under `latent =`. Honest bounds: Cor. 5.3
+  anterior projection, \(S = \emptyset\), no selection latents,
+  residual OQ-16 compositional graphoid, not FIML, piecewise
+  observed + latent-confounding projection. Component-labelled
+  paths unchanged.
+- Suite-count anchors refreshed: **2026-08-28**, `drmTMB`
+  **0.7.0**, `NOT_CRAN=true` — **1120 pass / 0 fail / 5 skip /
+  10 warn** across **38** files / **315** `test_that()` blocks
+  (was 918 / 33 files / 2026-08-15). Extra skips vs historical
+  three: V-127 / V-127b (this machine's engine predates #1097).
+- `NEWS.md` development-version bullet names the license chain
+  (R&S 2002 Cor. 5.3; S&L 2014 Thm 3; L&S 2018 Thm 4) and the
+  bounds.
+- `README.md` "More" / Status / comparison / methodological
+  background mention `latent =` without claiming FIML.
+
+**Not claimed.** `"covered"`. Selection latents. Parent-based
+S&D separators. Closing OQ-16. Reflective measurement models.
+
+**Next.** Review + merge of this inventory PR. Imputation
+lanes remain on their own files.
