@@ -1889,8 +1889,8 @@ cell. Do not start nbinom2 × Gaussian.
 - capability-status stays **`partial`**. Not FIML. No `"covered"`.
 
 **Next.** Student and zi_* wait (new derivations, not clones).
-Do not start nbinom2 × Gaussian. Extra-#962 `truncated_nbinom2`
-only if Shinichi asks.
+nbinom2 × Gaussian handed to sibling `cursor/lane-s6-a7-nbinom2`.
+Extra-#962 `truncated_nbinom2` only if Shinichi asks.
 
 ## 2026-08-27 — S6 A7 clone tranche PAUSED
 
@@ -1940,3 +1940,25 @@ Bernoulli predictor, inline `model_type == 8`). Consumer lift
 after that engine PR merges. `zi_nbinom2` and `mi()` on `zi`
 remain refused.
 
+## 2026-08-27 — S6 sibling: nbinom2 × Gaussian consumer lift
+
+**Cursor / Grok** on fresh `cursor/lane-s6-a7-nbinom2` at
+`~/local-scratch/lanes/drmSEM-s6-a7-nbinom2`, rebased onto
+`origin/main` after #53 `d5d9925`. Isolated worktree. MAG lanes
+untouched. Student lease on `R/imputation.R` was stale (PID
+dead; local-only `0d38e3f` for a different cell). This lift is
+additive: nbinom2 was already on the response allow-list; only
+the binary-only predictor gate is relaxed for gaussian.
+
+**Engine.** drmTMB #1095 `3c239a55e` `mp-nbinom2-gaussian`
+(C++ `mi_family==0` in `model_type==7`). Not a whitelist-only
+edit.
+
+**Consumer.**
+- `drm_check_impute_legal()` allows nbinom2 × gaussian. Other
+  non-Gaussian responses stay binary-only. nbinom2 × poisson
+  still fails loud.
+- V-80h emit + refuse; V-126 identity; V-126b MAR recovery.
+- capability-status stays **`partial`**. Not FIML. No `"covered"`.
+
+**Not this slice.** Student. zi+`mi`. nbinom2 × poisson. k=2.

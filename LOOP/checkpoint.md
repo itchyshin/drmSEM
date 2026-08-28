@@ -16,24 +16,23 @@ ARCS DONE (verified):
   `test-imputation.R`: **88 pass / 0 fail / 0 skip**. CI: macos /
   ubuntu / windows green.
 
-ARC IN PROGRESS: **none.** Clone tranche **PAUSED** (named decision).
+ARC IN PROGRESS: **nbinom2 × Gaussian consumer** (sibling
+`cursor/lane-s6-a7-nbinom2`). Clone tranche remains **PAUSED**.
 
 LEFTOVERS (named; not this lane):
 - **student** — needs a `nu` ABI / leaf derivation. Not a clone.
 - **zi + `mi`** (`zi_poisson`, `zi_nbinom2`, …) — mixture; `zi`
   is not the conditional mean; already refused. New derivation.
-- **nbinom2 × Gaussian** — expand-gated engine cell (G0 rejected
-  it as first #962 cell). Handed to a sibling.
 - Extra-#962 `truncated_nbinom2` only if Shinichi asks.
 
 Do **not** implement those leftovers here. Parallel siblings
 pursue nbinom2×Gaussian, student, and zi+mi separately.
 
-CELL LAST CONSUMED: **beta_binomial × Bernoulli**
-(`mp-beta-binomial-bernoulli`). Ledger: V-124 / V-124b ↔ #1094
-`4c34c9bb` / #51 `e78bb94`. Earlier clone cells: Gamma (#49 /
-#1088) and lognormal (#50 / #1092). Phase 1 Gaussian k=2 remains
-live (#46 / #1086).
+CELL LAST CONSUMED: **nbinom2 × Gaussian**
+(`mp-nbinom2-gaussian`). Ledger: V-126 / V-126b ↔ #1095
+`3c239a55e`. Earlier clone cells: Gamma (#49 / #1088),
+lognormal (#50 / #1092), beta_binomial (#51 / #1094). Phase 1
+Gaussian k=2 remains live (#46 / #1086).
 
 OPEN GATES:
 - **G-engine / G-engine-ln / G-engine-bb** — discharged.

@@ -10,8 +10,10 @@
 # V-80d leftover unwired response (student) still fails loud
 # V-80e lognormal × binary emits; lognormal × continuous fails loud (A7c-3)
 # V-80f beta_binomial × binary emits; beta_binomial × continuous fails loud (A7c-4)
+# V-80h nbinom2 × gaussian emits; nbinom2 × poisson still fails (sibling)
 # V-123 / V-123b lognormal × Bernoulli identity + MAR recovery
 # V-124 / V-124b beta_binomial × Bernoulli identity + MAR recovery
+# V-126 / V-126b nbinom2 × Gaussian identity + MAR recovery
 # V-81  mi() coefficient names resolve to the right node in paths()
 # V-82  two-parent auto fit matches the hand-written emit shape (needs k=2 engine)
 # V-120 two-parent MAR recovery-to-truth (needs k=2 engine)
@@ -764,6 +766,138 @@ test_that("V-124b: beta_binomial x binary auto recovers known MAR coefficients",
     b_trt[[k]] <- coefs[["mi(treatment)"]]
   }
   expect_lt(mean(abs(b_trt - 0.7)), 0.20)
+})
+
+engine_accepts_nbinom2_gaussian <- function() {
+  if (!requireNamespace("drmTMB", quietly = TRUE)) {
+    return(FALSE)
+  }
+  # nbinom2 is already on drm_missing_predictor_families() from the
+  # Bernoulli cell. Probe the installed engine's R gate: #1095 lifts
+  # gaussian() only; earlier builds abort "binary missing predictor".
+  d <- data.frame(
+    y = c(1L, 2L, 3L, 1L, 4L, 2L),
+    z = seq_len(6),
+    x = c(0.1, NA_real_, 0.3, 0.4, 0.2, 0.5)
+  )
+  ok <- tryCatch({
+    drmTMB::drmTMB(
+      drmTMB::bf(y ~ z + mi(x), sigma ~ 1),
+      data = d,
+      family = drmTMB::nbinom2(),
+      impute = list(x = drmTMB::impute_model(x ~ z, family = stats::gaussian())),
+      missing = drmTMB::miss_control(predictor = "model"),
+      control = drmTMB::drm_control(se = FALSE)
+    )
+    TRUE
+  }, error = function(e) FALSE)
+  isTRUE(ok)
+}
+
+# z -> x (Gaussian, incomplete) -> y (nbinom2). Engine cell
+# mp-nbinom2-gaussian / #1095. Log-mean DGP matches the engine
+# recovery: mu = exp(0.4 + 0.5 z + 0.7 x), size = 3.
+nbinom2_gaussian_dat <- function(n = 200, seed = 13L, mar = TRUE) {
+  set.seed(seed)
+  z <- stats::rnorm(n)
+  x <- 0.3 + 0.8 * z + stats::rnorm(n, sd = 0.40)
+  y <- stats::rnbinom(n, size = 3, mu = exp(0.4 + 0.5 * z + 0.7 * x))
+  d <- data.frame(z = z, x = x, y = y)
+  drop <- if (isTRUE(mar)) {
+    stats::runif(n) < stats::plogis(-0.8 + 0.6 * as.numeric(scale(log(y + 1))))
+  } else {
+    seq_len(n) %in% sample(n, floor(0.2 * n))
+  }
+  d$x[drop] <- NA_real_
+  d
+}
+
+nbinom2_gaussian_specs <- function() {
+  list(
+    x = drm_node(drmTMB::bf(x ~ z)),
+    y = drm_node(
+      drmTMB::bf(y ~ x + z, sigma ~ 1),
+      family = drmTMB::nbinom2()
+    )
+  )
+}
+
+test_that("V-80h: nbinom2 + gaussian parent emits; nbinom2 + poisson fails loud", {
+  d <- nbinom2_gaussian_dat()
+  plan <- drmSEM:::drm_imputation_plan(nbinom2_gaussian_specs(), d)
+  expect_identical(plan$y$variable, "x")
+  expect_identical(plan$y$family_name, "gaussian")
+
+  d_pois <- d
+  d_pois$count <- pmax(0L, as.integer(round(exp(d_pois$z))))
+  d_pois$count[seq_len(5)] <- NA_integer_
+  expect_error(
+    suppressMessages(drm_sem(
+      count = drm_node(
+        drmTMB::bf(count ~ z),
+        family = stats::poisson()
+      ),
+      y = drm_node(
+        drmTMB::bf(y ~ count + z, sigma ~ 1),
+        family = drmTMB::nbinom2()
+      ),
+      data = d_pois, impute = "auto"
+    )),
+    "BINARY or GAUSSIAN missing predictor"
+  )
+})
+
+test_that("V-126: nbinom2 x gaussian auto fit matches the hand-written emit", {
+  skip_if_not(engine_accepts_nbinom2_gaussian(), "engine has no nbinom2 x gaussian mi")
+  d <- nbinom2_gaussian_dat(n = 200, seed = 13L)
+  auto <- suppressWarnings(suppressMessages(drm_sem(
+    x = drm_node(drmTMB::bf(x ~ z)),
+    y = drm_node(
+      drmTMB::bf(y ~ x + z, sigma ~ 1),
+      family = drmTMB::nbinom2()
+    ),
+    data = d, impute = "auto"
+  )))
+  hand <- suppressWarnings(suppressMessages(drm_sem(
+    x = drm_node(drmTMB::bf(x ~ z)),
+    y = drm_node(
+      drmTMB::bf(y ~ mi(x) + z, sigma ~ 1),
+      family = drmTMB::nbinom2(),
+      impute = list(x = drmTMB::impute_model(x ~ z, family = stats::gaussian())),
+      missing = drmTMB::miss_control(predictor = "model")
+    ),
+    data = d
+  )))
+  expect_equal(
+    unlist(auto$nodes$y$coefficients$mu),
+    unlist(hand$nodes$y$coefficients$mu)
+  )
+  imp <- imputation(auto)
+  expect_identical(nrow(imp), 1L)
+  expect_identical(imp$node, "y")
+  expect_identical(imp$variable, "x")
+  expect_identical(imp$family, "gaussian")
+})
+
+test_that("V-126b: nbinom2 x gaussian auto recovers known MAR coefficients", {
+  skip_if_not(engine_accepts_nbinom2_gaussian(), "engine has no nbinom2 x gaussian mi")
+  seeds <- c(13L, 21L, 34L)
+  b_x <- numeric(length(seeds))
+  for (k in seq_along(seeds)) {
+    d <- nbinom2_gaussian_dat(n = 1500, seed = seeds[[k]])
+    fit <- suppressWarnings(suppressMessages(drm_sem(
+      x = drm_node(drmTMB::bf(x ~ z)),
+      y = drm_node(
+        drmTMB::bf(y ~ x + z, sigma ~ 1),
+        family = drmTMB::nbinom2()
+      ),
+      data = d, impute = "auto"
+    )))$nodes$y$coefficients$mu
+    coefs <- unlist(fit)
+    # log-mean mu: (Intercept), mi(x), z. Truth: 0.4, 0.7, 0.5.
+    b_x[[k]] <- coefs[["mi(x)"]]
+  }
+  expect_lt(mean(abs(b_x - 0.7)), 0.20)
 })
 
 test_that("V-80c: a non-Gaussian response demands a binary missing predictor", {

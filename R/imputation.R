@@ -169,7 +169,25 @@ drm_check_impute_legal <- function(node, spec, v, parent_spec) {
       "i" = "Supported response families: {.val {drm_impute_response_families()}}."
     ))
   }
-  if (!identical(resp_family, "gaussian") && !identical(pred_family, "binomial")) {
+  # nbinom2 admits one binary or one Gaussian missing predictor
+  # (engine mp-nbinom2-gaussian / #1095). Other non-Gaussian
+  # responses stay binary-only. This is not the full catalogue.
+  nbinom2_gaussian_ok <- identical(resp_family, "nbinom2") &&
+    identical(pred_family, "gaussian")
+  if (
+    !identical(resp_family, "gaussian") &&
+      !identical(pred_family, "binomial") &&
+      !nbinom2_gaussian_ok
+  ) {
+    if (identical(resp_family, "nbinom2")) {
+      cli::cli_abort(c(
+        "Cannot derive an imputation model for node {.val {node}}.",
+        "x" = "A {.val nbinom2} response admits a BINARY or GAUSSIAN missing
+               predictor, but node {.val {v}} is {.val {pred_family}}.",
+        "i" = "Engine cell {.code mp-nbinom2-gaussian} covers one Gaussian
+               {.fn mi} only. Other predictor families stay refused."
+      ))
+    }
     cli::cli_abort(c(
       "Cannot derive an imputation model for node {.val {node}}.",
       "x" = "A {.val {resp_family}} response admits only a BINARY missing

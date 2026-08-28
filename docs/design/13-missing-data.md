@@ -143,7 +143,8 @@ Refuse rather than emit a call the engine would reject later with less context:
 | node `y` family | permitted node `m` family |
 |---|---|
 | `gaussian` | the full predictor catalogue (gaussian, binomial, ordinal, categorical, beta, zero-one beta, beta-binomial, poisson, nbinom2, truncated nbinom2, lognormal, Gamma, tweedie) |
-| `poisson`, `binomial`, `nbinom2`, `beta`, `gamma`, `lognormal` | **binary only** |
+| `nbinom2` | **binary or one Gaussian** (engine `mp-nbinom2-gaussian` / #1095) |
+| `poisson`, `binomial`, `beta`, `gamma`, `lognormal` | **binary only** |
 | anything else | not supported |
 
 `test-imputation.R` (V-80) locks drmSEM's response allow-list to
@@ -193,10 +194,12 @@ works before anything is fitted.
 - **V-79 / V-79b / V-79c.** Two incomplete Gaussian parents are planned
   rather than aborted; `k > 2` and a non-Gaussian `k = 2` still fail loud
   with the engine reason.
-- **V-80 / V-80b / V-80d / V-80e / V-80f / V-81.** The family gate
-  matches the engine (now including `gamma`, `lognormal`, and
-  `beta_binomial`); Gamma, lognormal, or beta_binomial × one
-  Bernoulli `mi()` emits, a continuous parent still fails loud, and
+- **V-80 / V-80b / V-80d / V-80e / V-80f / V-80h / V-81.** The
+  family gate matches the engine (now including `gamma`,
+  `lognormal`, and `beta_binomial`); Gamma, lognormal, or
+  beta_binomial × one Bernoulli `mi()` emits, a continuous parent
+  still fails loud, nbinom2 × one Gaussian `mi()` emits
+  (`mp-nbinom2-gaussian`), nbinom2 × poisson still fails loud, and
   student (no `has_mi`) still fails loud. `mi()` coefficients
   resolve to the right node.
 - **V-82.** Two-parent auto fit is numerically identical to the
@@ -227,6 +230,12 @@ works before anything is fitted.
   under outcome-dependent missingness (engine cell
   `mp-beta-binomial-bernoulli`, drmTMB #1094 `4c34c9bb`). Logit `mu` on a
   `cbind()` count node. Not FIML. Not `impute_joint`.
+- **V-126.** nbinom2 × one Gaussian parent: auto-derived fit is
+  numerically identical to the hand-written `mi()` +
+  `impute_model()` emit, and the mediator coefficient recovers
+  under outcome-dependent missingness (engine cell
+  `mp-nbinom2-gaussian`, drmTMB #1095 `3c239a55e`). Log-mean DGP. Not FIML.
+  Not `impute_joint`.
 
 ### Engine dependencies
 
@@ -236,8 +245,10 @@ Gamma × one Bernoulli `mi()` needs drmTMB `main` @ #1088 `6e553879`
 (`mp-gamma-bernoulli`). Lognormal × one Bernoulli `mi()` needs
 drmTMB `main` @ #1092 `7c104bbd5` (`mp-lognormal-bernoulli`).
 Beta-binomial × one Bernoulli `mi()` needs drmTMB #1094
-`4c34c9bb` (`mp-beta-binomial-bernoulli`). Leftover families (student, zi_*),
-non-Gaussian `k = 2`, and `k > 2` still abort. See
+`4c34c9bb` (`mp-beta-binomial-bernoulli`). nbinom2 × one Gaussian
+`mi()` needs drmTMB #1095 `3c239a55e` (`mp-nbinom2-gaussian`). Leftover
+families (student, zi_*), nbinom2 × a non-Gaussian non-binary
+predictor, non-Gaussian `k = 2`, and `k > 2` still abort. See
 `docs/memory/DRMTMB_ISSUES.md`.
 
 **Version note.** `imputed()$std_error` semantics differ between drmTMB 0.6.0 and

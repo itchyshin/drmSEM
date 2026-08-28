@@ -13,7 +13,8 @@ Do not re-open Phase 1. Do not implement engine likelihoods.
 | A7c-2 | Lift `R/imputation.R` gates for **Gamma × Bernoulli only** (separate PR). Old ultra-plan A7c-3–A7c-7 (V-80 / recovery / ledger / honesty / review) landed inside #49 | done | ← G-engine |
 | A7c-3 | lognormal × Bernoulli consumer lift | done | **G-engine-ln** (#1092 / #50 `1e5d4cf`) |
 | A7c-4 | beta_binomial × Bernoulli consumer lift | done | **G-engine-bb** (#1094 / #51 `e78bb94`) |
-| clone tranche | student / zi+mi / nbinom2 × Gaussian | **paused** | Shinichi: "pause A7" |
+| sibling | nbinom2 × Gaussian consumer lift | doing | **G-engine-nb2g** (#1095) |
+| clone tranche | student / zi+mi | **paused** | Shinichi: "pause A7" |
 
 Status: todo / doing / done / paused / blocked / deferred.
 `blocked` = waiting on the sibling engine PR. `paused` = Shinichi's
