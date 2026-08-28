@@ -1921,3 +1921,22 @@ Parallel siblings pursue those three separately.
 `LOOP/checkpoint.md` / `arcs.md` / GOAL banner / contract stamp;
 NEWS one-liner names leftovers without claiming covered.
 capability stays **`partial`**. Not FIML. No `"covered"`.
+
+## 2026-08-27 — S6 A7 zi+mi G0 (b) locked as D-23
+
+**Cursor / Grok** on `cursor/lane-s6-a7-zi-mi` (docs) plus isolated
+engine worktree `cursor/lane-s6-zi-mi` @
+`~/local-scratch/lanes/drmTMB-s6-zi-mi`. Did not touch student,
+nbinom2-gaussian, or family-gate trees.
+
+**G0 approved 2026-08-27 — option (b).** Six locks CONFIRMED in
+`LOOP/notes/A7-zi-mi-decision.md`. Claimed **D-23**: `mi()` in
+`mu` only; ZIP mixture in the 2-point sum; `eta_zi` observed-only;
+not FIML; capability stays `partial`; drmSEM must not alias `zi_*`
+as `poisson` for V-80.
+
+**First cell.** Engine `mp-zi-poisson-bernoulli` (`zi ~ 1`,
+Bernoulli predictor, inline `model_type == 8`). Consumer lift
+after that engine PR merges. `zi_nbinom2` and `mi()` on `zi`
+remain refused.
+
