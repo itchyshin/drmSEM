@@ -47,11 +47,16 @@ reference:
       - drm_expand_pair
       - rho12
       - corpairs
-  - title: Latent constructs
-    desc: Build composite (formative) constructs from observed indicators.
+  - title: Latent and MIMIC constructs
+    desc: Build latent (MIMIC, reflective, formative) and composite constructs from observed indicators.
     contents:
+      - drm_latent
+      - drm_indicator
       - drm_composite
       - loadings
+      - reliability
+      - drm_cronbach_alpha
+      - drm_raykov_rho
   - title: Feedback / cyclic motifs
     desc: >
       Declare a feedback motif so specific cycles are allowed (every undeclared
