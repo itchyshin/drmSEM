@@ -38,7 +38,8 @@ drm_path_contrasts <- function(
   B = 200L,
   n_sim = 50L,
   draw = TRUE,
-  seed = NULL
+  seed = NULL,
+  population = "conditional"
 ) {
   contrast <- function(active, med, ns) {
     drm_effect_contrast(
@@ -50,7 +51,8 @@ drm_path_contrasts <- function(
       B = B,
       n_sim = ns,
       draw = draw,
-      seed = seed
+      seed = seed,
+      population = population
     )
   }
   cde <- contrast(character(0), "mean", 1L)
@@ -114,7 +116,8 @@ drm_component_contrasts <- function(
   B = 200L,
   n_sim = 50L,
   draw = TRUE,
-  seed = NULL
+  seed = NULL,
+  population = "conditional"
 ) {
   ctr <- function(eng, med) {
     drm_effect_contrast(
@@ -126,7 +129,8 @@ drm_component_contrasts <- function(
       B = B,
       n_sim = if (identical(med, "mean")) 1L else n_sim,
       draw = draw,
-      seed = seed
+      seed = seed,
+      population = population
     )
   }
   cde <- drm_effect_contrast(
@@ -138,7 +142,8 @@ drm_component_contrasts <- function(
     B = B,
     n_sim = 1L,
     draw = draw,
-    seed = seed
+    seed = seed,
+    population = population
   )
   full <- ctr(engines, "distribution") # T_dist({Mj})
   mean_channel <- ctr(engines, "mean") - cde # Mj's mean channel
@@ -335,7 +340,8 @@ path_effects <- function(
           active = mj,
           mediation = "distribution",
           beta_list = beta_list,
-          n_sim = ctl$n_sim
+          n_sim = ctl$n_sim,
+          population = ctl$population
         )[["nie"]]
       }
       rows <- add_row(
@@ -356,7 +362,8 @@ path_effects <- function(
       B = B,
       n_sim = ctl$n_sim,
       draw = ctl$draw,
-      seed = seed
+      seed = seed,
+      population = ctl$population
     )
     rows <- add_row(list(), NA_character_, "total_indirect", pc$total_indirect)
     if (identical(by, "mediator")) {
@@ -380,7 +387,8 @@ path_effects <- function(
           B = B,
           n_sim = ctl$n_sim,
           draw = ctl$draw,
-          seed = seed
+          seed = seed,
+          population = ctl$population
         )
         rows <- add_row(rows, mj, "mean_channel", cc$mean)
         for (comp in names(cc$channels)) {

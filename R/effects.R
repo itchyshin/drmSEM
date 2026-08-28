@@ -58,7 +58,8 @@ drm_effect_contrast <- function(
   B,
   n_sim,
   draw,
-  seed = NULL
+  seed = NULL,
+  population = "conditional"
 ) {
   if (!is.null(seed)) {
     set.seed(seed)
@@ -75,7 +76,8 @@ drm_effect_contrast <- function(
       active,
       mediation,
       beta_list,
-      n_sim
+      n_sim,
+      population = population
     )
     mu_lo <- drm_expected_target(
       engines,
@@ -84,7 +86,8 @@ drm_effect_contrast <- function(
       active,
       mediation,
       beta_list,
-      n_sim
+      n_sim,
+      population = population
     )
     vals[[b]] <- mean(mu_hi - mu_lo, na.rm = TRUE)
   }
@@ -119,7 +122,8 @@ drm_decomp_legs <- function(
   seed = NULL,
   target = "mean",
   threshold = 0,
-  prob = 0.5
+  prob = 0.5,
+  population = "conditional"
 ) {
   if (!is.null(seed)) {
     set.seed(seed)
@@ -143,7 +147,8 @@ drm_decomp_legs <- function(
       target,
       threshold,
       ns,
-      prob
+      prob,
+      population = population
     )
     flo <- drm_functional_target(
       engines,
@@ -155,7 +160,8 @@ drm_decomp_legs <- function(
       target,
       threshold,
       ns,
-      prob
+      prob,
+      population = population
     )
     fhi - flo
   }
@@ -186,6 +192,36 @@ drm_summ <- function(vals, level = 0.95) {
     },
     stringsAsFactors = FALSE
   )
+}
+
+drm_summ_boot <- function(orig_est, boot_vals, level = 0.95) {
+  a <- (1 - level) / 2
+  finite <- boot_vals[is.finite(boot_vals)]
+  est <- if (!is.na(orig_est) && is.finite(orig_est)) {
+    orig_est
+  } else if (length(finite) > 0L) {
+    mean(finite)
+  } else {
+    NA_real_
+  }
+  se <- if (length(finite) > 1L) stats::sd(finite) else NA_real_
+  perc_low <- if (length(finite) > 1L) stats::quantile(finite, a, names = FALSE) else NA_real_
+  perc_high <- if (length(finite) > 1L) stats::quantile(finite, 1 - a, names = FALSE) else NA_real_
+  norm_low <- if (!is.na(est) && !is.na(se)) est - stats::qnorm(1 - a) * se else NA_real_
+  norm_high <- if (!is.na(est) && !is.na(se)) est + stats::qnorm(1 - a) * se else NA_real_
+  df <- data.frame(
+    estimate = est,
+    std.error = se,
+    conf.low = perc_low,
+    conf.high = perc_high,
+    stringsAsFactors = FALSE
+  )
+  attr(df, "boot_se") <- se
+  attr(df, "boot_ci_percentile") <- c(perc_low, perc_high)
+  attr(df, "boot_ci_normal") <- c(norm_low, norm_high)
+  attr(df, "boot_replicates") <- boot_vals
+  attr(df, "boot_converged") <- length(finite)
+  df
 }
 
 drm_value_issues <- function(values) {
@@ -314,13 +350,12 @@ drm_analytic_or_abort <- function(
 #'   `uncertainty = "parametric"`.
 #' @param uncertainty How to propagate parameter uncertainty: `"parametric"`
 #'   (draw coefficients from `MVN(coef, vcov)`, the default), `"none"` (MLE point
-#'   estimate, no interval), or `"bootstrap"` (refit per replicate; not yet
-#'   implemented, OQ-10).
+#'   estimate, no interval), or `"bootstrap"` (cluster/case-resample and refit
+#'   per replicate; reports percentile/normal intervals and bootstrap SE).
 #' @param nsim Inner distributional realizations per uncertainty draw (used for
 #'   non-mean `target`s).
 #' @param population `"conditional"` (random effects held at zero, the default)
-#'   or `"marginal"` (integrate over the fitted random-effect distribution; not
-#'   yet implemented, OQ-9).
+#'   or `"marginal"` (integrate over the fitted random-effect distribution).
 #' @param level Confidence level for the Monte-Carlo interval.
 #' @param seed Optional RNG seed.
 #' @param draw,n_sim Deprecated aliases for `uncertainty` (`draw = TRUE`/`FALSE`
@@ -388,6 +423,134 @@ direct_effects <- function(
   drm_require_drmTMB()
   engines <- drm_engines_from_sem(object)
   scen <- drm_build_scenarios(object, from, at)
+
+  if (identical(ctl$uncertainty, "bootstrap")) {
+    orig_val <- if (identical(target, "mean")) {
+      drm_effect_contrast(
+        engines,
+        scen,
+        to,
+        active = character(0),
+        mediation = "mean",
+        B = 1L,
+        n_sim = 1L,
+        draw = FALSE,
+        population = ctl$population
+      )
+    } else if (identical(functional, "analytic")) {
+      drm_analytic_or_abort(
+        engines,
+        scen,
+        to,
+        active = character(0),
+        mediation = "mean",
+        target = target,
+        threshold = threshold,
+        prob = prob,
+        B = 1L,
+        draw = FALSE
+      )
+    } else {
+      drm_functional_contrast(
+        engines,
+        scen,
+        to,
+        active = character(0),
+        mediation = "distribution",
+        target = target,
+        threshold = threshold,
+        B = 1L,
+        n_sim = ctl$n_sim,
+        draw = FALSE,
+        prob = prob,
+        population = ctl$population
+      )
+    }
+    orig_est <- orig_val[[1L]]
+
+    if (!is.null(seed)) {
+      set.seed(seed)
+    }
+    boot_vals <- numeric(B)
+    for (b in seq_len(B)) {
+      boot_dat <- drm_resample_data(object)
+      boot_sem <- drm_bootstrap_refit_sem(object, boot_dat)
+      if (is.null(boot_sem)) {
+        boot_vals[[b]] <- NA_real_
+        next
+      }
+      b_engs <- drm_engines_from_sem(boot_sem)
+      b_scen <- drm_build_scenarios(boot_sem, from, at)
+      b_val <- if (identical(target, "mean")) {
+        drm_effect_contrast(
+          b_engs,
+          b_scen,
+          to,
+          active = character(0),
+          mediation = "mean",
+          B = 1L,
+          n_sim = 1L,
+          draw = FALSE,
+          population = ctl$population
+        )
+      } else if (identical(functional, "analytic")) {
+        drm_analytic_or_abort(
+          b_engs,
+          b_scen,
+          to,
+          active = character(0),
+          mediation = "mean",
+          target = target,
+          threshold = threshold,
+          prob = prob,
+          B = 1L,
+          draw = FALSE
+        )
+      } else {
+        drm_functional_contrast(
+          b_engs,
+          b_scen,
+          to,
+          active = character(0),
+          mediation = "distribution",
+          target = target,
+          threshold = threshold,
+          B = 1L,
+          n_sim = ctl$n_sim,
+          draw = FALSE,
+          prob = prob,
+          population = ctl$population
+        )
+      }
+      boot_vals[[b]] <- b_val[[1L]]
+    }
+    summ <- drm_summ_boot(orig_est, boot_vals, level)
+    out <- cbind(
+      data.frame(
+        from = from,
+        to = to,
+        scale = "response",
+        target = target,
+        stringsAsFactors = FALSE
+      ),
+      summ
+    )
+    ptab <- paths(object)
+    ptab <- ptab[ptab$to == to & ptab$from == from, , drop = FALSE]
+    if (!is.null(component)) {
+      ptab <- ptab[ptab$component %in% component, , drop = FALSE]
+    }
+    attr(out, "coefficients") <- ptab
+    attr(out, "boot_se") <- attr(summ, "boot_se")
+    attr(out, "boot_ci_percentile") <- attr(summ, "boot_ci_percentile")
+    attr(out, "boot_ci_normal") <- attr(summ, "boot_ci_normal")
+    attr(out, "boot_replicates") <- attr(summ, "boot_replicates")
+    attr(out, "boot_converged") <- attr(summ, "boot_converged")
+    out <- drm_finalize_effect(out, engines, FALSE, list(boot_vals))
+    class(out) <- c("drm_effect", "data.frame")
+    return(out)
+  }
+
   vals <- if (identical(target, "mean")) {
     drm_effect_contrast(
       engines,
@@ -398,7 +561,8 @@ direct_effects <- function(
       B = B,
       n_sim = 1L,
       draw = ctl$draw,
-      seed = seed
+      seed = seed,
+      population = ctl$population
     )
   } else if (identical(functional, "analytic")) {
     drm_analytic_or_abort(
@@ -427,7 +591,8 @@ direct_effects <- function(
       n_sim = ctl$n_sim,
       draw = ctl$draw,
       seed = seed,
-      prob = prob
+      prob = prob,
+      population = ctl$population
     )
   }
   out <- cbind(
@@ -599,6 +764,129 @@ total_effects <- function(
       "i" = "Use {.code method = \"gcomp\"} with the analytic functional, or {.code functional = \"simulate\"} with {.code method = \"simulate\"}."
     ))
   }
+
+  if (identical(ctl$uncertainty, "bootstrap")) {
+    orig_val <- if (identical(target, "mean")) {
+      drm_effect_contrast(
+        engines,
+        scen,
+        to,
+        active = active,
+        mediation = mediation_resolved,
+        B = 1L,
+        n_sim = ctl$n_sim,
+        draw = FALSE,
+        population = ctl$population
+      )
+    } else if (identical(functional, "analytic")) {
+      drm_analytic_or_abort(
+        engines,
+        scen,
+        to,
+        active = active,
+        mediation = mediation_resolved,
+        target = target,
+        threshold = threshold,
+        prob = prob,
+        B = 1L,
+        draw = FALSE
+      )
+    } else {
+      drm_functional_contrast(
+        engines,
+        scen,
+        to,
+        active = active,
+        mediation = mediation_resolved,
+        target = target,
+        threshold = threshold,
+        B = 1L,
+        n_sim = ctl$n_sim,
+        draw = FALSE,
+        prob = prob,
+        population = ctl$population
+      )
+    }
+    orig_est <- orig_val[[1L]]
+
+    if (!is.null(seed)) {
+      set.seed(seed)
+    }
+    boot_vals <- numeric(B)
+    for (b in seq_len(B)) {
+      boot_dat <- drm_resample_data(object)
+      boot_sem <- drm_bootstrap_refit_sem(object, boot_dat)
+      if (is.null(boot_sem)) {
+        boot_vals[[b]] <- NA_real_
+        next
+      }
+      b_engs <- drm_engines_from_sem(boot_sem)
+      b_scen <- drm_build_scenarios(boot_sem, from, at)
+      b_val <- if (identical(target, "mean")) {
+        drm_effect_contrast(
+          b_engs,
+          b_scen,
+          to,
+          active = active,
+          mediation = mediation_resolved,
+          B = 1L,
+          n_sim = ctl$n_sim,
+          draw = FALSE,
+          population = ctl$population
+        )
+      } else if (identical(functional, "analytic")) {
+        drm_analytic_or_abort(
+          b_engs,
+          b_scen,
+          to,
+          active = active,
+          mediation = mediation_resolved,
+          target = target,
+          threshold = threshold,
+          prob = prob,
+          B = 1L,
+          draw = FALSE
+        )
+      } else {
+        drm_functional_contrast(
+          b_engs,
+          b_scen,
+          to,
+          active = active,
+          mediation = mediation_resolved,
+          target = target,
+          threshold = threshold,
+          B = 1L,
+          n_sim = ctl$n_sim,
+          draw = FALSE,
+          prob = prob,
+          population = ctl$population
+        )
+      }
+      boot_vals[[b]] <- b_val[[1L]]
+    }
+    summ <- drm_summ_boot(orig_est, boot_vals, level)
+    out <- cbind(
+      data.frame(
+        from = from,
+        to = to,
+        scale = "response",
+        mediation = mediation_resolved,
+        target = target,
+        stringsAsFactors = FALSE
+      ),
+      summ
+    )
+    attr(out, "boot_se") <- attr(summ, "boot_se")
+    attr(out, "boot_ci_percentile") <- attr(summ, "boot_ci_percentile")
+    attr(out, "boot_ci_normal") <- attr(summ, "boot_ci_normal")
+    attr(out, "boot_replicates") <- attr(summ, "boot_replicates")
+    attr(out, "boot_converged") <- attr(summ, "boot_converged")
+    out <- drm_finalize_effect(out, engines, FALSE, list(boot_vals))
+    class(out) <- c("drm_effect", "data.frame")
+    return(out)
+  }
+
   vals <- if (identical(target, "mean")) {
     drm_effect_contrast(
       engines,
@@ -609,7 +897,8 @@ total_effects <- function(
       B = B,
       n_sim = ctl$n_sim,
       draw = ctl$draw,
-      seed = seed
+      seed = seed,
+      population = ctl$population
     )
   } else if (identical(functional, "analytic")) {
     drm_analytic_or_abort(
@@ -638,7 +927,8 @@ total_effects <- function(
       n_sim = ctl$n_sim,
       draw = ctl$draw,
       seed = seed,
-      prob = prob
+      prob = prob,
+      population = ctl$population
     )
   }
   out <- cbind(
@@ -790,6 +1080,79 @@ indirect_effects <- function(
   active <- if (is.null(through)) all_med else intersect(through, all_med)
 
   if (identical(effect, "natural")) {
+    if (identical(ctl$uncertainty, "bootstrap")) {
+      orig_mat <- drm_natural_target(
+        engines,
+        scen,
+        scen$column,
+        to,
+        active,
+        "distribution",
+        beta_list = NULL,
+        n_sim = ctl$n_sim,
+        population = ctl$population
+      )
+      if (!is.null(seed)) {
+        set.seed(seed)
+      }
+      mat <- matrix(NA_real_, B, 3L, dimnames = list(NULL, c("nde", "nie", "total")))
+      for (bi in seq_len(B)) {
+        boot_dat <- drm_resample_data(object)
+        boot_sem <- drm_bootstrap_refit_sem(object, boot_dat)
+        if (is.null(boot_sem)) {
+          next
+        }
+        b_engs <- drm_engines_from_sem(boot_sem)
+        b_scen <- drm_build_scenarios(boot_sem, from, at)
+        mat[bi, ] <- drm_natural_target(
+          b_engs,
+          b_scen,
+          b_scen$column,
+          to,
+          active,
+          "distribution",
+          beta_list = NULL,
+          n_sim = ctl$n_sim,
+          population = ctl$population
+        )
+      }
+      rows <- rbind(
+        cbind(
+          data.frame(quantity = "total_path"),
+          drm_summ_boot(orig_mat[["total"]], mat[, "total"], level)
+        ),
+        cbind(
+          data.frame(quantity = "natural_direct"),
+          drm_summ_boot(orig_mat[["nde"]], mat[, "nde"], level)
+        ),
+        cbind(
+          data.frame(quantity = "natural_indirect"),
+          drm_summ_boot(orig_mat[["nie"]], mat[, "nie"], level)
+        ),
+        cbind(
+          data.frame(quantity = "mediated_interaction"),
+          drm_summ_boot(
+            orig_mat[["total"]] - orig_mat[["nde"]] - orig_mat[["nie"]],
+            mat[, "total"] - mat[, "nde"] - mat[, "nie"],
+            level
+          )
+        )
+      )
+      out <- cbind(
+        data.frame(
+          from = from,
+          to = to,
+          through = paste(active, collapse = ", "),
+          stringsAsFactors = FALSE
+        ),
+        rows
+      )
+      rownames(out) <- NULL
+      out <- drm_finalize_effect(out, engines, FALSE, list(mat))
+      class(out) <- c("drm_effect", "data.frame")
+      return(out)
+    }
+
     if (!is.null(seed)) {
       set.seed(seed)
     }
@@ -811,7 +1174,8 @@ indirect_effects <- function(
         active,
         "distribution",
         beta_list,
-        ctl$n_sim
+        ctl$n_sim,
+        population = ctl$population
       )
     }
     rows <- rbind(
@@ -847,6 +1211,104 @@ indirect_effects <- function(
     return(out)
   }
 
+  if (identical(ctl$uncertainty, "bootstrap")) {
+    orig_legs <- drm_decomp_legs(
+      engines,
+      scen,
+      to,
+      active,
+      B = 1L,
+      n_sim = ctl$n_sim,
+      draw = FALSE,
+      target = target,
+      threshold = threshold,
+      prob = prob,
+      population = ctl$population
+    )
+    orig_cde <- orig_legs[1, "cde"]
+    orig_tot_mean <- orig_legs[1, "tot_mean"]
+    orig_tot_dist <- orig_legs[1, "tot_dist"]
+    orig_ind_mean <- orig_tot_mean - orig_cde
+    orig_ind_dist <- orig_tot_dist - orig_cde
+    orig_dist_only <- orig_tot_dist - orig_tot_mean
+
+    if (!is.null(seed)) {
+      set.seed(seed)
+    }
+    boot_mat <- matrix(
+      NA_real_,
+      B,
+      5L,
+      dimnames = list(NULL, c("total_path", "direct", "indirect", "mean_mediated", "distribution_mediated"))
+    )
+    for (b in seq_len(B)) {
+      boot_dat <- drm_resample_data(object)
+      boot_sem <- drm_bootstrap_refit_sem(object, boot_dat)
+      if (is.null(boot_sem)) {
+        next
+      }
+      b_engs <- drm_engines_from_sem(boot_sem)
+      b_scen <- drm_build_scenarios(boot_sem, from, at)
+      b_legs <- drm_decomp_legs(
+        b_engs,
+        b_scen,
+        to,
+        active,
+        B = 1L,
+        n_sim = ctl$n_sim,
+        draw = FALSE,
+        target = target,
+        threshold = threshold,
+        prob = prob,
+        population = ctl$population
+      )
+      b_cde <- b_legs[1, "cde"]
+      b_tot_mean <- b_legs[1, "tot_mean"]
+      b_tot_dist <- b_legs[1, "tot_dist"]
+      boot_mat[b, "total_path"] <- b_tot_dist
+      boot_mat[b, "direct"] <- b_cde
+      boot_mat[b, "indirect"] <- b_tot_dist - b_cde
+      boot_mat[b, "mean_mediated"] <- b_tot_mean - b_cde
+      boot_mat[b, "distribution_mediated"] <- b_tot_dist - b_tot_mean
+    }
+    rows <- rbind(
+      cbind(
+        data.frame(quantity = "total_path"),
+        drm_summ_boot(orig_tot_dist, boot_mat[, "total_path"], level)
+      ),
+      cbind(
+        data.frame(quantity = "direct"),
+        drm_summ_boot(orig_cde, boot_mat[, "direct"], level)
+      ),
+      cbind(
+        data.frame(quantity = "indirect"),
+        drm_summ_boot(orig_ind_dist, boot_mat[, "indirect"], level)
+      ),
+      cbind(
+        data.frame(quantity = "mean_mediated"),
+        drm_summ_boot(orig_ind_mean, boot_mat[, "mean_mediated"], level)
+      ),
+      cbind(
+        data.frame(quantity = "distribution_mediated"),
+        drm_summ_boot(orig_dist_only, boot_mat[, "distribution_mediated"], level)
+      )
+    )
+    out <- cbind(
+      data.frame(
+        from = from,
+        to = to,
+        through = paste(active, collapse = ", "),
+        target = target,
+        stringsAsFactors = FALSE
+      ),
+      rows
+    )
+    rownames(out) <- NULL
+    out <- drm_finalize_effect(out, engines, FALSE, list(boot_mat))
+    class(out) <- c("drm_effect", "data.frame")
+    return(out)
+  }
+
   # Paired three-leg decomposition: a shared coefficient draw per replicate makes
   # mean_mediated and distribution_mediated valid common-random-numbers contrasts.
   # With a non-mean `target` the legs report the contrast on that functional.
@@ -861,7 +1323,8 @@ indirect_effects <- function(
     seed,
     target = target,
     threshold = threshold,
-    prob = prob
+    prob = prob,
+    population = ctl$population
   )
   cde <- legs[, "cde"]
   tot_mean <- legs[, "tot_mean"]

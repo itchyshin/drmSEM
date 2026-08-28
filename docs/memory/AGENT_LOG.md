@@ -2090,7 +2090,30 @@ covariance. Mixed-family pairs (abort).
 - capability-status updated with fresh full test evidence (1143 assertions passing); status stays strictly **`partial`** (within-node uncertainty only, piecewise SEM re-estimates missing parent models in node likelihoods, never FIML).
 - Closed out `LOOP/GOAL.md` and `LOOP/arcs.md`.
 
-## 2026-08-28 — Program Arc B: 0.5 Cyclic Feedback — Distributional Equilibria
+## 2026-08-28 — Track 2: Full Bootstrap & Marginal Population Integration Engine (OQ-9 / OQ-10, V-142..V-144)
+
+**Cursor / Fisher (inference reviewer) & Ada** on `cursor/lane-quad-t2-bootstrap` at `/Users/z3437171/local-scratch/lanes/drmSEM-quad-t2`.
+
+**What shipped.**
+- **Bootstrap Uncertainty Engine (`uncertainty = "bootstrap"`, OQ-10 resolved)**:
+  - Lifted gate in `R/effects_api.R` for `uncertainty = "bootstrap"`.
+  - Implemented cluster/block-aware case resampling (`drm_resample_data()`): when random effects (`(1|group)`) or clustering variables are present, resamples clusters with replacement and relabels groups; otherwise performs simple observation case resampling.
+  - Implemented fast piecewise refitting per bootstrap replicate using `drm_control(se = FALSE)` (`drm_bootstrap_refit_sem()`).
+  - Integrated into `direct_effects()`, `total_effects()`, and `indirect_effects()`: computes point estimates from the fitted SEM, bootstrap standard errors (`std.error`), percentile confidence intervals (`conf.low`, `conf.high`), normal-approximation confidence intervals (`boot_ci_normal`), and attached raw replicates (`boot_replicates`).
+- **Marginal Population Integration (`population = "marginal"`, OQ-9 resolved)**:
+  - Lifted gate in `R/effects_api.R` for `population = "marginal"`.
+  - Added random-effect variance extractors `drm_fit_sdpars()`, `drm_fit_component_sdpar()`, and `drm_sem_grouping_vars()` in `R/extractors.R`.
+  - Implemented exact closed-form marginalization for identity/log links and 15-point Gauss-Hermite quadrature for nonlinear links (logit, tanh) in `drm_marginalize_link()` in `R/simulate_effects.R`.
+  - Extended `predict_fn` in `drm_engines_from_sem()`, `drm_propagate()`, `drm_natural_target()`, `drm_functional_target()`, `drm_effect_contrast()`, and `drm_decomp_legs()` to propagate marginal population expectations when `population = "marginal"`.
+  - Propagated marginal controls through `path_effects()`.
+- **DGP Recovery Test Suite (`tests/testthat/test-bootstrap-marginal.R`, V-142..V-144)**:
+  - V-142: Bootstrap confidence interval coverage calibration on mediation chain with percentile and normal CIs bracketing true DGP effects.
+  - V-143: Cluster bootstrap maintaining valid uncertainty on clustered hierarchical data with random intercepts.
+  - V-144: Marginal population effect matching analytical population average for log link ($E_b[\exp(\eta + b)] = \exp(\eta + \tfrac{1}{2}\sigma_{RE}^2)$) and Gauss-Hermite quadrature for logit link.
+- **Documentation & Ledgers**:
+  - Updated `docs/design/02-effect-calculus.md`, `docs/design/capability-status.md`, `docs/memory/OPEN_QUESTIONS.md` (marked OQ-9 and OQ-10 RESOLVED), `VALIDATION_LEDGER.md`, and `AGENT_LOG.md`.
+  - Full local test suite passes with 0 failures: **30 pass in test-bootstrap-marginal.R; 35 pass in test-effect-api.R**.
+
 
 **Cursor / Gauss (engine reviewer) & Ada** on `cursor/lane-05-cyclic-feedback` from `main` @ `e6e60f3`.
 

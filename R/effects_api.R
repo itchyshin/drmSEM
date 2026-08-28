@@ -36,8 +36,8 @@ drm_dep_warn <- function(old, new) {
 
 # Resolve the shared computation controls (`uncertainty`, `nsim`, `population`
 # and their deprecated aliases) onto the engine knobs. Returns a list with
-# `draw` (logical) and `n_sim` (integer). New arguments win over the deprecated
-# aliases; not-yet-implemented choices abort with an OQ pointer.
+# `uncertainty` (character), `draw` (logical), `n_sim` (integer), and
+# `population` (character). New arguments win over the deprecated aliases.
 drm_effect_controls <- function(
   uncertainty = NULL,
   nsim = NULL,
@@ -48,38 +48,25 @@ drm_effect_controls <- function(
   default_nsim = 50L
 ) {
   # population --------------------------------------------------------------
+  population_out <- "conditional"
   if (!is.null(population)) {
-    population <- match.arg(population, c("conditional", "marginal"))
-    if (identical(population, "marginal")) {
-      cli::cli_abort(c(
-        "{.code population = \"marginal\"} is not yet implemented.",
-        "i" = "Effects are currently conditional on random effects held at zero (RE = 0).",
-        "i" = "Marginalizing over the fitted random-effect distribution is tracked as OQ-9."
-      ))
-    }
+    population_out <- match.arg(population, c("conditional", "marginal"))
   }
 
   # uncertainty -> draw -----------------------------------------------------
-  draw_out <- default_draw
+  uncertainty_out <- if (isTRUE(default_draw)) "parametric" else "none"
   if (!is.null(uncertainty)) {
-    uncertainty <- match.arg(uncertainty, c("parametric", "none", "bootstrap"))
-    if (identical(uncertainty, "bootstrap")) {
-      cli::cli_abort(c(
-        "{.code uncertainty = \"bootstrap\"} is not yet implemented.",
-        "i" = "Use {.val parametric} (MVN(coef, vcov) draws) or {.val none} (point estimate).",
-        "i" = "Refit-based bootstrap intervals are tracked as OQ-10."
-      ))
-    }
+    uncertainty_out <- match.arg(uncertainty, c("parametric", "none", "bootstrap"))
     if (!is.null(draw)) {
       cli::cli_warn(
         "Both {.arg uncertainty} and the deprecated {.arg draw} were supplied; using {.arg uncertainty}."
       )
     }
-    draw_out <- identical(uncertainty, "parametric")
   } else if (!is.null(draw)) {
     drm_dep_warn("draw", "uncertainty")
-    draw_out <- isTRUE(draw)
+    uncertainty_out <- if (isTRUE(draw)) "parametric" else "none"
   }
+  draw_out <- identical(uncertainty_out, "parametric")
 
   # nsim -> n_sim -----------------------------------------------------------
   nsim_out <- default_nsim
@@ -95,7 +82,12 @@ drm_effect_controls <- function(
     nsim_out <- as.integer(n_sim)
   }
 
-  list(draw = draw_out, n_sim = nsim_out)
+  list(
+    uncertainty = uncertainty_out,
+    draw = draw_out,
+    n_sim = nsim_out,
+    population = population_out
+  )
 }
 
 # Resolve total_effects()'s mediation selector. `method` (new) supersedes the

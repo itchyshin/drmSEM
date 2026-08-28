@@ -530,6 +530,45 @@ drm_fit_converged <- function(fit) {
   if (is.null(conv)) NA else identical(as.integer(conv), 0L)
 }
 
+#' Random-effect standard deviations from a fitted node
+#' @keywords internal
+#' @noRd
+drm_fit_sdpars <- function(fit) {
+  if (is.null(fit)) {
+    return(list())
+  }
+  sdp <- fit$sdpars
+  if (!is.null(sdp) && is.list(sdp)) {
+    return(sdp)
+  }
+  list()
+}
+
+#' Total random-effect standard deviation for a given component
+#' @keywords internal
+#' @noRd
+drm_fit_component_sdpar <- function(fit, component) {
+  sdp <- drm_fit_sdpars(fit)
+  if (!is.null(sdp[[component]])) {
+    vals <- as.numeric(sdp[[component]])
+    vals <- vals[is.finite(vals) & vals > 0]
+    if (length(vals) > 0L) {
+      return(sqrt(sum(vals^2)))
+    }
+  }
+  0
+}
+
+#' Extract all grouping variables across nodes of a drm_sem object
+#' @keywords internal
+#' @noRd
+drm_sem_grouping_vars <- function(object) {
+  if (is.null(object$nodes)) {
+    return(character(0))
+  }
+  unique(unlist(lapply(object$nodes, drm_fit_grouping_vars)))
+}
+
 #' Predict distributional parameters on a new data grid
 #'
 #' Thin wrapper over `drmTMB::predict_parameters()`. Returns a data.frame with

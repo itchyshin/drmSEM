@@ -1534,3 +1534,27 @@ contraction ratio diagnostics, and equilibrium total effects (`total_effects(med
 **Not claimed.** Consistent estimation of feedback systems under simultaneity
 (requires engine IV/2SLS or joint likelihood; `drm_sem` warns). Full sigma-separation.
 Capability-status `"partial"`.
+
+## 2026-08-28 — Track 2: Full Bootstrap & Marginal Population Integration Engine (V-142..V-144)
+
+Lifted gates in `R/effects_api.R` for `uncertainty = "bootstrap"` and `population = "marginal"`
+across `direct_effects()`, `total_effects()`, `indirect_effects()`, and `path_effects()`.
+
+- **V-142.** Bootstrap confidence interval coverage calibration: cluster/case-resample
+  refit bootstrap (`uncertainty = "bootstrap"`) estimates standard errors, percentile CIs,
+  and normal-approximation CIs, recovering the true DGP effect and bracketing the true
+  causal estimand without variance inflation. **Validated.**
+- **V-143.** Cluster bootstrap on hierarchical/grouped data: when random effects (`(1|group)`)
+  or grouping factors are present, entire clusters are resampled with replacement and
+  re-indexed (`drm_resample_data()`), maintaining cluster-level dependency structures and
+  calibrated interval coverage. **Validated.**
+- **V-144.** Marginal population integration under random effects: `population = "marginal"`
+  integrates \(E_b[g^{-1}(\eta + b)]\) over the fitted random-effects variance \(\Sigma_{RE}\)
+  using exact analytic solutions for identity/log links (\(E_b[\exp(\eta + b)] = \exp(\eta + \tfrac{1}{2}\sigma_{RE}^2)\))
+  and 15-point Gauss-Hermite quadrature for logit/tanh links, exactly matching theoretical
+  population expectations. **Validated.**
+
+`tests/testthat/test-bootstrap-marginal.R` against drmTMB 0.7.0: **30 pass / 0 fail / 0 skip / 0 warn**.
+
+**Not claimed.** Joint multivariate Bayesian posterior sampling.
+

@@ -28,6 +28,61 @@ drm_inv_link <- function(link, eta) {
   )
 }
 
+#' Forward link
+#' @keywords internal
+#' @noRd
+drm_link_fun <- function(link, val) {
+  switch(
+    link,
+    identity = val,
+    log = log(pmax(val, 1e-12)),
+    logit = stats::qlogis(pmin(pmax(val, 1e-12), 1 - 1e-12)),
+    tanh = atanh(pmin(pmax(val, -0.999999), 0.999999)),
+    val
+  )
+}
+
+# 15-point Gauss-Hermite quadrature nodes and weights for integrating N(0, s^2)
+drm_gh_nodes <- c(
+  -4.4999907073093910e+00, -3.6699503734044518e+00, -2.9671669279056059e+00,
+  -2.3257324861738566e+00, -1.7199925751864900e+00, -1.1361155852109204e+00,
+  -5.6506958325557599e-01, -1.5516932094797983e-16, 5.6506958325557644e-01,
+  1.1361155852109208e+00, 1.7199925751864888e+00, 2.3257324861738589e+00,
+  2.9671669279056041e+00, 3.6699503734044541e+00, 4.4999907073093901e+00
+)
+
+drm_gh_weights <- c(
+  1.5224758042535170e-09, 1.0591155477110716e-06, 1.0000444123249940e-04,
+  2.7780688429127746e-03, 3.0780033872546204e-02, 1.5848891579593569e-01,
+  4.1202868749889854e-01, 5.6410030872641803e-01, 4.1202868749889837e-01,
+  1.5848891579593632e-01, 3.0780033872546176e-02, 2.7780688429127651e-03,
+  1.0000444123250011e-04, 1.0591155477110697e-06, 1.5224758042535387e-09
+)
+
+#' Marginal expectation E_b(g^-1(eta + b)) where b ~ N(0, sigma_re^2)
+#' @keywords internal
+#' @noRd
+drm_marginalize_link <- function(link, eta, sigma_re) {
+  if (is.null(sigma_re) || is.na(sigma_re) || sigma_re <= 0) {
+    return(drm_inv_link(link, eta))
+  }
+  if (identical(link, "identity")) {
+    return(eta)
+  }
+  if (identical(link, "log")) {
+    return(exp(pmin(eta + 0.5 * sigma_re^2, log(.Machine$double.xmax) - 1)))
+  }
+  b_k <- sqrt(2) * sigma_re * drm_gh_nodes
+  eta_grid <- outer(eta, b_k, "+")
+  inv_grid <- switch(
+    link,
+    logit = stats::plogis(eta_grid),
+    tanh = tanh(eta_grid),
+    eta_grid
+  )
+  as.numeric(inv_grid %*% (drm_gh_weights / sqrt(pi)))
+}
+
 #' Draw realized values from a node's family given response-scale parameters
 #'
 #' `params` is a data frame/list with at least `mu`; optional `sigma`, `nu`,
@@ -294,6 +349,10 @@ drm_engines_from_sem <- function(object) {
       vapply(comps, function(cc) drm_nominal_link(family, cc), character(1)),
       comps
     )
+    sigma_re <- stats::setNames(
+      vapply(comps, function(cc) drm_fit_component_sdpar(fit, cc), numeric(1)),
+      comps
+    )
     V <- drm_fit_vcov(fit)
     ident <- if (rec$response_label %in% names(object$data)) {
       rec$response_label
@@ -307,7 +366,8 @@ drm_engines_from_sem <- function(object) {
       comps_l <- comps
       coef_l <- coef_list
       links_l <- links
-      predict_fn <- function(scenario, beta = NULL) {
+      sigma_re_l <- sigma_re
+      predict_fn <- function(scenario, beta = NULL, population = "conditional") {
         out <- data.frame(.row = seq_len(nrow(scenario)))
         for (cc in comps_l) {
           X <- drm_fixed_design(fit_l, cc, scenario)
@@ -321,7 +381,11 @@ drm_engines_from_sem <- function(object) {
           } else {
             as.numeric(X %*% b)
           }
-          out[[cc]] <- drm_inv_link(links_l[[cc]], eta)
+          if (identical(population, "marginal") && !is.null(sigma_re_l[[cc]]) && sigma_re_l[[cc]] > 0) {
+            out[[cc]] <- drm_marginalize_link(links_l[[cc]], eta, sigma_re_l[[cc]])
+          } else {
+            out[[cc]] <- drm_inv_link(links_l[[cc]], eta)
+          }
         }
         out$.row <- NULL
         # `trials` is a model constant, not a dpar, but binomial/beta_binomial
@@ -342,6 +406,7 @@ drm_engines_from_sem <- function(object) {
         components = comps_l,
         links = links_l,
         coef = coef_l,
+        sigma_re = sigma_re,
         vcov = V,
         converged = drm_fit_converged(fit_l),
         predict = predict_fn
@@ -440,6 +505,18 @@ drm_draw_beta <- function(engine, draw = TRUE) {
   out
 }
 
+#' Safe evaluation of an engine predict function supporting optional population arg
+#' @keywords internal
+#' @noRd
+drm_eng_predict <- function(eng, scenario, beta = NULL, population = "conditional") {
+  fmls <- names(formals(eng$predict))
+  if ("population" %in% fmls || "..." %in% fmls) {
+    eng$predict(scenario, beta = beta, population = population)
+  } else {
+    eng$predict(scenario, beta = beta)
+  }
+}
+
 # Propagate an intervention scenario through the engines (topological order).
 # `active` is the set of mediator node names allowed to feed their computed
 # value downstream; inactive nodes keep their scenario column values.
@@ -449,18 +526,26 @@ drm_propagate <- function(
   scenario,
   active,
   mediation = "mean",
-  beta_list = NULL
+  beta_list = NULL,
+  population = "conditional"
 ) {
   work <- as.data.frame(scenario)
   node_mean <- list()
   for (eng in engines) {
-    preds <- eng$predict(work, beta = beta_list[[eng$name]])
+    preds <- drm_eng_predict(eng, work, beta = beta_list[[eng$name]], population = population)
     eff_family <- drm_effective_family(eng$family, eng$model_type %||% NA_character_)
     expected <- drm_family_expected_mean(eff_family, preds)
     node_mean[[eng$name]] <- expected
     if (eng$name %in% active) {
       val <- if (identical(mediation, "distribution")) {
-        drm_sample_family(eff_family, preds, n = nrow(work))
+        if (identical(population, "marginal") && !is.null(eng$sigma_re[["mu"]]) && eng$sigma_re[["mu"]] > 0) {
+          b_draw <- stats::rnorm(nrow(work), mean = 0, sd = eng$sigma_re[["mu"]])
+          preds_sim <- preds
+          preds_sim$mu <- drm_inv_link(eng$links[["mu"]], drm_link_fun(eng$links[["mu"]], preds$mu) + b_draw)
+          drm_sample_family(eff_family, preds_sim, n = nrow(work))
+        } else {
+          drm_sample_family(eff_family, preds, n = nrow(work))
+        }
       } else {
         expected
       }
@@ -479,19 +564,22 @@ drm_expected_target <- function(
   active,
   mediation,
   beta_list,
-  n_sim = 1L
+  n_sim = 1L,
+  population = "conditional"
 ) {
   if (identical(mediation, "distribution") && n_sim > 1L) {
     acc <- numeric(nrow(scenario))
     for (s in seq_len(n_sim)) {
       acc <- acc +
-        drm_propagate(engines, scenario, active, mediation, beta_list)$mean[[
-          to
-        ]]
+        drm_propagate(
+          engines, scenario, active, mediation, beta_list, population = population
+        )$mean[[to]]
     }
     acc / n_sim
   } else {
-    drm_propagate(engines, scenario, active, mediation, beta_list)$mean[[to]]
+    drm_propagate(
+      engines, scenario, active, mediation, beta_list, population = population
+    )$mean[[to]]
   }
 }
 
@@ -508,7 +596,8 @@ drm_natural_target <- function(
   active,
   mediation = "distribution",
   beta_list = NULL,
-  n_sim = 1L
+  n_sim = 1L,
+  population = "conditional"
 ) {
   one <- function() {
     # mediator worlds: propagate the exposure contrast through the mediators
@@ -517,21 +606,23 @@ drm_natural_target <- function(
       scenarios$lo,
       active,
       mediation,
-      beta_list
+      beta_list,
+      population = population
     )$work
     work1 <- drm_propagate(
       engines,
       scenarios$hi,
       active,
       mediation,
-      beta_list
+      beta_list,
+      population = population
     )$work
     eng_to <- engines[[to]]
     # predict the outcome's response-scale mean with the DIRECT exposure set to
     # `from_src` while the mediators stay at their (already-fixed) world values.
     pmu <- function(work, from_src) {
       work[[from_col]] <- from_src[[from_col]]
-      mean(eng_to$predict(work, beta = beta_list[[to]])$mu, na.rm = TRUE)
+      mean(drm_eng_predict(eng_to, work, beta = beta_list[[to]], population = population)$mu, na.rm = TRUE)
     }
     y00 <- pmu(work0, scenarios$lo) # Y(x0, M(x0))
     y10 <- pmu(work0, scenarios$hi) # Y(x1, M(x0))
@@ -589,7 +680,8 @@ drm_functional_target <- function(
   target = "mean",
   threshold = 0,
   n_sim = 1L,
-  prob = 0.5
+  prob = 0.5,
+  population = "conditional"
 ) {
   if (identical(target, "mean")) {
     return(mean(
@@ -600,7 +692,8 @@ drm_functional_target <- function(
         active,
         mediation,
         beta_list,
-        n_sim
+        n_sim,
+        population = population
       ),
       na.rm = TRUE
     ))
@@ -609,8 +702,10 @@ drm_functional_target <- function(
   reps <- max(as.integer(n_sim), 1L)
   acc <- 0
   for (s in seq_len(reps)) {
-    work <- drm_propagate(engines, scenario, active, mediation, beta_list)$work
-    preds <- eng_to$predict(work, beta = beta_list[[to]])
+    work <- drm_propagate(
+      engines, scenario, active, mediation, beta_list, population = population
+    )$work
+    preds <- drm_eng_predict(eng_to, work, beta = beta_list[[to]], population = population)
     y <- drm_sample_family(
       drm_effective_family(eng_to$family, eng_to$model_type %||% NA_character_),
       preds, n = nrow(scenario)
@@ -633,7 +728,8 @@ drm_functional_contrast <- function(
   n_sim,
   draw,
   seed = NULL,
-  prob = 0.5
+  prob = 0.5,
+  population = "conditional"
 ) {
   if (!is.null(seed)) {
     set.seed(seed)
@@ -650,10 +746,11 @@ drm_functional_contrast <- function(
       active,
       mediation,
       beta_list,
-      target,
-      threshold,
-      n_sim,
-      prob
+      target = target,
+      threshold = threshold,
+      n_sim = n_sim,
+      prob = prob,
+      population = population
     )
     flo <- drm_functional_target(
       engines,
@@ -662,10 +759,11 @@ drm_functional_contrast <- function(
       active,
       mediation,
       beta_list,
-      target,
-      threshold,
-      n_sim,
-      prob
+      target = target,
+      threshold = threshold,
+      n_sim = n_sim,
+      prob = prob,
+      population = population
     )
     vals[[b]] <- fhi - flo
   }
@@ -792,4 +890,69 @@ drm_functional_contrast_analytic <- function(
     vals[[b]] <- fhi - flo
   }
   vals
+}
+
+#' Resample data with simple or cluster/block-aware case resampling (OQ-10)
+#' @keywords internal
+#' @noRd
+drm_resample_data <- function(object) {
+  data <- as.data.frame(object$data)
+  g_vars <- drm_sem_grouping_vars(object)
+  g_vars <- intersect(g_vars, names(data))
+  if (length(g_vars) == 0L) {
+    idx <- sample(nrow(data), nrow(data), replace = TRUE)
+    out <- data[idx, , drop = FALSE]
+    rownames(out) <- NULL
+    return(out)
+  }
+  g <- g_vars[[1L]]
+  unique_g <- unique(data[[g]])
+  n_clust <- length(unique_g)
+  sampled_g <- sample(unique_g, n_clust, replace = TRUE)
+  boot_list <- vector("list", n_clust)
+  for (i in seq_along(sampled_g)) {
+    orig_id <- sampled_g[[i]]
+    sub <- data[data[[g]] == orig_id, , drop = FALSE]
+    sub[[g]] <- factor(paste0("c_", i))
+    boot_list[[i]] <- sub
+  }
+  out <- do.call(rbind, boot_list)
+  rownames(out) <- NULL
+  out
+}
+
+#' Refit all models in a drm_sem on a bootstrap resample (OQ-10)
+#' @keywords internal
+#' @noRd
+drm_bootstrap_refit_sem <- function(object, boot_data, env = object$fit_env) {
+  drm_require_drmTMB()
+  new_fits <- list()
+  for (nm in names(object$nodes)) {
+    fit_orig <- object$nodes[[nm]]
+    form <- drm_fit_formula(fit_orig)
+    fam <- drm_fit_family(fit_orig)
+    call_args <- list(
+      form,
+      family = fam,
+      data = boot_data,
+      control = drmTMB::drm_control(se = FALSE)
+    )
+    new_fit <- tryCatch(
+      do.call(
+        drmTMB::drmTMB,
+        call_args,
+        envir = if (is.environment(env)) env else parent.frame()
+      ),
+      error = function(e) NULL
+    )
+    if (is.null(new_fit)) {
+      return(NULL)
+    }
+    new_fits[[nm]] <- new_fit
+  }
+  new_obj <- object
+  new_obj$nodes <- new_fits
+  new_obj$records <- drm_build_node_records(new_fits)
+  new_obj$data <- boot_data
+  new_obj
 }

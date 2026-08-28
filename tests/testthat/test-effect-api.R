@@ -24,16 +24,15 @@ test_that("drm_effect_controls maps the unified surface onto engine knobs", {
   )
 })
 
-test_that("not-yet-implemented choices abort with an OQ pointer", {
-  expect_error(
-    drmSEM:::drm_effect_controls(uncertainty = "bootstrap"),
-    "OQ-10"
-  )
-  expect_error(
-    drmSEM:::drm_effect_controls(population = "marginal"),
-    "OQ-9"
-  )
-  # conditional is the supported population and must not error
+test_that("implemented choices parse cleanly in drm_effect_controls", {
+  res_boot <- drmSEM:::drm_effect_controls(uncertainty = "bootstrap")
+  expect_identical(res_boot$uncertainty, "bootstrap")
+  expect_false(res_boot$draw)
+
+  res_marg <- drmSEM:::drm_effect_controls(population = "marginal")
+  expect_identical(res_marg$population, "marginal")
+
+  # conditional is the default population and must not error
   expect_silent(drmSEM:::drm_effect_controls(population = "conditional"))
 })
 
@@ -162,7 +161,7 @@ test_that("direct_effects exposes outcome functionals (target=) like total_effec
   expect_true(is.finite(de$estimate))
 })
 
-test_that("uncertainty='bootstrap' and population='marginal' abort before fitting work", {
+test_that("uncertainty='bootstrap' and population='marginal' execute without error", {
   skip_if_not_installed("drmTMB")
   set.seed(3)
   dat <- data.frame(x = stats::rnorm(50), y = stats::rnorm(50))
@@ -170,6 +169,12 @@ test_that("uncertainty='bootstrap' and population='marginal' abort before fittin
     y = drm_node(drmTMB::bf(y ~ x), family = stats::gaussian()),
     data = dat
   )
-  expect_error(total_effects(sem, "x", "y", uncertainty = "bootstrap"), "OQ-10")
-  expect_error(direct_effects(sem, "x", "y", population = "marginal"), "OQ-9")
+  te_boot <- total_effects(sem, "x", "y", uncertainty = "bootstrap", B = 10L)
+  expect_s3_class(te_boot, "drm_effect")
+  expect_true(is.finite(te_boot$estimate))
+  expect_true(is.finite(te_boot$std.error))
+
+  de_marg <- direct_effects(sem, "x", "y", population = "marginal", uncertainty = "none")
+  expect_s3_class(de_marg, "drm_effect")
+  expect_true(is.finite(de_marg$estimate))
 })
