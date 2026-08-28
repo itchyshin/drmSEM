@@ -12,6 +12,7 @@ direct_effects(
   target = c("mean", "p_gt", "p_zero", "var", "quantile"),
   threshold = 0,
   prob = 0.5,
+  quantile_prob = NULL,
   functional = c("simulate", "analytic"),
   at = NULL,
   B = 200L,
@@ -45,12 +46,16 @@ leaving the mean nearly unchanged.}
 
 \item{prob}{Probability for \code{target = "quantile"} (default \code{0.5}, the median).}
 
+\item{quantile_prob}{Alias for \code{prob} for specifying quantile probabilities
+(e.g., \code{0.5}, \code{0.9}, \code{0.95}).}
+
 \item{functional}{How a non-mean \code{target} is evaluated: \code{"simulate"} (default;
 draw the outcome from its family and summarize) or \code{"analytic"} (a
 closed-form functional of the predicted parameters — no Monte-Carlo noise).
-Analytic forms are offered for the gaussian and poisson families (others
-abort with a pointer to \code{"simulate"}), and require mean mediation
-(\code{method = "gcomp"}) so the outcome parameters are deterministic.}
+Analytic forms are offered for gaussian, poisson, lognormal, Gamma, nbinom2,
+beta, and student families (others abort with a pointer to \code{"simulate"}),
+and require mean mediation (\code{method = "gcomp"}) so the outcome parameters are
+deterministic.}
 
 \item{at}{Optional length-2 contrast values for \code{from}.}
 

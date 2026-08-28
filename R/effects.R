@@ -276,7 +276,7 @@ drm_analytic_or_abort <- function(
     fam <- engines[[to]]$family
     cli::cli_abort(c(
       "No closed-form {.val {target}} functional for the {.val {fam}} family.",
-      "i" = "Analytic functionals are offered for gaussian and poisson; use {.code functional = \"simulate\"} otherwise."
+      "i" = "Analytic functionals are offered for gaussian, poisson, lognormal, Gamma, nbinom2, beta, and student; use {.code functional = \"simulate\"} otherwise."
     ))
   }
   vals
@@ -303,12 +303,15 @@ drm_analytic_or_abort <- function(
 #'   leaving the mean nearly unchanged.
 #' @param threshold Cutoff for `target = "p_gt"`.
 #' @param prob Probability for `target = "quantile"` (default `0.5`, the median).
+#' @param quantile_prob Alias for `prob` for specifying quantile probabilities
+#'   (e.g., `0.5`, `0.9`, `0.95`).
 #' @param functional How a non-mean `target` is evaluated: `"simulate"` (default;
 #'   draw the outcome from its family and summarize) or `"analytic"` (a
 #'   closed-form functional of the predicted parameters — no Monte-Carlo noise).
-#'   Analytic forms are offered for the gaussian and poisson families (others
-#'   abort with a pointer to `"simulate"`), and require mean mediation
-#'   (`method = "gcomp"`) so the outcome parameters are deterministic.
+#'   Analytic forms are offered for gaussian, poisson, lognormal, Gamma, nbinom2,
+#'   beta, and student families (others abort with a pointer to `"simulate"`),
+#'   and require mean mediation (`method = "gcomp"`) so the outcome parameters are
+#'   deterministic.
 #' @param at Optional length-2 contrast values for `from`.
 #' @param B Number of uncertainty replicates (coefficient draws) used when
 #'   `uncertainty = "parametric"`.
@@ -361,6 +364,7 @@ direct_effects <- function(
   target = c("mean", "p_gt", "p_zero", "var", "quantile"),
   threshold = 0,
   prob = 0.5,
+  quantile_prob = NULL,
   functional = c("simulate", "analytic"),
   at = NULL,
   B = 200L,
@@ -375,6 +379,9 @@ direct_effects <- function(
 ) {
   target <- match.arg(target)
   functional <- match.arg(functional)
+  if (!is.null(quantile_prob)) {
+    prob <- quantile_prob
+  }
   drm_validate_effect_args(object, from, to)
   ctl <- drm_effect_controls(
     uncertainty,
@@ -483,6 +490,9 @@ direct_effects <- function(
 #'   equilibrium response) is defined.
 #' @param threshold Cutoff for `target = "p_gt"`.
 #' @param prob Probability for `target = "quantile"` (default `0.5`, the median).
+#' @param quantile_prob Alias for `prob` for specifying quantile probabilities.
+#' @param functional How a non-mean `target` is evaluated: `"simulate"` (default)
+#'   or `"analytic"` (closed-form evaluation for supported families).
 #' @param mediation Deprecated alias for `method` (`"mean"` maps to `"gcomp"`,
 #'   `"distribution"` to `"simulate"`); supplying it emits a deprecation warning.
 #' @return A one-row `drm_effect` data frame. See [direct_effects()] for the
@@ -516,6 +526,7 @@ total_effects <- function(
   target = c("mean", "p_gt", "p_zero", "var", "quantile"),
   threshold = 0,
   prob = 0.5,
+  quantile_prob = NULL,
   functional = c("simulate", "analytic"),
   at = NULL,
   B = 200L,
@@ -531,6 +542,9 @@ total_effects <- function(
 ) {
   target <- match.arg(target)
   functional <- match.arg(functional)
+  if (!is.null(quantile_prob)) {
+    prob <- quantile_prob
+  }
   mediation_resolved <- drm_resolve_mediation(method, mediation)
   drm_validate_effect_args(object, from, to)
   ctl <- drm_effect_controls(
@@ -691,6 +705,14 @@ simulate_effects <- total_effects
 #'   direct/indirect effects (Pearl/Imai), holding the mediators at their
 #'   predicted `M(x0)` / `M(x1)` distributions; see
 #'   `docs/design/02-effect-calculus.md`.
+#' @param target Functional of the outcome distribution to report the effect on:
+#'   `"mean"` (default), `"p_gt"` (Pr(Y > `threshold`)), `"p_zero"` (Pr(Y = 0)),
+#'   `"var"` (Var(Y)), or `"quantile"` (the `prob`-quantile).
+#' @param threshold Cutoff for `target = "p_gt"`.
+#' @param prob Probability for `target = "quantile"` (default `0.5`, the median).
+#' @param quantile_prob Alias for `prob` for specifying quantile probabilities.
+#' @param functional How a non-mean `target` is evaluated: `"simulate"` (default)
+#'   or `"analytic"` (closed-form evaluation for supported families).
 #' @details
 #' `indirect_effects()` does not take a `method` argument: the controlled
 #' decomposition is formed from *both* the mean-mediated and
@@ -699,13 +721,15 @@ simulate_effects <- total_effects
 #' make. The shared `uncertainty`, `nsim`, and `population` controls apply as
 #' elsewhere.
 #'
-#' A non-mean `target` (OQ-11) is supported for `effect = "controlled"`: every
-#' leg then reports the contrast on that functional of the outcome (e.g. the
-#' indirect change in `Pr(Y = 0)` or a tail quantile routed through the
-#' mediators), and the mean-/distribution-mediated split still closes
-#' (`indirect = mean_mediated + distribution_mediated`). `effect = "natural"`
-#' supports only `target = "mean"` (the cross-world functional contrast is open,
-#' OQ-8/OQ-11).
+#' Outcome functionals (OQ-11) are supported for both `effect = "controlled"`
+#' and `effect = "natural"`. For `effect = "controlled"`, every leg reports the
+#' contrast on that functional of the outcome (e.g. the indirect change in
+#' `Pr(Y > t)` or a tail quantile routed through the mediators), and the
+#' mean-/distribution-mediated split closes
+#' (`indirect = mean_mediated + distribution_mediated`). For `effect = "natural"`,
+#' the cross-world counterfactuals evaluate the outcome functional under
+#' `Y(x, M(x'))`, decomposing into `natural_direct`, `natural_indirect`, and
+#' `mediated_interaction`.
 #' @return A `drm_effect` data frame. For `effect = "controlled"`, rows
 #'   `total_path`, `direct`, `indirect`, `mean_mediated`, `distribution_mediated`
 #'   and a `target` column naming the reported functional. For
@@ -749,6 +773,8 @@ indirect_effects <- function(
   target = c("mean", "p_gt", "p_zero", "var", "quantile"),
   threshold = 0,
   prob = 0.5,
+  quantile_prob = NULL,
+  functional = c("simulate", "analytic"),
   at = NULL,
   B = 200L,
   uncertainty = NULL,
@@ -762,18 +788,12 @@ indirect_effects <- function(
 ) {
   effect <- match.arg(effect)
   target <- match.arg(target)
+  functional <- match.arg(functional)
+  if (!is.null(quantile_prob)) {
+    prob <- quantile_prob
+  }
   drm_validate_effect_args(object, from, to)
   drm_block_feedback_decomp(object, "indirect_effects")
-  # Natural (cross-world) effects are mean-only here: the cross-world functional
-  # contrast under arbitrary links is open (OQ-8/OQ-11). Outcome functionals ride
-  # the controlled decomposition.
-  if (identical(effect, "natural") && !identical(target, "mean")) {
-    cli::cli_abort(c(
-      "Outcome functionals are only implemented for the controlled decomposition.",
-      "x" = "{.code effect = \"natural\"} supports only {.code target = \"mean\"}.",
-      "i" = "Use {.code effect = \"controlled\"} for a non-mean {.arg target}; cross-world functionals are open (OQ-8/OQ-11)."
-    ))
-  }
   ctl <- drm_effect_controls(
     uncertainty,
     nsim,
@@ -797,13 +817,13 @@ indirect_effects <- function(
     mat <- matrix(
       NA_real_,
       reps,
-      3L,
-      dimnames = list(NULL, c("nde", "nie", "total"))
+      4L,
+      dimnames = list(NULL, c("nde", "nie", "total", "mediated_interaction"))
     )
     for (bi in seq_len(reps)) {
       beta_list <- lapply(engines, drm_draw_beta, draw = ctl$draw)
       names(beta_list) <- names(engines)
-      mat[bi, ] <- drm_natural_target(
+      res_nat <- drm_natural_target(
         engines,
         scen,
         scen$column,
@@ -811,8 +831,16 @@ indirect_effects <- function(
         active,
         "distribution",
         beta_list,
-        ctl$n_sim
+        ctl$n_sim,
+        target = target,
+        threshold = threshold,
+        prob = prob,
+        functional = functional
       )
+      mat[bi, "nde"] <- res_nat[["nde"]]
+      mat[bi, "nie"] <- res_nat[["nie"]]
+      mat[bi, "total"] <- res_nat[["total"]]
+      mat[bi, "mediated_interaction"] <- res_nat[["mediated_interaction"]]
     }
     rows <- rbind(
       cbind(
@@ -829,7 +857,7 @@ indirect_effects <- function(
       ),
       cbind(
         data.frame(quantity = "mediated_interaction"),
-        drm_summ(mat[, "total"] - mat[, "nde"] - mat[, "nie"], level)
+        drm_summ(mat[, "mediated_interaction"], level)
       )
     )
     out <- cbind(
@@ -837,6 +865,7 @@ indirect_effects <- function(
         from = from,
         to = to,
         through = paste(active, collapse = ", "),
+        target = target,
         stringsAsFactors = FALSE
       ),
       rows

@@ -13,6 +13,8 @@ indirect_effects(
   target = c("mean", "p_gt", "p_zero", "var", "quantile"),
   threshold = 0,
   prob = 0.5,
+  quantile_prob = NULL,
+  functional = c("simulate", "analytic"),
   at = NULL,
   B = 200L,
   uncertainty = NULL,
@@ -44,14 +46,16 @@ predicted \code{M(x0)} / \code{M(x1)} distributions; see
 
 \item{target}{Functional of the outcome distribution to report the effect on:
 \code{"mean"} (default), \code{"p_gt"} (Pr(Y > \code{threshold})), \code{"p_zero"} (Pr(Y = 0)),
-\code{"var"} (Var(Y)), or \code{"quantile"} (the \code{prob}-quantile). Distributional
-targets simulate the outcome from its family (OQ-11); see
-\code{docs/design/02-effect-calculus.md}. For a feedback SEM only \code{"mean"} (the
-equilibrium response) is defined.}
+\code{"var"} (Var(Y)), or \code{"quantile"} (the \code{prob}-quantile).}
 
 \item{threshold}{Cutoff for \code{target = "p_gt"}.}
 
 \item{prob}{Probability for \code{target = "quantile"} (default \code{0.5}, the median).}
+
+\item{quantile_prob}{Alias for \code{prob} for specifying quantile probabilities.}
+
+\item{functional}{How a non-mean \code{target} is evaluated: \code{"simulate"} (default)
+or \code{"analytic"} (closed-form evaluation for supported families).}
 
 \item{at}{Optional length-2 contrast values for \code{from}.}
 
@@ -117,13 +121,15 @@ distribution mediation, so neither has a single mean/distribution choice to
 make. The shared \code{uncertainty}, \code{nsim}, and \code{population} controls apply as
 elsewhere.
 
-A non-mean \code{target} (OQ-11) is supported for \code{effect = "controlled"}: every
-leg then reports the contrast on that functional of the outcome (e.g. the
-indirect change in \code{Pr(Y = 0)} or a tail quantile routed through the
-mediators), and the mean-/distribution-mediated split still closes
-(\code{indirect = mean_mediated + distribution_mediated}). \code{effect = "natural"}
-supports only \code{target = "mean"} (the cross-world functional contrast is open,
-OQ-8/OQ-11).
+Outcome functionals (OQ-11) are supported for both \code{effect = "controlled"}
+and \code{effect = "natural"}. For \code{effect = "controlled"}, every leg reports the
+contrast on that functional of the outcome (e.g. the indirect change in
+\code{Pr(Y > t)} or a tail quantile routed through the mediators), and the
+mean-/distribution-mediated split closes
+(\code{indirect = mean_mediated + distribution_mediated}). For \code{effect = "natural"},
+the cross-world counterfactuals evaluate the outcome functional under
+\verb{Y(x, M(x'))}, decomposing into \code{natural_direct}, \code{natural_indirect}, and
+\code{mediated_interaction}.
 }
 \examples{
 \dontrun{

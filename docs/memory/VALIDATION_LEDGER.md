@@ -1534,3 +1534,33 @@ contraction ratio diagnostics, and equilibrium total effects (`total_effects(med
 **Not claimed.** Consistent estimation of feedback systems under simultaneity
 (requires engine IV/2SLS or joint likelihood; `drm_sem` warns). Full sigma-separation.
 Capability-status `"partial"`.
+
+## 2026-08-28 — Track 1: Outcome Functionals & Non-Gaussian Tail Exceedance / Quantile Effects (V-139 .. V-141, OQ-11)
+
+Non-Gaussian functional simulation and closed-form analytics (`R/simulate_effects.R`, `R/effects.R`),
+cross-world natural mediation decompositions on functionals (`drm_natural_target`), path-specific
+dispersion pathway attribution (`path_effects`), and `quantile_prob` argument across all effect functions.
+
+- **V-139.** Exact recovery of analytic vs simulated lognormal, Gamma, nbinom2, and beta tail
+  exceedance probabilities (\(\Pr(Y > \text{threshold})\)) and lognormal variance contrasts:
+  `drm_functional_contrast_analytic` recovers closed-form theoretical contrasts to machine precision
+  (\(\le 10^{-10}\)) and matches Monte Carlo simulation within sampling tolerance. **Validated.**
+- **V-140.** Quantile effect recovery against known DGP data: median (0.5), upper tail (0.9, 0.95)
+  quantile effects (\(Q_\tau(Y)\)) for lognormal and Gamma families recover exact theoretical
+  quantile shifts analytically and align with simulated draws across varying \(\tau\). **Validated.**
+- **V-141.** Decomposition of tail risk into mean vs dispersion pathways:
+  (1) Cross-world natural mediation on tail exceedance risk \(\Pr(Y > t)\) decomposes exactly into
+  `total = natural_direct + natural_indirect + mediated_interaction`;
+  (2) Path-specific component attribution (`path_effects(..., by = "component")`) isolates the
+  mediator's `mean_channel` and `sigma_channel` contributions to tail risk exceedance, and shows
+  `sigma_channel` drops to 0 when mediator dispersion is constant;
+  (3) Live fitted SEM integration test with `indirect_effects(effect = "controlled")`,
+  `indirect_effects(effect = "natural")`, `path_effects(by = "component")`, `direct_effects()`,
+  and `total_effects()` on non-Gaussian response nodes. **Validated.**
+
+`tests/testthat/test-functionals.R` against drmTMB 0.7.0: **45 pass / 0 fail / 0 skip / 0 warn**.
+
+**Not claimed.** Multi-quantile simultaneous vector output per single call (batching).
+Bootstrap intervals for functional effects (OQ-10).
+Capability-status `"covered"`.
+

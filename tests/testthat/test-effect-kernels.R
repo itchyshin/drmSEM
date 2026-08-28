@@ -393,8 +393,9 @@ test_that("V-76: analytic outcome functionals match closed forms", {
     drmSEM:::drm_analytic_functional("poisson", p, "quantile", prob = 0.9),
     stats::qpois(0.9, c(0.5, 2))
   )
-  # families with the unconfirmed sigma<->dispersion scale return NULL (fall back)
-  expect_null(drmSEM:::drm_analytic_functional("nbinom2", g, "p_zero"))
+  # supported families compute closed-form, unknown family returns NULL
+  expect_equal(length(drmSEM:::drm_analytic_functional("nbinom2", g, "p_zero")), 2L)
+  expect_null(drmSEM:::drm_analytic_functional("unknown_fam", g, "p_zero"))
   expect_null(drmSEM:::drm_analytic_functional("gaussian", g, "nonsense"))
 })
 
@@ -435,7 +436,7 @@ test_that("V-76: analytic functional contrast is exact (no MC noise)", {
   )
   expect_equal(unname(v), exp(-mu_hi) - exp(-mu_lo)) # exact
   # unsupported family returns NULL so the caller can abort/fall back
-  engines$Y$family <- "beta"
+  engines$Y$family <- "unknown_fam"
   expect_null(drmSEM:::drm_functional_contrast_analytic(
     engines,
     scen,

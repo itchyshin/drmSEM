@@ -499,7 +499,7 @@ drm_expected_target <- function(
 # in `active` at their counterfactual M(x0) / M(x1) values (Pearl/Imai NDE/NIE).
 # Unlike the controlled split, the mediator is set to its predicted distribution
 # under each exposure level, not to its observed values. Returns one parameter
-# draw as c(nde, nie, total). See docs/design/02-effect-calculus.md (OQ-8).
+# draw as c(nde, nie, total, mediated_interaction). See docs/design/02-effect-calculus.md (OQ-8).
 drm_natural_target <- function(
   engines,
   scenarios,
@@ -508,7 +508,11 @@ drm_natural_target <- function(
   active,
   mediation = "distribution",
   beta_list = NULL,
-  n_sim = 1L
+  n_sim = 1L,
+  target = "mean",
+  threshold = 0,
+  prob = 0.5,
+  functional = "simulate"
 ) {
   one <- function() {
     # mediator worlds: propagate the exposure contrast through the mediators
@@ -527,20 +531,53 @@ drm_natural_target <- function(
       beta_list
     )$work
     eng_to <- engines[[to]]
-    # predict the outcome's response-scale mean with the DIRECT exposure set to
+    eff_family <- drm_effective_family(eng_to$family, eng_to$model_type %||% NA_character_)
+
+    # predict the outcome's response-scale functional with the DIRECT exposure set to
     # `from_src` while the mediators stay at their (already-fixed) world values.
-    pmu <- function(work, from_src) {
+    pfn <- function(work, from_src) {
       work[[from_col]] <- from_src[[from_col]]
-      mean(eng_to$predict(work, beta = beta_list[[to]])$mu, na.rm = TRUE)
+      if (identical(target, "mean")) {
+        preds <- eng_to$predict(work, beta = beta_list[[to]])
+        mean(drm_family_expected_mean(eff_family, preds), na.rm = TRUE)
+      } else if (identical(functional, "analytic")) {
+        preds <- eng_to$predict(work, beta = beta_list[[to]])
+        fv <- drm_analytic_functional(eng_to$family, preds, target = target, threshold = threshold, prob = prob)
+        if (!is.null(fv)) {
+          mean(fv, na.rm = TRUE)
+        } else {
+          reps <- max(as.integer(n_sim), 1L)
+          acc <- 0
+          for (s in seq_len(reps)) {
+            y <- drm_sample_family(eff_family, preds, n = nrow(work))
+            acc <- acc + drm_outcome_functional(y, target, threshold, prob)
+          }
+          acc / reps
+        }
+      } else {
+        reps <- max(as.integer(n_sim), 1L)
+        acc <- 0
+        preds <- eng_to$predict(work, beta = beta_list[[to]])
+        for (s in seq_len(reps)) {
+          y <- drm_sample_family(eff_family, preds, n = nrow(work))
+          acc <- acc + drm_outcome_functional(y, target, threshold, prob)
+        }
+        acc / reps
+      }
     }
-    y00 <- pmu(work0, scenarios$lo) # Y(x0, M(x0))
-    y10 <- pmu(work0, scenarios$hi) # Y(x1, M(x0))
-    y01 <- pmu(work1, scenarios$lo) # Y(x0, M(x1))
-    y11 <- pmu(work1, scenarios$hi) # Y(x1, M(x1))
-    c(nde = y10 - y00, nie = y01 - y00, total = y11 - y00)
+    y00 <- pfn(work0, scenarios$lo) # Y(x0, M(x0))
+    y10 <- pfn(work0, scenarios$hi) # Y(x1, M(x0))
+    y01 <- pfn(work1, scenarios$lo) # Y(x0, M(x1))
+    y11 <- pfn(work1, scenarios$hi) # Y(x1, M(x1))
+    c(
+      nde = y10 - y00,
+      nie = y01 - y00,
+      total = y11 - y00,
+      mediated_interaction = y11 - y10 - y01 + y00
+    )
   }
-  if (identical(mediation, "distribution") && n_sim > 1L) {
-    acc <- c(nde = 0, nie = 0, total = 0)
+  if (identical(mediation, "distribution") && n_sim > 1L && identical(target, "mean")) {
+    acc <- c(nde = 0, nie = 0, total = 0, mediated_interaction = 0)
     for (s in seq_len(n_sim)) {
       acc <- acc + one()
     }
@@ -675,11 +712,8 @@ drm_functional_contrast <- function(
 # Closed-form (analytic) outcome functional per row, for the families where the
 # functional is unambiguous given the predicted parameters -- no Monte-Carlo
 # simulation, so no sampling noise (OQ-11). Returns a per-row numeric vector, or
-# NULL when no closed form is offered for this (family, target). Deliberately
-# limited to gaussian and poisson: families whose response-scale `sigma` maps to a
-# dispersion (nbinom2/Gamma/beta) share the unconfirmed sigma<->dispersion scale
-# (OQ-1), so their closed forms are withheld until that is settled -- callers fall
-# back to simulation there.
+# NULL when no closed form is offered for this (family, target).
+# Supported families: gaussian, poisson, lognormal, Gamma, nbinom2, beta, student.
 drm_analytic_functional <- function(
   family,
   params,
@@ -688,25 +722,134 @@ drm_analytic_functional <- function(
   prob = 0.5
 ) {
   mu <- params$mu
-  sigma <- if (!is.null(params$sigma)) params$sigma else rep(1, length(mu))
+  n <- length(mu)
+  sigma <- if (!is.null(params$sigma)) params$sigma else rep(1, n)
+  zi <- if (!is.null(params$zi)) params$zi else rep(0, n)
+
   if (identical(family, "gaussian")) {
     switch(
       target,
       mean = mu,
       var = sigma^2,
       p_gt = stats::pnorm(threshold, mean = mu, sd = sigma, lower.tail = FALSE),
-      p_zero = rep(0, length(mu)), # continuous: Pr(Y = 0) = 0
+      p_zero = rep(0, n), # continuous: Pr(Y = 0) = 0
       quantile = stats::qnorm(prob, mean = mu, sd = sigma),
       NULL
     )
   } else if (identical(family, "poisson")) {
     switch(
       target,
-      mean = mu,
-      var = mu,
-      p_gt = stats::ppois(threshold, lambda = mu, lower.tail = FALSE),
-      p_zero = stats::dpois(0, lambda = mu),
-      quantile = stats::qpois(prob, lambda = mu),
+      mean = (1 - zi) * mu,
+      var = (1 - zi) * mu + zi * (1 - zi) * mu^2,
+      p_gt = ifelse(
+        threshold < 0,
+        1,
+        (1 - zi) * stats::ppois(floor(threshold), lambda = pmax(mu, 0), lower.tail = FALSE)
+      ),
+      p_zero = zi + (1 - zi) * stats::dpois(0, lambda = pmax(mu, 0)),
+      quantile = ifelse(
+        prob <= zi,
+        0,
+        stats::qpois(pmax(0, (prob - zi) / pmax(1 - zi, 1e-12)), lambda = pmax(mu, 0))
+      ),
+      NULL
+    )
+  } else if (identical(family, "lognormal")) {
+    # mu is meanlog, sigma is sdlog
+    switch(
+      target,
+      mean = (1 - zi) * exp(mu + 0.5 * sigma^2),
+      var = (1 - zi) * exp(2 * mu + 2 * sigma^2) - ((1 - zi) * exp(mu + 0.5 * sigma^2))^2,
+      p_gt = ifelse(
+        threshold <= 0,
+        1 - zi,
+        (1 - zi) * stats::plnorm(threshold, meanlog = mu, sdlog = pmax(sigma, 1e-8), lower.tail = FALSE)
+      ),
+      p_zero = zi,
+      quantile = ifelse(
+        prob <= zi,
+        0,
+        stats::qlnorm(pmax(0, (prob - zi) / pmax(1 - zi, 1e-12)), meanlog = mu, sdlog = pmax(sigma, 1e-8))
+      ),
+      NULL
+    )
+  } else if (identical(family, "Gamma") || identical(family, "gamma")) {
+    # Gamma in drmTMB: shape = 1/sigma^2, rate = 1/(sigma^2 * mu)
+    sig2 <- pmax(sigma^2, 1e-8)
+    mu_pos <- pmax(mu, 1e-8)
+    shape_val <- 1 / sig2
+    rate_val <- 1 / (sig2 * mu_pos)
+    switch(
+      target,
+      mean = (1 - zi) * mu_pos,
+      var = (1 - zi) * mu_pos^2 * (sig2 + zi),
+      p_gt = ifelse(
+        threshold <= 0,
+        1 - zi,
+        (1 - zi) * stats::pgamma(threshold, shape = shape_val, rate = rate_val, lower.tail = FALSE)
+      ),
+      p_zero = zi,
+      quantile = ifelse(
+        prob <= zi,
+        0,
+        stats::qgamma(pmax(0, (prob - zi) / pmax(1 - zi, 1e-12)), shape = shape_val, rate = rate_val)
+      ),
+      NULL
+    )
+  } else if (identical(family, "nbinom2")) {
+    # nbinom2 in drmTMB: size = 1/sigma^2
+    size_val <- pmax(1 / pmax(sigma, 1e-8)^2, 1e-8)
+    mu_pos <- pmax(mu, 0)
+    switch(
+      target,
+      mean = (1 - zi) * mu_pos,
+      var = (1 - zi) * (mu_pos + mu_pos^2 * (pmax(sigma, 1e-8)^2 + zi)),
+      p_gt = ifelse(
+        threshold < 0,
+        1,
+        (1 - zi) * stats::pnbinom(floor(threshold), size = size_val, mu = mu_pos, lower.tail = FALSE)
+      ),
+      p_zero = zi + (1 - zi) * stats::dnbinom(0, size = size_val, mu = mu_pos),
+      quantile = ifelse(
+        prob <= zi,
+        0,
+        stats::qnbinom(pmax(0, (prob - zi) / pmax(1 - zi, 1e-12)), size = size_val, mu = mu_pos)
+      ),
+      NULL
+    )
+  } else if (identical(family, "beta")) {
+    # beta in drmTMB: phi = 1/sigma^2, shape1 = mu*phi, shape2 = (1-mu)*phi
+    phi <- 1 / pmax(sigma, 1e-3)^2
+    mu_clamped <- pmin(pmax(mu, 1e-6), 1 - 1e-6)
+    sh1 <- pmax(mu_clamped * phi, 1e-6)
+    sh2 <- pmax((1 - mu_clamped) * phi, 1e-6)
+    switch(
+      target,
+      mean = mu_clamped,
+      var = mu_clamped * (1 - mu_clamped) / (1 + phi),
+      p_gt = ifelse(
+        threshold <= 0,
+        1,
+        ifelse(
+          threshold >= 1,
+          0,
+          stats::pbeta(threshold, shape1 = sh1, shape2 = sh2, lower.tail = FALSE)
+        )
+      ),
+      p_zero = rep(0, n),
+      quantile = stats::qbeta(prob, shape1 = sh1, shape2 = sh2),
+      NULL
+    )
+  } else if (identical(family, "student")) {
+    nu_val <- pmax(params$nu %||% rep(5, n), 2.1)
+    sig_pos <- pmax(sigma, 1e-8)
+    switch(
+      target,
+      mean = ifelse(nu_val > 1, mu, NA_real_),
+      var = ifelse(nu_val > 2, sig_pos^2 * nu_val / (nu_val - 2), NA_real_),
+      p_gt = stats::pt((threshold - mu) / sig_pos, df = nu_val, lower.tail = FALSE),
+      p_zero = rep(0, n),
+      quantile = mu + sig_pos * stats::qt(prob, df = nu_val),
       NULL
     )
   } else {

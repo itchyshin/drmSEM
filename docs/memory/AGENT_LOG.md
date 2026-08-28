@@ -2136,4 +2136,24 @@ covariance. Mixed-family pairs (abort).
   - Added test suite with V-130 .. V-134 (70 assertions passing).
   - Full local test suite passes cleanly: **1213 pass / 0 fail / 5 skip / 10 warn**.
 
+## 2026-08-28 — Track 1: Outcome Functionals & Non-Gaussian Tail Exceedance / Quantile Effects (V-139 .. V-141, OQ-11)
+
+**Cursor / Ada (orchestrator-integrator)** on `cursor/lane-quad-t1-functionals` at `/Users/z3437171/local-scratch/lanes/drmSEM-quad-t1`.
+
+**What shipped.**
+- Non-Gaussian Functional Simulation and Closed-Form Analytics (`R/simulate_effects.R`, `R/effects.R`):
+  - Extended `drm_analytic_functional()` to compute exact closed-form `mean`, `var`, `p_gt`, `p_zero`, and `quantile` functionals for `lognormal`, `Gamma`, `nbinom2`, `beta`, and `student` families (in addition to `gaussian` and `poisson`), with explicit zero-inflation (`zi`) handling.
+  - Added `quantile_prob` argument across `direct_effects()`, `total_effects()`, `indirect_effects()`, and `path_effects()`.
+- Cross-World Natural Mediation on Outcome Functionals (`R/simulate_effects.R`, `R/effects.R`, `R/path_effects.R`):
+  - Extended `drm_natural_target()` to evaluate cross-world mediator contrasts on any outcome functional (`p_gt`, `p_zero`, `var`, `quantile`), reporting the 4-way decomposition `total = natural_direct + natural_indirect + mediated_interaction`.
+  - Removed mean-only restriction from `indirect_effects(effect = "natural")`.
+- Path-Specific Component-Level Tail Risk Attribution (`R/path_effects.R`):
+  - Enhanced `drm_path_contrasts()`, `drm_component_contrasts()`, and `path_effects()` to route outcome functional arguments (`target`, `threshold`, `prob`/`quantile_prob`, `functional`), allowing explicit decomposition of shifts in tail risk into mediator mean vs dispersion (`sigma_channel`) pathways.
+- Tests & Validation (`tests/testthat/test-functionals.R`, `tests/testthat/test-effect-kernels.R`):
+  - Added comprehensive test suite with V-139..V-141 (45 passing assertions) covering exact analytic recovery against known DGP data, quantile shifts across probabilities, tail risk mediation decomposition, and live fitted `drm_sem` models.
+  - Full test suite passes cleanly: **1295 pass / 0 fail / 5 skip / 10 warn**.
+- Documentation & Ledgers:
+  - Updated `docs/design/02-effect-calculus.md`, `docs/design/capability-status.md`, `docs/memory/OPEN_QUESTIONS.md` (resolving OQ-11), and `docs/memory/VALIDATION_LEDGER.md`.
+
+
 
