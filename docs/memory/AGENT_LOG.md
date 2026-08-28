@@ -2178,5 +2178,26 @@ covariance. Mixed-family pairs (abort).
 - **Validation**:
   - Full test suite passes: **1249 pass / 0 fail / 5 skip / 10 warn**.
 
+## 2026-08-28 — Track 3: K >= 3 Covariance Clique Partitioning & d-Separation Suppression (V-145..V-147)
+
+**Cursor / Emmy (architecture reviewer)** on `cursor/lane-quad-t3-cliques` at `/Users/z3437171/local-scratch/lanes/drmSEM-quad-t3`.
+
+**What shipped.**
+- **Covariance Clique Graph Analysis (`R/covariances.R`, `R/pair.R`):**
+  - Implemented `covariance_cliques()` generic and S3 methods using Bron-Kerbosch maximal clique algorithm with vertex pivoting (`drm_find_covariance_cliques()`), partitioned by covariance `class` (`"residual"` vs `"higher_level"`) and grouping `level`.
+  - Added `covary_clique(responses, level, structure)` and extended `covary(c("y1", "y2", "y3"))` vector syntax to declare all $\binom{K}{2}$ pairwise combinations in one step.
+  - Added `drm_partition_covariance_blocks()` to partition covariance graphs into connected components (`"complete_clique"` vs `"structured_network"`).
+  - Extended `rho12.drm_sem()` to seamlessly report both live bivariate fitted pairs and declared covariance edges.
+- **d-Separation & Basis-Set Suppression (`R/dsep.R`):**
+  - Updated `basis_set()` and `basis_set_mag()` via `drm_covariance_clique_pairs()` to suppress all $\binom{K}{2}$ within-clique conditional independence claims for every complete covariance block (V-145).
+  - Verified external nodes and downstream descendants condition on all admissible causal parents without generating spurious within-block claims (V-146).
+- **DGP Recovery Test Suite (`tests/testthat/test-clique-covariances.R`):**
+  - Added 6 tests / 63 assertions covering V-145..V-147:
+    - V-145: 3-response covariance block basis-set suppression.
+    - V-146: d-separation test accuracy for external predictors and downstream descendants on live simulated data (Fisher's C finite and non-significant).
+    - V-147: Recovery of pairwise $\rho_{jk}$ coefficients across trivariate residual DGP ($|\tanh(\hat{\eta}) - \rho| < 0.12$).
+- **Documentation & Ledgers:**
+  - Updated `docs/design/07-bivariate-covariance-edges.md`, `docs/design/capability-status.md`, `VALIDATION_LEDGER.md`, and `AGENT_LOG.md`.
+
 
 

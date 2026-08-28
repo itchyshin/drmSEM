@@ -35,14 +35,16 @@ reference:
       - paths
       - standardize
       - plot.drm_sem
-  - title: Covariance edges (bivariate)
+  - title: Covariance edges and cliques
     desc: >
       Declare and inspect residual (rho12) and higher-level (corpair) covariance
-      edges, and declare a bivariate (joint two-response) node. The joint fit that
-      estimates rho12 is the 0.4 engine step; the grammar and accessors are pure-R.
+      edges, detect complete covariance cliques (K >= 3), and declare bivariate
+      (joint two-response) nodes.
     contents:
       - covary
+      - covary_clique
       - covariances
+      - covariance_cliques
       - drm_pair
       - drm_expand_pair
       - rho12

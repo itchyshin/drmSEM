@@ -662,8 +662,10 @@ rho12.drm_pair <- function(object, ...) {
 #' @export
 rho12.drm_sem <- function(object, ...) {
   biv <- drm_unique_bivariate_fits(object)
+  biv_rows <- list()
+  fitted_keys <- character(0)
   if (length(biv)) {
-    rows <- lapply(biv, function(fit) {
+    biv_rows <- lapply(biv, function(fit) {
       ys <- drm_biv_response_names(fit)
       coefs <- drm_fit_rho12_coef(fit)
       preds <- drm_fit_component_predictors(fit, "rho12")
@@ -689,47 +691,61 @@ rho12.drm_sem <- function(object, ...) {
         stringsAsFactors = FALSE
       )
     })
-    out <- do.call(rbind, rows)
-    rownames(out) <- NULL
-    return(structure(
-      out,
-      class = c("drm_rho12", "data.frame"),
-      note = drm_rho12_note(fitted = TRUE)
-    ))
-  }
-  cv <- object$covariances
-  if (is.null(cv) || nrow(cv) == 0L) {
-    return(structure(
-      drm_rho12_empty(),
-      class = c("drm_rho12", "data.frame"),
-      note = drm_rho12_note()
-    ))
-  }
-  res <- cv[cv$class == "residual", c("y1", "y2"), drop = FALSE]
-  edges <- object$edges
-  preds_for <- function(y1, y2) {
-    if (is.null(edges) || nrow(edges) == 0L || is.null(edges$component)) {
-      return("")
+    for (fit in biv) {
+      ys <- drm_biv_response_names(fit)
+      fitted_keys <- c(
+        fitted_keys,
+        paste(pmin(ys[[1L]], ys[[2L]]), pmax(ys[[1L]], ys[[2L]]), sep = "\r")
+      )
     }
-    hit <- edges$component == "rho12" & edges$to %in% c(y1, y2)
-    paste(unique(edges$term[hit]), collapse = " + ")
   }
-  if (nrow(res) == 0L) {
+
+  decl_rows <- list()
+  cv <- object$covariances
+  if (!is.null(cv) && nrow(cv) > 0L) {
+    res <- cv[cv$class == "residual", c("y1", "y2"), drop = FALSE]
+    edges <- object$edges
+    preds_for <- function(y1, y2) {
+      if (is.null(edges) || nrow(edges) == 0L || is.null(edges$component)) {
+        return("")
+      }
+      hit <- edges$component == "rho12" & edges$to %in% c(y1, y2)
+      paste(unique(edges$term[hit]), collapse = " + ")
+    }
+    for (i in seq_len(nrow(res))) {
+      k <- paste(
+        pmin(res$y1[[i]], res$y2[[i]]),
+        pmax(res$y1[[i]], res$y2[[i]]),
+        sep = "\r"
+      )
+      if (!k %in% fitted_keys) {
+        pr <- preds_for(res$y1[[i]], res$y2[[i]])
+        decl_rows[[length(decl_rows) + 1L]] <- drm_rho12_declared_row(
+          res$y1[[i]],
+          res$y2[[i]],
+          pr,
+          nchar(pr) == 0L
+        )
+      }
+    }
+  }
+
+  all_rows <- c(biv_rows, decl_rows)
+  if (length(all_rows) == 0L) {
     return(structure(
       drm_rho12_empty(),
       class = c("drm_rho12", "data.frame"),
       note = drm_rho12_note()
     ))
   }
-  out <- do.call(
-    rbind,
-    lapply(seq_len(nrow(res)), function(i) {
-      pr <- preds_for(res$y1[[i]], res$y2[[i]])
-      drm_rho12_declared_row(res$y1[[i]], res$y2[[i]], pr, nchar(pr) == 0L)
-    })
-  )
+  out <- do.call(rbind, all_rows)
   rownames(out) <- NULL
-  structure(out, class = c("drm_rho12", "data.frame"), note = drm_rho12_note())
+  has_fitted <- length(biv_rows) > 0L
+  structure(
+    out,
+    class = c("drm_rho12", "data.frame"),
+    note = drm_rho12_note(fitted = has_fitted)
+  )
 }
 
 #' @export

@@ -7,8 +7,9 @@
 covary(y1, y2, level = NULL, structure = "unstructured")
 }
 \arguments{
-\item{y1, y2}{Response (node) names, as strings. Matched to nodes by name or
-response variable, exactly like a predictor token.}
+\item{y1, y2}{Response (node) names, as strings. If \code{y2} is omitted and \code{y1}
+has length \eqn{\ge 2}, \code{\link[=covary]{covary()}} delegates to \code{\link[=covary_clique]{covary_clique()}} to declare
+all pairwise covariance edges.}
 
 \item{level}{\code{NULL} for a residual (\code{rho12}) edge, or a grouping name (e.g.
 \code{"id"}, \code{"species"}) for a higher-level random-effect (\code{corpair}) edge.}
@@ -17,7 +18,7 @@ response variable, exactly like a predictor token.}
 \code{"unstructured"}, \code{"phylo"}.}
 }
 \value{
-A \code{drm_covary} declaration object.
+A \code{drm_covary} declaration object (or list of them if \code{y1} is a vector).
 }
 \description{
 A covariance edge is a double-headed arc, \strong{not} a directed path: it states
@@ -29,6 +30,10 @@ These are biologically distinct and are reported separately by
 \code{\link[=covariances]{covariances()}}; neither enters \code{\link[=paths]{paths()}} or the effect decomposition.
 }
 \details{
+Passing a character vector of responses (or calling \code{\link[=covary_clique]{covary_clique()}})
+declares all pairwise covariance edges among them, forming a complete
+covariance sub-graph (clique).
+
 Pass declarations to \code{\link[=drm_sem]{drm_sem()}} / \code{\link[=drm_psem]{drm_psem()}} via their \code{covariances}
 argument. A declared covariance edge makes \code{\link[=basis_set]{basis_set()}} / \code{\link[=dsep]{dsep()}} drop the
 \verb{y1 _||_ y2 | predictors} independence claim, because the model has explicitly
@@ -39,6 +44,8 @@ allowed \code{y1} and \code{y2} to stay coupled.
 covary("activity", "boldness")
 # A higher-level random-effect (corpair) edge sharing the `id` grouping:
 covary("activity", "boldness", level = "id")
+# Declare all pairwise covariance edges in a 3-response clique:
+covary(c("activity", "boldness", "exploration"))
 }
 \references{
 \insertRef{Shipley2016}{drmSEM}
@@ -48,5 +55,5 @@ covary("activity", "boldness", level = "id")
 \insertRef{Bollen1989}{drmSEM}
 }
 \seealso{
-\code{\link[=covariances]{covariances()}}, \code{\link[=drm_sem]{drm_sem()}}.
+\code{\link[=covary_clique]{covary_clique()}}, \code{\link[=covariance_cliques]{covariance_cliques()}}, \code{\link[=covariances]{covariances()}}, \code{\link[=drm_sem]{drm_sem()}}.
 }
