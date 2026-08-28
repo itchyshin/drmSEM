@@ -14,7 +14,7 @@ Do not re-open Phase 1. Do not implement engine likelihoods.
 | A7c-3 | lognormal × Bernoulli consumer lift | done | **G-engine-ln** (#1092 / #50 `1e5d4cf`) |
 | A7c-4 | beta_binomial × Bernoulli consumer lift | done | **G-engine-bb** (#1094 / #51 `e78bb94`) |
 | sibling | nbinom2 × Gaussian consumer lift | done | **G-engine-nb2g** (#1095 `3c239a55e` / #54 `2482e27`) |
-| A7c-5 | student × Bernoulli consumer lift | doing | **G-engine-st** (#1096) |
+| A7c-5 | student × Bernoulli consumer lift | doing | **G-engine-st** (#1096 `5fdf834c1`) |
 | leftovers | zi+mi | **paused** | G0 (b) D-23; wait for engine #1097 |
 
 Status: todo / doing / done / paused / blocked / deferred.

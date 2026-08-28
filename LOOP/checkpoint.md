@@ -1,7 +1,7 @@
 # Checkpoint — OVERWRITTEN every arc
 
 GOAL: see LOOP/GOAL.md. STATE: **A7c-5 in progress.** Engine
-#1096 student × Bernoulli `has_mi`. Consumer lift on
+#1096 `5fdf834c1` student × Bernoulli `has_mi`. Consumer lift on
 `cursor/lane-s6-a7-student`. The #52 pause named leftovers;
 Shinichi then authorized student as a parallel hard case (not a
 clone). capability-status stays **`partial`**.
@@ -30,7 +30,7 @@ CELL LAST CONSUMED: **nbinom2 × Gaussian**
 (`mp-nbinom2-gaussian`). Ledger: V-126 / V-126b ↔ #1095
 `3c239a55e` / drmSEM #54 `2482e27`.
 CELL IN FLIGHT: **student × Bernoulli** (`mp-student-bernoulli`)
-↔ drmTMB #1096 / V-125 / V-125b.
+↔ drmTMB #1096 `5fdf834c1` / V-125 / V-125b.
 
 OPEN GATES:
 - **G-engine / G-engine-ln / G-engine-bb** — discharged.
@@ -40,7 +40,7 @@ TRUTH LIVES IN:
 - drmSEM this branch (A7c-5) rebased onto #54 `2482e27`
 - Pause note: `docs/memory/PLAN-ACTUAL-2026-08-27-s6-a7-pause.md`
 - Contract: `LOOP/notes/A7-consumer-contract.md`
-- Engine: drmTMB #1096
+- Engine: drmTMB #1096 `5fdf834c1`
 - MAG-completeness: **do not touch**
 
 RESUME: finish A7c-5 after #1096 merges. Never `git add -A`.

@@ -234,7 +234,7 @@ works before anything is fitted.
   numerically identical to the hand-written `mi()` +
   `impute_model()` emit, and the mediator coefficient recovers
   under outcome-dependent missingness (engine cell
-  `mp-student-bernoulli`, drmTMB #1096). Identity `mu`; `nu` is a
+  `mp-student-bernoulli`, drmTMB #1096 `5fdf834c1`). Identity `mu`; `nu` is a
   live third dpar and is not imputed. Not FIML. Not `impute_joint`.
 - **V-126.** nbinom2 × one Gaussian parent: auto-derived fit is
   numerically identical to the hand-written `mi()` +
@@ -252,7 +252,7 @@ Gamma × one Bernoulli `mi()` needs drmTMB `main` @ #1088 `6e553879`
 drmTMB `main` @ #1092 `7c104bbd5` (`mp-lognormal-bernoulli`).
 Beta-binomial × one Bernoulli `mi()` needs drmTMB #1094
 `4c34c9bb` (`mp-beta-binomial-bernoulli`). Student × one Bernoulli
-`mi()` needs drmTMB #1096 (`mp-student-bernoulli`). nbinom2 × one
+`mi()` needs drmTMB #1096 `5fdf834c1` (`mp-student-bernoulli`). nbinom2 × one
 Gaussian `mi()` needs drmTMB #1095 `3c239a55e`
 (`mp-nbinom2-gaussian`). Leftover families (tweedie, zi_*),
 nbinom2 × a non-Gaussian non-binary predictor, non-Gaussian

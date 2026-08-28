@@ -1971,7 +1971,7 @@ edit.
 5294519a stalled; this follow-up took the student lane. ZIP
 #1097 / zi-mi `LOOP/notes/` untouched.
 
-**Engine.** drmTMB #1096 (`mp-student-bernoulli`) — C++ `has_mi`
+**Engine.** drmTMB #1096 `5fdf834c1` (`mp-student-bernoulli`) — C++ `has_mi`
 for `model_type == 3` via `drm_student_log_density`. Shared 7-arg
 leaf ABI not extended. `nu` stays a live third dpar; `mi()` is
 `mu`-only. Shinichi authorized this as a parallel hard case
@@ -1988,6 +1988,10 @@ after the #52 pause (not a clone).
   `mp-student-bernoulli`.
 - capability-status stays **`partial`**. Not FIML. Not
   `impute_joint`. No `"covered"`.
+
+**Tests.** `test-imputation.R` **106 pass / 0 fail / 0 skip**
+against drmTMB #1096 `5fdf834c1` (33 tests; #54's 97 plus
+V-80g / V-125 / V-125b).
 
 **Next.** zi_* (mixture composition). nbinom2 × poisson still
 refused.

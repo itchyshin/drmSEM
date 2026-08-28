@@ -1371,6 +1371,7 @@ by the validated A7c-5 row below** once engine #1096 is on `main`.
 ## 2026-08-27 — S6 A7c-5: student × Bernoulli consumer lift
 
 A7c-5 lifts one engine cell into drmSEM. drmTMB #1096
+`5fdf834c13866f6f91b7a92f78234a4d513655f3`
 (`mp-student-bernoulli`) wired C++ `has_mi` for a student
 location-scale response with one Bernoulli `mi()`, using
 `drm_student_log_density` rather than extending the shared 7-arg
@@ -1396,8 +1397,9 @@ third dpar and is not imputed. Capability-status stays
   13, 21, 34 at n = 1500 (identity-mu DGP matching the engine
   recovery). **Validated** for this cell only.
 
-`test-imputation.R` against drmTMB #1096 (sha pending merge):
-count pending local rerun after rebase onto #54.
+`test-imputation.R` against drmTMB #1096 `5fdf834c1`:
+**106 pass / 0 fail / 0 skip** (33 tests; 97 from #54 plus
+student V-80g / V-125 / V-125b).
 
 **Not claimed.** zi_*. nbinom2 × a non-Gaussian non-binary
 predictor. Non-Gaussian `k = 2`. `k > 2`. Cross-node
