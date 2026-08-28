@@ -968,11 +968,12 @@ drm_functional_target_analytic <- function(
   beta_list,
   target,
   threshold = 0,
-  prob = 0.5
+  prob = 0.5,
+  population = "conditional"
 ) {
-  work <- drm_propagate(engines, scenario, active, mediation, beta_list)$work
+  work <- drm_propagate(engines, scenario, active, mediation, beta_list, population = population)$work
   eng_to <- engines[[to]]
-  params <- eng_to$predict(work, beta = beta_list[[to]])
+  params <- drm_eng_predict(eng_to, work, beta = beta_list[[to]], population = population)
   fv <- drm_analytic_functional(eng_to$family, params, target, threshold, prob)
   if (is.null(fv)) {
     return(NULL)
@@ -995,7 +996,8 @@ drm_functional_contrast_analytic <- function(
   prob,
   B,
   draw,
-  seed = NULL
+  seed = NULL,
+  population = "conditional"
 ) {
   if (!is.null(seed)) {
     set.seed(seed)
@@ -1014,7 +1016,8 @@ drm_functional_contrast_analytic <- function(
       beta_list,
       target,
       threshold,
-      prob
+      prob,
+      population = population
     )
     flo <- drm_functional_target_analytic(
       engines,
@@ -1025,7 +1028,8 @@ drm_functional_contrast_analytic <- function(
       beta_list,
       target,
       threshold,
-      prob
+      prob,
+      population = population
     )
     if (is.null(fhi) || is.null(flo)) {
       return(NULL)
