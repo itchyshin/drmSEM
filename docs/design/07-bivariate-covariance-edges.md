@@ -282,6 +282,42 @@ What still does **not** exist:
 
 These remaining pieces are tracked in OQ-14.
 
+## K >= 3 Covariance Cliques & d-Separation Suppression (0.4)
+
+When \eqn{K \ge 3} responses have declared pairwise residual or higher-level
+covariances (e.g. `covary("y1", "y2")`, `covary("y2", "y3")`, `covary("y1", "y3")`,
+or via `covary_clique(c("y1", "y2", "y3"))`), they form a **complete covariance
+sub-graph (clique)**.
+
+### Clique Detection and Block Partitioning
+
+1. **`covary_clique(responses, level = NULL)`** (or `covary(c("y1", "y2", "y3"))`)
+   declares all \eqn{\binom{K}{2}} pairwise covariance edges in one step.
+2. **`covariance_cliques(sem)`** (and `covariance_cliques(cov_table)`) runs
+   Bron-Kerbosch maximal clique detection partitioned by covariance `class`
+   (`"residual"` vs `"higher_level"`) and `level`. It identifies all complete
+   covariance blocks of size \eqn{K \ge 2}.
+3. **Partitioning**: connected components in the covariance graph are classified
+   as `"complete_clique"` (when all \eqn{\binom{K}{2}} pairwise edges are present)
+   or `"structured_network"` (when some edges are omitted, representing a chordal
+   or sparse correlation network). Admissible joint bivariate fitting blocks are
+   \eqn{K = 2} complete cliques (`drm_pair()`).
+
+### d-Separation Suppression Rule
+
+In `basis_set()`, all \eqn{\binom{K}{2}} within-clique conditional independence
+claims are suppressed for every pair in the complete covariance block (V-145).
+External predictors and downstream descendants are tested against the covariance
+block by conditioning on admissible causal parents without generating spurious
+within-block claims (V-146):
+
+- An external predictor \eqn{X} of \eqn{y_1} generates \eqn{X \_\| \_ y_2 \mid \text{parents}(y_2)}
+  and \eqn{X \_\| \_ y_3 \mid \text{parents}(y_3)} to test for omitted direct paths.
+- A downstream descendant \eqn{Z} with parent \eqn{y_3} generates
+  \eqn{y_1 \_\| \_ Z \mid \{y_3\}} and \eqn{y_2 \_\| \_ Z \mid \{y_3\}}.
+- Pairwise correlation coefficients \eqn{\rho_{jk}} are recovered within standard
+  error bounds across the network (V-147).
+
 ## Honest non-goals (0.x)
 
 drmSEM does **not** promise, in 0.x: a joint multivariate SEM likelihood across

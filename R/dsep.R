@@ -113,7 +113,7 @@ basis_set.drm_sem <- function(object, ...) {
   # DAG d-separation does not apply across the cycle (sigma-separation is
   # deferred; docs/design/10-cyclic-feedback.md). Keyed unordered.
   cov_pairs <- unique(c(
-    drm_covariance_pairs(object),
+    drm_covariance_clique_pairs(object),
     drm_feedback_pairs(object)
   ))
   rows <- list()
@@ -186,7 +186,7 @@ basis_set_mag <- function(object) {
     object$latents
   )
   cov_pairs <- unique(c(
-    drm_covariance_pairs(object),
+    drm_covariance_clique_pairs(object),
     drm_feedback_pairs(object)
   ))
   rows <- list()
