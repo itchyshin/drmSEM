@@ -26,7 +26,7 @@ Reports the per-node imputation models \code{\link[=drm_sem]{drm_sem()}} built f
 called with \code{impute = "auto"}. Each row is one \verb{(node, parent)} pair: the
 incomplete endogenous parent was imputed from that parent's own node model.
 A node with two incomplete Gaussian parents yields two rows. Uncertainty
-columns come from the engine's \code{\link[drmTMB:imputed]{imputed()}} table and must be read via
+columns come from the engine's \code{\link[=imputed]{imputed()}} table and must be read via
 \code{uncertainty_status}, never via \code{is.na(std_error)} — those semantics
 differ between drmTMB 0.6.0 and 0.7.0. This is not full-information
 maximum likelihood across the SEM.
@@ -42,5 +42,5 @@ imputation(sem)
 }
 }
 \seealso{
-\code{\link[=drm_sem]{drm_sem()}}, \code{\link[drmTMB:imputed]{imputed()}}, \code{\link[=check_sem]{check_sem()}}.
+\code{\link[=drm_sem]{drm_sem()}}, \code{\link[=imputed]{imputed()}}, \code{\link[=check_sem]{check_sem()}}.
 }

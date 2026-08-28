@@ -99,20 +99,20 @@ drm_effect_controls <- function(
 }
 
 # Resolve total_effects()'s mediation selector. `method` (new) supersedes the
-# deprecated `mediation`; returns the engine value "mean" / "distribution".
+# deprecated `mediation`; returns the engine value "mean" / "distribution" / "equilibrium".
 drm_resolve_mediation <- function(method = NULL, mediation = NULL) {
   if (!is.null(method)) {
-    method <- match.arg(method, c("simulate", "gcomp"))
+    method <- match.arg(method, c("simulate", "gcomp", "equilibrium"))
     if (!is.null(mediation)) {
       cli::cli_warn(
         "Both {.arg method} and the deprecated {.arg mediation} were supplied; using {.arg method}."
       )
     }
-    return(if (identical(method, "simulate")) "distribution" else "mean")
+    return(if (identical(method, "simulate")) "distribution" else if (identical(method, "equilibrium")) "equilibrium" else "mean")
   }
   if (!is.null(mediation)) {
     drm_dep_warn("mediation", "method")
-    return(match.arg(mediation, c("mean", "distribution")))
+    return(match.arg(mediation, c("mean", "distribution", "equilibrium")))
   }
   "mean"
 }

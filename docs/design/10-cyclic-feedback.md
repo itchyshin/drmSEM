@@ -103,9 +103,9 @@ and is out of scope for the pure-R lane.
 nonlinear stability proofs, and cycles of length > 2 with mixed links (supported
 in principle by the fixed-point engine, validated incrementally).
 
-## Current state (0.5.0 shipped)
+## Current state (0.5.0 shipped, Arc B Distributional Equilibria)
 
-The pure-R grammar and equilibrium engine now ship (`R/feedback.R`,
+The pure-R grammar and multi-component equilibrium engine now ship (`R/feedback.R`,
 `test-feedback.R`):
 
 - **`drm_cycle()` / `feedback =`** declaration, validated against the node
@@ -114,23 +114,25 @@ The pure-R grammar and equilibrium engine now ship (`R/feedback.R`,
 - **Relaxed toposort** (`drm_toposort_feedback()`): a declared motif is condensed
   into one layer; every *undeclared* cycle is still a hard error.
 - **`basis_set()` suppression** of independence claims among a motif's nodes.
-- **Equilibrium total effects** (0.5.x): `total_effects()` routes a feedback SEM
-  through the fixed-point propagator and reports the **equilibrium** response
-  (`mediation = "equilibrium"`, `target = "mean"` only), with non-convergence
-  surfaced as `NA` + a warning. `direct_effects()` (the controlled direct effect,
-  which does not traverse the cycle) also works. The mean/distribution
-  **decomposition** through a cycle is undefined, so `indirect_effects()` /
-  `path_effects()` refuse a feedback SEM and point to `total_effects()`.
-- **`propagate_fixedpoint()`** (internal): iterate-to-equilibrium with a
-  spectral-radius / max-iter guard and honest non-convergence; `drm_reduced_form()`
-  / `drm_spectral_radius()` give the linear `(I − B)^{-1} Gamma` estimand;
-  `drm_equilibrium_contrast()` is the per-replicate effect contrast behind
-  `total_effects()`. Closed-form tests confirm the simulated equilibrium equals
-  the reduced form (V-42) and that the equilibrium total effect equals the
-  reduced-form total effect of the exposure (V-43).
+- **Multi-component fixed-point propagation** (`propagate_fixedpoint()`):
+  simultaneously iterates across all modelled distributional components (\(\mu, \sigma, \nu, \text{zi}, \text{hu}\)),
+  applying vectorized Banach contraction iteration with adaptive relaxation to resolve
+  oscillations.
+- **Stability and contraction diagnostics**:
+  - Exact spectral radius \(\rho(B) < 1\) check for linear Gaussian systems.
+  - Empirical Lipschitz contraction ratio diagnostics for nonlinear and distributional loops (e.g. \(y_1 \to \sigma(y_2) \to y_1\) or Poisson/ZIP feedback).
+  - Honest non-convergence reporting with `converged = FALSE`, `status = "non_convergent"`, and `NA` estimates when \(\rho(B) \ge 1\) or the map fails to contract.
+- **Equilibrium total effects**: `total_effects()` routes a feedback SEM or `mediation = "equilibrium"`
+  through `drm_equilibrium_contrast()` and reports the **equilibrium** response, with convergence status
+  and diagnostics attached as attributes.
+- **Recovery & Validation**:
+  - V-42 / V-135: Exact match of linear 2-node reciprocal feedback against theoretical reduced-form \((I - B)^{-1}\Gamma\).
+  - V-43: `drm_equilibrium_contrast` recovers the reduced-form total effect of the exposure.
+  - V-73 / V-137: Nonlinear feedback equilibrium recovery with lognormal and ZIP multi-component models.
+  - V-136: Stability boundary detection (\(\rho(B) \ge 1\) flagged non-convergent).
+  - V-138: Variance-moderated feedback loop equilibrium recovery (\(y_1 \to \sigma(y_2) \to y_1\)).
 
-Remaining (next increments): full sigma-separation, distributional (not just
-mean-map) feedback equilibria, and **consistent estimation** (IV/2SLS or a joint
+Remaining (next increments): full sigma-separation and **consistent estimation** (IV/2SLS or a joint
 likelihood) — the engine part.
 
 ## What is pure-R vs engine
