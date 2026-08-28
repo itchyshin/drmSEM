@@ -39,6 +39,7 @@ drm_path_contrasts <- function(
   n_sim = 50L,
   draw = TRUE,
   seed = NULL,
+  population = "conditional",
   target = "mean",
   threshold = 0,
   prob = 0.5,
@@ -55,7 +56,8 @@ drm_path_contrasts <- function(
         B = B,
         n_sim = ns,
         draw = draw,
-        seed = seed
+        seed = seed,
+        population = population
       )
     } else if (identical(functional, "analytic")) {
       drm_functional_contrast_analytic(
@@ -69,7 +71,8 @@ drm_path_contrasts <- function(
         prob = prob,
         B = B,
         draw = draw,
-        seed = seed
+        seed = seed,
+        population = population
       )
     } else {
       drm_functional_contrast(
@@ -84,7 +87,8 @@ drm_path_contrasts <- function(
         n_sim = ns,
         draw = draw,
         seed = seed,
-        prob = prob
+        prob = prob,
+        population = population
       )
     }
   }
@@ -150,6 +154,7 @@ drm_component_contrasts <- function(
   n_sim = 50L,
   draw = TRUE,
   seed = NULL,
+  population = "conditional",
   target = "mean",
   threshold = 0,
   prob = 0.5,
@@ -166,7 +171,8 @@ drm_component_contrasts <- function(
         B = B,
         n_sim = if (identical(med, "mean")) 1L else n_sim,
         draw = draw,
-        seed = seed
+        seed = seed,
+        population = population
       )
     } else if (identical(functional, "analytic")) {
       drm_functional_contrast_analytic(
@@ -180,7 +186,8 @@ drm_component_contrasts <- function(
         prob = prob,
         B = B,
         draw = draw,
-        seed = seed
+        seed = seed,
+        population = population
       )
     } else {
       drm_functional_contrast(
@@ -195,7 +202,8 @@ drm_component_contrasts <- function(
         n_sim = if (identical(med, "mean")) 1L else n_sim,
         draw = draw,
         seed = seed,
-        prob = prob
+        prob = prob,
+        population = population
       )
     }
   }
@@ -209,7 +217,8 @@ drm_component_contrasts <- function(
       B = B,
       n_sim = 1L,
       draw = draw,
-      seed = seed
+      seed = seed,
+      population = population
     )
   } else if (identical(functional, "analytic")) {
     drm_functional_contrast_analytic(
@@ -223,7 +232,8 @@ drm_component_contrasts <- function(
       prob = prob,
       B = B,
       draw = draw,
-      seed = seed
+      seed = seed,
+      population = population
     )
   } else {
     drm_functional_contrast(
@@ -238,7 +248,8 @@ drm_component_contrasts <- function(
       n_sim = 1L,
       draw = draw,
       seed = seed,
-      prob = prob
+      prob = prob,
+      population = population
     )
   }
   full <- ctr(engines, "distribution") # T_dist({Mj})
@@ -487,6 +498,7 @@ path_effects <- function(
           mediation = "distribution",
           beta_list = beta_list,
           n_sim = ctl$n_sim,
+          population = ctl$population,
           target = target,
           threshold = threshold,
           prob = prob,
@@ -512,6 +524,7 @@ path_effects <- function(
       n_sim = ctl$n_sim,
       draw = ctl$draw,
       seed = seed,
+      population = ctl$population,
       target = target,
       threshold = threshold,
       prob = prob,
@@ -540,6 +553,7 @@ path_effects <- function(
           n_sim = ctl$n_sim,
           draw = ctl$draw,
           seed = seed,
+          population = ctl$population,
           target = target,
           threshold = threshold,
           prob = prob,

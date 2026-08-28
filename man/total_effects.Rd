@@ -85,15 +85,14 @@ or \code{"analytic"} (closed-form evaluation for supported families).}
 
 \item{uncertainty}{How to propagate parameter uncertainty: \code{"parametric"}
 (draw coefficients from \code{MVN(coef, vcov)}, the default), \code{"none"} (MLE point
-estimate, no interval), or \code{"bootstrap"} (refit per replicate; not yet
-implemented, OQ-10).}
+estimate, no interval), or \code{"bootstrap"} (cluster/case-resample and refit
+per replicate; reports percentile/normal intervals and bootstrap SE).}
 
 \item{nsim}{Inner distributional realizations per uncertainty draw (used for
 non-mean \code{target}s).}
 
 \item{population}{\code{"conditional"} (random effects held at zero, the default)
-or \code{"marginal"} (integrate over the fitted random-effect distribution; not
-yet implemented, OQ-9).}
+or \code{"marginal"} (integrate over the fitted random-effect distribution).}
 
 \item{level}{Confidence level for the Monte-Carlo interval.}
 

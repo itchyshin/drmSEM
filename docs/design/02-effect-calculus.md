@@ -223,10 +223,12 @@ Holding random effects at zero gives the **conditional / typical-group**
 response (`g⁻¹(η)`), not the **marginal** mean `E_b[g⁻¹(η + b)]`. For nonlinear
 links these differ, and the gap grows with the random-effect SD — so a path into
 `sd(group)` changes the marginal response even with the fixed-effect linear
-predictor fixed. drmSEM 0.1 reports conditional (RE=0) effects. A `population =
-c("conditional","marginal")` option that integrates over the fitted RE
-distribution is planned (OQ-9); it is required before a path into `sd(group)`
-can be given a response-scale marginal effect.
+predictor fixed. drmSEM supports `population = c("conditional", "marginal")` (OQ-9, resolved).
+Under `population = "marginal"`, node expectations and scenario simulations integrate
+over the fitted random-effects covariance (or tree covariance for phylo nodes) via
+exact analytic expressions (identity and log links: $E_b[\exp(\eta + b)] = \exp(\eta + \tfrac{1}{2}\sigma_{RE}^2)$)
+or 15-point Gauss-Hermite quadrature (logit, tanh links), ensuring exact marginal population
+responses.
 
 ## Speed tiers (estimation cost)
 
@@ -236,11 +238,13 @@ can be given a response-scale marginal effect.
 | 2 | deterministic g-computation on expectations | `uncertainty = "none"`, `method = "gcomp"` |
 | 3 | + parameter uncertainty from `MVN(coef, vcov)` | `uncertainty = "parametric"`, `B` |
 | 4 | + mediator-distribution simulation | `method = "simulate"`, `nsim` |
-| 5 | parametric/nonparametric **bootstrap** (refit) | `uncertainty = "bootstrap"` (planned, OQ-10) |
+| 5 | parametric/nonparametric **bootstrap** (refit) | `uncertainty = "bootstrap"` (OQ-10, resolved) |
 
-drmSEM already implements Tiers 1–4; only the refit-bootstrap (Tier 5) is
-roadmap. Default workflow: fit once, draw from `vcov`, predict counterfactuals,
-never refit unless a bootstrap is explicitly requested.
+drmSEM implements Tiers 1–5. When `uncertainty = "bootstrap"` is chosen, cluster-aware
+case resampling (or observation case resampling when no clustering variable is present)
+refits all piecewise models per replicate and produces both percentile and normal-approximation
+confidence intervals along with bootstrap standard errors. Default workflow: fit once,
+draw from `vcov`, predict counterfactuals, never refit unless a bootstrap is explicitly requested.
 
 ## Outcome functionals beyond the mean
 
@@ -299,9 +303,9 @@ without touching any kernel (`R/effects_api.R`):
 | unified argument | values | engine mapping |
 | --- | --- | --- |
 | `method` (`total_effects` only) | `"gcomp"` / `"simulate"` | `mediation = "mean"` / `"distribution"` |
-| `uncertainty` | `"parametric"` / `"none"` / `"bootstrap"` | `draw = TRUE` / `FALSE` / (OQ-10, aborts) |
+| `uncertainty` | `"parametric"` / `"none"` / `"bootstrap"` | `draw = TRUE` / `FALSE` / cluster & case refit bootstrap (OQ-10, resolved) |
 | `nsim` | integer | `n_sim` (inner realizations) |
-| `population` | `"conditional"` / `"marginal"` | RE = 0 / (OQ-9, aborts) |
+| `population` | `"conditional"` / `"marginal"` | RE = 0 / Gauss-Hermite & analytic random-effect marginal integration (OQ-9, resolved) |
 | `target`, `threshold`, `prob` | functional | outcome functional on all three functions (incl. `indirect_effects()` controlled) |
 | `B` | integer | number of uncertainty replicates (unchanged) |
 
@@ -309,10 +313,9 @@ without touching any kernel (`R/effects_api.R`):
 needs *both* the mean and distribution legs, and the natural split always uses
 distribution mediation. The previous knobs `mediation`, `draw`, and `n_sim`
 remain as **deprecated aliases** — they still work but emit a deprecation
-warning, and the unified argument wins if both are supplied. Not-yet-implemented
-choices (`uncertainty = "bootstrap"`, OQ-10; `population = "marginal"`, OQ-9)
-abort early with a pointer to the open question rather than silently doing
-something else. The normalization helpers (`drm_effect_controls()`,
+warning, and the unified argument wins if both are supplied. Both
+`uncertainty = "bootstrap"` (OQ-10) and `population = "marginal"` (OQ-9) are
+fully implemented and validated. The normalization helpers (`drm_effect_controls()`,
 `drm_resolve_mediation()`) are pure R and unit-tested in `test-effect-api.R`.
 
 ## Per-mediator path-specific attribution (OQ-5 — partial)
