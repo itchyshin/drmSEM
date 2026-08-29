@@ -1639,4 +1639,27 @@ and d-separation basis-set independence claim suppression for higher-level covar
 
 **Not claimed.** Non-Gaussian copula higher-level RE covariance structures. Cross-model piecewise RE covariance estimation without joint fitting.
 
+## 2026-08-28 — Track 3: Gelman 2-SD Standardization & GLM Latent Divisors (V-154..V-156, OQ-4)
+
+Gelman (2008) 2-SD input scaling, observation-level mean-dependent log-link latent variance,
+and standardized path table formatting (`R/standardize.R`, `R/model_set.R`).
+
+- **V-154.** Gelman 2-SD standardization recovery: continuous predictor coefficients under
+  `scale = "2sd"` are exactly doubled relative to 1-SD standardization
+  (\(2 \times \text{std.estimate}_{\text{1sd}}\)) across both `method = "sd_x"` and `method = "latent"`,
+  while factor dummy coefficients and binary {0, 1} numeric indicators remain invariant. **Validated.**
+- **V-155.** Latent-scale GLM link error variances: `drm_link_latent_var()` and `drm_latent_divisor()`
+  correctly incorporate theoretical and observation-level error variances across logit (\(\pi^2/3\)),
+  probit (1.0), cloglog (\(\pi^2/6\)), log (\(\log(1 + 1/\bar{\mu})\) where \(\bar{\mu} = \text{mean}(\exp(\eta))\)),
+  and identity (0), while leaving non-mean components (`sigma`, `zi`) on their component link scale. **Validated.**
+- **V-156.** Standardized table structure, class dispatch, and print formatting: `standardize()`
+  returns an object of class `c("drm_standardized_paths", "drm_paths", "data.frame")` retaining all
+  `paths()` columns plus `std.estimate` and metadata attributes; `standardize.drm_psem()` matches
+  `standardize.drm_sem()`; `average.drm_compare(..., scale = "2sd")` forwards scaling;
+  `print.drm_standardized_paths()` displays component-labelled standardized summaries cleanly. **Validated.**
+
+`tests/testthat/test-standardize-2sd.R`: **7 pass / 0 fail / 0 skip / 0 warn**.
+
+**Not claimed.** Response-scale standardized coefficients under nonlinear links (effect engine `direct_effects()` / `total_effects()` is used for response-scale contrasts).
+
 

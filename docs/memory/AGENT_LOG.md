@@ -2240,5 +2240,24 @@ covariance. Mixed-family pairs (abort).
 - Documentation & Ledgers:
   - Updated `docs/design/02-effect-calculus.md`, `docs/design/capability-status.md`, `docs/memory/OPEN_QUESTIONS.md` (resolving OQ-11), and `docs/memory/VALIDATION_LEDGER.md`.
 
+## 2026-08-28 — Track 3: Gelman 2-SD Standardization & GLM Latent Divisors (V-154..V-156, OQ-4)
+
+**Cursor / Boole & Emmy (API and architecture reviewer)** on `cursor/lane-horizon-t3-2sd-standardization` at `/Users/z3437171/local-scratch/drmSEM-horizon-t3`.
+
+**What shipped.**
+- **Gelman (2008) 2-SD Input Scaling (`R/standardize.R`, `R/model_set.R`):**
+  - Added `scale = c("1sd", "2sd")` argument to `standardize.drm_sem()`, `standardize.drm_psem()`, and `average.drm_compare()`.
+  - Under `scale = "2sd"`, continuous numeric predictors multiply path coefficients by $2 \times \text{SD}(X)$ while categorical factor dummies and binary {0, 1} indicators retain scale multiplier 1 (`drm_is_continuous_predictor()`).
+- **Observation-Level Log-Link Error Variance (`R/standardize.R`):**
+  - Refined `drm_link_latent_var()` and `drm_latent_divisor()` to evaluate mean-dependent observation-level error variance $\text{Var}(e) \approx \log(1 + 1/\bar{\mu})$ for log-link mean paths (Nakagawa & Schielzeth 2010; Grace et al. 2018), where $\bar{\mu} = \text{mean}(\exp(\eta))$, complementing constant link variances (logit $\pi^2/3$, probit 1, cloglog $\pi^2/6$, identity 0).
+- **Class Dispatch & Print Formatting (`R/standardize.R`):**
+  - Returned standardized path tables now inherit from `c("drm_standardized_paths", "drm_paths", "data.frame")` with method/scale metadata and clean print formatting (`print.drm_standardized_paths`).
+- **Tests & Validation (`tests/testthat/test-standardize-2sd.R`):**
+  - Added test suite for V-154 (2-SD scaling recovery for continuous vs factor/binary paths), V-155 (GLM latent divisors across logit, probit, cloglog, log, identity links and non-mean components), and V-156 (class hierarchy, print formatting, and `drm_psem` parity).
+  - Test suite passes with 0 failures: **1441 pass / 0 fail / 5 skip / 10 warn**.
+- **Documentation & Ledgers:**
+  - Updated `docs/design/08-standardization.md`, `docs/memory/OPEN_QUESTIONS.md` (marking OQ-4 resolved), and `docs/memory/VALIDATION_LEDGER.md`.
+
+
 
 

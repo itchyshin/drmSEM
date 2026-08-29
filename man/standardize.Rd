@@ -3,40 +3,47 @@
 \name{standardize}
 \alias{standardize}
 \alias{standardize.drm_sem}
+\alias{standardize.drm_psem}
 \title{Standardized component-labelled path coefficients}
 \usage{
-standardize(object, method = c("sd_x", "latent"), ...)
+standardize(object, method = c("sd_x", "latent"), scale = c("1sd", "2sd"), ...)
 
-\method{standardize}{drm_sem}(object, method = c("sd_x", "latent"), ...)
+\method{standardize}{drm_sem}(object, method = c("sd_x", "latent"), scale = c("1sd", "2sd"), ...)
+
+\method{standardize}{drm_psem}(object, method = c("sd_x", "latent"), scale = c("1sd", "2sd"), ...)
 }
 \arguments{
-\item{object}{A \code{drm_sem} object.}
+\item{object}{A \code{drm_sem} or \code{drm_psem} object.}
 
 \item{method}{\code{"sd_x"} or \code{"latent"}.}
+
+\item{scale}{\code{"1sd"} (default 1-SD scaling) or \code{"2sd"} (Gelman 2008 2-SD scaling).}
 
 \item{...}{Unused.}
 }
 \value{
-The \code{\link[=paths]{paths()}} table with an added \code{std.estimate} column (link scale).
+An object of class \code{c("drm_standardized_paths", "drm_paths", "data.frame")}
+containing the \code{\link[=paths]{paths()}} table with an added \code{std.estimate} column (link scale).
 }
 \description{
 Rescales fitted path coefficients so they are comparable across predictors.
-Two scalings are offered, both reported on the component's \strong{link scale}:
+Two scalings and two standardization bases are offered, reported on each
+component's \strong{link scale}:
 }
 \details{
 \itemize{
 \item \code{"sd_x"} multiplies each coefficient by the standard deviation of its
-predictor, giving the link-scale change in the component per one-SD change
-in the predictor.
+predictor (or twice the SD under \code{scale = "2sd"}), giving the link-scale
+change in the component per one-SD (or 2-SD) change in the predictor.
 \item \code{"latent"} additionally divides by the standard deviation of the fitted
-linear predictor of that component, the latent-scale standardization used
-for generalized responses (after Grace & Bollen 2005).
+linear predictor of that component (incorporating distribution-specific
+latent error variance for GLM mean paths), the latent-scale standardization
+used for generalized responses (after Grace & Bollen 2005; Grace et al. 2018).
 }
 }
-\section{Conventions (0.2)}{
+\section{Conventions & Gelman 2-SD Scaling}{
 
-These are the finalized standardization conventions; see
-\code{docs/design/08-standardization.md} for the full rationale and citations.
+See \code{docs/design/08-standardization.md} for the full rationale and citations.
 \itemize{
 \item \strong{Link scale only.} Standardized coefficients are reported on each
 component's link scale (the \code{link} column of \code{\link[=paths]{paths()}}), where the
@@ -44,13 +51,17 @@ linear-predictor algebra is valid. They are \emph{not} back-transformed: under a
 nonlinear link a standardized coefficient has no constant response-scale
 counterpart. For response-scale, functional interpretations use the effect
 engine (\code{\link[=direct_effects]{direct_effects()}}, \code{\link[=total_effects]{total_effects()}}) instead.
-\item \strong{Factor predictors use SD = 1} (no rescaling), so a factor / dummy
-coefficient is reported as its raw per-contrast effect (lavaan's \code{std.nox}
+\item \strong{Factor and binary predictors (SD = 1).} Categorical factor dummies and
+binary 0/1 indicators use a scale multiplier of 1, so their standardized
+coefficient reflects the raw per-contrast effect (lavaan's \code{std.nox}
 convention; piecewiseSEM likewise does not SD-rescale categorical
-predictors). Multiplying a 0/1 dummy by its column SD would produce a
-data-dependent value that is not "one SD of a construct"; a Gelman (2008)
-2-SD rescaling of the \emph{continuous} predictors for continuous-vs-binary
-comparability is planned as an opt-in (OQ-4).
+predictors).
+\item \strong{Gelman (2008) 2-SD scaling (\code{scale = "2sd"}).} Under \code{scale = "2sd"},
+continuous numeric predictors are scaled by \eqn{2 \times \text{SD}(X)}
+while binary and factor predictors retain a scale multiplier of 1. This
+places continuous and binary predictors on a directly comparable footing,
+as a 2-SD shift in a symmetric continuous variable spans the middle
+50--80\% of its distribution, corresponding to a 0-to-1 transition.
 \item \strong{Per-component \code{latent}.} The \code{latent} divisor is the SD of \emph{that}
 component's own linear predictor, so a \code{sigma} or \code{zi} path is standardized
 on its own (log / logit) link scale — there is no marginal outcome SD for a
@@ -59,18 +70,22 @@ distributional generalization of Grace & Bollen.
 }
 }
 
-\section{GLM mean paths (OQ-4 \code{sigma_E})}{
+\section{GLM mean paths (Theoretical Link Variance)}{
 
-For a \strong{\code{mu}} path on a link with a \emph{constant} theoretical error variance, the
-\code{latent} divisor is \code{sqrt(Var(eta) + sigma_E^2)}, adding the link's
-distribution-specific latent-scale error variance (logit \code{pi^2/3}, probit \code{1},
-cloglog \code{pi^2/6}; after Grace et al. 2018 / piecewiseSEM's \code{latent.linear}).
-This corrects the earlier mild over-standardization of GLM mean paths. The
-\strong{log-link} families (Poisson, negative binomial, Gamma, lognormal) carry a
-\emph{mean-dependent} (observation-level) latent variance rather than a constant, so
-no \code{sigma_E} term is added there yet — that case is still deferred. Identity
-links and non-\code{mu} components are unchanged (the divisor is \code{sd(eta)} on the
-component's own link scale).
+For a \strong{\code{mu}} path on a generalized link, the \code{latent} divisor is
+\eqn{\sqrt{\text{Var}(\eta) + \sigma_E^2}}, adding the link's
+distribution-specific latent-scale error variance \eqn{\sigma_E^2}:
+\itemize{
+\item Logit: \eqn{\pi^2 / 3 \approx 3.290} (logistic threshold distribution)
+\item Probit: \eqn{1} (standard normal threshold distribution)
+\item Cloglog: \eqn{\pi^2 / 6 \approx 1.645} (Gumbel threshold distribution)
+\item Log: \eqn{\log(1 + 1 / \bar{\mu})} observation-level delta-method variance
+where \eqn{\bar{\mu} = \text{mean}(\exp(\eta))} (Nakagawa & Schielzeth 2010;
+Grace et al. 2018).
+}
+
+Identity links and non-\code{mu} components are unchanged (the divisor is
+\code{sd(eta)} on the component's own link scale).
 }
 
 \examples{
@@ -81,7 +96,7 @@ sem <- drm_sem(
   abundance = drm_node(drmTMB::bf(abundance ~ size + temp, zi ~ habitat),
                        family = drmTMB::nbinom2()),
   data = dat)
-standardize(sem, method = "latent")
+standardize(sem, method = "latent", scale = "2sd")
 }
 }
 \references{
@@ -92,4 +107,6 @@ standardize(sem, method = "latent")
 \insertRef{Grace2018}{drmSEM}
 
 \insertRef{Gelman2008}{drmSEM}
+
+\insertRef{Nakagawa2010}{drmSEM}
 }
