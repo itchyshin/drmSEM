@@ -113,6 +113,18 @@ drm_composite <- function(
     loadings <- stats::setNames(as.numeric(w), indicators)
     scale_indicators <- FALSE
     prop_var <- NA_real_
+    pc_center <- NULL
+    pc_scale <- NULL
+    raw_score <- as.numeric(M %*% loadings[indicators])
+    if (isTRUE(standardize)) {
+      mu_s <- mean(raw_score, na.rm = TRUE)
+      sd_s <- stats::sd(raw_score, na.rm = TRUE)
+      scoring_weights <- loadings / sd_s
+      scoring_intercept <- -mu_s / sd_s
+    } else {
+      scoring_weights <- loadings
+      scoring_intercept <- 0
+    }
   } else {
     pc <- stats::prcomp(M, center = TRUE, scale. = TRUE)
     load1 <- pc$rotation[, 1L]
@@ -124,6 +136,20 @@ drm_composite <- function(
     loadings <- stats::setNames(as.numeric(load1), indicators)
     scale_indicators <- TRUE
     prop_var <- (pc$sdev^2 / sum(pc$sdev^2))[1L]
+    pc_center <- pc$center
+    pc_scale <- pc$scale
+    w_raw <- loadings / pc_scale
+    c_raw <- -sum(loadings * pc_center / pc_scale)
+    raw_score <- as.numeric(M %*% w_raw + c_raw)
+    if (isTRUE(standardize)) {
+      mu_s <- mean(raw_score, na.rm = TRUE)
+      sd_s <- stats::sd(raw_score, na.rm = TRUE)
+      scoring_weights <- w_raw / sd_s
+      scoring_intercept <- (c_raw - mu_s) / sd_s
+    } else {
+      scoring_weights <- w_raw
+      scoring_intercept <- c_raw
+    }
   }
 
   out <- list(
@@ -134,6 +160,10 @@ drm_composite <- function(
     identification = if (identical(method, "fixed")) "fixed" else "unit_variance",
     loadings = loadings,
     scale = scale_indicators,
+    center = pc_center,
+    scale_sd = pc_scale,
+    scoring_weights = scoring_weights,
+    scoring_intercept = scoring_intercept,
     prop_var = prop_var,
     standardize = standardize,
     reliability = drm_cronbach_alpha(M)
@@ -185,7 +215,9 @@ summary.drm_composite <- function(object, ...) {
 
 # Score a composite spec on a (possibly new) data frame. Recomputing from the
 # fitting data via the stored loadings guarantees the materialized column and the
-# reported loadings are consistent.
+# reported loadings are consistent. Out-of-sample and scenario scoring use the
+# fitted affine scoring weights (W_j, intercept) so constant/single-row scenarios
+# evaluate without re-scaling failures.
 drm_score_composite <- function(spec, data) {
   miss <- setdiff(spec$indicators, names(data))
   if (length(miss)) {
@@ -194,14 +226,22 @@ drm_score_composite <- function(spec, data) {
     )
   }
   M <- as.matrix(data[, spec$indicators, drop = FALSE])
-  if (isTRUE(spec$scale)) {
-    M <- scale(M)
+  if (!is.null(spec$scoring_weights) && !is.null(spec$scoring_intercept)) {
+    as.numeric(M %*% spec$scoring_weights[spec$indicators] + spec$scoring_intercept)
+  } else {
+    if (isTRUE(spec$scale)) {
+      if (!is.null(spec$center) && !is.null(spec$scale_sd)) {
+        M <- scale(M, center = spec$center, scale = spec$scale_sd)
+      } else {
+        M <- scale(M)
+      }
+    }
+    score <- as.numeric(M %*% spec$loadings[spec$indicators])
+    if (isTRUE(spec$standardize)) {
+      score <- as.numeric(scale(score))
+    }
+    score
   }
-  score <- as.numeric(M %*% spec$loadings[spec$indicators])
-  if (isTRUE(spec$standardize)) {
-    score <- as.numeric(scale(score))
-  }
-  score
 }
 
 # Normalize a composites argument (NULL / one drm_composite / list) to a list,

@@ -2222,23 +2222,50 @@ covariance. Mixed-family pairs (abort).
 - **Documentation & Ledgers:**
   - Updated `docs/memory/OPEN_QUESTIONS.md` (closing OQ-14) and `docs/memory/VALIDATION_LEDGER.md` (recording V-151..V-153).
 
+## 2026-08-28 — Track 1: Indicator-Level Interventional Counterfactuals (V-148..V-150, OQ-15)
 
-**Cursor / Ada (orchestrator-integrator)** on `cursor/lane-quad-t1-functionals` at `/Users/z3437171/local-scratch/lanes/drmSEM-quad-t1`.
+**Cursor / Curie (simulation specialist) & Gauss (engine reviewer)** on `cursor/lane-horizon-t1-indicator-interventions` at `/Users/z3437171/local-scratch/drmSEM-horizon-t1`.
 
 **What shipped.**
-- Non-Gaussian Functional Simulation and Closed-Form Analytics (`R/simulate_effects.R`, `R/effects.R`):
-  - Extended `drm_analytic_functional()` to compute exact closed-form `mean`, `var`, `p_gt`, `p_zero`, and `quantile` functionals for `lognormal`, `Gamma`, `nbinom2`, `beta`, and `student` families (in addition to `gaussian` and `poisson`), with explicit zero-inflation (`zi`) handling.
-  - Added `quantile_prob` argument across `direct_effects()`, `total_effects()`, `indirect_effects()`, and `path_effects()`.
-- Cross-World Natural Mediation on Outcome Functionals (`R/simulate_effects.R`, `R/effects.R`, `R/path_effects.R`):
-  - Extended `drm_natural_target()` to evaluate cross-world mediator contrasts on any outcome functional (`p_gt`, `p_zero`, `var`, `quantile`), reporting the 4-way decomposition `total = natural_direct + natural_indirect + mediated_interaction`.
-  - Removed mean-only restriction from `indirect_effects(effect = "natural")`.
-- Path-Specific Component-Level Tail Risk Attribution (`R/path_effects.R`):
-  - Enhanced `drm_path_contrasts()`, `drm_component_contrasts()`, and `path_effects()` to route outcome functional arguments (`target`, `threshold`, `prob`/`quantile_prob`, `functional`), allowing explicit decomposition of shifts in tail risk into mediator mean vs dispersion (`sigma_channel`) pathways.
-- Tests & Validation (`tests/testthat/test-functionals.R`, `tests/testthat/test-effect-kernels.R`):
-  - Added comprehensive test suite with V-139..V-141 (45 passing assertions) covering exact analytic recovery against known DGP data, quantile shifts across probabilities, tail risk mediation decomposition, and live fitted `drm_sem` models.
-  - Full test suite passes cleanly: **1344 pass / 0 fail / 4 skip / 5 warn**.
-- Documentation & Ledgers:
-  - Updated `docs/design/02-effect-calculus.md`, `docs/design/capability-status.md`, `docs/memory/OPEN_QUESTIONS.md` (resolving OQ-11), and `docs/memory/VALIDATION_LEDGER.md`.
+- **Deterministic Construct Scoring Kernels (`R/composite.R`, `R/latents.R`):**
+  - Stored affine transformation parameters `scoring_weights` and `scoring_intercept` in `drm_composite()` and `drm_resolve_latent()` for both fixed-weight and PCA/FA extraction methods.
+  - Updated `drm_score_composite()` and `drm_score_latent()` to deterministically evaluate construct scores on new scenario datasets (including constant/zero-variance intervention columns) without refitting PCA or re-centering.
+- **Intervention Scenario Generation & Propagation Engine (`R/simulate_effects.R`, `R/effects.R`):**
+  - In `drm_build_scenarios()`, detected when the intervened variable `from` is an indicator of any composite or latent construct (`object$composites`, `object$latent_constructs`), dynamically re-scoring the construct column(s) in `lo` and `hi` scenario datasets.
+  - Attached all declared construct specifications to `engines` via `attr(engines, "constructs")` in `drm_engines_from_sem()`.
+  - In `drm_propagate()`, detected when an active mediator is an indicator of a construct and re-evaluated the downstream construct score in `work`.
+  - In `direct_effects()`, held construct scores fixed at baseline when estimating pure direct effects of indicators on downstream response nodes (direct effect = 0 unless a direct structural edge exists).
+  - In `total_effects()` and `indirect_effects()`, excluded construct names from active mediator over-writes, allowing the indicator intervention to flow smoothly through $do(x_{\text{ind}}) \to \eta \to \mu/\sigma/\text{zi}$.
+- **DGP Recovery Test Suite (`tests/testthat/test-indicator-interventions.R`):**
+  - Added 3 tests / 23 assertions covering V-148..V-150:
+    - V-148: Formative / composite indicator intervention $do(x_1 = 2) \to \text{construct} \to y$ recovering exact analytic $\Delta y = w_1 \cdot \beta$ for fixed and PCA constructs.
+    - V-149: MIMIC indicator intervention propagating to downstream location ($\mu$) and dispersion ($\sigma$, `target = "var"`) parameters of distributional child $z$.
+    - V-150: Indirect effect decomposition demonstrating 100% mediation through construct (`total_path == indirect`, `direct == 0`), and correct additive decomposition when both direct and construct paths are present (`direct + indirect == total`).
+- **Documentation & Ledgers:**
+  - Marked OQ-15 as resolved in `docs/memory/OPEN_QUESTIONS.md`.
+  - Recorded V-148..V-150 in `docs/memory/VALIDATION_LEDGER.md`.
+
+**Cursor / Curie (simulation specialist) & Gauss (engine reviewer)** on `cursor/lane-horizon-t1-indicator-interventions` at `/Users/z3437171/local-scratch/drmSEM-horizon-t1`.
+
+**What shipped.**
+- **Deterministic Construct Scoring Kernels (`R/composite.R`, `R/latents.R`):**
+  - Stored affine transformation parameters `scoring_weights` and `scoring_intercept` in `drm_composite()` and `drm_resolve_latent()` for both fixed-weight and PCA/FA extraction methods.
+  - Updated `drm_score_composite()` and `drm_score_latent()` to deterministically evaluate construct scores on new scenario datasets (including constant/zero-variance intervention columns) without refitting PCA or re-centering.
+- **Intervention Scenario Generation & Propagation Engine (`R/simulate_effects.R`, `R/effects.R`):**
+  - In `drm_build_scenarios()`, detected when the intervened variable `from` is an indicator of any composite or latent construct (`object$composites`, `object$latent_constructs`), dynamically re-scoring the construct column(s) in `lo` and `hi` scenario datasets.
+  - Attached all declared construct specifications to `engines` via `attr(engines, "constructs")` in `drm_engines_from_sem()`.
+  - In `drm_propagate()`, detected when an active mediator is an indicator of a construct and re-evaluated the downstream construct score in `work`.
+  - In `direct_effects()`, held construct scores fixed at baseline when estimating pure direct effects of indicators on downstream response nodes (direct effect = 0 unless a direct structural edge exists).
+  - In `total_effects()` and `indirect_effects()`, excluded construct names from active mediator over-writes, allowing the indicator intervention to flow smoothly through $do(x_{\text{ind}}) \to \eta \to \mu/\sigma/\text{zi}$.
+- **DGP Recovery Test Suite (`tests/testthat/test-indicator-interventions.R`):**
+  - Added 3 tests / 23 assertions covering V-148..V-150:
+    - V-148: Formative / composite indicator intervention $do(x_1 = 2) \to \text{construct} \to y$ recovering exact analytic $\Delta y = w_1 \cdot \beta$ for fixed and PCA constructs.
+    - V-149: MIMIC indicator intervention propagating to downstream location ($\mu$) and dispersion ($\sigma$, `target = "var"`) parameters of distributional child $z$.
+    - V-150: Indirect effect decomposition demonstrating 100% mediation through construct (`total_path == indirect`, `direct == 0`), and correct additive decomposition when both direct and construct paths are present (`direct + indirect == total`).
+- **Documentation & Ledgers:**
+  - Marked OQ-15 as resolved in `docs/memory/OPEN_QUESTIONS.md`.
+  - Recorded V-148..V-150 in `docs/memory/VALIDATION_LEDGER.md`.
+
 
 ## 2026-08-28 — Track 3: Gelman 2-SD Standardization & GLM Latent Divisors (V-154..V-156, OQ-4)
 

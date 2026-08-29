@@ -329,6 +329,18 @@ drm_resolve_latent <- function(spec, data) {
     prop_var <- NA_real_
     rel <- drm_cronbach_alpha(M)
     comp_rel <- rel
+    pc_center <- NULL
+    pc_scale <- NULL
+    raw_score <- as.numeric(M %*% loadings[spec$indicators])
+    if (isTRUE(spec$standardize)) {
+      mu_s <- mean(raw_score, na.rm = TRUE)
+      sd_s <- stats::sd(raw_score, na.rm = TRUE)
+      scoring_weights <- loadings / sd_s
+      scoring_intercept <- -mu_s / sd_s
+    } else {
+      scoring_weights <- loadings
+      scoring_intercept <- 0
+    }
   } else {
     # PCA / FA extraction
     pc <- stats::prcomp(M, center = TRUE, scale. = TRUE)
@@ -341,6 +353,10 @@ drm_resolve_latent <- function(spec, data) {
       score_raw <- -score_raw
       load_rot <- -load_rot
     }
+    pc_center <- pc$center
+    pc_scale <- pc$scale
+    w_raw <- load_rot / pc_scale
+    c_raw <- -sum(load_rot * pc_center / pc_scale)
 
     if (identical(spec$identification, "marker")) {
       # Unit loading on marker indicator: slope of ym on score_raw = 1
@@ -368,6 +384,8 @@ drm_resolve_latent <- function(spec, data) {
       prop_var <- (pc$sdev^2 / sum(pc$sdev^2))[1L]
       rel <- drm_cronbach_alpha(M)
       comp_rel <- drm_raykov_rho(M, loadings = loadings_vec, error_variances = err_var, factor_var = var_eta)
+      w_id <- w_raw * slope
+      c_id <- c_raw * slope
 
     } else {
       # Unit variance identification: Var(eta) = 1
@@ -390,6 +408,21 @@ drm_resolve_latent <- function(spec, data) {
       prop_var <- (pc$sdev^2 / sum(pc$sdev^2))[1L]
       rel <- drm_cronbach_alpha(M)
       comp_rel <- drm_raykov_rho(M, loadings = loadings_vec, error_variances = err_var, factor_var = 1.0)
+      mu_s <- mean(score_raw, na.rm = TRUE)
+      sd_s <- stats::sd(score_raw, na.rm = TRUE)
+      w_id <- w_raw / sd_s
+      c_id <- (c_raw - mu_s) / sd_s
+    }
+
+    if (isTRUE(spec$standardize)) {
+      score_id_vec <- as.numeric(M %*% w_id + c_id)
+      mu_id <- mean(score_id_vec, na.rm = TRUE)
+      sd_id <- stats::sd(score_id_vec, na.rm = TRUE)
+      scoring_weights <- w_id / sd_id
+      scoring_intercept <- (c_id - mu_id) / sd_id
+    } else {
+      scoring_weights <- w_id
+      scoring_intercept <- c_id
     }
 
     loadings <- loadings_vec
@@ -402,6 +435,10 @@ drm_resolve_latent <- function(spec, data) {
   spec$prop_var <- prop_var
   spec$reliability <- rel
   spec$composite_reliability <- comp_rel
+  spec$center <- pc_center
+  spec$scale_sd <- pc_scale
+  spec$scoring_weights <- scoring_weights
+  spec$scoring_intercept <- scoring_intercept
   spec
 }
 
@@ -418,29 +455,33 @@ drm_score_latent <- function(spec, data) {
   }
   M <- as.matrix(data[, spec$indicators, drop = FALSE])
 
-  if (identical(spec$method, "fixed")) {
-    score <- as.numeric(M %*% spec$loadings[spec$indicators])
+  if (!is.null(spec$scoring_weights) && !is.null(spec$scoring_intercept)) {
+    as.numeric(M %*% spec$scoring_weights[spec$indicators] + spec$scoring_intercept)
   } else {
-    pc <- stats::prcomp(M, center = TRUE, scale. = TRUE)
-    score_raw <- pc$x[, 1L]
-    marker_col <- M[, spec$marker]
-    if (stats::cor(score_raw, marker_col, use = "pairwise.complete.obs") < 0) {
-      score_raw <- -score_raw
-    }
-    if (identical(spec$identification, "marker")) {
-      cov_m <- stats::cov(marker_col, score_raw, use = "pairwise.complete.obs")
-      var_s <- stats::var(score_raw, na.rm = TRUE)
-      slope <- cov_m / var_s
-      score <- score_raw * slope
+    if (identical(spec$method, "fixed")) {
+      score <- as.numeric(M %*% spec$loadings[spec$indicators])
     } else {
-      score <- as.numeric(scale(score_raw))
+      pc <- stats::prcomp(M, center = TRUE, scale. = TRUE)
+      score_raw <- pc$x[, 1L]
+      marker_col <- M[, spec$marker]
+      if (stats::cor(score_raw, marker_col, use = "pairwise.complete.obs") < 0) {
+        score_raw <- -score_raw
+      }
+      if (identical(spec$identification, "marker")) {
+        cov_m <- stats::cov(marker_col, score_raw, use = "pairwise.complete.obs")
+        var_s <- stats::var(score_raw, na.rm = TRUE)
+        slope <- cov_m / var_s
+        score <- score_raw * slope
+      } else {
+        score <- as.numeric(scale(score_raw))
+      }
     }
-  }
 
-  if (isTRUE(spec$standardize)) {
-    score <- as.numeric(scale(score))
+    if (isTRUE(spec$standardize)) {
+      score <- as.numeric(scale(score))
+    }
+    score
   }
-  score
 }
 
 #' Normalize and resolve a list of latent constructs

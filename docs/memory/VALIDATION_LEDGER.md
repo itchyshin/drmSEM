@@ -1612,6 +1612,7 @@ testing for external predictors and downstream descendants (`R/covariances.R`, `
 
 **Not claimed.** Arbitrary >2-response joint likelihoods inside drmSEM (relies on drmTMB bivariate models or piecewise node fitting). Global joint multivariate SEM.
 
+<<<<<<< HEAD
 ## 2026-08-28 — Track 2: Deep RE-Level Covariance Compatibility & Higher-Level Random Effects Correlation (V-151..V-153, OQ-14)
 
 Introspection of fitted `drmTMB` random effect blocks, cross-response random-effects correlation estimation
@@ -1662,4 +1663,29 @@ and standardized path table formatting (`R/standardize.R`, `R/model_set.R`).
 
 **Not claimed.** Response-scale standardized coefficients under nonlinear links (effect engine `direct_effects()` / `total_effects()` is used for response-scale contrasts).
 
+## 2026-08-28 — Track 1: Indicator-Level Interventional Counterfactuals (V-148..V-150, OQ-15)
+
+Dynamic construct re-scoring in counterfactual scenarios (`drm_build_scenarios()`, `R/effects.R`)
+and propagation kernels (`drm_propagate()`, `R/simulate_effects.R`) using stored affine scoring
+weights and intercepts from `drm_composite()` and `drm_resolve_latent()` (`R/composite.R`, `R/latents.R`).
+Allows causal interventions on indicator variables \(do(x_{\text{ind}} = c)\) of formative, composite,
+and reflective/MIMIC latent constructs to propagate through \(do(x_{\text{ind}}) \to \eta \to \mu/\sigma/\text{zi}\)
+to all downstream child nodes.
+
+- **V-148.** Formative / composite indicator intervention: \(do(x_1 = 2) \to \text{construct} \to y\)
+  recovers exact analytic \(\Delta y = w_1 \cdot \beta\) for both fixed-weight and PCA composite constructs;
+  direct effect holding construct fixed correctly evaluates to 0. **Validated.**
+- **V-149.** MIMIC indicator intervention with distributional child: intervention on indicator \(y_1\)
+  of latent construct \(\eta\) correctly propagates to both the location (\(\mu\)) and dispersion (\(\sigma\),
+  `target = "var"`) of downstream distributional child \(z\). **Validated.**
+- **V-150.** Indirect effect decomposition: intervention on indicator \(x_{\text{ind}}\) decomposes into
+  `total_path == indirect` with `direct == 0` (100% mediated through construct); when an additional direct edge
+  \(x_1 \to y\) is present, direct and indirect effects sum exactly to the total causal effect
+  (`direct + indirect == total`). **Validated.**
+
+`tests/testthat/test-indicator-interventions.R` against drmTMB 0.7.0: **23 pass / 0 fail / 0 skip / 0 warn**.
+
+**Not claimed.** Simultaneous multi-indicator joint interventions with non-linear indicator aggregation.
+Uncertainty estimation for indicator weights during single fixed-point evaluations.
+Capability-status `"covered"`.
 

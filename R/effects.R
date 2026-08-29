@@ -45,6 +45,27 @@ drm_build_scenarios <- function(object, from, at = NULL) {
   } else {
     at[[2]]
   }
+
+  # If `col` is an indicator of any composite or latent construct(s),
+  # re-score the construct column(s) in lo and hi so the intervention propagates
+  constructs <- c(object$composites, object$latent_constructs)
+  if (length(constructs) > 0L) {
+    for (spec in constructs) {
+      if (col %in% spec$indicators) {
+        lo[[spec$name]] <- if (inherits(spec, "drm_latent")) {
+          drm_score_latent(spec, lo)
+        } else {
+          drm_score_composite(spec, lo)
+        }
+        hi[[spec$name]] <- if (inherits(spec, "drm_latent")) {
+          drm_score_latent(spec, hi)
+        } else {
+          drm_score_composite(spec, hi)
+        }
+      }
+    }
+  }
+
   list(lo = lo, hi = hi, at = at, column = col)
 }
 
@@ -123,7 +144,8 @@ drm_decomp_legs <- function(
   target = "mean",
   threshold = 0,
   prob = 0.5,
-  population = "conditional"
+  population = "conditional",
+  cde_scenarios = NULL
 ) {
   if (!is.null(seed)) {
     set.seed(seed)
@@ -136,10 +158,10 @@ drm_decomp_legs <- function(
     dimnames = list(NULL, c("cde", "tot_mean", "tot_dist"))
   )
   ns_meanleg <- if (identical(target, "mean")) 1L else n_sim
-  leg <- function(act, med, ns, beta_list) {
+  leg <- function(scens, act, med, ns, beta_list) {
     fhi <- drm_functional_target(
       engines,
-      scenarios$hi,
+      scens$hi,
       to,
       act,
       med,
@@ -152,7 +174,7 @@ drm_decomp_legs <- function(
     )
     flo <- drm_functional_target(
       engines,
-      scenarios$lo,
+      scens$lo,
       to,
       act,
       med,
@@ -165,12 +187,13 @@ drm_decomp_legs <- function(
     )
     fhi - flo
   }
+  cde_scens <- if (is.null(cde_scenarios)) scenarios else cde_scenarios
   for (b in seq_len(reps)) {
     beta_list <- lapply(engines, drm_draw_beta, draw = draw)
     names(beta_list) <- names(engines)
-    legs[b, "cde"] <- leg(character(0), "mean", ns_meanleg, beta_list)
-    legs[b, "tot_mean"] <- leg(active, "mean", ns_meanleg, beta_list)
-    legs[b, "tot_dist"] <- leg(active, "distribution", n_sim, beta_list)
+    legs[b, "cde"] <- leg(cde_scens, character(0), "mean", ns_meanleg, beta_list)
+    legs[b, "tot_mean"] <- leg(scenarios, active, "mean", ns_meanleg, beta_list)
+    legs[b, "tot_dist"] <- leg(scenarios, active, "distribution", n_sim, beta_list)
   }
   legs
 }
@@ -431,11 +454,24 @@ direct_effects <- function(
   engines <- drm_engines_from_sem(object)
   scen <- drm_build_scenarios(object, from, at)
 
+  # For direct effects, if `from` is an indicator of a construct that is not `to`,
+  # hold the construct fixed at its baseline data value so the effect is purely direct
+  cde_scen <- scen
+  constructs <- c(object$composites, object$latent_constructs)
+  if (length(constructs) > 0L) {
+    for (spec in constructs) {
+      if (scen$column %in% spec$indicators && spec$name != to) {
+        cde_scen$lo[[spec$name]] <- object$data[[spec$name]]
+        cde_scen$hi[[spec$name]] <- object$data[[spec$name]]
+      }
+    }
+  }
+
   if (identical(ctl$uncertainty, "bootstrap")) {
     orig_val <- if (identical(target, "mean")) {
       drm_effect_contrast(
         engines,
-        scen,
+        cde_scen,
         to,
         active = character(0),
         mediation = "mean",
@@ -447,7 +483,7 @@ direct_effects <- function(
     } else if (identical(functional, "analytic")) {
       drm_analytic_or_abort(
         engines,
-        scen,
+        cde_scen,
         to,
         active = character(0),
         mediation = "mean",
@@ -460,7 +496,7 @@ direct_effects <- function(
     } else {
       drm_functional_contrast(
         engines,
-        scen,
+        cde_scen,
         to,
         active = character(0),
         mediation = "distribution",
@@ -488,10 +524,20 @@ direct_effects <- function(
       }
       b_engs <- drm_engines_from_sem(boot_sem)
       b_scen <- drm_build_scenarios(boot_sem, from, at)
+      b_cde_scen <- b_scen
+      b_constructs <- c(boot_sem$composites, boot_sem$latent_constructs)
+      if (length(b_constructs) > 0L) {
+        for (spec in b_constructs) {
+          if (b_scen$column %in% spec$indicators && spec$name != to) {
+            b_cde_scen$lo[[spec$name]] <- boot_sem$data[[spec$name]]
+            b_cde_scen$hi[[spec$name]] <- boot_sem$data[[spec$name]]
+          }
+        }
+      }
       b_val <- if (identical(target, "mean")) {
         drm_effect_contrast(
           b_engs,
-          b_scen,
+          b_cde_scen,
           to,
           active = character(0),
           mediation = "mean",
@@ -503,7 +549,7 @@ direct_effects <- function(
       } else if (identical(functional, "analytic")) {
         drm_analytic_or_abort(
           b_engs,
-          b_scen,
+          b_cde_scen,
           to,
           active = character(0),
           mediation = "mean",
@@ -516,7 +562,7 @@ direct_effects <- function(
       } else {
         drm_functional_contrast(
           b_engs,
-          b_scen,
+          b_cde_scen,
           to,
           active = character(0),
           mediation = "distribution",
@@ -561,7 +607,7 @@ direct_effects <- function(
   vals <- if (identical(target, "mean")) {
     drm_effect_contrast(
       engines,
-      scen,
+      cde_scen,
       to,
       active = character(0),
       mediation = "mean",
@@ -574,7 +620,7 @@ direct_effects <- function(
   } else if (identical(functional, "analytic")) {
     drm_analytic_or_abort(
       engines,
-      scen,
+      cde_scen,
       to,
       active = character(0),
       mediation = "mean",
@@ -588,7 +634,7 @@ direct_effects <- function(
   } else {
     drm_functional_contrast(
       engines,
-      scen,
+      cde_scen,
       to,
       active = character(0),
       mediation = "distribution",
@@ -766,7 +812,17 @@ total_effects <- function(
     return(out)
   }
 
-  active <- setdiff(object$endogenous, c(from, to))
+  constructs <- c(object$composites, object$latent_constructs)
+  ind_construct_names <- character(0)
+  if (length(constructs) > 0L) {
+    for (spec in constructs) {
+      if (scen$column %in% spec$indicators) {
+        ind_construct_names <- c(ind_construct_names, spec$name)
+      }
+    }
+  }
+
+  active <- setdiff(object$endogenous, c(from, to, ind_construct_names))
   # Analytic functionals need deterministic outcome params, i.e. mean mediation.
   if (
     identical(functional, "analytic") &&
@@ -836,12 +892,22 @@ total_effects <- function(
       }
       b_engs <- drm_engines_from_sem(boot_sem)
       b_scen <- drm_build_scenarios(boot_sem, from, at)
+      b_ind_construct_names <- character(0)
+      b_constructs <- c(boot_sem$composites, boot_sem$latent_constructs)
+      if (length(b_constructs) > 0L) {
+        for (spec in b_constructs) {
+          if (b_scen$column %in% spec$indicators) {
+            b_ind_construct_names <- c(b_ind_construct_names, spec$name)
+          }
+        }
+      }
+      b_active <- setdiff(boot_sem$endogenous, c(from, to, b_ind_construct_names))
       b_val <- if (identical(target, "mean")) {
         drm_effect_contrast(
           b_engs,
           b_scen,
           to,
-          active = active,
+          active = b_active,
           mediation = mediation_resolved,
           B = 1L,
           n_sim = ctl$n_sim,
@@ -853,7 +919,7 @@ total_effects <- function(
           b_engs,
           b_scen,
           to,
-          active = active,
+          active = b_active,
           mediation = mediation_resolved,
           target = target,
           threshold = threshold,
@@ -866,7 +932,7 @@ total_effects <- function(
           b_engs,
           b_scen,
           to,
-          active = active,
+          active = b_active,
           mediation = mediation_resolved,
           target = target,
           threshold = threshold,
@@ -1096,8 +1162,44 @@ indirect_effects <- function(
   drm_require_drmTMB()
   engines <- drm_engines_from_sem(object)
   scen <- drm_build_scenarios(object, from, at)
-  all_med <- setdiff(object$endogenous, c(from, to))
+
+  constructs <- c(object$composites, object$latent_constructs)
+  ind_construct_names <- character(0)
+  if (length(constructs) > 0L) {
+    for (spec in constructs) {
+      if (scen$column %in% spec$indicators) {
+        ind_construct_names <- c(ind_construct_names, spec$name)
+      }
+    }
+  }
+
+  all_med <- setdiff(object$endogenous, c(from, to, ind_construct_names))
   active <- if (is.null(through)) all_med else intersect(through, all_med)
+
+  cde_scen <- scen
+  if (length(ind_construct_names) > 0L) {
+    for (cname in ind_construct_names) {
+      if (cname != to) {
+        cde_scen$lo[[cname]] <- object$data[[cname]]
+        cde_scen$hi[[cname]] <- object$data[[cname]]
+      }
+    }
+  }
+
+  if (!is.null(through) && length(ind_construct_names) > 0L) {
+    for (cname in ind_construct_names) {
+      if (!cname %in% through && cname != to) {
+        scen$lo[[cname]] <- object$data[[cname]]
+        scen$hi[[cname]] <- object$data[[cname]]
+      }
+    }
+  }
+
+  through_labels <- if (is.null(through)) {
+    paste(unique(c(active, ind_construct_names)), collapse = ", ")
+  } else {
+    paste(through, collapse = ", ")
+  }
 
   if (identical(effect, "natural")) {
     if (identical(ctl$uncertainty, "bootstrap")) {
@@ -1162,7 +1264,7 @@ indirect_effects <- function(
         data.frame(
           from = from,
           to = to,
-          through = paste(active, collapse = ", "),
+          through = through_labels,
           stringsAsFactors = FALSE
         ),
         rows
@@ -1228,7 +1330,7 @@ indirect_effects <- function(
       data.frame(
         from = from,
         to = to,
-        through = paste(active, collapse = ", "),
+        through = through_labels,
         target = target,
         stringsAsFactors = FALSE
       ),
@@ -1252,7 +1354,8 @@ indirect_effects <- function(
       target = target,
       threshold = threshold,
       prob = prob,
-      population = ctl$population
+      population = ctl$population,
+      cde_scenarios = cde_scen
     )
     orig_cde <- orig_legs[1, "cde"]
     orig_tot_mean <- orig_legs[1, "tot_mean"]
@@ -1278,18 +1381,51 @@ indirect_effects <- function(
       }
       b_engs <- drm_engines_from_sem(boot_sem)
       b_scen <- drm_build_scenarios(boot_sem, from, at)
+      b_constructs <- c(boot_sem$composites, boot_sem$latent_constructs)
+      b_ind_construct_names <- character(0)
+      if (length(b_constructs) > 0L) {
+        for (spec in b_constructs) {
+          if (b_scen$column %in% spec$indicators) {
+            b_ind_construct_names <- c(b_ind_construct_names, spec$name)
+          }
+        }
+      }
+      b_active <- if (is.null(through)) {
+        setdiff(boot_sem$endogenous, c(from, to, b_ind_construct_names))
+      } else {
+        intersect(through, setdiff(boot_sem$endogenous, c(from, to, b_ind_construct_names)))
+      }
+
+      b_cde_scen <- b_scen
+      if (length(b_ind_construct_names) > 0L) {
+        for (cname in b_ind_construct_names) {
+          if (cname != to) {
+            b_cde_scen$lo[[cname]] <- boot_sem$data[[cname]]
+            b_cde_scen$hi[[cname]] <- boot_sem$data[[cname]]
+          }
+        }
+      }
+      if (!is.null(through) && length(b_ind_construct_names) > 0L) {
+        for (cname in b_ind_construct_names) {
+          if (!cname %in% through && cname != to) {
+            b_scen$lo[[cname]] <- boot_sem$data[[cname]]
+            b_scen$hi[[cname]] <- boot_sem$data[[cname]]
+          }
+        }
+      }
       b_legs <- drm_decomp_legs(
         b_engs,
         b_scen,
         to,
-        active,
+        b_active,
         B = 1L,
         n_sim = ctl$n_sim,
         draw = FALSE,
         target = target,
         threshold = threshold,
         prob = prob,
-        population = ctl$population
+        population = ctl$population,
+        cde_scenarios = b_cde_scen
       )
       b_cde <- b_legs[1, "cde"]
       b_tot_mean <- b_legs[1, "tot_mean"]
@@ -1326,7 +1462,7 @@ indirect_effects <- function(
       data.frame(
         from = from,
         to = to,
-        through = paste(active, collapse = ", "),
+        through = through_labels,
         target = target,
         stringsAsFactors = FALSE
       ),
@@ -1353,7 +1489,8 @@ indirect_effects <- function(
     target = target,
     threshold = threshold,
     prob = prob,
-    population = ctl$population
+    population = ctl$population,
+    cde_scenarios = cde_scen
   )
   cde <- legs[, "cde"]
   tot_mean <- legs[, "tot_mean"]
@@ -1377,7 +1514,7 @@ indirect_effects <- function(
     data.frame(
       from = from,
       to = to,
-      through = paste(active, collapse = ", "),
+      through = through_labels,
       target = target,
       stringsAsFactors = FALSE
     ),

@@ -337,35 +337,37 @@ and `plot(sem, show = "all")` draws double-headed (residual) / dashed (higher-le
 validates shared grouping structures across responses before fitting (V-151); and d-separation suppresses within-pair
 independence claims across all residual and higher-level covariance edges (V-153). All items of OQ-14 are now closed.
 
-## OQ-15 — Composite-construct follow-ups (0.3)
+## OQ-15 — Composite-construct follow-ups (0.3)  [RESOLVED 2026-08-28]
 
-**Update 2026-06-11.** The live composite fitting path is already covered:
-`test-composite.R` fits a materialized PCA composite as both a predictor and a
-response, checks that `loadings()` reports the indicators, and verifies live
-effect flow for the composite path. This item is no longer an engine-evidence
-gap. Remaining items are product/design extensions, not maturity blockers for
-the current composite surface.
+**Resolution (2026-08-28).** **Indicator-level counterfactual interventions**
+shipped in `R/latents.R`, `R/composite.R`, `R/simulate_effects.R`, and `R/effects.R`.
+When building counterfactual scenarios (`drm_build_scenarios()`), interventions on
+any indicator variable (`do(x_ind = c)`) dynamically re-evaluate the construct's
+linear combination / composite score in `scen$lo` and `scen$hi` using pre-calculated
+`scoring_weights` and `scoring_intercept`. In `drm_propagate()`, if an active mediator
+is an indicator of a construct, the downstream construct score in `work` is re-scored.
+In `direct_effects()`, `total_effects()`, and `indirect_effects()`, indicator interventions
+flow cleanly through the DAG ($do(x_{\text{ind}}) \to \eta \to \mu/\sigma/\text{zi}$),
+direct effects holding the construct fixed correctly evaluate to 0 (unless a direct edge exists),
+and `indirect_effects()` demonstrates 100% mediation through the construct.
+DGP recovery validated in `tests/testthat/test-indicator-interventions.R` (V-148, V-149, V-150).
 
 The 0.3 first increment ships composite (formative) constructs (`drm_composite()`,
 `loadings()`, `composites=` on `drm_sem()`/`drm_psem()`; D-16, V-31). Open items:
 
-- **Indicator interventions.** A composite is frozen in the data, so the effect
-  engine cannot propagate an intervention on an *indicator* through the construct
-  (intervene on the construct instead). Propagating from indicators needs
-  `drm_build_scenarios()` to re-derive the construct column. Needs a live fit to
-  validate end-to-end.
+- **Indicator interventions — RESOLVED 2026-08-28.** `drm_build_scenarios()` and
+  `drm_propagate()` re-derive the construct column dynamically from fitted scoring
+  weights and intercepts for formative, composite, and reflective/MIMIC constructs.
 - **Measurement arcs in `plot()` — SHIPPED 2026-06-07.** `plot.drm_sem(show =
   "all")` now draws each composite's indicators pointing into the construct as
   steel-blue measurement edges, with indicators as distinctly-filled nodes and a
   legend row, visually distinct from structural paths and covariance arcs
   (`R/plotting.R`; tested in `test-plotting.R` via the legend helper + a
-  null-device render). Aesthetic layout of indicator nodes is best confirmed on a
-  live render.
-- **Reflective constructs** (a latent common cause with a measurement model) need
-  a joint likelihood drmTMB does not fit piecewise — deferred to 0.4 / lavaan
-  interop, not 0.3 (D-16).
-- **Standardized loadings / construct reliability** (e.g. an AVE / composite-
-  reliability summary) as an extension of `loadings()`.
+  null-device render).
+- **Reflective constructs** (a latent common cause with a measurement model)
+  implemented in `drm_latent()` and `drm_resolve_latent()` (V-130..V-134).
+- **Standardized loadings / construct reliability** (AVE / composite-reliability)
+  implemented in `reliability()` and `loadings()` (V-131).
 
 ## OQ-16 — Does the any-component LRT / Fisher's C induce a compositional graphoid?
 
