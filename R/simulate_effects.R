@@ -413,6 +413,7 @@ drm_engines_from_sem <- function(object) {
       )
     })
   }
+  attr(engines, "constructs") <- c(object$composites, object$latent_constructs)
   engines
 }
 
@@ -530,6 +531,7 @@ drm_propagate <- function(
   population = "conditional"
 ) {
   work <- as.data.frame(scenario)
+  constructs <- attr(engines, "constructs")
   node_mean <- list()
   for (eng in engines) {
     preds <- drm_eng_predict(eng, work, beta = beta_list[[eng$name]], population = population)
@@ -550,6 +552,17 @@ drm_propagate <- function(
         expected
       }
       work[[eng$identifier]] <- val
+      if (!is.null(constructs) && length(constructs) > 0L) {
+        for (spec in constructs) {
+          if (eng$identifier %in% spec$indicators || eng$name %in% spec$indicators) {
+            work[[spec$name]] <- if (inherits(spec, "drm_latent")) {
+              drm_score_latent(spec, work)
+            } else {
+              drm_score_composite(spec, work)
+            }
+          }
+        }
+      }
     }
   }
   list(mean = node_mean, work = work)
