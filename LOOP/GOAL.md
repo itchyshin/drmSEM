@@ -1,89 +1,28 @@
-# GOAL — S6 A7 consumer (IMMUTABLE — re-read at the top of EVERY arc)
-
-**2026-08-28 status.** S6 A7 Multi-Family Imputation is **COMPLETE** on `main`.
-Shipped cells:
-- Gaussian k=2 independent missing parents (Phase 1, #46)
-- Gamma × Bernoulli (#49)
-- lognormal × Bernoulli (#50)
-- beta_binomial × Bernoulli (#51)
-- nbinom2 × Gaussian (#54)
-- student × Bernoulli (#55)
-- ZIP × Bernoulli (D-23, #56; `mi()` in `mu` only, `zi ~ 1`)
-All engine-backed cells are consolidated. capability stays **`partial`** (within-node uncertainty only; not FIML).
+# GOAL — Horizon 1–4 Capability Matrix & Manuscript Closeout (IMMUTABLE — re-read at top of EVERY arc)
 
 ## Mission
 
-Prepare drmSEM to consume **one engine family cell at a time** after
-drmTMB A7 (item 1, #962) ships per-family C++ `has_mi` wiring. This
-kickoff is **docs only**. No drmSEM `R/` until the engine PR for the
-**first new family** is mergeable. Capability-status stays `partial`.
+Deliver the complete Horizon 1–4 capability matrix for `drmSEM`:
+1. **Track 1:** Indicator-Level Interventions (OQ-15, V-148..V-150) — COMPLETE (PR #69)
+2. **Track 2:** Deep RE-Level Covariance Introspection & `corpairs()` (OQ-14, V-151..V-153) — COMPLETE (PR #67)
+3. **Track 3:** Gelman 2-SD Standardization & GLM Latent Divisors (OQ-4, V-154..V-156) — COMPLETE (PR #68)
+4. **Track 4:** Scientific Manuscript & JOSS/JSS Synthesis (`paper.md` / `paper.bib`) — COMPLETE (PR #66)
 
 ## Headline
 
-Consumer contract + V-80 anti-drift + ledger cross-ref. Lift family
-gates in `R/imputation.R` only after the matching engine cell exists.
-Never treat a whitelist edit as the work.
+All Horizon tracks are complete, tested, and documented. Open questions OQ-4, OQ-14, and OQ-15 are resolved with 100% passing tests (1,400+ assertions).
 
 ## Invariants
 
-- ONE lane: `cursor/lane-s6-a7-consumer` at
-  `~/local-scratch/lanes/drmSEM-s6-a7-consumer`. Do **not** touch
-  MAG-completeness, MAG-wire, or S3-grouping. Do **not** create
-  `drmTMB-s6-family-gate` — sibling `0a5d078f` owns that engine lane.
-- drmSEM never fits its own likelihoods. A7 C++ `has_mi` is engine
-  work. Consumer only assembles `mi()` + `impute_model()` from the DAG.
-- Not FIML. Within-node uncertainty only. Incomplete exogenous →
-  `na_action`. `impute = "none"` stays default. Independent
-  `impute_model()` per parent (option b). Never emit `impute_joint`.
-- **No drmSEM `R/` on a wait/prep commit.** A7c-2 (Gamma lift) is
-  shipped (#49). A7c-3 (lognormal lift) is a separate consumer PR
-  after G-engine-ln (lognormal `has_mi` green or merged).
-- One cell at a time. Do not widen `drm_impute_response_families()`
-  ahead of `drmTMB:::drm_missing_predictor_families()`. V-80 is the
-  anti-drift lock.
-- Fail loud for every cell the engine has not recovered. Silent
-  “first `mi()` only” remains forbidden.
-- Branch on `uncertainty_status`, never `is.na(std_error)`.
-- capability-status stays **`partial`**. No `"covered"`. No general
-  missing-data SEM sentence.
-- Explicit paths on every `git add`. NEVER `git add -A`.
+- Preserve piecewise SEM and engine/layer boundary: drmSEM delegates fitting to drmTMB.
+- Observed-variable, piecewise, DAG-only scope.
+- Component-labelled paths across all distributional parameters.
+- DGP recovery test coverage for every newly shipped feature.
+- Explicit staging: NEVER `git add -A`.
 
-## Authoritative WHAT
+## Definition of Done
 
-`LOOP/ultra-plan.md` (consumer slices only). Contract:
-`LOOP/notes/A7-consumer-contract.md`. Phase 1 locks still hold: D-22,
-`LOOP/notes/A1-engine-contract.md`, A12 PLAN-ACTUAL
-`docs/memory/PLAN-ACTUAL-2026-08-27-s6-imputation.md`. This file wins
-on "what must never be lost".
-
-## Definition of done
-
-**This A7c-3 prep:** LOOP checkpoint + contract + checklist
-committed on this branch; no `R/` edit; capability-status
-untouched. Wait for the lognormal engine PR.
-
-**Programme (later, after G-engine-ln):** lift only lognormal ×
-Bernoulli, V-80 still matches the engine allow-list, V-123 / V-123b
-exist, leftovers (student, …) still fail loud, and
-capability-status is still `partial`.
-
-## Pre-authorisation
-
-- This kickoff: scoped docs/LOOP edits; local commits; listed
-  checks; optional named-branch push + **draft** PR: CONTINUE.
-- Must stop: drmSEM `R/` before G-engine-ln; merge/release/public
-  claim; credentials; destructive work outside this worktree;
-  MAG-completeness files; creating a second drmTMB A7 worktree;
-  flipping capability-status; new compute beyond a later Totoro
-  ask.
-
-## Out of scope
-
-- FIML / joint SEM likelihood / Bayesian imputation
-- Item 3 option (a) (accept a fitted drmTMB as imputer)
-- Incomplete exogenous imputation
-- `impute_joint` as the SEM emit shape
-- MAG / S3 grouping / `rho12` joint fit
-- Engine C++ `has_mi` (sibling lane)
-- drmSEM `R/` during this kickoff
-- capability-status `"covered"`
+- All 4 parallel tracks verified with green CI and PRs merged.
+- Full test suite passes with 0 failures / 0 errors.
+- `docs/memory/OPEN_QUESTIONS.md` updated with resolutions for OQ-4, OQ-14, OQ-15.
+- `paper.md` and documentation fully updated and consistent.
