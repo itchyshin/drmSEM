@@ -10,14 +10,17 @@ average(object, ...)
 
 \method{average}{drm_model_set}(object, ...)
 
-\method{average}{drm_compare}(object, method = c("sd_x", "latent"), ...)
+\method{average}{drm_compare}(object, method = c("sd_x", "latent"), scale = c("1sd", "2sd"), ...)
 }
 \arguments{
 \item{object}{A \code{drm_compare} (from \code{\link[=compare]{compare()}}) or a \code{drm_model_set}.}
 
 \item{...}{Passed to \code{\link[=compare]{compare()}} when \code{object} is an unfitted model set.}
 
-\item{method}{Standardization passed to \code{\link[=standardize]{standardize()}}.}
+\item{method}{Standardization passed to \code{\link[=standardize]{standardize()}} (\code{"sd_x"} or
+\code{"latent"}).}
+
+\item{scale}{Scaling passed to \code{\link[=standardize]{standardize()}} (\code{"1sd"} or \code{"2sd"}).}
 }
 \value{
 A data frame of averaged standardized paths with columns \code{from},

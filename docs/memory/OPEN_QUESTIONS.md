@@ -66,41 +66,28 @@ columns also resolves. Edge cases to pin down: a downstream formula that uses
 `alive` directly; collisions between a column name and a node name; multivariate
 responses sharing a column. Documented as a known edge in `01-semantics.md`.
 
-## OQ-4 — Standardization scale conventions  [RESOLVED 2026-06-06, see D-15]
+## OQ-4 — Standardization scale conventions  [RESOLVED 2026-08-28, see D-15, V-154..V-156]
 
-**Resolution (conventions finalized + documented, `docs/design/08-standardization.md`,
-`?standardize`):** report on the **link scale only** (no back-transform); **factor
-predictors keep SD = 1** (raw per-contrast effect, lavaan `std.nox` convention —
-existing behaviour, now documented); **`latent` is per-component** so `sigma`/`zi`
-paths standardize on their own link scale (the correct and only latent-scale
-standardization for a non-`mu` component). Two refinements remain open and need a
-live-fit cross-check before changing behaviour/tests: (1) add the theoretical-
-variance term `sigma_E` (e.g. `pi^2/3` for logit) to the `latent` divisor for
-non-identity-link **mu** paths — current `sd(eta)` mildly over-standardizes GLM
-mean paths (Grace et al. 2019 / piecewiseSEM `latent.linear`); (2) a Gelman (2008)
-2-SD opt-in for continuous-vs-factor comparability as an explicit argument.
-Original questions below.
+**Closeout (2026-08-28 — Track 3: Gelman 2-SD Scaling & GLM Link-Variance Refinements).**
+The remaining standardization refinements are fully implemented and validated:
+1. **Gelman (2008) 2-SD scaling (`scale = "2sd"`):** `standardize(sem, scale = c("1sd", "2sd"))`
+   rescales continuous numeric predictors by \(2 \times \text{SD}(X)\) while preserving factor
+   dummies and binary {0, 1} indicators at scale multiplier 1. This enables direct comparison
+   between continuous and categorical paths.
+2. **Observation-level log-link variance:** `drm_link_latent_var("log", eta = eta)` incorporates the
+   mean-dependent delta-method theoretical variance \(\text{Var}(e) \approx \log(1 + 1 / \bar{\mu})\)
+   (Nakagawa & Schielzeth 2010; Grace et al. 2018), completing GLM latent-scale standardization
+   across logit (\(\pi^2/3\)), probit (1), cloglog (\(\pi^2/6\)), log (\(\log(1 + 1/\bar{\mu})\)), and identity (0).
+3. **Class & Print Methods:** `standardize()` returns an object of class `c("drm_standardized_paths", "drm_paths", "data.frame")`
+   with dedicated clean formatting.
+4. **Validation:** V-154 (2-SD scaling recovery), V-155 (GLM link variances), and V-156 (column integrity and print methods)
+   asserted in `tests/testthat/test-standardize-2sd.R`. OQ-4 is fully resolved.
 
-**Update 2026-06-07 — refinement (1) shipped for constant-variance links.** The
-`latent` divisor of a **mu** path now adds the theoretical link variance
-`sigma_E^2` for the links where it is a constant — logit `pi^2/3`, probit `1`,
-cloglog `pi^2/6` (`drm_link_latent_var()` / `drm_latent_divisor()` in
-`R/standardize.R`), closed-form validated by **V-44** (no engine). Still open:
-the **log-link** families' *mean-dependent* (observation-level) latent variance,
-the Gelman 2-SD opt-in, and an optional live-GLM-fit confirmation of the full
-pipeline (a Codex nice-to-have; the math is already closed-form locked).
-
-`standardize()` offers `sd_x` (multiply by predictor SD) and `latent` (also
-divide by the SD of the component's fitted linear predictor, after Grace &
-Bollen). Open:
-
-- For **factor** predictors `sd_x` uses SD = 1 (no rescaling); is that the
-  convention we want, or should we report per-contrast standardized effects?
-- The `latent` denominator uses the linear-predictor SD per `(node, component)`;
-  confirm this is the intended latent-scale standardization for non-`mu`
-  components (e.g. standardizing a `sigma` or `zi` path).
-- Should standardized effects be reported on the link scale only, or also
-  back-transformed?
+**Resolution history (conventions finalized + documented, `docs/design/08-standardization.md`, `?standardize`):**
+report on the **link scale only** (no back-transform); **factor predictors keep SD = 1** (raw per-contrast
+effect, lavaan `std.nox` convention); **`latent` is per-component** so `sigma`/`zi` paths standardize on
+their own link scale. Constant-variance links shipped 2026-06-07 (V-44). Gelman 2-SD scaling and log-link
+variance completed 2026-08-28 (V-154..V-156).
 
 ## OQ-5 — Expose path-specific effects beyond a mediator set?  [PARTIAL 2026-06-11, see D-17/D-19]
 

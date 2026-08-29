@@ -587,10 +587,18 @@ average.drm_model_set <- function(object, ...) {
 }
 
 #' @rdname average
-#' @param method Standardization passed to [standardize()].
+#' @param method Standardization passed to [standardize()] (`"sd_x"` or
+#'   `"latent"`).
+#' @param scale Scaling passed to [standardize()] (`"1sd"` or `"2sd"`).
 #' @export
-average.drm_compare <- function(object, method = c("sd_x", "latent"), ...) {
+average.drm_compare <- function(
+  object,
+  method = c("sd_x", "latent"),
+  scale = c("1sd", "2sd"),
+  ...
+) {
   method <- match.arg(method)
+  scale <- match.arg(scale)
   fits <- attr(object, "fits")
   if (is.null(fits)) {
     cli::cli_abort("This comparison carries no fitted models.")
@@ -607,7 +615,7 @@ average.drm_compare <- function(object, method = c("sd_x", "latent"), ...) {
     if (is.null(fit)) {
       next
     }
-    std <- standardize(fit, method = method)
+    std <- standardize(fit, method = method, scale = scale, ...)
     if (nrow(std) == 0L) {
       next
     }
