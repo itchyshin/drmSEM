@@ -1,5 +1,28 @@
 # drmSEM (development version)
 
+## Outcome Functionals & Non-Gaussian Tail Exceedance (0.5.0)
+
+* **Tail Risk and Quantile Analytics (`target = c("mean", "p_gt", "p_zero", "var", "quantile")`)**:
+  `direct_effects()`, `indirect_effects()`, `total_effects()`, and `path_effects()` can now target outcome functionals beyond the conditional mean. Supports exceedance tail probabilities $\Pr(Y > t)$ (`target = "p_gt"`, `threshold = ...`), structural zero/hurdle probabilities $\Pr(Y = 0)$ (`target = "p_zero"`), response variance $\text{Var}(Y)$ (`target = "var"`), and conditional quantiles $Q_p(Y)$ (`target = "quantile"`, `prob = 0.50`).
+* **Closed-Form Analytic Evaluations (`functional = "analytic"`)**:
+  Analytical expectation, variance, zero probability, and exceedance functions implemented for `gaussian`, `poisson`, `lognormal`, `Gamma`, `nbinom2`, `beta`, and `student` families.
+* **Cross-World Natural Mediation on Functionals (`effect = "natural"`)**:
+  4-way decomposition ($\Delta_{\text{total}} = \text{NDE} + \text{NIE} + \text{INT}_{\text{med}}$) evaluated directly on tail risk and quantiles, supported by `path_effects(by = "component")` to attribute risk pathways to mediator mean vs dispersion/zero-inflation channels.
+
+## Hierarchical Uncertainty & Population Integration (0.5.0)
+
+* **Cluster / Block Bootstrap Uncertainty (`uncertainty = "bootstrap"`)**:
+  Non-parametric parameter uncertainty via cluster/block resample refitting (`R = 500`), preserving intra-cluster correlation structures across the full piecewise SEM.
+* **Gauss-Hermite Marginal Population Integration (`population = "marginal"`)**:
+  Integrates out random effects to evaluate population-averaged marginal effects across nonlinear link functions using adaptive Gauss-Hermite quadrature (identity/log links evaluate via exact closed forms).
+
+## Covariance Cliques & K >= 3 Partitioning (0.5.0)
+
+* **Complete Covariance Clique Detection (`covary_clique()`, `covariance_cliques()`)**:
+  Bron-Kerbosch maximal clique algorithm partitions residual and higher-level covariance networks into complete cliques vs structured graphs.
+* **Basis-Set Independence Suppression**:
+  `basis_set()` and `dsep()` automatically suppress all $\binom{K}{2}$ within-clique pairwise independence claims for complete covariance blocks, avoiding spurious test rejections.
+
 ## Comprehensive Vignette Suite & Documentation Architecture (0.5.0)
 
 * **Expanded Latents & Measurement Guide (`vignettes/latent-variables.Rmd`)**:

@@ -159,14 +159,29 @@ engine — see the vignette for a worked run.)
 
 ## More
 
+- **Outcome functionals & tail analytics.** Target causal effects directly on
+  non-mean response functionals: exceedance tail risk (`target = "p_gt"`), zero
+  probabilities (`target = "p_zero"`), variance (`target = "var"`), or quantiles
+  (`target = "quantile"`, `prob = 0.50`), with closed-form analytic forms
+  (`functional = "analytic"`) and cross-world natural mediation.
+- **Cluster bootstrap & population integration.** Evaluate non-parametric
+  parameter uncertainty via full cluster/block refit bootstrap
+  (`uncertainty = "bootstrap"`, `R = 500`) and integrate out random effects to
+  compute population-averaged marginal effects (`population = "marginal"`) using
+  Gauss-Hermite quadrature.
 - **Model selection.** Define a candidate set with `drm_dag()` /
   `drm_model_set()`, then `compare()` / `best()` / `average()` to rank and
-  model-average competing DAGs. See `vignette("comparison")`.
-- **Covariance edges & composites.** Declare residual / random-effect covariance
-  edges with `covary()` (reported by `covariances()`, respected by `dsep()`), and
-  build composite (formative / PCA) constructs with `drm_composite()` /
-  `loadings()`. See `vignette("covariance-edges-and-composites")` and
-  `vignette("latent-variables")`.
+  model-average competing DAGs by CBIC or CICc. See `vignette("comparison")`.
+- **Latent & MIMIC measurement models.** Construct formative, reflective, and
+  MIMIC measurement blocks with `drm_latent()` and `drm_indicator()`. Quantify
+  construct reliability with Cronbach's $\alpha$ (`drm_cronbach_alpha()`) and
+  Raykov's composite $\rho$ (`drm_raykov_rho()`), and separate `loadings(sem)` from
+  structural `paths(sem)`. See `vignette("latent-variables")`.
+- **Covariance cliques & K >= 3 partitioning.** Declare residual and random-effect
+  covariance edges with `covary()` or `covary_clique()`. Bron-Kerbosch maximal
+  clique detection (`covariance_cliques()`) automatically suppresses spurious
+  within-clique independence claims in `basis_set()` / `dsep()`.
+  See `vignette("covariance-edges-and-composites")`.
 - **Latent confounding (MAG m-separation).** Name *marginalised* latents with
   `latent =` on `drm_sem()` / `drm_psem()`. `basis_set()` / `dsep()` then test
   m-separation on the implied MAG (Richardson & Spirtes 2002 Cor. 5.3 anteriors;
@@ -182,14 +197,18 @@ engine — see the vignette for a worked run.)
   dashed arcs. See `vignette("bivariate-nodes")`.
 - **Feedback / cyclic models.** Declare a reciprocal motif with `drm_cycle()` /
   `feedback =` (undeclared cycles stay an error); `total_effects()` then reports
-  the system's **equilibrium** effect by fixed-point propagation (`NA` if it
-  diverges). Node-wise fitting of a cycle is inconsistent under simultaneity —
+  the system's **equilibrium** effect by multi-component Banach fixed-point
+  iteration, audited by spectral radius ($\rho(B) < 1$) and Lipschitz contraction
+  diagnostics. Node-wise fitting of a cycle is inconsistent under simultaneity —
   drmSEM warns and never fakes consistency. See `vignette("feedback-cycles")`.
 - **Missing data & graph-derived imputation.** Automatically derive missing
   mediator models from the causal DAG with `drm_sem(impute = "auto")`. Supports
   continuous (`gaussian`, `Gamma`, `lognormal`, `student`, `beta`) and discrete
-  (`poisson`, `nbinom2`, `ZIP`) families, with multi-parent ($k = 2$) support and
-  detailed diagnostics. See `vignette("missing-data")`.
+  (`poisson`, `nbinom2`, `ZIP`, `beta_binomial`) families, with multi-parent ($k = 2$) support and
+  detailed diagnostics (`imputation()`, `imputed()`). See `vignette("missing-data")`.
+- **Symbolic equation rendering.** Walk fitted SEMs in topological order and
+  render publication-quality LaTeX equations via `symbolize(sem)` and `as_latex()`
+  (integrating with `symbolizer`). See `vignette("equations-via-symbolizer")`.
 - **Interoperability.** `as_lavaan()` / `from_lavaan()` exchange the graph with
   lavaan model syntax (non-mean distributional paths are dropped *with notice*,
   never misrepresented), and `as_dot()` exports a Graphviz diagram. Graph
