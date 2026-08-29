@@ -130,29 +130,63 @@ drm_coarser_scales <- function(var, data) {
   do.call(rbind, rows)
 }
 
-#' Grouping factors a fitted node already accounts for, as bare names.
+#' Grouping factors a fitted node or node specification accounts for, as bare names.
 #' @keywords internal
 #' @noRd
 drm_fit_grouping_vars <- function(fit) {
-  entries <- tryCatch(drm_fit_entries(fit), error = function(e) NULL)
-  if (is.null(entries)) {
+  if (is.null(fit)) {
     return(character(0))
   }
-  out <- character(0)
-  for (e in entries) {
-    rhs <- e$rhs
-    if (is.null(rhs)) {
-      next
-    }
-    txt <- paste(deparse(rhs), collapse = " ")
-    # bar terms: (1 | g), (x | g), relmat(1 | g, ...), phylo(1 | g, ...)
-    m <- gregexpr("\\|[[:space:]]*([A-Za-z._][A-Za-z0-9._]*)", txt)
-    hits <- regmatches(txt, m)[[1]]
-    if (length(hits)) {
-      out <- c(out, sub("^\\|[[:space:]]*", "", hits))
+  if (inherits(fit, "drm_pair")) {
+    return(fit$levels)
+  }
+  if (inherits(fit, "drm_node")) {
+    fit <- fit$formula
+  }
+  if (inherits(fit, "drm_formula")) {
+    entries <- fit$entries
+    if (!is.null(entries)) {
+      out <- character(0)
+      for (e in entries) {
+        if (!is.null(e$rhs)) {
+          f <- tryCatch(stats::as.formula(call("~", e$rhs)), error = function(err) NULL)
+          if (!is.null(f)) {
+            out <- c(out, drm_formula_groups(f))
+          }
+        }
+      }
+      return(unique(out))
     }
   }
-  unique(out)
+  entries <- tryCatch(drm_fit_entries(fit), error = function(e) NULL)
+  if (!is.null(entries)) {
+    out <- character(0)
+    for (e in entries) {
+      rhs <- e$rhs
+      if (is.null(rhs)) {
+        next
+      }
+      f <- tryCatch(stats::as.formula(call("~", rhs)), error = function(err) NULL)
+      if (!is.null(f)) {
+        out <- c(out, drm_formula_groups(f))
+      } else {
+        txt <- paste(deparse(rhs), collapse = " ")
+        m <- gregexpr("\\|[[:space:]]*([A-Za-z._][A-Za-z0-9._]*)", txt)
+        hits <- regmatches(txt, m)[[1]]
+        if (length(hits)) {
+          out <- c(out, sub("^\\|[[:space:]]*", "", hits))
+        }
+      }
+    }
+    return(unique(out))
+  }
+  if (inherits(fit, "formula")) {
+    return(drm_formula_groups(fit))
+  }
+  if (is.list(fit) && !is.null(fit$formula)) {
+    return(drm_fit_grouping_vars(fit$formula))
+  }
+  character(0)
 }
 
 #' The engine's `model_type` for a fitted node.
@@ -511,6 +545,160 @@ drm_fit_corpairs <- function(fit, ...) {
     return(NULL)
   }
   drmTMB::corpairs(fit, ...)
+}
+
+#' Extract higher-level random-effect correlations from a fitted drm_sem or drmTMB fit.
+#' @keywords internal
+#' @noRd
+drm_extract_corpairs <- function(object, ...) {
+  if (inherits(object, "drm_sem")) {
+    fits <- unique(object$nodes)
+    cov_table <- object$covariances
+  } else if (inherits(object, "drmTMB")) {
+    fits <- list(object)
+    cov_table <- NULL
+  } else if (is.list(object)) {
+    fits <- object
+    cov_table <- NULL
+  } else {
+    return(structure(
+      drm_corpairs_empty(),
+      class = c("drm_corpairs", "data.frame"),
+      note = drm_rho12_note(fitted = FALSE)
+    ))
+  }
+
+  extracted_rows <- list()
+  for (fit in fits) {
+    if (!inherits(fit, "drmTMB")) {
+      next
+    }
+    cp <- tryCatch(drm_fit_corpairs(fit), error = function(e) NULL)
+    if (is.null(cp) || !is.data.frame(cp) || !nrow(cp)) {
+      next
+    }
+    hl <- cp[
+      (is.na(cp$level) | cp$level != "residual") &
+        (is.null(cp$class) | cp$class != "residual"),
+      ,
+      drop = FALSE
+    ]
+    if (!nrow(hl)) {
+      next
+    }
+    for (i in seq_len(nrow(hl))) {
+      row_i <- hl[i, , drop = FALSE]
+      grp <- if (!is.null(row_i$group) && !is.na(row_i$group) && nzchar(as.character(row_i$group))) {
+        as.character(row_i$group)
+      } else if (!is.null(row_i$level) && !is.na(row_i$level) && nzchar(as.character(row_i$level))) {
+        as.character(row_i$level)
+      } else {
+        NA_character_
+      }
+      from_resp <- if (!is.null(row_i$from_response) && !is.na(row_i$from_response)) {
+        as.character(row_i$from_response)
+      } else if (!is.null(row_i$from) && !is.na(row_i$from)) {
+        as.character(row_i$from)
+      } else if (!is.null(row_i$y1) && !is.na(row_i$y1)) {
+        as.character(row_i$y1)
+      } else {
+        NA_character_
+      }
+      to_resp <- if (!is.null(row_i$to_response) && !is.na(row_i$to_response)) {
+        as.character(row_i$to_response)
+      } else if (!is.null(row_i$to) && !is.na(row_i$to)) {
+        as.character(row_i$to)
+      } else if (!is.null(row_i$y2) && !is.na(row_i$y2)) {
+        as.character(row_i$y2)
+      } else {
+        NA_character_
+      }
+      est <- if (!is.null(row_i$estimate)) as.numeric(row_i$estimate) else NA_real_
+      se <- if (!is.null(row_i$std.error)) {
+        as.numeric(row_i$std.error)
+      } else if (!is.null(row_i$se)) {
+        as.numeric(row_i$se)
+      } else {
+        NA_real_
+      }
+      pval <- if (!is.null(row_i$p.value)) as.numeric(row_i$p.value) else NA_real_
+
+      extracted_rows[[length(extracted_rows) + 1L]] <- data.frame(
+        level = grp,
+        y1 = from_resp,
+        y2 = to_resp,
+        estimate = est,
+        std.error = se,
+        p.value = pval,
+        stringsAsFactors = FALSE
+      )
+    }
+  }
+
+  if (!is.null(cov_table) && nrow(cov_table) > 0L) {
+    hl_decl <- cov_table[cov_table$class == "higher_level", c("level", "y1", "y2"), drop = FALSE]
+    if (nrow(hl_decl) > 0L) {
+      decl_rows <- list()
+      matched_extracted <- rep(FALSE, length(extracted_rows))
+      for (j in seq_len(nrow(hl_decl))) {
+        d_lv <- hl_decl$level[j]
+        d_y1 <- hl_decl$y1[j]
+        d_y2 <- hl_decl$y2[j]
+        d_pair <- c(d_y1, d_y2)
+        match_idx <- NULL
+        for (k in seq_along(extracted_rows)) {
+          ext_k <- extracted_rows[[k]]
+          if (identical(ext_k$level, d_lv) &&
+              all(c(ext_k$y1, ext_k$y2) %in% d_pair)) {
+            match_idx <- k
+            matched_extracted[k] <- TRUE
+            break
+          }
+        }
+        if (!is.null(match_idx)) {
+          decl_rows[[length(decl_rows) + 1L]] <- extracted_rows[[match_idx]]
+        } else {
+          decl_rows[[length(decl_rows) + 1L]] <- data.frame(
+            level = d_lv,
+            y1 = d_y1,
+            y2 = d_y2,
+            estimate = NA_real_,
+            std.error = NA_real_,
+            p.value = NA_real_,
+            stringsAsFactors = FALSE
+          )
+        }
+      }
+      for (k in seq_along(extracted_rows)) {
+        if (!matched_extracted[k]) {
+          decl_rows[[length(decl_rows) + 1L]] <- extracted_rows[[k]]
+        }
+      }
+      res <- do.call(rbind, decl_rows)
+      rownames(res) <- NULL
+      return(structure(
+        res,
+        class = c("drm_corpairs", "data.frame"),
+        note = drm_rho12_note(fitted = any(!is.na(res$estimate)))
+      ))
+    }
+  }
+
+  if (length(extracted_rows) > 0L) {
+    res <- do.call(rbind, extracted_rows)
+    rownames(res) <- NULL
+    return(structure(
+      res,
+      class = c("drm_corpairs", "data.frame"),
+      note = drm_rho12_note(fitted = TRUE)
+    ))
+  }
+
+  structure(
+    drm_corpairs_empty(),
+    class = c("drm_corpairs", "data.frame"),
+    note = drm_rho12_note(fitted = FALSE)
+  )
 }
 
 #' Convergence flag for a node

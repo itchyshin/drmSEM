@@ -224,6 +224,27 @@ drm_build_covariances <- function(covariances, records) {
         "{.fn covary}: {.val {cv$y1}} and {.val {cv$y2}} resolve to the same node {.val {n1}}."
       )
     }
+    # Deep level-compatibility validation for higher-level covariance edges
+    if (identical(cv$class, "higher_level") && !is.na(cv$level) && nzchar(cv$level)) {
+      rec1 <- records[[n1]]
+      rec2 <- records[[n2]]
+      fit1 <- if (!is.null(rec1$fit)) rec1$fit else rec1$formula
+      fit2 <- if (!is.null(rec2$fit)) rec2$fit else rec2$formula
+      if (!is.null(fit1) || !is.null(fit2)) {
+        g1 <- if (!is.null(fit1)) drm_fit_grouping_vars(fit1) else character(0)
+        g2 <- if (!is.null(fit2)) drm_fit_grouping_vars(fit2) else character(0)
+        has_g1 <- cv$level %in% g1
+        has_g2 <- cv$level %in% g2
+        if (!has_g1 || !has_g2) {
+          cli::cli_abort(c(
+            "Higher-level covariance edge at level {.val {cv$level}} fails level-compatibility validation.",
+            "x" = if (!has_g1) sprintf("Node '%s' does not contain random effects grouped by '%s' (groupings: %s).", n1, cv$level, if (length(g1)) paste(g1, collapse = ", ") else "none") else NULL,
+            "x" = if (!has_g2) sprintf("Node '%s' does not contain random effects grouped by '%s' (groupings: %s).", n2, cv$level, if (length(g2)) paste(g2, collapse = ", ") else "none") else NULL,
+            "i" = sprintf("Ensure both '%s' and '%s' include a random effect term matching (1 | %s).", n1, n2, cv$level)
+          ))
+        }
+      }
+    }
     label <- if (identical(cv$class, "residual")) {
       sprintf("rho12(%s, %s)", n1, n2)
     } else {

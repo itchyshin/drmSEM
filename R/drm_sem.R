@@ -336,6 +336,12 @@ drm_sem <- function(
     cli::cli_abort("Supply at least one {.fn drm_node} or {.fn drm_pair}.")
   }
 
+  # Validate covariance declarations and level-compatibility BEFORE fitting
+  spec_records <- drm_build_spec_records(specs)
+  if (!is.null(covariances)) {
+    drm_build_covariances(covariances, spec_records)
+  }
+
   # Separate latent constructs from marginalized latent names
   latent_constructs <- list()
   marginalized_latents <- character(0)

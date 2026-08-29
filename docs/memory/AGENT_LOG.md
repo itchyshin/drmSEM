@@ -2199,7 +2199,29 @@ covariance. Mixed-family pairs (abort).
 - **Documentation & Ledgers:**
   - Updated `docs/design/07-bivariate-covariance-edges.md`, `docs/design/capability-status.md`, `VALIDATION_LEDGER.md`, and `AGENT_LOG.md`.
 
-## 2026-08-28 — Track 1: Outcome Functionals & Non-Gaussian Tail Exceedance / Quantile Effects (V-139 .. V-141, OQ-11)
+## 2026-08-28 — Track 2: Deep RE-Level Covariance Compatibility & Higher-Level Random Effects Correlation (V-151..V-153, OQ-14)
+
+**Cursor / Noether (mathematical consistency reviewer) & Fisher (inference reviewer)** on `cursor/lane-horizon-t2-re-covariances` at `/Users/z3437171/local-scratch/drmSEM-horizon-t2`.
+
+**What shipped.**
+- **Deep Level-Compatibility Validation (`R/covariances.R`, `R/drm_sem.R`):**
+  - Implemented pre-flight level compatibility validation in `drm_build_covariances()` that inspects random-effect grouping terms across response nodes before model fitting (V-151).
+  - Validates that higher-level covariance declarations `covary(y1, y2, level = "group")` ensure both `y1` and `y2` share the declared grouping structure (`(1 | group)`). Mismatched levels (e.g. `site` vs `species`) or fixed-effects-only models immediately abort with informative diagnostic error messages.
+- **Higher-Level Random-Effect Correlation Extraction (`R/extractors.R`, `R/pair.R`):**
+  - Enhanced `drm_fit_grouping_vars()` to robustly introspect grouping factors from fitted `drmTMB` objects, `drm_formula`/`bf`, and `drm_node`/`drm_pair` specifications.
+  - Implemented `drm_extract_corpairs()` and enhanced `corpairs.drm_sem()` to introspect fitted random effect covariance blocks from `drmTMB::corpairs()`, extracting cross-response random-effect correlations (\(\hat{\rho}_{u_1, u_2}\)), level grouping names, estimates, standard errors, and p-values (V-152).
+  - Enhanced `drm_pair_formula()` with `drm_ensure_re_block_label()` to auto-label shared random effect terms (e.g. `(1 | p_id | id)`) when compiling bivariate models for `drmTMB`.
+  - Updated `drm_bivariate_fit_covariances()` to automatically register higher-level `corpair` covariance edges from fitted bivariate models into `covariances(psem)`.
+- **d-Separation & Independence Claim Suppression (`R/dsep.R`, `R/covariances.R`):**
+  - Verified and asserted that `basis_set()` and `dsep()` cleanly suppress within-pair conditional independence claims for declared and extracted higher-level random-effect covariance pairs (V-153).
+- **Tests & Validation (`tests/testthat/test-re-covariances.R`):**
+  - Added dedicated test suite covering V-151..V-153 (26 passing assertions):
+    - V-151: Level-compatibility validation asserting error on mismatched RE levels and fixed-effect nodes.
+    - V-152: Extraction of higher-level `corpair` estimates from live fitted bivariate models and piecewise models with shared RE structures.
+    - V-153: d-separation basis-set independence claim suppression for higher-level RE covariance pairs.
+- **Documentation & Ledgers:**
+  - Updated `docs/memory/OPEN_QUESTIONS.md` (closing OQ-14) and `docs/memory/VALIDATION_LEDGER.md` (recording V-151..V-153).
+
 
 **Cursor / Ada (orchestrator-integrator)** on `cursor/lane-quad-t1-functionals` at `/Users/z3437171/local-scratch/lanes/drmSEM-quad-t1`.
 

@@ -341,6 +341,47 @@ drm_pair_joint_family <- function(pair) {
   )
 }
 
+#' Ensure random-effect terms for a shared level have a covariance-block label in bivariate models.
+#' @keywords internal
+#' @noRd
+drm_ensure_re_block_label <- function(f, level, label = paste0("p_", level)) {
+  modify_call <- function(expr) {
+    if (!is.call(expr)) {
+      return(expr)
+    }
+    if (identical(expr[[1L]], as.name("(")) && length(expr) >= 2L) {
+      inner <- expr[[2L]]
+      if (
+        is.call(inner) &&
+          (identical(inner[[1L]], as.name("|")) ||
+            identical(inner[[1L]], as.name("||")))
+      ) {
+        if (length(inner) == 3L) {
+          lhs_term <- inner[[2L]]
+          rhs_grp <- inner[[3L]]
+          if (is.call(lhs_term) && identical(lhs_term[[1L]], as.name("|"))) {
+            return(expr)
+          }
+          grp_vars <- all.vars(rhs_grp)
+          if (level %in% grp_vars) {
+            new_bar <- as.call(list(
+              as.name("|"),
+              as.call(list(as.name("|"), lhs_term, as.name(label))),
+              rhs_grp
+            ))
+            return(as.call(list(as.name("("), new_bar)))
+          }
+        }
+      }
+    }
+    for (i in seq_along(expr)[-1L]) {
+      expr[[i]] <- modify_call(expr[[i]])
+    }
+    expr
+  }
+  stats::as.formula(modify_call(f), env = environment(f))
+}
+
 #' Build the joint drmTMB::bf() for a drm_pair declaration.
 #' @keywords internal
 #' @noRd
@@ -352,11 +393,17 @@ drm_pair_formula <- function(pair) {
   if (is.null(rho)) {
     rho <- ~1
   }
+  f1 <- pair$formulas[[y1]]
+  f2 <- pair$formulas[[y2]]
+  for (lv in pair$levels) {
+    f1 <- drm_ensure_re_block_label(f1, lv)
+    f2 <- drm_ensure_re_block_label(f2, lv)
+  }
   do.call(
     drmTMB::bf,
     list(
-      mu1 = pair$formulas[[y1]],
-      mu2 = pair$formulas[[y2]],
+      mu1 = f1,
+      mu2 = f2,
       sigma1 = ~1,
       sigma2 = ~1,
       rho12 = rho
@@ -522,7 +569,7 @@ drm_combine_covariances <- function(auto, user) {
   out
 }
 
-#' Residual covary() edges implied by fitted bivariate nodes.
+#' Residual and higher-level covary() edges implied by fitted bivariate nodes.
 #' @keywords internal
 #' @noRd
 drm_bivariate_fit_covariances <- function(fits) {
@@ -543,6 +590,31 @@ drm_bivariate_fit_covariances <- function(fits) {
     }
     seen <- c(seen, key)
     extra[[length(extra) + 1L]] <- covary(ys[[1L]], ys[[2L]])
+
+    # Check for higher-level corpairs in the fit
+    cp <- tryCatch(drm_fit_corpairs(fit), error = function(e) NULL)
+    if (!is.null(cp) && is.data.frame(cp) && nrow(cp) > 0L) {
+      hl <- cp[
+        (is.na(cp$level) | cp$level != "residual") &
+          (is.null(cp$class) | cp$class != "residual"),
+        ,
+        drop = FALSE
+      ]
+      if (nrow(hl) > 0L) {
+        for (i in seq_len(nrow(hl))) {
+          grp <- if (!is.null(hl$group[i]) && !is.na(hl$group[i]) && nzchar(as.character(hl$group[i]))) {
+            as.character(hl$group[i])
+          } else if (!is.null(hl$level[i]) && !is.na(hl$level[i]) && nzchar(as.character(hl$level[i]))) {
+            as.character(hl$level[i])
+          } else {
+            NULL
+          }
+          if (!is.null(grp)) {
+            extra[[length(extra) + 1L]] <- covary(ys[[1L]], ys[[2L]], level = grp)
+          }
+        }
+      }
+    }
   }
   extra
 }
@@ -834,61 +906,7 @@ corpairs.drm_pair <- function(object, ...) {
 #' @rdname corpairs
 #' @export
 corpairs.drm_sem <- function(object, ...) {
-  biv <- drm_unique_bivariate_fits(object)
-  rows <- list()
-  for (fit in biv) {
-    cp <- tryCatch(drm_fit_corpairs(fit), error = function(e) NULL)
-    if (is.null(cp) || !nrow(cp)) {
-      next
-    }
-    hl <- cp[cp$level != "residual" & cp$class != "residual", , drop = FALSE]
-    if (!nrow(hl)) {
-      next
-    }
-    rows[[length(rows) + 1L]] <- data.frame(
-      level = ifelse(
-        is.na(hl$group) | !nzchar(hl$group),
-        hl$level,
-        hl$group
-      ),
-      y1 = hl$from_response,
-      y2 = hl$to_response,
-      estimate = hl$estimate,
-      std.error = NA_real_,
-      p.value = NA_real_,
-      stringsAsFactors = FALSE
-    )
-  }
-  if (length(rows)) {
-    out <- do.call(rbind, rows)
-    rownames(out) <- NULL
-    return(structure(
-      out,
-      class = c("drm_corpairs", "data.frame"),
-      note = drm_rho12_note(fitted = TRUE)
-    ))
-  }
-  cv <- object$covariances
-  if (is.null(cv) || nrow(cv) == 0L) {
-    hl <- drm_corpairs_empty()[, c("level", "y1", "y2"), drop = FALSE]
-  } else {
-    hl <- cv[cv$class == "higher_level", c("level", "y1", "y2"), drop = FALSE]
-  }
-  out <- data.frame(
-    level = hl$level,
-    y1 = hl$y1,
-    y2 = hl$y2,
-    estimate = NA_real_,
-    std.error = NA_real_,
-    p.value = NA_real_,
-    stringsAsFactors = FALSE
-  )
-  rownames(out) <- NULL
-  structure(
-    out,
-    class = c("drm_corpairs", "data.frame"),
-    note = drm_rho12_note()
-  )
+  drm_extract_corpairs(object, ...)
 }
 
 #' @export

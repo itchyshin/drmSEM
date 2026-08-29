@@ -325,64 +325,30 @@ and contribute to Fisher's C. Validated on live drmTMB (CI run 27006262081
 green; asserted in `tests/testthat/test-phylo.R`). No drmTMB change required
 (see `DRMTMB_ISSUES.md`).
 
-## OQ-14 — First-class bivariate covariance edges (rho12 / corpairs) + d-sep awareness  [PARTIAL 2026-08-28, see D-14; joint residual fit shipped]
+## OQ-14 — First-class bivariate covariance edges (rho12 / corpairs) + d-sep awareness  [SHIPPED 2026-08-28, see D-14; joint residual and higher-level RE fits shipped, V-128..V-129, V-145..V-147, V-151..V-153]
 
 First-class support for bivariate models and their covariance edges, deferred to
 post-0.1 (see D-12, `07-bivariate-covariance-edges.md`). drmSEM 0.1 already
 extracts `x -> rho12` as a directed-path component from a bivariate drmTMB fit
 given to `drm_psem()`, but the covariance-edge machinery does not exist.
 
-**PARTIAL (pure-R grammar layer shipped, `R/covariances.R`, kernel-validated in
-`test-covariances.R`):** `covary(y1, y2, level=)` declares a residual (`rho12`)
-or higher-level (`corpair`) covariance edge; `drm_sem()`/`drm_psem()` take a
-`covariances =` argument and store the validated edges in a `$covariances` slot
-(never in `$edges`); `covariances(sem)` reports residual vs higher-level edges
-separately, kept out of directed-only `paths()`; and `basis_set()`/`dsep()` drop
-the `y1 _||_ y2` independence claim for any declared covariance pair (Shipley's
-bidirected-edge rule).
+**SHIPPED (pure-R grammar layer, joint residual fit, clique partitioning, and deep RE-level compatibility shipped):**
+`covary(y1, y2, level=)` declares a residual (`rho12`) or higher-level (`corpair`) covariance edge;
+`drm_sem()`/`drm_psem()` take a `covariances =` argument and store the validated edges in a `$covariances` slot
+(never in `$edges`); `covariances(sem)` reports residual vs higher-level edges separately, kept out of directed-only `paths()`;
+and `basis_set()`/`dsep()` drop the `y1 _||_ y2` independence claim for any declared covariance pair (Shipley's bidirected-edge rule).
 
-**Update 2026-06-07 — the declaration grammar, accessors, and plotting now ship
-(`R/pair.R`, `test-pair.R`; `R/plotting.R`, `test-plotting.R`):** `drm_pair()`
-declares a bivariate node (two response formulas + families, optional `rho12 ~ x`,
-auto-detected `corpair` level), `drm_expand_pair()` bridges it onto `covary()`,
-the `rho12()` / `corpairs()` accessors report the declared edges (with
-`estimate = NA` until a live fit is attached), and `plot(sem, show = "all")` draws
-double-headed (residual) / dashed (higher-level) covariance arcs.
+**Update 2026-06-07 — declaration grammar, accessors, and plotting (`R/pair.R`, `test-pair.R`; `R/plotting.R`, `test-plotting.R`):**
+`drm_pair()` declares a bivariate node (two response formulas + families, optional `rho12 ~ x`, auto-detected `corpair` level),
+`drm_expand_pair()` bridges it onto `covary()`, the `rho12()` / `corpairs()` accessors report the declared edges,
+and `plot(sem, show = "all")` draws double-headed (residual) / dashed (higher-level) covariance arcs.
 
-**Update 2026-08-28 — joint residual fit shipped.** `drm_sem()` / `drm_psem()`
-fit or consume one `biv_gaussian` / `biv_lognormal` / `biv_student` model;
-`rho12()` returns the Wald table (V-128 constant \(\rho_{12}\); V-129
-\(\rho_{12} \sim x\) on the `tanh` link); d-separation drops `y1 _||_ y2`.
-Remaining:
-
-- Deep level-compatibility validation (both nodes actually share the declared
-  grouping + a compatible covariance structure) — needs RE-block introspection.
-
-Original open items below:
-
-- A `drm_pair()` bivariate node type returning two response sub-nodes (e.g.
-  `activity`, `boldness`) plus the extra covariance structure
-  (`rho12(activity, boldness)`, `corpair(id: activity, boldness)`).
-- A `covariances(sem)` accessor that separates **residual** (`rho12`,
-  `eps_y1 <-> eps_y2`) and **higher-level** (`corpair`, `u_*,y1 <-> u_*,y2`)
-  correlations from directed `paths()` (which stays directed-only); plus
-  `rho12(fit)` / `corpairs(fit)` accessors that **query the fitted object** and
-  expose only correlations actually present (no assumed empty blocks).
-- Double-headed-arc plotting in `plot(sem, show="all")`: solid arrows (directed),
-  double-headed arcs (residual `rho12`), dashed arcs (higher-level `corpair`).
-- The **level-compatibility rule**: estimate/report a higher-level correlation
-  only among random effects sharing the same level + grouping index + compatible
-  covariance structure (OK: `id-y1<->id-y2`, `species-phylo-y1<->species-phylo-y2`,
-  `site-mu<->site-sigma`; NOT generally OK: `site<->species`, `phylo<->spatial`,
-  unrelated cross-model blocks).
-- Making `basis_set()` / `dsep()` **covariance-aware**: skip the
-  `y1 _||_ y2 | predictors` independence claim whenever a residual or RE
-  covariance edge between `y1` and `y2` is declared (the model explicitly allowed
-  them to remain associated). Directed edges (incl. `x -> rho12`) still enter the
-  path algebra; covariance edges are allowances the d-sep machinery must respect.
-
-Needs a **live bivariate drmTMB fit** to validate (cannot be tested in the dev
-container).
+**Update 2026-08-28 — joint residual and higher-level RE fits shipped (V-128..V-129, V-145..V-147, V-151..V-153):**
+`drm_sem()` / `drm_psem()` fit or consume `biv_gaussian` / `biv_lognormal` / `biv_student` models with both residual
+`rho12` and cross-response higher-level random-effect correlations `(1 | p | id)`; `rho12()` returns the Wald table;
+`corpairs()` extracts higher-level correlation estimates \(\hat{\rho}_{u_1, u_2}\) (V-152); deep RE-level compatibility
+validates shared grouping structures across responses before fitting (V-151); and d-separation suppresses within-pair
+independence claims across all residual and higher-level covariance edges (V-153). All items of OQ-14 are now closed.
 
 ## OQ-15 — Composite-construct follow-ups (0.3)
 

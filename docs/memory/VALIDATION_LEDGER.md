@@ -1612,3 +1612,31 @@ testing for external predictors and downstream descendants (`R/covariances.R`, `
 
 **Not claimed.** Arbitrary >2-response joint likelihoods inside drmSEM (relies on drmTMB bivariate models or piecewise node fitting). Global joint multivariate SEM.
 
+## 2026-08-28 — Track 2: Deep RE-Level Covariance Compatibility & Higher-Level Random Effects Correlation (V-151..V-153, OQ-14)
+
+Introspection of fitted `drmTMB` random effect blocks, cross-response random-effects correlation estimation
+(\(\hat{\rho}_{u_1, u_2}\)) in bivariate fits, deep level-compatibility validation across response nodes,
+and d-separation basis-set independence claim suppression for higher-level covariance pairs (`R/covariances.R`,
+`R/extractors.R`, `R/pair.R`, `R/drm_sem.R`).
+
+- **V-151.** Deep level-compatibility validation: higher-level covariance declarations `covary(y1, y2, level = "group")`
+  verify that both `y1` and `y2` contain matching random-effect grouping terms matching `(1 | group)` before fitting.
+  Mismatched levels (e.g. `(1 | site)` on `y1` and `(1 | species)` on `y2` or fixed-effects-only `y2`) immediately abort
+  with an informative diagnostic message pointing to the discordant grouping structures. **Validated.**
+- **V-152.** Higher-level `corpair` parameter extraction from fitted models:
+  (1) Bivariate models fitted via `drm_pair(activity ~ x + (1 | id), boldness ~ x + (1 | id))` in `drm_sem()` or
+  passed as fitted `drmTMB` objects to `drm_psem()` auto-label cross-margin random effects `(1 | p_id | id)` and
+  recover the true known between-group intercept correlation (\(\rho_u = 0.60\));
+  (2) `corpairs(sem)` extracts and formats the higher-level correlation table (`level`, `y1`, `y2`, `estimate`);
+  (3) `covariances(sem)` reports both residual `rho12` and higher-level `corpair` edges;
+  (4) Piecewise univariate models with declared higher-level covariance report `estimate = NA` without fabrication. **Validated.**
+- **V-153.** d-separation suppression for higher-level RE covariance pairs:
+  Declaring a higher-level covariance edge `covary(y1, y2, level = "site")` suppresses the independence claim between
+  `y1` and `y2` in `basis_set()` and `dsep()`, ensuring higher-level covariance allowances are respected in graph
+  topology and basis-set testing. **Validated.**
+
+`tests/testthat/test-re-covariances.R` against drmTMB 0.7.0: **26 pass / 0 fail / 0 skip / 0 warn**.
+
+**Not claimed.** Non-Gaussian copula higher-level RE covariance structures. Cross-model piecewise RE covariance estimation without joint fitting.
+
+
