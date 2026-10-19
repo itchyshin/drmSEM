@@ -259,7 +259,7 @@ test_that("V-58: beta sampler mean+var match drmTMB::simulate() (phi=1/sigma^2)"
   y <- stats::rbeta(n, shape1 = mu * phi, shape2 = (1 - mu) * phi)
   fit <- drmTMB::drmTMB(
     drmTMB::bf(y ~ x),
-    family = drmTMB::beta(),
+    family = drm_beta_family(),
     data = data.frame(x = x, y = y)
   )
   expect_sampler_matches_drmTMB("beta", fit, var_rtol = 0.20)
