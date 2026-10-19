@@ -220,7 +220,7 @@ test_that("V-47: nbinom2 (log) chain -- closure, finiteness, sign under overdisp
 
 test_that("V-48: beta (logit) chain on a proportion response -- closure and sign", {
   # stats::binomial()/drmTMB::binomial() is NOT a drmTMB family, so the logit-link
-  # MEAN-recovery leg uses drmTMB::beta() on a (0,1) proportion response. V-49
+  # MEAN-recovery leg uses drm_beta_family() on a (0,1) proportion response. V-49
   # already covers a cbind() count response via beta_binomial(), so keeping V-48 a
   # proportion-scale beta node keeps the family x link grid non-redundant while
   # still exercising a single logit-link mu path through the mediator.
@@ -239,7 +239,7 @@ test_that("V-48: beta (logit) chain on a proportion response -- closure and sign
 
   sem <- drm_sem(
     m = drm_node(drmTMB::bf(m ~ x), family = stats::gaussian()),
-    y = drm_node(drmTMB::bf(y ~ m), family = drmTMB::beta()),
+    y = drm_node(drmTMB::bf(y ~ m), family = drm_beta_family()),
     data = dat
   )
 
@@ -325,7 +325,7 @@ test_that("V-50: beta (logit) chain on a (0,1) response -- closure and sign", {
 
   sem <- drm_sem(
     m = drm_node(drmTMB::bf(m ~ x), family = stats::gaussian()),
-    y = drm_node(drmTMB::bf(y ~ m), family = drmTMB::beta()),
+    y = drm_node(drmTMB::bf(y ~ m), family = drm_beta_family()),
     data = dat
   )
 
