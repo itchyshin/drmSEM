@@ -239,7 +239,7 @@ test_that("V-48: beta (logit) chain on a proportion response -- closure and sign
 
   sem <- drm_sem(
     m = drm_node(drmTMB::bf(m ~ x), family = stats::gaussian()),
-    y = drm_node(drmTMB::bf(y ~ m), family = drmTMB::beta()),
+    y = drm_node(drmTMB::bf(y ~ m), family = drmTMB::beta_family()),
     data = dat
   )
 
@@ -325,7 +325,7 @@ test_that("V-50: beta (logit) chain on a (0,1) response -- closure and sign", {
 
   sem <- drm_sem(
     m = drm_node(drmTMB::bf(m ~ x), family = stats::gaussian()),
-    y = drm_node(drmTMB::bf(y ~ m), family = drmTMB::beta()),
+    y = drm_node(drmTMB::bf(y ~ m), family = drmTMB::beta_family()),
     data = dat
   )
 

@@ -56,7 +56,7 @@ test_that("V-65: latent standardization of a live logit GLM uses sqrt(Var(eta)+p
   dat <- data.frame(x = x, y = y)
 
   sem <- drm_sem(
-    y = drm_node(drmTMB::bf(y ~ x), family = drmTMB::beta()),
+    y = drm_node(drmTMB::bf(y ~ x), family = drmTMB::beta_family()),
     data = dat
   )
 

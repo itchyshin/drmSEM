@@ -95,7 +95,7 @@ test_that("OQ-1: beta, lognormal, and Gamma samplers match drmTMB parameterizati
   yb <- stats::rbeta(n, shape1 = 0.4 * 8, shape2 = 0.6 * 8)
   fb <- drmTMB::drmTMB(
     drmTMB::bf(y ~ 1),
-    family = drmTMB::beta(),
+    family = drmTMB::beta_family(),
     data = data.frame(y = yb)
   )
   expect_sampler_recovers("beta", fb, yb)
