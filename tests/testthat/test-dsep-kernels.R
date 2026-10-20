@@ -52,3 +52,19 @@ test_that("basis set excludes adjacent pairs and respects causal order", {
   # habitat targets zi of abund -> adjacent under any-component rule, no claim
   expect_false(any(bs$x == "habitat" & bs$y == "abund"))
 })
+
+test_that("Fisher's C reports floored and failed claim counts (#41)", {
+  fc <- drm_fisher_c_from_p(c(0.5, 0, 0.2), n_failed = 2L)
+  expect_equal(fc$n_floored, 1L)
+  expect_equal(fc$n_failed, 2L)
+  expect_equal(fc$k, 3L)
+  fc0 <- drm_fisher_c_from_p(c(0.5, 0.2))
+  expect_equal(fc0$n_floored, 0L)
+  expect_equal(fc0$n_failed, 0L)
+  d <- structure(data.frame(p.value = c(0.5, 0)),
+                 fisher_c = drm_fisher_c_from_p(c(0.5, 0), n_failed = 1L),
+                 class = c("drm_dsep", "data.frame"))
+  out <- fisher_c(d)
+  expect_equal(out$n_floored, 1L)
+  expect_equal(out$n_failed, 1L)
+})

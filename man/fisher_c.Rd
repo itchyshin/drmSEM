@@ -18,7 +18,11 @@ fisher_c(object, ...)
 \item{...}{Unused.}
 }
 \value{
-A one-row data frame with \code{fisher_c}, \code{df}, \code{n_claims}, \code{p.value}.
+A one-row data frame with \code{fisher_c}, \code{df}, \code{n_claims}, \code{n_floored},
+\code{n_failed}, \code{p.value}. \code{n_floored} counts claims whose p-value underflowed
+to the smallest positive double (so C is dominated by a numerical, not
+necessarily genuine, rejection); \code{n_failed} counts claims that could not be
+tested and were excluded from C.
 }
 \description{
 Combines the independence-claim p-values from \code{\link[=dsep]{dsep()}} into Fisher's C,

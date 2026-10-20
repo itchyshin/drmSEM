@@ -2288,3 +2288,8 @@ covariance. Mixed-family pairs (abort).
 
 
 
+
+## 2026-10-20 - Fisher's C: surface floored/failed claim counts (issue #41, partial)
+- `fisher_c()` now returns `n_floored` (claims whose p underflowed to the `.Machine$double.xmin` floor) and `n_failed` (claims excluded as untested); `dsep()` warns when non-`wrong_scale` claims are excluded. C itself is unchanged: the `double.xmin` floor is kept deliberately (a p == 0 claim must inflate C), not the issue's suggested 1e-10.
+- Not done: small-n NB miscalibration (needs a simulation study); NB-anticonservative documentation.
+- Test: `tests/testthat/test-dsep-kernels.R` (engine-free). The `dsep()` warning path needs drmTMB and was not run.

@@ -432,19 +432,37 @@ dsep.drm_sem <- function(object, ...) {
              {.code n_effective} / {.code scale_group} columns."
     ))
   }
-  fc <- drm_fisher_c_from_p(bs$p.value[bs$status == "ok" & !is.na(bs$p.value)])
+  untested <- bs$status != "ok" | is.na(bs$p.value)
+  silent <- untested & bs$status != "wrong_scale"
+  if (any(silent)) {
+    cli::cli_warn(c(
+      "{sum(silent)} claim{?s} could not be tested and {?is/are} excluded from
+       Fisher's C (df shrinks by {2L * sum(silent)}).",
+      "!" = "Statuses: {.val {unique(bs$status[silent])}}.",
+      "i" = "A failed claim regression is not evidence for or against the DAG.
+             Inspect the {.code status} column; {.code fisher_c()} reports the
+             count as {.code n_failed}."
+    ))
+  }
+  fc <- drm_fisher_c_from_p(
+    bs$p.value[!untested],
+    n_failed = sum(untested)
+  )
   attr(bs, "fisher_c") <- fc
   class(bs) <- c("drm_dsep", "data.frame")
   bs
 }
 
-drm_fisher_c_from_p <- function(p) {
+drm_fisher_c_from_p <- function(p, n_failed = 0L) {
   # Drop only un-tested claims (NA). A claim with p == 0 (a decisively rejected
   # independence -- the strongest possible evidence of a missing arrow) must NOT
   # be dropped: doing so removes log(0) = -Inf from C and shrinks df, biasing
   # Fisher's C toward non-rejection exactly when the DAG is most wrong. Floor p
   # at the smallest positive double so such a claim inflates C instead.
   p <- p[!is.na(p)]
+  # Count claims whose p-value hit the floor so a numerical rejection can be
+  # told apart from a genuine one (issue #41).
+  n_floored <- sum(p <= .Machine$double.xmin)
   p <- pmax(p, .Machine$double.xmin)
   k <- length(p)
   C <- -2 * sum(log(p))
@@ -453,6 +471,8 @@ drm_fisher_c_from_p <- function(p) {
     C = C,
     df = df,
     k = k,
+    n_floored = as.integer(n_floored),
+    n_failed = as.integer(n_failed),
     p.value = if (k > 0) {
       stats::pchisq(C, df = df, lower.tail = FALSE)
     } else {
@@ -479,7 +499,11 @@ drm_fisher_c_from_p <- function(p) {
 #'
 #' @param object A `drm_sem` object or the result of [dsep()].
 #' @param ... Unused.
-#' @return A one-row data frame with `fisher_c`, `df`, `n_claims`, `p.value`.
+#' @return A one-row data frame with `fisher_c`, `df`, `n_claims`, `n_floored`,
+#'   `n_failed`, `p.value`. `n_floored` counts claims whose p-value underflowed
+#'   to the smallest positive double (so C is dominated by a numerical, not
+#'   necessarily genuine, rejection); `n_failed` counts claims that could not be
+#'   tested and were excluded from C.
 #' @references
 #' \insertRef{Shipley2000}{drmSEM}
 #'
@@ -515,6 +539,8 @@ fisher_c.drm_dsep <- function(object, ...) {
     fisher_c = fc$C,
     df = fc$df,
     n_claims = fc$k,
+    n_floored = fc$n_floored,
+    n_failed = fc$n_failed,
     p.value = fc$p.value,
     stringsAsFactors = FALSE
   )
