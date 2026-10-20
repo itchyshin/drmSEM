@@ -52,3 +52,25 @@ test_that("basis set excludes adjacent pairs and respects causal order", {
   # habitat targets zi of abund -> adjacent under any-component rule, no claim
   expect_false(any(bs$x == "habitat" & bs$y == "abund"))
 })
+
+test_that("Fisher's C reports how many claims were extreme or failed (#41)", {
+  # One underflowed claim dominates C; the count lets a user tell a numerical
+  # rejection from a genuine one.
+  fc <- drm_fisher_c_from_p(c(0.5, 1e-12, 0), n_failed = 2L)
+  expect_identical(fc$n_extreme, 2L)
+  expect_identical(fc$n_failed, 2L)
+  clean <- drm_fisher_c_from_p(c(0.5, 0.2))
+  expect_identical(clean$n_extreme, 0L)
+  expect_identical(clean$n_failed, 0L)
+  expect_identical(drm_fisher_c_from_p(numeric(0))$n_extreme, 0L)
+})
+
+test_that("fisher_c() and print expose the extreme/failed claim counts (#41)", {
+  bs <- data.frame(x = c("a", "b"), y = c("c", "c"), p.value = c(1e-12, 0.4))
+  attr(bs, "fisher_c") <- drm_fisher_c_from_p(bs$p.value, n_failed = 1L)
+  class(bs) <- c("drm_dsep", "data.frame")
+  out <- fisher_c(bs)
+  expect_identical(out$n_extreme, 1L)
+  expect_identical(out$n_failed, 1L)
+  expect_identical(out$n_claims, 2L)
+})

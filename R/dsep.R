@@ -432,19 +432,37 @@ dsep.drm_sem <- function(object, ...) {
              {.code n_effective} / {.code scale_group} columns."
     ))
   }
-  fc <- drm_fisher_c_from_p(bs$p.value[bs$status == "ok" & !is.na(bs$p.value)])
+  # Claims that could not be tested (refit failed, degenerate, ...) are left out
+  # of C, so one numerical failure is indistinguishable from a genuine
+  # rejection unless it is surfaced (#41). wrong_scale already warns above.
+  failed <- bs$status %in% c("refit_failed", "degenerate", "n_mismatch")
+  if (any(failed)) {
+    cli::cli_warn(c(
+      "{sum(failed)} d-separation claim{?s} could not be tested and {?is/are} excluded from Fisher's C.",
+      "!" = "Status: {.val {unique(bs$status[failed])}}.",
+      "i" = "Check the {.code status} column; a failed refit is a numerical
+             problem, not evidence about the DAG."
+    ))
+  }
+  fc <- drm_fisher_c_from_p(
+    bs$p.value[bs$status == "ok" & !is.na(bs$p.value)],
+    n_failed = sum(failed)
+  )
   attr(bs, "fisher_c") <- fc
   class(bs) <- c("drm_dsep", "data.frame")
   bs
 }
 
-drm_fisher_c_from_p <- function(p) {
+drm_fisher_c_from_p <- function(p, n_failed = 0L) {
   # Drop only un-tested claims (NA). A claim with p == 0 (a decisively rejected
   # independence -- the strongest possible evidence of a missing arrow) must NOT
   # be dropped: doing so removes log(0) = -Inf from C and shrinks df, biasing
   # Fisher's C toward non-rejection exactly when the DAG is most wrong. Floor p
   # at the smallest positive double so such a claim inflates C instead.
   p <- p[!is.na(p)]
+  # Claims with p < 1e-10 can dominate C on their own; count them so a numerical
+  # rejection can be told from a genuine one (#41).
+  n_extreme <- sum(p < 1e-10)
   p <- pmax(p, .Machine$double.xmin)
   k <- length(p)
   C <- -2 * sum(log(p))
@@ -453,6 +471,8 @@ drm_fisher_c_from_p <- function(p) {
     C = C,
     df = df,
     k = k,
+    n_extreme = as.integer(n_extreme),
+    n_failed = as.integer(n_failed),
     p.value = if (k > 0) {
       stats::pchisq(C, df = df, lower.tail = FALSE)
     } else {
@@ -479,7 +499,9 @@ drm_fisher_c_from_p <- function(p) {
 #'
 #' @param object A `drm_sem` object or the result of [dsep()].
 #' @param ... Unused.
-#' @return A one-row data frame with `fisher_c`, `df`, `n_claims`, `p.value`.
+#' @return A one-row data frame with `fisher_c`, `df`, `n_claims`, `n_extreme`
+#'   (claims with p < 1e-10), `n_failed` (claims excluded because they could not
+#'   be tested), `p.value`.
 #' @references
 #' \insertRef{Shipley2000}{drmSEM}
 #'
@@ -515,6 +537,8 @@ fisher_c.drm_dsep <- function(object, ...) {
     fisher_c = fc$C,
     df = fc$df,
     n_claims = fc$k,
+    n_extreme = fc$n_extreme,
+    n_failed = fc$n_failed,
     p.value = fc$p.value,
     stringsAsFactors = FALSE
   )
@@ -536,6 +560,11 @@ print.drm_dsep <- function(x, ...) {
     cli::cli_text(
       "Fisher's C = {round(fc$C, 2)} on {fc$df} df, p = {signif(fc$p.value, 3)}"
     )
+    if (isTRUE(fc$n_extreme > 0L)) {
+      cli::cli_text(
+        "{fc$n_extreme} claim{?s} with p < 1e-10 can dominate C; check for a numerical failure."
+      )
+    }
   }
   invisible(x)
 }

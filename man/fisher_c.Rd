@@ -18,7 +18,9 @@ fisher_c(object, ...)
 \item{...}{Unused.}
 }
 \value{
-A one-row data frame with \code{fisher_c}, \code{df}, \code{n_claims}, \code{p.value}.
+A one-row data frame with \code{fisher_c}, \code{df}, \code{n_claims}, \code{n_extreme}
+(claims with p < 1e-10), \code{n_failed} (claims excluded because they could not
+be tested), \code{p.value}.
 }
 \description{
 Combines the independence-claim p-values from \code{\link[=dsep]{dsep()}} into Fisher's C,

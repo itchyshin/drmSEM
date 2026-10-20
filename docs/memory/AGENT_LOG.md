@@ -2288,3 +2288,13 @@ covariance. Mixed-family pairs (abort).
 
 
 
+
+## 2026-10-20 - Fisher's C: surface extreme and failed claims (#41, partial)
+
+- `dsep()` now warns when claims are excluded with status `refit_failed`,
+  `degenerate` or `n_mismatch`; `fisher_c()` gains `n_extreme` (p < 1e-10) and
+  `n_failed`; the print method flags extreme claims.
+- NOT changed (needs a design decision, left open on #41): the p floor stays at
+  `.Machine$double.xmin` (pinned by an existing test), and the small-n
+  negative-binomial miscalibration is untouched.
+- Tests: `tests/testthat/test-dsep-kernels.R` (engine-free).
