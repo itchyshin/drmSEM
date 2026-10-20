@@ -432,19 +432,46 @@ dsep.drm_sem <- function(object, ...) {
              {.code n_effective} / {.code scale_group} columns."
     ))
   }
-  fc <- drm_fisher_c_from_p(bs$p.value[bs$status == "ok" & !is.na(bs$p.value)])
+  n_excluded <- drm_warn_excluded_claims(bs)
+  fc <- drm_fisher_c_from_p(
+    bs$p.value[bs$status == "ok" & !is.na(bs$p.value)],
+    n_excluded = n_excluded
+  )
   attr(bs, "fisher_c") <- fc
   class(bs) <- c("drm_dsep", "data.frame")
   bs
 }
 
-drm_fisher_c_from_p <- function(p) {
+# Claims that could not enter C (status other than "ok") shrink C and df and so
+# bias it toward non-rejection. Count them and name the failures; wrong_scale has
+# its own warning in dsep(), so it is counted but not re-warned here (#41).
+drm_warn_excluded_claims <- function(bs) {
+  bad <- !is.na(bs$status) & bs$status != "ok"
+  n <- sum(bad)
+  failed <- bad & bs$status != "wrong_scale"
+  if (any(failed)) {
+    cli::cli_warn(c(
+      "{sum(failed)} d-separation claim{?s} could not be tested and {?is/are} excluded from Fisher's C.",
+      "!" = "{.val {paste0(bs$x[failed], ' _||_ ', bs$y[failed], ' (', bs$status[failed], ')')}}",
+      "i" = "Excluding claims shrinks C and its df, which biases the test toward
+             not rejecting. See the {.code status} column and {.code n_excluded}
+             in {.fn fisher_c}."
+    ))
+  }
+  as.integer(n)
+}
+
+drm_fisher_c_from_p <- function(p, n_excluded = 0L) {
   # Drop only un-tested claims (NA). A claim with p == 0 (a decisively rejected
   # independence -- the strongest possible evidence of a missing arrow) must NOT
   # be dropped: doing so removes log(0) = -Inf from C and shrinks df, biasing
   # Fisher's C toward non-rejection exactly when the DAG is most wrong. Floor p
   # at the smallest positive double so such a claim inflates C instead.
   p <- p[!is.na(p)]
+  # Claims with p < 1e-10 each add > 46 to C, so one of them can dominate it.
+  # Count them (the floor itself is unchanged) so a numerical rejection can be
+  # told from a spread-out genuine one (#41).
+  n_extreme <- sum(p < 1e-10)
   p <- pmax(p, .Machine$double.xmin)
   k <- length(p)
   C <- -2 * sum(log(p))
@@ -453,6 +480,8 @@ drm_fisher_c_from_p <- function(p) {
     C = C,
     df = df,
     k = k,
+    n_extreme = as.integer(n_extreme),
+    n_excluded = as.integer(n_excluded),
     p.value = if (k > 0) {
       stats::pchisq(C, df = df, lower.tail = FALSE)
     } else {
@@ -479,7 +508,12 @@ drm_fisher_c_from_p <- function(p) {
 #'
 #' @param object A `drm_sem` object or the result of [dsep()].
 #' @param ... Unused.
-#' @return A one-row data frame with `fisher_c`, `df`, `n_claims`, `p.value`.
+#' @return A one-row data frame with `fisher_c`, `df`, `n_claims`, `p.value`,
+#'   `n_extreme` (claims with p < 1e-10; each adds over 46 to C, so a single one
+#'   can dominate it) and `n_excluded` (claims with a non-`"ok"` status that did
+#'   not enter C). C is not floored at 1e-10: p is floored only at the smallest
+#'   positive double. Read `n_extreme` and `n_excluded` before treating a
+#'   rejection as evidence against the DAG.
 #' @references
 #' \insertRef{Shipley2000}{drmSEM}
 #'
@@ -516,6 +550,8 @@ fisher_c.drm_dsep <- function(object, ...) {
     df = fc$df,
     n_claims = fc$k,
     p.value = fc$p.value,
+    n_extreme = fc$n_extreme,
+    n_excluded = fc$n_excluded,
     stringsAsFactors = FALSE
   )
 }
@@ -536,6 +572,11 @@ print.drm_dsep <- function(x, ...) {
     cli::cli_text(
       "Fisher's C = {round(fc$C, 2)} on {fc$df} df, p = {signif(fc$p.value, 3)}"
     )
+    if (isTRUE(fc$n_extreme > 0L) || isTRUE(fc$n_excluded > 0L)) {
+      cli::cli_text(
+        "{fc$n_extreme} extreme claim{?s} (p < 1e-10), {fc$n_excluded} excluded claim{?s}."
+      )
+    }
   }
   invisible(x)
 }

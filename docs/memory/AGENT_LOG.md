@@ -2288,3 +2288,10 @@ covariance. Mixed-family pairs (abort).
 
 
 
+
+## 2026-10-20 -- Fisher's C: surface extreme and excluded claims (issue 41, option 1)
+
+- `fisher_c()` now also returns `n_extreme` (claims with p < 1e-10) and `n_excluded` (non-"ok" claims not in C); `print.drm_dsep` notes them.
+- `dsep()` warns, naming each claim and status, when a claim is excluded for a reason other than `wrong_scale` (which keeps its own warning).
+- The p floor (`.Machine$double.xmin`) is unchanged on purpose (see the p == 0 test). Floor value and NB small-n miscalibration are left open for a decision.
+- Tests: `tests/testthat/test-dsep-kernels.R` (engine-free). Live drmTMB path not run here.
