@@ -1070,6 +1070,13 @@ simulate_effects <- total_effects
 #' @param functional How a non-mean `target` is evaluated: `"simulate"` (default)
 #'   or `"analytic"` (closed-form evaluation for supported families).
 #' @details
+#' Assumptions inherited from the DAG: drmSEM inherits confounding assumptions
+#' rather than solving them. Causal sufficiency, causal Markov, causal
+#' faithfulness (and ignorability, in potential-outcomes naming) cannot be
+#' tested from data. Positivity (overlap) can be checked from observed data by
+#' comparing covariate distributions across exposure levels. Consistency and
+#' no-interference are definitional, fixed by how the exposure is defined.
+#'
 #' `indirect_effects()` does not take a `method` argument: the controlled
 #' decomposition is formed from *both* the mean-mediated and
 #' distribution-mediated legs, and the natural decomposition always uses
