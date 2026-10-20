@@ -52,6 +52,16 @@ x_probe <- 0
 # Large iid draw count at the fixed (mu, sigma).
 NDRAW <- 400000L
 
+# drmTMB renamed beta() to beta_family() after CRAN 0.7.0; accept either.
+beta_family <- function() {
+  ns <- asNamespace("drmTMB")
+  if (exists("beta_family", envir = ns, inherits = FALSE)) {
+    drmTMB::beta_family()
+  } else {
+    get("beta", envir = ns, inherits = FALSE)()
+  }
+}
+
 fmt <- function(v) formatC(v, digits = 5, format = "g")
 
 # Report relative error of a candidate var vs the drmTMB target var.
@@ -284,7 +294,7 @@ probe(
 )
 probe(
   "beta",
-  drmTMB::beta(),
+  beta_family(),
   plogis(rnorm(n, 0.2 * x, 0.8)),
   "(no fixed phi; whatever drmTMB fits)"
 )

@@ -25,3 +25,13 @@ simulate_drmsem_dgp <- function(n = 400, seed = 1) {
 
   data.frame(temp, habitat, size, abundance, alive, dead)
 }
+
+# drmTMB renamed beta() to beta_family() after CRAN 0.7.0; accept either.
+drm_beta_family <- function() {
+  ns <- asNamespace("drmTMB")
+  if (exists("beta_family", envir = ns, inherits = FALSE)) {
+    drmTMB::beta_family()
+  } else {
+    get("beta", envir = ns, inherits = FALSE)()
+  }
+}
