@@ -2295,3 +2295,16 @@ covariance. Mixed-family pairs (abort).
 - `dsep()` warns, naming each claim and status, when a claim is excluded for a reason other than `wrong_scale` (which keeps its own warning).
 - The p floor (`.Machine$double.xmin`) is unchanged on purpose (see the p == 0 test). Floor value and NB small-n miscalibration are left open for a decision.
 - Tests: `tests/testthat/test-dsep-kernels.R` (engine-free). Live drmTMB path not run here.
+
+---
+
+## 2026-10-19 — Engine-free link/family kernel tests (test-only)
+
+Added `tests/testthat/test-link-family-kernels.R` pinning `drm_link_fun`
+(previously untested), `drm_marginalize_link` (Monte Carlo cross-check),
+`drm_family_expected_mean` (closed forms, zero-inflation), `drm_effective_family`
+routing and `drm_sample_family` means vs expected means. No R/ change. Unknown
+links fall back to identity in both directions (pinned, not endorsed). The hurdle
+sampler is deliberately not exercised (documented unsettled semantics). Mutation
+checks (forward logit, lognormal variance, marginal log variance, zi factor) each
+fail the new file.
