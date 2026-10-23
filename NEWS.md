@@ -1,5 +1,11 @@
 # drmSEM (development version)
 
+* Docs: new "What drmSEM assumes, and what you can check" section in the overview
+  vignette (and matching `indirect_effects()` details and effect-calculus design
+  note) splitting inherited assumptions into untestable (sufficiency, Markov,
+  faithfulness, ignorability), checkable (positivity/overlap), and definitional
+  (consistency, no-interference). Part of #39.
+
 ## Outcome Functionals & Non-Gaussian Tail Exceedance (0.5.0)
 
 * **Tail Risk and Quantile Analytics (`target = c("mean", "p_gt", "p_zero", "var", "quantile")`)**:

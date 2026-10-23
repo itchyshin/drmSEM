@@ -217,6 +217,21 @@ mediators, and bootstrap intervals for the natural rows (OQ-10). The natural
 rows already accept the unified `uncertainty` / `nsim` / `population` controls
 (OQ-12).
 
+## Assumptions inherited from the DAG
+
+drmSEM inherits confounding assumptions from the user-supplied DAG; it does not
+solve them. Three groups, kept separate:
+
+- **Untestable from data:** causal sufficiency, causal Markov, causal
+  faithfulness, and (in potential-outcomes naming) ignorability.
+- **Checkable from observed data:** positivity / overlap. Compare covariate
+  distributions across exposure levels; non-overlapping support is visible.
+  An overlap diagnostic helper is not implemented and awaits a design ruling.
+- **Definitional:** consistency and no-interference, set by how the treatment
+  is defined (the multiple-versions problem).
+
+The reader-facing version is in `vignettes/drmSEM-overview.Rmd`.
+
 ## Conditional vs marginal effects (random effects)
 
 Holding random effects at zero gives the **conditional / typical-group**

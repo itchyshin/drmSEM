@@ -246,6 +246,29 @@ Fisher's C and d-separation settings remain claim-scoped until separately tested
 Claims whose augmented refit cannot be formed are flagged and dropped from
 Fisher's C rather than silently scored.
 
+## What drmSEM assumes, and what you can check
+
+`drmSEM` takes your DAG as given. It checks the DAG against the data through
+d-separation, and it propagates effects through the fitted nodes. It
+**inherits** confounding assumptions from the DAG rather than solving them.
+The assumptions fall into three groups, and they differ in what the data can say.
+
+- **Untestable from data.** Causal sufficiency (no unmeasured common causes of
+  nodes in the graph), the causal Markov condition, and causal faithfulness
+  (the Pearl/SCM triad) cannot be verified from observed data alone. If you name
+  the effects in potential-outcomes language, ignorability (unconfoundedness)
+  belongs here too. A d-separation test can flag a missing path, but a passing
+  test does not prove the DAG.
+- **Checkable from observed data.** Positivity (overlap) asks that every
+  exposure level occur among comparable units. You can compare the covariate
+  distributions across exposure levels, and non-overlapping support is visible
+  in that comparison. Where support does not overlap, an effect is an
+  extrapolation of the fitted model.
+- **Definitional.** Consistency and no-interference are fixed by how the
+  treatment is defined, not by data. Consistency means the exposure has one
+  well-defined version (the multiple-versions problem), and no-interference
+  means one unit's exposure does not change another unit's outcome.
+
 ## Phylogenetic distributional SEM
 
 Shared ancestry enters a `drmSEM` model as a structured random effect on a node.

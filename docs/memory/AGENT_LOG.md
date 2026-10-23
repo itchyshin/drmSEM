@@ -2308,3 +2308,16 @@ links fall back to identity in both directions (pinned, not endorsed). The hurdl
 sampler is deliberately not exercised (documented unsettled semantics). Mutation
 checks (forward logit, lognormal variance, marginal log variance, zi factor) each
 fail the new file.
+
+---
+
+## 2026-10-20 — Issue #39 item 1: assumption docs three-way split
+
+Added "What drmSEM assumes, and what you can check" to
+`vignettes/drmSEM-overview.Rmd`, a matching paragraph in the `indirect_effects()`
+roxygen `@details` (man regenerated), and an "Assumptions inherited from the
+DAG" section in `docs/design/02-effect-calculus.md`. Split: untestable
+(sufficiency, Markov, faithfulness, ignorability), checkable (positivity /
+overlap), definitional (consistency, no-interference). Guard test:
+`tests/testthat/test-docs-assumptions.R` (engine-free). Not done: the overlap
+diagnostic helper (needs a design ruling; issue #39 item 2 stays open).
