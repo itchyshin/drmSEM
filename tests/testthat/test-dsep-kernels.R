@@ -52,3 +52,44 @@ test_that("basis set excludes adjacent pairs and respects causal order", {
   # habitat targets zi of abund -> adjacent under any-component rule, no claim
   expect_false(any(bs$x == "habitat" & bs$y == "abund"))
 })
+
+test_that("Fisher's C reports how many claims were extreme or excluded (#41)", {
+  # One underflowed claim dominates C. The floor is kept, but the user must be
+  # able to tell a numerical rejection from a genuine one.
+  fc <- drm_fisher_c_from_p(c(0.4, 1e-12, 0, 0.3), n_excluded = 2L)
+  expect_equal(fc$k, 4L)
+  expect_equal(fc$n_extreme, 2L)
+  expect_equal(fc$n_excluded, 2L)
+  clean <- drm_fisher_c_from_p(c(0.4, 0.3))
+  expect_equal(clean$n_extreme, 0L)
+  expect_equal(clean$n_excluded, 0L)
+  expect_equal(drm_fisher_c_from_p(numeric(0))$n_extreme, 0L)
+})
+
+test_that("fisher_c() surfaces n_extreme and n_excluded from a drm_dsep (#41)", {
+  bs <- data.frame(x = "a", y = "b", p.value = 1e-14, status = "ok")
+  attr(bs, "fisher_c") <- drm_fisher_c_from_p(1e-14, n_excluded = 3L)
+  class(bs) <- c("drm_dsep", "data.frame")
+  out <- fisher_c(bs)
+  expect_equal(out$n_extreme, 1L)
+  expect_equal(out$n_excluded, 3L)
+})
+
+test_that("failed claims are named in a warning, not dropped silently (#41)", {
+  bs <- data.frame(
+    x = c("a", "b"), y = c("c", "c"),
+    status = c("refit_failed", "ok"), stringsAsFactors = FALSE
+  )
+  expect_warning(
+    n <- drm_warn_excluded_claims(bs),
+    "refit_failed"
+  )
+  expect_equal(n, 1L)
+  ok <- bs[2, ]
+  expect_no_warning(n0 <- drm_warn_excluded_claims(ok))
+  expect_equal(n0, 0L)
+  # wrong_scale already has its own warning, so it is counted but not re-warned
+  ws <- data.frame(x = "a", y = "c", status = "wrong_scale")
+  expect_no_warning(nw <- drm_warn_excluded_claims(ws))
+  expect_equal(nw, 1L)
+})

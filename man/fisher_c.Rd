@@ -18,7 +18,12 @@ fisher_c(object, ...)
 \item{...}{Unused.}
 }
 \value{
-A one-row data frame with \code{fisher_c}, \code{df}, \code{n_claims}, \code{p.value}.
+A one-row data frame with \code{fisher_c}, \code{df}, \code{n_claims}, \code{p.value},
+\code{n_extreme} (claims with p < 1e-10; each adds over 46 to C, so a single one
+can dominate it) and \code{n_excluded} (claims with a non-\code{"ok"} status that did
+not enter C). C is not floored at 1e-10: p is floored only at the smallest
+positive double. Read \code{n_extreme} and \code{n_excluded} before treating a
+rejection as evidence against the DAG.
 }
 \description{
 Combines the independence-claim p-values from \code{\link[=dsep]{dsep()}} into Fisher's C,
