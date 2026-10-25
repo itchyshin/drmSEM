@@ -247,8 +247,14 @@ drm_fit_dag <- function(dag, data, family, fit_env, dots) {
 #' The default ranking statistic is
 #' \deqn{\mathrm{CBIC} = C + k\log(n),}
 #' where \eqn{C} is Fisher's C statistic from the model's d-separation test,
-#' \eqn{k} is the number of estimated fixed-effect coefficients across all
-#' nodes (counted via [paths()]), and \eqn{n} is the number of observations.
+#' \eqn{k} counts parameters the way Shipley (2013) does -- one path
+#' coefficient per fitted fixed-effect coefficient across all nodes (the rows of
+#' [paths()]) plus one variance per variable in the graph (endogenous and
+#' exogenous), with intercepts excluded -- and \eqn{n} is the number of
+#' observations. For example, a five-variable model with five arrows has
+#' \eqn{k = 5 + 5 = 10}. The variance term is the same for every candidate that
+#' uses the same variables, so it leaves CBIC differences unchanged but does
+#' enter the CICc small-sample correction.
 #' CBIC uses a BIC-style penalty and is the default because it is more
 #' conservative about extra paths. `criterion = "CICc"` instead ranks by
 #' \deqn{\mathrm{CICc} = C + 2k\,\frac{n}{n - k - 1},}
@@ -366,8 +372,7 @@ compare.drm_model_set <- function(
     C[[i]] <- fc$fisher_c
     fdf[[i]] <- as.integer(fc$df)
     pval[[i]] <- fc$p.value
-    # k = number of estimated fixed-effect coefficients across all nodes.
-    k[[i]] <- nrow(paths(sem))
+    k[[i]] <- drm_shipley_k(sem)
   }
 
   tab <- data.frame(
@@ -386,6 +391,21 @@ compare.drm_model_set <- function(
   attr(tab, "criterion") <- criterion
   class(tab) <- c("drm_compare", "data.frame")
   tab
+}
+
+# Shipley's (2013) parameter count for the C-statistic information criteria:
+# one path coefficient per arrow plus one variance per variable, intercepts
+# excluded. `n_paths` is the number of fitted fixed-effect coefficients
+# (rows of paths()); `n_vars` is the number of variables in the graph.
+drm_shipley_k_count <- function(n_paths, n_vars) {
+  as.integer(n_paths) + as.integer(n_vars)
+}
+
+drm_shipley_k <- function(sem) {
+  drm_shipley_k_count(
+    n_paths = nrow(paths(sem)),
+    n_vars = length(sem$endogenous) + length(sem$exogenous)
+  )
 }
 
 # Pure-arithmetic core: given a data.frame carrying fisher_c (C), k and n,

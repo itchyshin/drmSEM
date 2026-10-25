@@ -162,6 +162,31 @@ test_that("drm_model_set() requires named, unique drm_dag arguments", {
   )
 })
 
+# Shipley (2013, Table 4) counts K as one path coefficient per arrow plus one
+# variance per variable, no intercepts: Model 1 = 5 arrows + 5 variables = 10,
+# Model 6 = 6 arrows + 5 variables = 11 (issue #40, reproduced from his
+# published covariance matrix with zero K discrepancy).
+test_that("drm_shipley_k_count reproduces Shipley's Table 4 K values", {
+  expect_identical(drmSEM:::drm_shipley_k_count(n_paths = 5L, n_vars = 5L), 10L)
+  expect_identical(drmSEM:::drm_shipley_k_count(n_paths = 6L, n_vars = 5L), 11L)
+})
+
+test_that("Shipley's K moves dCICc away from the paths-only count", {
+  tab <- data.frame(
+    model = c("m1", "m6"),
+    fisher_c = c(8, 7),
+    k = drmSEM:::drm_shipley_k_count(c(5L, 6L), 5L),
+    n = 100L,
+    stringsAsFactors = FALSE
+  )
+  out <- drm_add_cicc(tab, criterion = "CICc")
+  paths_only <- tab
+  paths_only$k <- c(5L, 6L)
+  out_old <- drm_add_cicc(paths_only, criterion = "CICc")
+  expect_equal(out$k[match(c("m1", "m6"), out$model)], c(10L, 11L))
+  expect_false(isTRUE(all.equal(out$dCICc, out_old$dCICc)))
+})
+
 # ---------------------------------------------------------------------------
 # Engine-gated end-to-end: fit, compare, best (mirrors test-integration.R)
 # ---------------------------------------------------------------------------
@@ -232,6 +257,21 @@ test_that("compare() fits a model set and ranks candidates by CBIC", {
   expect_equal(attr(cmp, "criterion"), "CBIC")
   expect_true(all(cmp$n == nrow(dat)))
   expect_no_error(print(cmp))
+
+  # k follows Shipley (2013): one coefficient per path plus one variance per
+  # variable (endogenous + exogenous), intercepts excluded. mediated has 3 paths
+  # (size ~ temp, abundance ~ size + temp) over 3 variables; direct has 2 paths
+  # over 3 variables.
+  fits <- attr(cmp, "fits")
+  for (nm in cmp$model) {
+    sem <- fits[[nm]]
+    expect_equal(
+      cmp$k[cmp$model == nm],
+      nrow(paths(sem)) + length(sem$endogenous) + length(sem$exogenous)
+    )
+  }
+  expect_equal(cmp$k[cmp$model == "mediated"], 6L)
+  expect_equal(cmp$k[cmp$model == "direct"], 5L)
 
   # best() returns the fitted drm_sem of the lowest-CBIC candidate.
   top <- best(cmp)

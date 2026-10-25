@@ -1,5 +1,12 @@
 # drmSEM (development version)
 
+* `compare()` now counts `k` the way Shipley (2013) does: one coefficient per
+  fitted path (`nrow(paths(sem))`) plus one variance per variable, intercepts
+  excluded. Previously `k` was the path count alone, which understated the
+  penalty and, for CICc, changed `dCICc` and the weights (on Shipley's Table 4
+  covariance matrix the true model had dCICc 0.575 instead of 0.312). `CBIC`
+  differences between candidates on the same variables are unchanged; `CICc`,
+  `dCICc` and the weights from `compare()` and `average()` can shift (#40).
 * Docs: new "What drmSEM assumes, and what you can check" section in the overview
   vignette (and matching `indirect_effects()` details and effect-calculus design
   note) splitting inherited assumptions into untestable (sufficiency, Markov,
