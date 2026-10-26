@@ -50,8 +50,9 @@ criterion built on Fisher's C,
 \]
 
 where \(C\) is Fisher's C statistic from the d-separation test
-[@Shipley2000; @Shipley2009], \(k\) is the number of fitted fixed-effect paths,
-and \(n\) is the number of observations. The stronger penalty matters because a
+[@Shipley2000; @Shipley2009], \(k\) is counted as in @Shipley2013 (one coefficient per fitted path
+plus one variance per variable, no intercepts), and \(n\) is the number of
+observations. The stronger penalty matters because a
 harmless over-fitted DAG can have a very small C statistic. CBIC asks a
 stricter question: is the extra path worth its cost?
 

@@ -43,8 +43,14 @@ phylopath's \code{phylo_path()} (van der Bijl 2018).
 The default ranking statistic is
 \deqn{\mathrm{CBIC} = C + k\log(n),}
 where \eqn{C} is Fisher's C statistic from the model's d-separation test,
-\eqn{k} is the number of estimated fixed-effect coefficients across all
-nodes (counted via \code{\link[=paths]{paths()}}), and \eqn{n} is the number of observations.
+\eqn{k} counts parameters the way Shipley (2013) does -- one path
+coefficient per fitted fixed-effect coefficient across all nodes (the rows of
+\code{\link[=paths]{paths()}}) plus one variance per variable in the graph (endogenous and
+exogenous), with intercepts excluded -- and \eqn{n} is the number of
+observations. For example, a five-variable model with five arrows has
+\eqn{k = 5 + 5 = 10}. The variance term is the same for every candidate that
+uses the same variables, so it leaves CBIC differences unchanged but does
+enter the CICc small-sample correction.
 CBIC uses a BIC-style penalty and is the default because it is more
 conservative about extra paths. \code{criterion = "CICc"} instead ranks by
 \deqn{\mathrm{CICc} = C + 2k\,\frac{n}{n - k - 1},}
