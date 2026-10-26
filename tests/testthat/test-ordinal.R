@@ -10,7 +10,7 @@
 #   V-89  dsep()/Fisher's C run over an ordinal node and do not reject a true DAG
 #   V-90  LIMITATION: `mu` is the LATENT linear predictor, not E[category]
 #   V-91  LIMITATION: a non-mean target (p_gt) degenerates to exactly 0
-#   V-92  engine constraint: an ordinal node cannot be distributional
+#   V-92  an ordinal node's scale (disc) is targetable only on a drmTMB that declares it
 #
 # V-90 and V-91 are pinned as *limitations*, not fixed. Both are silent-wrong-answer
 # shaped, so the test exists to make them loud in the suite rather than discovered by
@@ -141,16 +141,24 @@ test_that("V-91b: check_sem() reports the ordinal node as having no sampler", {
   expect_true(row$vcov_available)
 })
 
-test_that("V-92: an ordinal node cannot be distributional (engine constraint)", {
+test_that("V-92: an ordinal node's scale (disc) is targetable only where the engine declares it", {
   d <- ordinal_dat(n = 200)
-  # cumulative_logit declares dpars = "mu" only; the fitter rejects any non-mu
-  # formula. So a causal path can never target an ordinal node's scale -- which is
-  # the one place drmSEM's headline capability is structurally unavailable.
-  expect_error(
+  build <- function() {
     drm_sem(
       m = drm_node(drmTMB::bf(m ~ x), family = stats::gaussian()),
       y = drm_node(drmTMB::bf(y ~ m, disc ~ x), family = drmTMB::cumulative_logit()),
       data = d
     )
-  )
+  }
+  if (!"disc" %in% drmTMB::cumulative_logit()$dpars) {
+    # Older drmTMB: cumulative_logit declares dpars = "mu" only and the fitter
+    # rejects any non-mu formula, so no causal path can target the node's scale.
+    expect_error(build())
+  } else {
+    # drmTMB >= the ordinal-disc lane: the discrimination (scale) parameter is a
+    # distributional parameter, so a path into the ordinal node's scale now exists.
+    sem <- build()
+    pth <- as.data.frame(paths(sem))
+    expect_true(any(pth$from == "x" & pth$to == "y" & pth$component == "disc"))
+  }
 })
