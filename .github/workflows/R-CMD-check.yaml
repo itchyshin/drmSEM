@@ -18,6 +18,10 @@ concurrency:
 
 jobs:
   R-CMD-check:
+    # Coverage collection lives in test-coverage.yaml (ubuntu-only, one
+    # Codecov upload). Do not add covr to this OS matrix: ubuntu + macos +
+    # windows run the same testthat suite and a second upload would
+    # double-count. Skip contracts stay here unchanged.
     runs-on: ${{ matrix.config.os }}
     timeout-minutes: 45
     name: ${{ matrix.config.os }} (${{ matrix.config.r }})

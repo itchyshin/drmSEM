@@ -20,3 +20,5 @@
 ^tools$
 ^LOOP$
 ^\.uinit$
+^codecov\.yml$
+^\.codecov\.yml$
