@@ -1224,7 +1224,12 @@ indirect_effects <- function(
       if (!is.null(seed)) {
         set.seed(seed)
       }
-      mat <- matrix(NA_real_, B, 3L, dimnames = list(NULL, c("nde", "nie", "total")))
+      mat <- matrix(
+        NA_real_,
+        B,
+        4L,
+        dimnames = list(NULL, c("nde", "nie", "total", "mediated_interaction"))
+      )
       for (bi in seq_len(B)) {
         boot_dat <- drm_resample_data(object)
         boot_sem <- drm_bootstrap_refit_sem(object, boot_dat)
