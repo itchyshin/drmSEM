@@ -2365,3 +2365,31 @@ report exists.
 **Next.** Review PR; subscribe to branch CI; subsequent wakes report
 evidence only and request the coordinator before further edits. Ask for a
 Codecov app/token only if the uploader actually fails.
+
+---
+
+## 2026-11-09 — Coverage raised from 85.1% to 94.7% (local covr)
+
+**What shipped.** New test files, all checking values, messages, classes, or
+recovery of a known DGP (no `nocov`, no exclusions, no loosened tolerances):
+`test-latents-kernels.R`, `test-analytic-functional-kernels.R`,
+`test-effects-engine.R`, `test-path-effects-functional.R`,
+`test-extractors-adapter.R`, `test-drm-sem-surface.R`, `test-pair-surface.R`,
+`test-model-set-extra.R`, plus shared memoised fixtures in
+`helper-cov-fits.R`. Engine calls are stubbed with `local_mocked_bindings()`
+or hand-built mock engines (closed-form truth) where drmTMB is not needed.
+
+**Bugs found by the new tests and fixed** (commit `f625865`):
+1. `drm_analytic_functional()` `p_gt` for poisson / lognormal / Gamma /
+   nbinom2 / beta used a scalar `ifelse()` on the threshold, so every row took
+   the first row's value. Now `rep(..., n)`.
+2. `drm_analytic_or_abort()` had no default for `seed`; analytic bootstrap
+   crashed with "argument seed is missing".
+3. The natural-effect bootstrap matrix had 3 columns for 4 statistics.
+
+**Still uncovered / fragile (owner to decide, nothing removed).** `R/zzz.R`
+(0%, load hook); unreachable abort in `drm_fixed_design`; the feedback
+non-convergence warning path; `drm_fit_imputed` abort when the engine export is
+missing; `drm_extract_corpairs` uses an `is.null(cp$class) | ...` pattern that
+drops every row of a table lacking a `class` column; `population` is not
+forwarded in `drm_analytic_or_abort`.
