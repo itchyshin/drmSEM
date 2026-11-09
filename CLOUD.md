@@ -86,3 +86,9 @@ is **skipped when `drmTMB` is not installed** (guarded by
 gets a green suite on the kernel logic. The integration path is the one that
 must run in the cloud/CI environment provisioned above, where the engine is
 compiled and present.
+
+Hosted code-coverage collection (`covr` + one Codecov OIDC upload) is a
+separate ubuntu job in `.github/workflows/test-coverage.yaml`. It re-runs
+that same skip-gated suite under tracing; it does not replace R CMD check.
+See `docs/memory/TEST_COVERAGE.md` for the five evidence stages. A local
+`covr` percent is not a Codecov dashboard number.

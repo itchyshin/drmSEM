@@ -2321,3 +2321,47 @@ DAG" section in `docs/design/02-effect-calculus.md`. Split: untestable
 overlap), definitional (consistency, no-interference). Guard test:
 `tests/testthat/test-docs-assumptions.R` (engine-free). Not done: the overlap
 diagnostic helper (needs a design ruling; issue #39 item 2 stays open).
+
+---
+
+## 2026-11-08 — Codecov first coding pass (CI/coverage/config/docs only)
+
+**Lane.** drmSEM only, First+Next Codecov rollout (Shinichi approved). Isolated
+branch `cursor/codecov-drmsem-coverage-bb14` from `origin/main`
+`74b246fb73a0dfff177115a46394c6ff2da9cdcd` (PR #84 merge). No other
+codecov/coverage branches. pigauto / GLLVModels / hsquared untouched.
+
+**What shipped (infra only).**
+- New ubuntu-only `.github/workflows/test-coverage.yaml`:
+  `covr::package_coverage()` → Cobertura → `codecov/codecov-action` v7 with
+  `use_oidc: true`. Job-scoped `contents: read` + `id-token: write`. No
+  `CODECOV_TOKEN`. `GITHUB_PAT` is only the r-lib install token, not a
+  Codecov token. Logs `github.sha` (checkout; synthetic merge on
+  `pull_request`) separately from `github.event.pull_request.head.sha`
+  (branch head).
+- New `codecov.yml`: one expected upload (`after_n_builds: 1`, flag
+  `ubuntu-covr`), informational status checks, ignore tests/docs/vignettes.
+- `R-CMD-check.yaml`: comment only. ubuntu + macos + windows shards
+  unchanged and still do not upload (avoids double-counting).
+- Docs: `docs/memory/TEST_COVERAGE.md` (five evidence stages), this log,
+  `CLOUD.md` pointer, `.Rbuildignore` for `codecov.yml`.
+
+No `R/`, `tests/`, fixtures, NEWS, DESCRIPTION, capability-status, or
+validation-ledger edits. No README badge. Skip contracts preserved
+(`skip_if_not_installed("drmTMB")` and friends). Coverage job installs
+`drmTMB` from Remotes so the measured suite matches ubuntu R-CMD-check.
+
+**Local runtime.** This host has no `R` / `Rscript` / `covr`. Local
+coverage is **NOT_VERIFIED**. No percent fabricated.
+
+**Evidence stages at coding-pass close.** Config landed. CI coverage
+finish, OIDC upload, accepted commit report, and main dashboard are all
+**NOT_VERIFIED** until hosted `test-coverage` and Codecov say so. Main
+dashboard requires an authorized merge plus a `push` run on `main`; this
+lane does not merge. hsquared PR 364 processed an OIDC branch report
+without owner action; that does not verify drmSEM until this repo's
+report exists.
+
+**Next.** Review PR; subscribe to branch CI; subsequent wakes report
+evidence only and request the coordinator before further edits. Ask for a
+Codecov app/token only if the uploader actually fails.
