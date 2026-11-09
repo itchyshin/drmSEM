@@ -19,12 +19,11 @@ test_that("Poisson with zi reproduces the zero-inflated-Poisson moments and tail
   expect_equal(af("poisson", "var", mu = mu, zi = zi), (1 - zi) * mu * (1 + zi * mu))
   # P(Y = 0) = pi + (1 - pi) exp(-mu)
   expect_equal(af("poisson", "p_zero", mu = mu, zi = zi), zi + (1 - zi) * exp(-mu))
-  # P(Y > 2) summed explicitly from the Poisson pmf (single-row parameters: the
-  # threshold branches of p_gt return one value, see the PR note on p_gt)
-  tail2 <- 1 - exp(-mu[2]) * (1 + mu[2] + mu[2]^2 / 2)
-  expect_equal(af("poisson", "p_gt", threshold = 2, mu = mu[2], zi = zi[2]), (1 - zi[2]) * tail2)
-  # a negative threshold is exceeded with certainty
-  expect_equal(af("poisson", "p_gt", threshold = -1, mu = mu[2], zi = zi[2]), 1)
+  # P(Y > 2) summed explicitly from the Poisson pmf
+  tail2 <- 1 - exp(-mu) * (1 + mu + mu^2 / 2)
+  expect_equal(af("poisson", "p_gt", threshold = 2, mu = mu, zi = zi), (1 - zi) * tail2)
+  # a negative threshold is exceeded with certainty, for every row
+  expect_equal(af("poisson", "p_gt", threshold = -1, mu = mu, zi = zi), c(1, 1))
 })
 
 test_that("Poisson quantile is the smallest q whose zero-inflated CDF reaches prob", {
@@ -122,12 +121,12 @@ test_that("beta functionals follow phi = 1 / sigma^2 and clamp the boundary", {
   expect_equal(af("beta", "var", mu = mu, sigma = sg), mu * (1 - mu) / (1 + phi))
   expect_equal(af("beta", "p_zero", mu = mu, sigma = sg), c(0, 0))
   expect_equal(
-    af("beta", "p_gt", threshold = 0.5, mu = mu[1], sigma = sg[1]),
-    stats::pbeta(0.5, mu[1] * phi[1], (1 - mu[1]) * phi[1], lower.tail = FALSE)
+    af("beta", "p_gt", threshold = 0.5, mu = mu, sigma = sg),
+    stats::pbeta(0.5, mu * phi, (1 - mu) * phi, lower.tail = FALSE)
   )
-  # support limits
-  expect_equal(af("beta", "p_gt", threshold = 0, mu = mu[1], sigma = sg[1]), 1)
-  expect_equal(af("beta", "p_gt", threshold = 1, mu = mu[1], sigma = sg[1]), 0)
+  # support limits, for every row
+  expect_equal(af("beta", "p_gt", threshold = 0, mu = mu, sigma = sg), c(1, 1))
+  expect_equal(af("beta", "p_gt", threshold = 1, mu = mu, sigma = sg), c(0, 0))
   expect_equal(
     af("beta", "quantile", prob = 0.75, mu = mu, sigma = sg),
     stats::qbeta(0.75, mu * phi, (1 - mu) * phi)
