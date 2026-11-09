@@ -316,7 +316,7 @@ drm_analytic_or_abort <- function(
   prob,
   B,
   draw,
-  seed
+  seed = NULL
 ) {
   vals <- drm_functional_contrast_analytic(
     engines,
