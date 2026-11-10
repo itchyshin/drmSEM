@@ -853,7 +853,7 @@ drm_analytic_functional <- function(
       mean = (1 - zi) * mu,
       var = (1 - zi) * mu + zi * (1 - zi) * mu^2,
       p_gt = ifelse(
-        threshold < 0,
+        rep(threshold < 0, n),
         1,
         (1 - zi) * stats::ppois(floor(threshold), lambda = pmax(mu, 0), lower.tail = FALSE)
       ),
@@ -872,7 +872,7 @@ drm_analytic_functional <- function(
       mean = (1 - zi) * exp(mu + 0.5 * sigma^2),
       var = (1 - zi) * exp(2 * mu + 2 * sigma^2) - ((1 - zi) * exp(mu + 0.5 * sigma^2))^2,
       p_gt = ifelse(
-        threshold <= 0,
+        rep(threshold <= 0, n),
         1 - zi,
         (1 - zi) * stats::plnorm(threshold, meanlog = mu, sdlog = pmax(sigma, 1e-8), lower.tail = FALSE)
       ),
@@ -895,7 +895,7 @@ drm_analytic_functional <- function(
       mean = (1 - zi) * mu_pos,
       var = (1 - zi) * mu_pos^2 * (sig2 + zi),
       p_gt = ifelse(
-        threshold <= 0,
+        rep(threshold <= 0, n),
         1 - zi,
         (1 - zi) * stats::pgamma(threshold, shape = shape_val, rate = rate_val, lower.tail = FALSE)
       ),
@@ -916,7 +916,7 @@ drm_analytic_functional <- function(
       mean = (1 - zi) * mu_pos,
       var = (1 - zi) * (mu_pos + mu_pos^2 * (pmax(sigma, 1e-8)^2 + zi)),
       p_gt = ifelse(
-        threshold < 0,
+        rep(threshold < 0, n),
         1,
         (1 - zi) * stats::pnbinom(floor(threshold), size = size_val, mu = mu_pos, lower.tail = FALSE)
       ),
@@ -939,10 +939,10 @@ drm_analytic_functional <- function(
       mean = mu_clamped,
       var = mu_clamped * (1 - mu_clamped) / (1 + phi),
       p_gt = ifelse(
-        threshold <= 0,
+        rep(threshold <= 0, n),
         1,
         ifelse(
-          threshold >= 1,
+          rep(threshold >= 1, n),
           0,
           stats::pbeta(threshold, shape1 = sh1, shape2 = sh2, lower.tail = FALSE)
         )
